@@ -1,5 +1,7 @@
 # Tiny BASIC for STM8
 
+**AVERTISSEMENT Ce projet est en construction et le code change continuellement. Il ne s'agit pas d'une version stable.**
+
 Il s'agit d'une implémentation du [Tiny BASIC](https://en.wikipedia.org/wiki/Tiny_BASIC) originellement conçu par [Dennis Allison](https://en.wikipedia.org/wiki/Dennis_Allison) au milieu des années 197x. Cette implémentation est créée à partir des documents [TINYDISK.DOC](TINYDISK.DOC) et [TINYDISK.ASM](TINYDISK.ASM). Cepandant elle n'est pas exactement identique. 
 
 Il s'agit d'un interpréteur pur. C'est à dire que le texte est lu à chaque exécution. Il n'y a pas de génération de code intermédiaire pour exécution sur une machine virtuelle. L'avantage est au niveau de la simplicité. Par exemple la commande **LIST** ne nécessite pas de désassemblage pour afficher le contenu du texte original puisque celui-ci est sauvegarder tel quel. 
