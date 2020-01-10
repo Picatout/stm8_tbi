@@ -1,4 +1,4 @@
-# Tiny BASIC for STM8
+# Tiny BASIC pour STM8
 
 **AVERTISSEMENT Ce projet est en construction et le code change continuellement. Il ne s'agit pas d'une version stable.**
 
