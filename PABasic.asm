@@ -61,8 +61,7 @@ acc8:  .blkb 1
 ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
 seedx: .blkw 1  ; xorshift 16 seed x 
 seedy: .blkw 1  ; xorshift 16 seed y 
-untok: .blkb 1  ; last ungotten token attribute 
-tokval: .blkw 1 ; last parsed token value  
+in.w.saved: .blkw 1 ; last parsed token value  
 farptr: .blkb 3 ; far pointer 
 ffree: .blkb 3 ; flash free address 
 dstkptr: .blkw 1  ; data stack pointer 
@@ -523,28 +522,6 @@ puts:
 	jra puts 
 1$:	ret 
 
-;-----------------------------
-; send a counted string to UART3 
-; first is length {0..255}
-; input: 
-;   X  		char *
-; output:
-;   none 
-;-------------------------------
-prt_cstr:
-	clrw y 
-	ld a,(x)
-	incw x 
-	ld yl,a 
-1$:	tnzw y 
-	jreq 9$ 
-	ld a,(x)
-	call putc 
-	incw x 
-	decw y
-	jra 1$ 
-9$:	ret 
-
 
 ;---------------------------
 ; delete character at left 
@@ -1001,6 +978,7 @@ is_alpha:
 	MAJOR=1
 	MINOR=0
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2020\nversion "
+usr_addr: .asciz "user space address: " 
 cold_start:
 ;set stack 
 	ldw x,#STACK_EMPTY
@@ -1047,7 +1025,12 @@ cold_start:
 	call prti24 
 	ld a,#CR 
 	call putc 
-	call seek_fdrive  
+	call seek_fdrive 
+	ldw x,#usr_addr
+	call puts  
+	ldw x,#user_space
+	mov base,#16
+	call print_int 
 ; configure LED2 pin 
     bset PC_CR1,#LED2_BIT
     bset PC_CR2,#LED2_BIT
@@ -1132,9 +1115,6 @@ tb_error:
     ldw sp,x
 warm_start:
 	clr flags 
-	clr untok
-	clrw x 
-	ldw tokval,x 
 	clr loop_depth 
 	ldw x,#dstack_unf 
 	ldw dstkptr,x 
@@ -1468,6 +1448,71 @@ parser_init::
 	clr pad  
 	ret 
 
+;-----------------------------------
+; print a 16 bit integer 
+; using variable 'base' as conversion
+; format.
+; input:
+;   X       integer to print 
+;   base    conversion base 
+; output:
+;   none 
+;-----------------------------------
+	SIGN=1
+	VSIZE=1
+print_int: 
+	_vars VSIZE 
+	clr (SIGN,sp)
+	ldw y,#pad+PAD_SIZE-1 
+	clr (y)
+	ld a,base  
+	cp a,#10 
+	jrne 1$ 
+	tnzw x 
+	jrpl 1$ 
+	cpl (SIGN,sp)
+	negw x 	 
+1$:	
+	ld a,base 
+	div x,a 
+	add a,#'0 
+	cp a,#'9+1 
+	jrmi 2$ 
+	add a,#7 
+2$: decw y 
+	ld (y),a 
+	tnzw x 
+	jrne 1$ 
+	ld a,#16 
+	cp a,base 
+	jrne 3$
+	ld a,#'$
+	decw y  
+	ld (y),a
+	jra 9$ 
+3$: tnz (SIGN,sp)
+	jreq 9$ 
+	ld a,#'-
+	decw y  
+	ld (y),a
+9$:	
+	ldw x,y 
+	subw x,#pad+PAD_SIZE-1 
+	negw x  
+10$:
+	decw y 
+	ld a,#SPACE 
+	ld (y),a
+	incw x 
+	ld a,xl 
+	cp a,tab_width
+	jrmi 10$ 
+12$:
+    ldw x,y 
+	call puts  
+	_drop VSIZE 
+	ret 
+
 ;------------------------------------
 ; convert integer to string
 ; input:
@@ -1774,7 +1819,6 @@ peek_byte:
 
 
 invalid_cmd: .asciz "not a command\n" 
-.endif 
 
 ;----------------------------
 ; display farptr address
@@ -1819,26 +1863,7 @@ number::
 	call get_token
 	call atoi
 	ret
-
-;------------------------------------
-; scan tib for charater 'c' starting from 'in'
-; input:
-;	y  point to tib 
-;	a character to skip
-; output:
-;	in point to chacter 'c'
-;------------------------------------
-	C = 1 ; local var
-scan: 
-	push a
-1$:	ld a,([in.w],y)
-	jreq 2$
-	cp a,(C,sp)
-	jreq 2$
-	inc in
-	jra 1$
-2$: pop a
-	ret
+.endif
 
 ;------------------------------------
 ; parse quoted string 
@@ -2088,23 +2113,16 @@ parse_keyword: ; { -- exec_addr|var_addr}
 	TCHAR=1
 	ATTRIB=2 
 	VSIZE=2
-get_token: ; { -- tokval }
-	tnz untok 
-	jreq 1$
-	ld a,untok
-	clr untok 
-	ldw x,tokval
-	clr tokval 
-	clr tokval+1 
-	ret 
-1$:	
+get_token: 
+	ldw x,in.w 
+	ldw in.w.saved,x 
 	ldw y,basicptr   	
 	ld a,in 
 	cp a,count 
-	jrmi 11$
+	jrmi 1$
 	ld a,#TK_NONE 
 	ret 
-11$:	
+1$:	
 	_vars VSIZE
 	ldw x, #pad
 	ld a,#SPACE
@@ -2599,48 +2617,17 @@ store:
 	ldw (x),y 
 	ret 
 
-;----------------------------
-; print TOS 
-; dstack: {n -- }
-;----------------------------
-prt_tos:
-	call dpop 
-	ldw acc16,x
-	clr acc24 
-	btjf acc16,#7,1$
-	cpl acc24 
-1$:	ld a,tab_width 
-	clrw x 
-	ld xl,a 
-	ld a,base 
-	call prti24
-	ret 
-
 ;------------------------------
-; put A in untok, pop TOS put it in tokval
-; dstack { n -- }
-; input:
-;   A     token_attribute 
-;   TOS   token value 
-; output:
-;   untok    A 
-;   tokval   n 
+; restore 'in.w' variable to 
+; its value before last call
+; to get_token.
 ;------------------------------
 unget_token:
-	ldw x,#pad
-	call strlen 
-	ld a,xl 
-	ld acc8,a
-	ld a,in 
-	sub a,acc8 
-	ld in,a  
-;	ld untok,a 
-;	ldw tokval,x 
+	ldw x,in.w.saved
+	ldw in.w,x 
 	ret 
 
 
-
-.if DEBUG 
 dstk_prompt: .asciz "\ndstack: " 
 ;----------------------------
 ; print dstack content 
@@ -2669,7 +2656,6 @@ dots:
 	_drop VSIZE
 	clr a 
 	ret
-.endif 
 
 cstk_prompt: .asciz "\nctack: "
 ;--------------------------------
@@ -3082,16 +3068,6 @@ arg_list:
 ;   '<>' and '><' are equivalent for not equal.
 ;--------------------------------
 
-;------------------------------
-; negate value on dstack
-; dstack: {n -- -n}
-;------------------------------
-negate:	
-	ldw x,[dstkptr]
-	negw x 
-	ldw [dstkptr],x 
-	ret 
-
 ;---------------------
 ; return array element
 ; address from @(expr)
@@ -3102,7 +3078,7 @@ negate:
 ;	X 		element address 
 ;----------------------
 get_array_element:
-	call ddrop ; {*pad -- }
+	call ddrop 
 	ld a,#TK_LPAREN 
 	call expect
 	call relation 
@@ -3381,7 +3357,6 @@ dec_base:
 size:
 	ldw x,#tib 
 	subw x,txtend 
-	call dpush 
 	ld a,#TK_INTGR
 	ret 
 
@@ -3398,7 +3373,6 @@ ubound:
 	subw x,txtend 
 	srlw x 
 	ldw array_size,x
-	call dpush   
 	ld a,#TK_INTGR
 	ret 
 
@@ -3422,7 +3396,6 @@ let02:
 	ldw y,x 
 	call dpop  
 	ldw (x),y   
-	ld a,#TK_NONE 
 	ret 
 
 ;----------------------------
@@ -3502,7 +3475,6 @@ list_start:
 	jra 3$
 list_exit:
 	_drop VSIZE 
-	clr a 	
 	ret
 
 empty: .asciz "Nothing to list\n"
@@ -3541,12 +3513,10 @@ reset_comma:
 prt_loop:
 	call relation
 	cp a,#TK_COLON 
-	jrne z
-	jp print_exit   
-z:	cp a,#TK_INTGR 
+	jreq print_exit   
+	cp a,#TK_INTGR 
 	jrne 0$ 
-	call dpush 
-	call prt_tos 
+	call print_int 
 	jra reset_comma
 0$: 	
 	call get_token
@@ -3565,8 +3535,7 @@ z:	cp a,#TK_INTGR
 	cp a,#TK_FUNC 
 	jrne 4$ 
 	call (x)
-	call dpush 
-	call prt_tos 
+	call print_int 
 	jra reset_comma 
 4$: 
 	cp a,#TK_COMMA 
@@ -3593,7 +3562,6 @@ print_exit:
 	ld a,#CR 
     call putc 
 9$:	_drop VSIZE 
-	clr a
 	ret 
 
 ;----------------------
@@ -3666,14 +3634,13 @@ input_loop:
 	jreq input_exit 
 	cp a,#TK_QSTR 
 	jrne 1$ 
-	call dpop
 	call puts 
 	cpl (SKIP,sp)
 	call get_token 
 1$: cp a,#TK_VAR  
 	jreq 2$ 
 	jp syntax_error
-2$:	
+2$:	call dpush 
 	tnz (SKIP,sp)
 	jrne 21$ 
 	ld a,#':
@@ -3692,10 +3659,9 @@ input_loop:
 	cp a,#TK_INTGR
 	jreq 3$ 
 	jp syntax_error
-3$: 
+3$: call dpush 
 	call store 
 	call rest_context
-	clr untok 
 	call get_token 
 	cp a,#TK_COMMA 
 	jrne 4$
@@ -3703,7 +3669,6 @@ input_loop:
 4$:	call unget_token 
 input_exit:
 	_drop VSIZE 
-	clr a 
 	ret 
 
 
@@ -3712,7 +3677,12 @@ input_exit:
 ; begin a comment 
 ; comment are ignored 
 ; use ' insted of REM 
-; it is faster 
+; This is never called
+; because get_token 
+; take care of skipping
+; comment. but required
+; for future use of 
+; keyword reverse search.  
 ;---------------------- 
 rem: 
 	ret 
@@ -3752,7 +3722,6 @@ wait:
 	xor a,(XMASK,sp)
 	jreq 2$ 
 	_drop VSIZE 
-	clr a 
 	ret 
 
 ;---------------------
@@ -3775,7 +3744,6 @@ bit_set:
 	call dpop ; addr  
 	or a,(x)
 	ld (x),a 
-	clr a
 	ret 
 
 ;---------------------
@@ -3800,7 +3768,6 @@ bit_reset:
 	call dpop ; addr  
 	and a,(x)
 	ld (x),a 
-	clr a 
 	ret 
 
 ;---------------------
@@ -3823,7 +3790,6 @@ bit_toggle:
 	call dpop ; addr  
 	xor a,(x)
 	ld (x),a 
-	clr a
 	ret 
 
 
@@ -3841,7 +3807,6 @@ poke:
     ld a,xl 
 	call dpop 
 	ld (x),a 
-	clr a 
 	ret 
 
 ;-----------------------
@@ -3865,7 +3830,6 @@ peek:
 	ld a,(x)
 	clrw x 
 	ld xl,a 
-	call dpush 
 	ld a,#TK_INTGR
 	ret 
 
@@ -3879,7 +3843,6 @@ if:
 	jrne 9$  
 ;skip to next line
 	mov in,count
-	clr untok 
 9$:	ret 
 
 ;------------------------
@@ -3965,7 +3928,6 @@ store_loop_addr:
 	ldw (INW,sp),x   
 	bres flags,#FFOR 
 	inc loop_depth 
-	clr a 
 	ret 
 
 ;--------------------------------
@@ -4022,7 +3984,6 @@ loop_back:
 	ldw lineno,x
 1$:	ldw x,(INW,sp)
 	ldw in.w,x 
-	clr a 
 	ret 
 loop_done:
 	; remove var limit step on dstack 
@@ -4034,7 +3995,6 @@ loop_done:
 	_drop 4
 	pushw x 
 	dec loop_depth 
-	clr a 
 	ret 
 
 
@@ -4173,7 +4133,6 @@ new:
 	ret 
 0$:	
 	call clear_basic 
-	clr a 
 	ret 
 	 
 ;--------------------
@@ -4244,15 +4203,24 @@ seek_fdrive:
 	ld ffree+2,a  
 	ldw acc24,x 
 	ld acc8,a 
-5$:	ldw x,ffree_msg 
+	ld a,#0xff 
+	sub a,acc8 
+	ld acc8,a 
+	ld a,#0x7f 
+	sbc a,acc16 
+	ld acc16,a 
+	ld a,#0x2 
+	sbc a,acc24 
+	ld acc24,a 
+5$:	ldw x,#ffree_msg 
 	call puts 
 	clrw x 
-	ld a,#16
+	ld a,#10
 	call prti24 
 	ld a,#CR 
 	call putc 
 	ret 
-ffree_msg: .asciz "\nfree flash begin at: "
+ffree_msg: .asciz "\nflash drive bytes free: "
 
 ;-----------------------
 ; compare file name 
@@ -4366,7 +4334,7 @@ save:
 	jreq 2$
 	jp syntax_error
 2$: ; check for existing file of that name 
-	ldw y,tokval ; file name pointer 
+	ldw y,x ; file name pointer 
 	call search_file 
 	jrnc 3$ 
 	ld a,#ERR_DUPLICATE 
@@ -4376,12 +4344,12 @@ save:
 	ld a,ffree+2 
 	ldw farptr,x 
 	ld farptr+2,a 
-	ldw x,tokval 
+	ldw x,#pad  
 	call strlen 
 	incw  x
 	pushw x 
 	clrw x   
-	ldw y,tokval 
+	ldw y,#pad 
 	call write_block  
 	_drop 2 ; drop pushed X 
 ;** write file length after name **
@@ -4469,9 +4437,7 @@ load:
 ; return loaded size 	 
 	ldw x,txtend 
 	subw x,txtbgn
-	call dpush 
-	call prt_tos 
-	clr a  
+	call print_int 
 	ret 
 
 ;-----------------------------------
@@ -4487,7 +4453,7 @@ forget:
 	cp a,#TK_QSTR
 	jreq 1$
 	jp syntax_error
-1$: ldw y,tokval 
+1$: ldw y,x
 	call search_file
 	jrc 2$
 	ld a,#ERR_NOT_FILE 
@@ -4554,8 +4520,7 @@ dir_loop:
 	addw x,(1,sp)
 	call incr_farptr 
 	popw x ; file size 
-	call dpush 
-	call prt_tos 
+	call print_int 
 	ld a,#CR 
 	call putc
 	ldw x,(COUNT,sp)
@@ -4564,8 +4529,7 @@ dir_loop:
 	jra dir_loop 
 8$:
 	ldw x,(COUNT,sp)
-	call dpush 
-	call prt_tos
+	call print_int 
 	ldw x,#file_count 
 	call puts  
 	_drop VSIZE 
@@ -4610,14 +4574,13 @@ char:
 	cp a,#TK_INTGR 
 	jreq 1$
 	jp syntax_error
-1$:	
+1$:	pushw x 
 	ld a,#TK_RPAREN 
 	call expect
-	call dpop 
+	popw x  
 	ld a,xl 
 	and a,#0x7f 
 	ld xl,a
-	ldw tokval,x  
 	ld a,#TK_CHAR
 	ret
 
@@ -4636,18 +4599,18 @@ ascii:
 	cp a,#TK_CHAR 
 	jreq 2$ 
 	jp syntax_error
-1$: ldw x,tokval 
+1$: 
 	ld a,(x)
 	jra 3$
-2$: ldw x,tokval
+2$: 
 	ld a,xl 
-3$:	clrw x 
-	ld xl,a 
-	call dpush 
+3$:	ld xl,a 
+	clr a  
+	ld xh,a 
+	pushw x  
 	ld a,#TK_RPAREN 
 	call expect 
-	call dpop  
-	ldw tokval,x 
+	popw x 
 	ld a,#TK_INTGR 
 	ret 
 
@@ -4664,7 +4627,6 @@ key:
 	call getc 
 	clrw x 
 	ld xl,a 
-	ldw tokval,x 
 	ld a,#TK_INTGR
 	ret
 
@@ -4704,18 +4666,21 @@ gpio:
 1$:	
 	ld a,#TK_RPAREN 
 	call expect 
-	call dpop
-	pushw x 
-	call dpop 
-	tnzw x 
+	ldw x,#2
+	ldw x,([dstkptr],x) ; port 
 	jrmi bad_port
 	cpw x,#9
 	jrpl bad_port
 	ld a,#5
 	mul x,a
 	addw x,#GPIO_BASE 
+	pushw x 
+	call dpop 
 	addw x,(1,sp)
-	_drop 2 
+	ldw (1,sp),x  
+	ldw x,#2 
+	call ddrop_n 
+	popw x 
 	ld a,#TK_INTGR
 	ret
 bad_port:
@@ -4728,8 +4693,7 @@ bad_port:
 ; ODR register: 0
 ; ---------------------
 port_odr:
-	clrw x 
-	ldw tokval,x 
+	ldw x,#GPIO_ODR
 	ld a,#TK_INTGR
 	ret
 
@@ -4739,8 +4703,7 @@ port_odr:
 ; IDR register: 1
 ; ---------------------
 port_idr:
-	ldw x,#1
-	ldw tokval,x 
+	ldw x,#GPIO_IDR
 	ld a,#TK_INTGR
 	ret
 
@@ -4750,8 +4713,7 @@ port_idr:
 ; DDR register: 2
 ; ---------------------
 port_ddr:
-	ldw x,#2
-	ldw tokval,x 
+	ldw x,#GPIO_DDR
 	ld a,#TK_INTGR
 	ret
 
@@ -4761,8 +4723,7 @@ port_ddr:
 ; CR1 register: 3
 ; ---------------------
 port_cr1:
-	ldw x,#3
-	ldw tokval,x 
+	ldw x,#GPIO_CR1
 	ld a,#TK_INTGR
 	ret
 
@@ -4772,18 +4733,43 @@ port_cr1:
 ; CR2 register: 4
 ; ---------------------
 port_cr2:
-	ldw x,#4
-	ldw tokval,x 
+	ldw x,#GPIO_CR2
 	ld a,#TK_INTGR
 	ret
 
 
 ;---------------------
-;
+; BASIC: USR(addr[,arg])
+; execute a function written 
+; in binary code.
+; binary fonction should 
+; return token attribute in A 
+; and value in X. 
+; input:
+;   addr	routine address 
+;   arg 	is an optional argument 
+; output:
+;   A 		token attribute 
+;   X       returned value 
 ;---------------------
 usr:
-	ldw x,#USR 
-	call prt_cstr 
+	pushw y 	
+	ld a,#TK_LPAREN 
+	call expect 
+	call arg_list 
+	cp a,#1 
+	jrpl 2$ 
+	jp syntax_error 
+2$: ld a,#TK_RPAREN
+	call expect 
+	call dpop 
+	cp a,#2 
+	jrmi 4$
+	ldw y,x ; y=arg 
+	call dpop ;x=addr 
+4$:	exgw y,x ; y=addr,x=arg 
+	call (y)
+	popw y 
 	ret 
 
 ;------------------------------
@@ -4820,9 +4806,9 @@ sleep:
 pause:
 	call expression
 	cp a,#TK_INTGR
-	jreq 0$
+	jreq pause02 
 	jp syntax_error
-0$: call dpop 	
+pause02: 
 1$: tnzw x 
 	jreq 2$
 	wfi 
@@ -4861,9 +4847,10 @@ abs:
 	cp a,#1 
 	jreq 0$ 
 	jp syntax_error
-0$: ld a,#TK_RPAREN 
+0$:  
+	ld a,#TK_RPAREN 
 	call expect 
-    call dpop 
+    call dpop   
 	ld a,xh 
 	bcp a,#0x80 
 	jreq 2$ 
@@ -4982,7 +4969,7 @@ kword_end:
     _dict_entry,4,SHOW,show 
 	_dict_entry 3,RUN,run
 	_dict_entry 4,LIST,list
-	_dict_entry,3,USR,usr
+	_dict_entry,3+FFUNC,USR,usr
 	_dict_entry,3+FFUNC,ODR,port_odr
 	_dict_entry,3+FFUNC,IDR,port_idr
 	_dict_entry,3+FFUNC,DDR,port_ddr 
@@ -5025,6 +5012,12 @@ kword_dict:
 	.bndry 128 ; align on FLASH block.
 ; free space for user application  
 user_space:
+	pushw x 
+	bset PC_ODR,#5 
+	popw x 
+	call pause02 
+	bres PC_ODR,#5 
+	ret
 
 	.area FLASH_DRIVE (ABS)
 	.org 0x10000

@@ -2,7 +2,7 @@
 
 **AVERTISSEMENT Ce projet est en construction et le code change continuellement. Il ne s'agit pas d'une version stable.**
 
-Il s'agit d'une implémentation du [Tiny BASIC](https://en.wikipedia.org/wiki/Tiny_BASIC) originellement conçu par [Dennis Allison](https://en.wikipedia.org/wiki/Dennis_Allison) au milieu des années 197x. Cette implémentation est créée à partir des documents [TINYDISK.DOC](TINYDISK.DOC) et [TINYDISK.ASM](TINYDISK.ASM). Cepandant elle n'est pas exactement identique. 
+Il s'agit d'une implémentation du [Tiny BASIC](https://en.wikipedia.org/wiki/Tiny_BASIC) originellement conçu par [Dennis Allison](https://en.wikipedia.org/wiki/Dennis_Allison) au milieu des années 197x. Cette implémentation est créée en me référend aux documents [TINYDISK.DOC](TINYDISK.DOC) et [TINYDISK.ASM](TINYDISK.ASM). Cepandant elle n'est pas exactement identique. 
 
 Il s'agit d'un interpréteur pur. C'est à dire que le texte est lu à chaque exécution. Il n'y a pas de génération de code intermédiaire pour exécution sur une machine virtuelle. L'avantage est au niveau de la simplicité. Par exemple la commande **LIST** ne nécessite pas de désassemblage pour afficher le contenu du texte original puisque celui-ci est sauvegarder tel quel. 
 
@@ -14,7 +14,7 @@ Ce système a été développé et testé sur une carte NUCLEO-8S208RB ![NUCLEO-
 
 * Avant même l'invention de l'expression *logiciel libre* Tiny BASIC a été le premier logiciel libre. Ce qui l'à rendu populaire sur les premier ordinateurs qui possédaient peu de mémoire RAM.
 
-* La première version TRS-80 modèle I, était vendu avec 4Ko de mémoire RAM et une version de Tiny BASIC en ROM. Cependant ils ont rapidement ajouter les calcul en virgule flottante par la suite.  
+* La première version TRS-80 modèle I, était vendu avec 4Ko de mémoire RAM et une version de Tiny BASIC en ROM. Cependant ils ont rapidement ajouter les calculs en virgule flottante par la suite.  
 
 * Les mots réservés **GOTO** et **GOSUB** du BASIC viennent de l'époque du FORTRAN alors que les espaces dans ce langage n'étaient pas significatifs. Ainsi dans Tiny BASIC qui avait adopté cette syntaxe on pouvait écrire **GOTO** au lieu de **GO TO**. Ce **GOTO** en un seul mot est devenu usuel dans de nombreux langages par la suite comme le **goto** du **C**. 
 
@@ -25,7 +25,7 @@ Le seul type de donné numérique est l'entier 16 bits donc dans l'intervalle **
 
 Cependant pour des fins d'impression des chaînes de caractères entre guillemets sont disponibles. Seul les commandes **PRINT** et **INPUT** utilisent ces chaînes comme arguments. 
 
-Le type caractère est aussi disponible sous la forme **\c** i.e. un *backslash* suivit d'une lettre. 
+Le type caractère est aussi disponible sous la forme **\c** i.e. un *backslash* suivit d'un caractère ASCII. 
 
 Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()**. Qui retourne un jeton de type **TK_CHAR**. Ce type de donnée ne peut-être sauvegardé dans une variable sauf en utilisant la fonction **ASC()** qui le convertie ent type **TK_INTGR** qui peut-être sauvegardé dans une variable ou utilisé dans un expression.  
 
@@ -97,7 +97,7 @@ examples d'entiers:
 
 ## Ligne de commande et programmes 
  
-Au démarrage l'information sur Tiny BASIC est affichée, suivit de l'adresse en hexadécimal de premier emplacement libre pour le système de fichier. Ensuite viens l'invite de commande qui est représentée par le caractère **&gt;**. 
+Au démarrage l'information sur Tiny BASIC est affichée, suivit de l'adresse en hexadécimal du premier emplacement libre pour le système de fichier. Ensuite viens l'invite de commande qui est représentée par le caractère **&gt;**. 
 
 À partir de là l'utilisateur doit saisir une commande au clavier. Cette commande est considérée comme complétée lorsque la touche **ENTER** est enfoncée. C'est alors que l'interpréteur l'analyse et l'exécute. 
 
@@ -120,7 +120,7 @@ Le microcontrôleur de la carte NUCLEO-8S208RB possède 128Ko de mémoire flash.
 Cette mémoire étendu n'est pas utilisée par Tiny BASIC, elle est réservée pour un mini système de fichiers qui sert à sauvegarder les programmes BASIC.
 
 ## Référence des commandes et fonctions.
-la remarque **{C,P}** après le nom de chaque commande indique dans quel contexte cette commande ou fonction peut-être utilisée. **P** pour *programme* et **C** pour ligne de commande. Lorsqu'une fonction est utilisée sur la ligne de commande la valeur retournée est automatiquement imprimée même si cette fonction n'est pas utilisée comme argument d'une commande **PRINT**. 
+la remarque **{C,P}** après le nom de chaque commande indique dans quel contexte cette commande ou fonction peut-être utilisée. **P** pour *programme* et **C** pour ligne de commande. Une fonction ne peut-être utilisée que comme argument d'une commande ou comme partie d'une expression. 
 
 ### ABS(*expr*)  {C,P}
 Cette fonction retourne la valeur absolue de l'expression fournie en argument. 
@@ -128,13 +128,13 @@ Cette fonction retourne la valeur absolue de l'expression fournie en argument.
     >? abs(-45)
     45
 
-### ASC(*string*|*\char*) {C,P}
+### ASC(*string*|*char*) {C,P}
 La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaîne fournie en argument ou du caractère.
 ```
-    >asc("A")
+    >? asc("A")
     65 
 
-    >asc(\Z)
+    >? asc(\Z)
     90
 
     >
@@ -145,7 +145,7 @@ La commande **bit reset** met à **0** les bits de l'octet situé à *addr*. Seu
 
     >bres $500a,32 
 
-Éteint la LED2 sur la carte en mettant le bit 5 à 0.
+Éteint la LED2 sur la carte en mettant le bit 5 à 0. **Notez** que les bits sont numérotés de **0..7**, **0** étant le bit le moins significatif. 
 
 ### BSET addr,mask  {C,P}
 La commande **bit set** met à **1** les bits de l'octet situé à *addr*. Seul les bits à **1** dans l'argument *mask* sont affectés. 
@@ -162,7 +162,7 @@ La commande **bit toggle** inverse les bits de l'octet situé à *addr*. Seul le
 Inverse l'état de la LED2 sur la carte. 
 
 ### BYE  {C,P}
-Met le microcontrôleur en mode sommeil profond. Dans ce mode tous les oscilleurs sont arrêtés et la consommation électrique est minimale. Une interruption extérieure ou un *reset* redémarre le MCU. Sur la care **NUCLEO-8S208RB** il y a un bouton **RESET** et un bouton **USER**. Le bouton **USER** est connecté à l'interruption externe **INT4** donc permet de réveiller le MCU. 
+Met le microcontrôleur en mode sommeil profond. Dans ce mode tous les oscilleurs sont arrêtés et la consommation électrique est minimale. Une interruption extérieure ou un *reset* redémarre le MCU. Sur la care **NUCLEO-8S208RB** il y a un bouton **RESET** et un bouton **USER**. Le bouton **USER** est connecté à l'interruption externe **INT4** donc permet de réveiller le MCU. Au réveil le MCU est réinitialisé.
 
 ### CHAR(*expr*) {C,P}
 La fonction *character* retourne le caractère ASCII correspondant aux 7 bits les moins significatifs de l'expression utilisée en argument. Pour l'interpréteur cette fonction retourne un jeton de type **TK_CHAR** qui n'est reconnu que par les commandes **PRINT** et **ASC**.
@@ -205,6 +205,9 @@ La commande *directory*  affiche la liste des fichiers sauvegardés en mémoire 
 ### FOR *var*=*expr1* TO *expr2* [STEP *expr3*] {C,P}
 Cette commande initialise une boucle avec compteur. La variable est initialisée avec la valeur de l'expression *expr1*. À chaque boucle la variable est incrémentée de la valeur indiquée par *expr3* qui suit le mot réservé **STEP**. Si **STEP** n'est pas indiqué la valeur par défaut **1** est utilisée. Une boucle **FOR** se termine par la commande **NEXT** tel qu'indiqué plus bas. Les instructions entre les comamndes **FOR** et **NEXT**
 peuvent s'étaler sur plusieurs lignes à l'intérieur d'un programme. Mais sur la ligne de commande le bloc au complet doit-être sur la même ligne.
+
+La boucle FOR...NEXT est excéutée au moins une fois même si la limite est déjà dépassée par la condition initiale de la variable de contrôle. Ceci est du au fait que l'incrément et la vérification de la limite est effectuée par la commande **NEXT** qui vient à la fin de la boucle.  
+
 ```
 >for a=1to10:? a,:next a
    1   2   3   4   5   6   7   8   9  10
@@ -359,7 +362,7 @@ Press a key to continue...
 >
 ```
 ### LET *var*=*expr* {C,P}
-Affecte une valeur à une variable. En Tiny BASIC il n'y a que 26 variables représentées par les lettres de l'alphabet. Il y a aussi une variable tableau unidimensionnelle nommée **@**. 
+Affecte une valeur à une variable. En Tiny BASIC il n'y a que 26 variables représentées par les lettres de l'alphabet. Il y a aussi une variable tableau unidimensionnelle nommée **@**. **Notez** que le premier indice du tableau est **1**. 
 
 *expr* peut-être arithmétique ou relationnel ou une combinaison des deux. Le mot réservé **LET** est facultatif. 
 ```
@@ -369,6 +372,11 @@ Affecte une valeur à une variable. En Tiny BASIC il n'y a que 26 variables repr
    3
 >c=-4*(a<51):?c
    0
+>@(3)=24*3
+
+>?@(3)
+  72
+
 >
 ```
 
@@ -437,9 +445,9 @@ Dans cette exemple la LED2 est allumée puis éteinte. La LED est branchée sur 
 Cette commande suspend l'exécution pour un nombre de millisecondes équivalent à la valeur d'*epxr*. pendant la pause le CPU est en mode suspendu c'est à dire qu'aucune instruction n'est exécutée jusqu'à la prochaine interruption. La commande **PAUSE** utilise l'instruction machine *wfi* pour suspendre le processeur. Le TIMER4 génère une interruption à chaque milliseconde. Le compteur de **PAUSE** est alors décrémenté et lorsqu'il arrive à zéro l'exécution du programme reprend.
 ```
 >li
-   10 input "pause en secondes? "a
-   20 pause 1000*a
-   30 if a=0:stop
+   10 input"pause en secondes? "s
+   20 if s=0:stop
+   30 pause1000*s
    40 goto 10
 
 >ru
@@ -467,7 +475,7 @@ A
 >
 ```
 
-### PRINT [*string*|*expr*][,*string*|*expr*][','] {C,P}
+### PRINT [*string*|*expr*|*char*][,*string*|*expr*|*char*][','] {C,P}
 La commande **PRINT** sans argument envoie le curseur du terminal sur la ligne suivante. Si la commande se termine par une virgule il n'y a pas de saut à la ligne suivante et la prochaine commande **PRINT** se fera sur  la même ligne. Les arguments sont séparés par la virgule. 
 
 Le **'?'** peut-être utilisé à la place de **PRINT**.
@@ -475,8 +483,8 @@ Le **'?'** peut-être utilisé à la place de **PRINT**.
 **PRINT** accepte 3 types d'arguments: 
 
 * *string*,  chaîne de caractère entre guillemets
-* *expr*,   Toute expression arithmétique et relationnelle qui retourne un entier.
-* *char*,  Un caractère ASCII pécédé de **\** ou tel que retourné par la fonction **CHAR()**.
+* *expr*,   Toute expression arithmétique ou relationnelle qui retourne un entier.
+* *char*,  Un caractère ASCII pécédé de **\\** ou tel que retourné par la fonction **CHAR()**.
 ```
 >? "la valeur de A=",a
 la valeur de A=  51
@@ -491,9 +499,9 @@ Cette commande vérifie s'il y a un caractère en attente dans le tampon de réc
 ```
 >for a=0to0ste0:a=qkey:next a
 
->a
+>z
 ```
-L'exemple çi-haut est une astuce de programmation. Pour créer une boucle infinie on utilise un FOR...NEXT avec la valeur de STEP à zéro. À l'intérieur de la boucle on appelle la fonction **QKEY** dont la valeur est affectée à la variable **A** qui est la variable de contrôle de la boucle. Sitôt qu'une touche est enfoncée sur la console la valeur de **A** passe à **1** et la boucle se termine. De retour sur la ligne de commande le caractère reçu  de la console est affiché après le **'&gt;'** puisqu'il est lu par la fonction *readln* de l'interpréteur de commande.
+Pour créer une boucle infinie on utilise un FOR...NEXT avec la valeur de STEP à zéro. À l'intérieur de la boucle on appelle la fonction **QKEY** dont la valeur est affectée à la variable **A** qui est la variable de contrôle de la boucle. Sitôt qu'une touche est enfoncée sur la console la valeur de **A** passe à **1** et la boucle se termine. De retour sur la ligne de commande le caractère reçu  de la console est affiché après le **'&gt;'** puisqu'il est lu par la fonction *readln* de l'interpréteur de commande.
 
 ### REM  *texte*
 La commande **REM**  sert à insérer des commentaires (*remark*) dans un programme pour le documenter. Le mot réservé **REM** peut-être avantageusement remplacé par le caractère apostrophe (**'**). Un commentaire se termine avec la ligne et est ignoré par l'interpréteur.
@@ -561,11 +569,11 @@ save "fibo"
 ### SIZE {C,P}
 Cette commande retourne le nombre d'octets libre dans la mémoire RAM
 ```
->size
+>?size
 5740
 >10 ?hello world!"
 
->size
+>?size
 5721
 >
 ```
@@ -586,7 +594,9 @@ hello world!
 >
 ```
 Dans cet exemple le mot **"hello "** s'affiche puis il ne passe plus rien jusqu'à ce qu'on appuie sur le bouton **USER** sur la carte **NUCLEO**. 
-Ce qui déclenche l'interruption externe **INT4** et redémarre le MCU qui exécute la suite du programme et affiche le mot **"world!"**.
+Ce qui déclenche l'interruption externe **INT4** et redémarre le MCU qui exécute la suite du programme et affiche le mot **"world!"**. 
+
+Si le bouton **RESET** avait été utilisé le MCU aurait été réinitialisé.
 
 ### STEP *expr* {C,P}
 Ce mot réservé fait partie de la commande **FOR** et indique l'incrément de la variable de contrôle de la boucle. Pour plus de détail voir la commande **FOR**. 
@@ -618,16 +628,33 @@ Réponse: 56 millisecondes.
 Ce mot réservé est utilisé lors de l'initialisation d'une boucle **FOR**. **expr** détermine la valeur limite de la variable de contrôle de la boucle. Voir la commande **FOR** pour plus d'information. 
 
 ### UBOUND
-Cette fonction retourne la taille de la variable tableau **@**. Comme expliqué plus haut cette variable utilise la mémoire RAM qui n'est pas utilisé par le programme BASIC. Donc plus le programme prend de place plus sa taille diminue. Un programme peut donc invoqué cette commande pour connaître la taille **@** dont il dispose.
+Cette fonction retourne la taille de la variable tableau **@**. Comme expliqué plus haut cette variable utilise la mémoire RAM qui n'est pas utilisée par le programme BASIC. Donc plus le programme prend de place plus sa taille diminue. Un programme peut donc invoqué cette commande pour connaître la taille de **@** dont il dispose.
 ```
->ubound
+>?ubound
 2870
 >10 'plus le programme prend de la place, plus @ diminue.
 
->ubound
+>?ubound
 2841
 >
 ```
+### USR(*addr*[,*expr*]) {C,P}
+La fonction **USR()** permet d'exécuter une routine écrite en code machine. *addr* est l'adresse de la routine et *expr* est un entier passé en argument à la routine. Au démarrage l'adresse de l'espace utilisateur est affichée en hexadécimal. Cette adresse est le début de l'espace mémoire flash qui n'est pas utilisé par Tiny BASIC et qui peut-être utilisé pour enregistrer des routines en code machine. Cette espace utilisateur se termine à l'adresse 65535 ($ffff). Par défaut un petit programme est enregistré à cet adresse à des fins de test. La commande **WRITE** peut-être utilisée pour enregistrer du code binaire dans cet espace utilisateur. 
+```
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2020
+version 1.0
+flash drive bytes free: 98057
+user space address:  $9E80
+>?usr($9e80,200)
+   0
+
+>a=usr($9e80,200)
+
+>
+```
+Dans cet exemple le programme par défaut est appelé avec l'argument *200*. Ce petit programme allume la LED2 sur la carte pour la durée en millisecondes fournie en argument. Ce délais passé la LED est éteinte et la routine machine quitte. 
+
 ### WAIT *expr1*,*expr2*[,*expr3] {C,P}
 Cette commande sert à attendre un changement d'état sur un périphérique.
 *expr1* indique l'adresse du registre de périphérique susceptible de changer d'état. *expr2* est un masque de bits appliqué à l'octet lu dans le registre avec la fonction logique AND.  Si cette valeur est différente de zéro l'attente se termine. *expr3* peut-être utilisé pour attendre qu'un ou des bits passent à zéro. Il est appliqué après la fonction AND avec une fonction logique XOR.  Si Byte&E1^E2<>0 alors l'attente prend fin. 
@@ -641,7 +668,17 @@ L'exécution est suspendu jusqu'à la réception d'un caractère sur UART3.
 
 ### WRITE *expr1*,*expr2* 
 Cette commande permet d'écrire un octet dans la mémoire EEPROM ou dans la mémoire FLASH. *expr1* indique l'adresse et *expr2* indique la valeur à écrire. le **STM8S208RB** possède 2Ko de mémoire EEPROM 128Ko de mémoire FLASH. 
+```
+>? peek($4000)
+   0
 
+>write $4000,$aa
+
+>?pe($4000)
+ 170
+
+>
+```
 **AVERTISSEMENT: Écrire dans la mémoire FLASH peut endommagé le système Tiny BASIC** 
 
 ## Installation de Tiny BASIC sur la carte NUCLEO-8S208RB 
