@@ -139,6 +139,29 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
 
     >
 ```
+### BREAK {P}
+Outil d'aide au débogage. Cette commande interrompt l'exécution du programme au poin où elle est insérée. L'utilisateur se retrouve donc sur la ligne de commande où il peut exécuter différentes commandes comme examiner le contenu des piles avec la commande **SHOW** ou imprimer la valeur d'une variable. Le programme est redémarré à son point d'arrêt avec la commande **RUN**.  La commande **STOP** interompt l'exécution.
+```
+>li
+   10 for a=1to10:?a,:break:ne a
+
+>run
+   1
+break point, RUN to resume.
+
+>show
+dstack:   39  10   1
+ctack:  $5B $10 $191E  $A $5B
+
+>ru
+   2
+break point, RUN to resume.
+
+>stop
+
+>
+```
+Dans cet exemple la commande **BREAK** a été insérée à l'intérieur d'une boucle **FOR...NEXT** donc le programme s'arrête à chaque itération.
 
 ### BRES addr,mask {C,P}
 La commande **bit reset** met à **0** les bits de l'octet situé à *addr*. Seul les bits à **1** dans l'argument *mask* sont affectés. 
@@ -566,6 +589,32 @@ save "fibo"
            ^
 >
 ```
+### SHOW {C,P}
+ Outil d'aide au débogage d'un programme. Cette commande affiche le contenu des 2 piles *cstack* et *dstack*. Peut-être insérée à l'intérieur d'un programme ou sur la ligne de commande en conjonction avec la commande **BREAK**.
+```
+>li
+   10 for a=1to10:?a,:break:ne a
+
+>run
+   1
+break point, RUN to resume.
+
+>show
+dstack:   39  10   1
+ctack:  $5B $10 $191E  $A $5B
+
+>ru
+   2
+break point, RUN to resume.
+
+>stop
+
+>
+```
+Dans cet exemple la commande **BREAK** a été insérée au milieu d'une boucle **FOR...NEXT**. Donc à chaque itération de la boucle on retombe sur la ligne de commande où la commande **SHOW** est utilisée pour afficher le contenu des piles. Sur *dstack* on aperçoit les paramètres de la boucle **FOR...NEXT**. **39** est l'adresse de la variable de contrôle **A**, **10** est la limite de la boucle et **1** l'incrément.  
+
+À la deuxième itération la commande **STOP** est utilisée pour arrêter l'exécution. 
+
 ### SIZE {C,P}
 Cette commande retourne le nombre d'octets libre dans la mémoire RAM
 ```
@@ -601,8 +650,8 @@ Si le bouton **RESET** avait été utilisé le MCU aurait été réinitialisé.
 ### STEP *expr* {C,P}
 Ce mot réservé fait partie de la commande **FOR** et indique l'incrément de la variable de contrôle de la boucle. Pour plus de détail voir la commande **FOR**. 
 
-### STOP {P}
-Cette commande arrête l'exécution d'un programme et retourne le contrôle à la ligne de commande. Cette commande peut-être placée à plusieurs endroits dans un programme. 
+### STOP {C,P}
+Cette commande arrête l'exécution d'un programme et retourne le contrôle à la ligne de commande. Cette commande peut-être placée à plusieurs endroits dans un programme. Elle peut aussi être utlisée sur la ligne de commande pour interrompre un programme après l'invocation d'une commande BREAK.
 ```
 >lis
    10 a=1
@@ -653,7 +702,7 @@ user space address:  $9E80
 
 >
 ```
-Dans cet exemple le programme par défaut est appelé avec l'argument *200*. Ce petit programme allume la LED2 sur la carte pour la durée en millisecondes fournie en argument. Ce délais passé la LED est éteinte et la routine machine quitte. 
+Dans cet exemple le programme par défaut est appelé avec l'argument *200*. Ce petit programme allume la LED2 sur la carte pour la durée en millisecondes fournie en argument. Ce délais passé la LED est éteinte et la routine quitte. 
 
 ### WAIT *expr1*,*expr2*[,*expr3] {C,P}
 Cette commande sert à attendre un changement d'état sur un périphérique.

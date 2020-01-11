@@ -61,10 +61,10 @@ CODE                                00008080    00001E0E =        7694. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008996  parser_init                        TBI_STM8
-     00008BF2  number                             TBI_STM8
-     00008EDF  to_lower                           TBI_STM8
-     00008EEA  to_upper                           TBI_STM8
+     00008978  parser_init                        TBI_STM8
+     00008BD4  number                             TBI_STM8
+     00008EC1  to_lower                           TBI_STM8
+     00008ECC  to_upper                           TBI_STM8
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 

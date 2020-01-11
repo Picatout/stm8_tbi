@@ -48,6 +48,7 @@ _dbg
 	FTRAP=1 ; inside trap handler 
 	FFOR=2 ; FOR loop in preparation 
 	FSLEEP=3 ; halt produit par la commande SLEEP 
+	FBREAK=4 ; break point flag 
 
 in.w:  .blkb 1 ; parser position in text line
 in:    .blkb 1 ; low byte of in.w
@@ -1284,16 +1285,15 @@ prt_reg8:
 	ld a,(1,sp) 
 	ld acc8,a 
 	clrw x 
-	ldw acc24,x 
-	ld a,#16 
-	call prti24 
+	ld xl,a 
+	mov base,#16
+	call print_int 
 	call left_paren 
 	pop a 
-	ld acc8,a 
 	clrw x 
-	ldw acc24,x 
-	ld a,#10 
-	call prti24 
+	ld xl,a 
+	mov base,#10 
+	call print_int  
 	ld a,#') 
 	call putc
 	ret
@@ -1310,20 +1310,12 @@ prt_reg16:
 	pushw y 
 	call puts 
 	ldw x,(1,sp) 
-	ldw acc16,x 
-	clr acc24 
-	clrw x 
-	ld a,#16 
-	call prti24 
+	mov base,#16 
+	call print_int  
 	call left_paren 
 	popw x 
-	ldw acc16,x 
-	clr acc24
-	btjf acc16,#7,1$
-	cpl acc24 
-1$:	clrw x 
-	ld a,#10 
-	call prti24 
+	mov base,#10 
+	call print_int  
 	ld a,#') 
 	call putc
 	ret 
@@ -1373,12 +1365,12 @@ print_registers:
 	ret
 
 STATES:  .asciz "\nRegisters state at abort point.\n--------------------------\n"
-REG_EPC: .asciz "EPC: "
-REG_Y:   .asciz "\nY: " 
-REG_X:   .asciz "\nX: "
-REG_A:   .asciz "\nA: " 
-REG_CC:  .asciz "\nCC: "
-REG_SP:  .asciz "\nSP: "
+REG_EPC: .asciz "EPC:"
+REG_Y:   .asciz "\nY:" 
+REG_X:   .asciz "\nX:"
+REG_A:   .asciz "\nA:" 
+REG_CC:  .asciz "\nCC:"
+REG_SP:  .asciz "\nSP:"
 .endif 
 
 ;------------------------------------
@@ -2638,16 +2630,13 @@ dots:
 	_vars VSIZE 
 	ldw x,#dstk_prompt 
 	call puts
-	ldw x,#dstack_unf-CELL_SIZE 
+	ldw x,#dstack_unf-CELL_SIZE
+	mov base,#10 
 1$:	cpw x,dstkptr 
 	jrult 4$ 
 	ldw (XSAVE,sp),x
 	ldw  x,(x)
-	ldw acc16,x 
-	clr acc24 
-	clrw x 
-	ld a,#10+128
-	call prti24 
+	call print_int 
 	ldw x,(XSAVE,sp)
 	subw x,#CELL_SIZE 
 	jra 1$ 
@@ -2661,30 +2650,30 @@ cstk_prompt: .asciz "\nctack: "
 ;--------------------------------
 ; print cstack content
 ;--------------------------------
+	XSAVE=1
+	VSIZE=2 
 dotr:
+	_vars VSIZE 
 	ldw x,#cstk_prompt
 	call puts 
 	ldw x,sp 
-	incw x 
-	call dpush 
+	addw x,#7 ; ignore XSAVE and 2 levels of return address.
+	ldw (XSAVE,sp),x  
 	ldw x,#RAM_SIZE-2
+	mov base,#16
 dotr_loop:
-	call dpush  
+	cpw x,(XSAVE,sp)
+	jrmi 9$
+	pushw x  
 	ldw x,(x)
-	ldw acc16,x 
-	clr acc24 
-	clrw x 
-	ld a,#16+128
-	call prti24 
-	call dpop 
+	call print_int 
+	popw x  
 	subw x,#CELL_SIZE
-	cpw x,[dstkptr]
-	jrpl dotr_loop 
-	ldw x,#1
-	call ddrop_n 
-	ld a,#CR 
+	jra dotr_loop 
+9$:	ld a,#CR 
 	call putc 
-	clr a
+	_drop VSIZE 
+	clr a 
 	ret
 
 
@@ -2693,8 +2682,12 @@ dotr_loop:
 ;  show content of dstack,cstack
 ;--------------------------------
 show:
+	ld a,base 
+	push a 
 	call dots
 	call dotr 
+	pop a 
+	ld base,a 
 	clr a 
 	ret
 
@@ -3574,6 +3567,7 @@ print_exit:
 ; entry point of both 
 ; routine. 
 ;---------------------
+	CTXT_SIZE=6 ; size of saved data 
 ;--------------------
 ; save current BASIC
 ; interpreter context 
@@ -4088,12 +4082,19 @@ run:
 	clr a 
 	ret
 0$: 
-	ldw x,txtbgn
+	btjf flags,#FBREAK,1$
+	_drop 2 
+	call rest_context
+	_drop CTXT_SIZE 
+	bres flags,#FBREAK 
+	bset flags,#FRUN 
+	jp interp_loop 
+1$:	ldw x,txtbgn
 	cpw x,txtend 
-	jrmi 1$ 
+	jrmi 2$ 
 	clr a 
 	ret 
-1$: call ubound 
+2$: call ubound 
 	_drop 2 
 	ldw x,txtbgn 
 	ldw basicptr,x 
@@ -4112,14 +4113,42 @@ run:
 ; stop running program
 ;---------------------- 
 stop: 
-	btjt flags,#FRUN,0$  
-	clr a 
-	ret 
 ; clean dstack and cstack 
-0$: ldw x,#STACK_EMPTY 
+	ldw x,#STACK_EMPTY 
 	ldw sp,x 
 	bres flags,#FRUN 
+	bres flags,#FBREAK
 	jp warm_start
+
+;-----------------------
+; BASIC: BREAK 
+; insert a breakpoint 
+; in pogram. 
+; the program is resumed
+; with RUN 
+;-------------------------
+break:
+	btjt flags,#FRUN,2$
+	clr a
+	ret 
+2$:	 
+; create space on cstack to save context 
+	ldw x,#break_point 
+	call puts 
+	_drop 2 ;drop return address 
+	_vars CTXT_SIZE ; context size 
+	call save_context 
+	ldw x,#tib 
+	ldw basicptr,x
+	clr (x)
+	clr count  
+	clrw x 
+	ldw lineno,x 
+	ldw in.w,x
+	bres flags,#FRUN 
+	bset flags,#FBREAK
+	jp interp_loop 
+break_point: .asciz "\nbreak point, RUN to resume.\n"
 
 ;-----------------------
 ; BASIC: NEW
@@ -4965,6 +4994,7 @@ kword_end:
 	_dict_entry,4,SAVE,save
 	_dict_entry,5,WRITE,write  
 	_dict_entry,3,NEW,new
+	_dict_entry,5,BREAK,break 
 	_dict_entry,4,STOP,stop 
     _dict_entry,4,SHOW,show 
 	_dict_entry 3,RUN,run

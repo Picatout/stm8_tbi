@@ -150,9 +150,9 @@
 
     .macro _dbg_putc 
     .if DEBUG
-    _dbg_save_regs  
+    push cc 
     call putc 
-    _dbg_restore_regs 
+    pop cc 
     .endif 
     .endm 
 
