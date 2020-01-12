@@ -205,8 +205,7 @@
     .endif
     .endm
 
-    .macro _dbg_number 	_dbg_prt_regs 
-
+    .macro _dbg_number
     .if DEBUG 
     _dbg_save_regs
     call number 

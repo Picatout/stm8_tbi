@@ -97,8 +97,14 @@ examples d'entiers:
 
 ## Ligne de commande et programmes 
  
-Au démarrage l'information sur Tiny BASIC est affichée, suivit de l'adresse en hexadécimal du premier emplacement libre pour le système de fichier. Ensuite viens l'invite de commande qui est représentée par le caractère **&gt;**. 
+Au démarrage l'information sur Tiny BASIC est affichée. Ensuite viens l'invite de commande qui est représentée par le caractère **&gt;**. 
+```
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2020
+version 1.0
 
+>
+```
 À partir de là l'utilisateur doit saisir une commande au clavier. Cette commande est considérée comme complétée lorsque la touche **ENTER** est enfoncée. C'est alors que l'interpréteur l'analyse et l'exécute. 
 
 Cependant si cette commande débute par un entier, cette ligne est considéré comme faisant partie d'un programme et et au lieu d'être exécutée est insérée dans la mémoire RAM réservé au programmes BASIC.  
@@ -140,7 +146,7 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
     >
 ```
 ### BREAK {P}
-Outil d'aide au débogage. Cette commande interrompt l'exécution du programme au poin où elle est insérée. L'utilisateur se retrouve donc sur la ligne de commande où il peut exécuter différentes commandes comme examiner le contenu des piles avec la commande **SHOW** ou imprimer la valeur d'une variable. Le programme est redémarré à son point d'arrêt avec la commande **RUN**.  La commande **STOP** interompt l'exécution.
+Outil d'aide au débogage. Cette commande interrompt l'exécution du programme au point où elle est insérée. L'utilisateur se retrouve donc sur la ligne de commande où il peut exécuter différentes commandes comme examiner le contenu des piles avec la commande **SHOW** ou imprimer la valeur d'une variable. Le programme est redémarré à son point d'arrêt avec la commande **RUN**.  La commande **STOP** interompt l'exécution.
 ```
 >li
    10 for a=1to10:?a,:break:ne a
@@ -224,6 +230,26 @@ La commande *directory*  affiche la liste des fichiers sauvegardés en mémoire 
     hello   21
     blink   52
     3 files
+
+### EEPROM {C,P}
+Retourne l'adresse du début de la mémoire EEPROM.
+```
+>?pe(ee) 'print peek(eeprom)
+ $AA
+
+>?ee,pe(ee)
+ $4000 $AA
+
+>?pe(ee+1)
+  $0
+
+>wr ee+1,$55 'write 16385,85
+
+>?pe(ee+1) ' verifie 
+  85
+
+>
+```
 
 ### FOR *var*=*expr1* TO *expr2* [STEP *expr3*] {C,P}
 Cette commande initialise une boucle avec compteur. La variable est initialisée avec la valeur de l'expression *expr1*. À chaque boucle la variable est incrémentée de la valeur indiquée par *expr3* qui suit le mot réservé **STEP**. Si **STEP** n'est pas indiqué la valeur par défaut **1** est utilisée. Une boucle **FOR** se termine par la commande **NEXT** tel qu'indiqué plus bas. Les instructions entre les comamndes **FOR** et **NEXT**
@@ -687,6 +713,25 @@ Cette fonction retourne la taille de la variable tableau **@**. Comme expliqué 
 2841
 >
 ```
+### UFLASH (C,P)
+Retourne l'adresse du début de la mémoire FLASH disponible à l'utilisateur.
+```
+>li
+   10 'code binaire programme test a UFLASH 
+   15 hex 
+   20 a=uflash
+   30 if pe(a)=0:stop
+   40 ?pe(a),
+   50 a=a+1
+   60 goto 30
+   70 dec 
+
+>ru
+ $89 $72 $1A $50  $A $85 $CD $9B $A6 $72 $1B $50  $A $81
+>
+```
+Comme expliqué dans la discription de la commande **USR** il y a un petit programme *test* préinstallé à l'adresse **UFLASH**. le programme ci-haut affiche le code binaire de ce petit programme. Le dernier code **$81** corrrespond à l'instruction machine **RET**.
+
 ### USR(*addr*[,*expr*]) {C,P}
 La fonction **USR()** permet d'exécuter une routine écrite en code machine. *addr* est l'adresse de la routine et *expr* est un entier passé en argument à la routine. Au démarrage l'adresse de l'espace utilisateur est affichée en hexadécimal. Cette adresse est le début de l'espace mémoire flash qui n'est pas utilisé par Tiny BASIC et qui peut-être utilisé pour enregistrer des routines en code machine. Cette espace utilisateur se termine à l'adresse 65535 ($ffff). Par défaut un petit programme est enregistré à cet adresse à des fins de test. La commande **WRITE** peut-être utilisée pour enregistrer du code binaire dans cet espace utilisateur. 
 ```
@@ -715,17 +760,19 @@ Cette commande sert à attendre un changement d'état sur un périphérique.
 Dans cet exemple l'adresse $5240 correspond au registre UART3_SR. Lorsque le bit 5 de ce registre passe à **1** ça signifit qu'un caractère a été reçu.
 L'exécution est suspendu jusqu'à la réception d'un caractère sur UART3.
 
-### WRITE *expr1*,*expr2* 
-Cette commande permet d'écrire un octet dans la mémoire EEPROM ou dans la mémoire FLASH. *expr1* indique l'adresse et *expr2* indique la valeur à écrire. le **STM8S208RB** possède 2Ko de mémoire EEPROM 128Ko de mémoire FLASH. 
+### WRITE *expr1*,*expr2*[,*expr*]* 
+Cette commande permet d'écrire un octet ou plusieurs dans la mémoire EEPROM ou dans la mémoire FLASH. *expr1* la liste d'expressions qui suivent  donne les valeurs à écrire aux adresses successives. le **STM8S208RB** possède 2Ko de mémoire EEPROM 128Ko de mémoire FLASH. Pour la mémoire flash seul la plage d'adresse à partir de **UFLASH** jusqu'à 65535 peuvent-être écritre. Cette commande est utile pour injecter du code machine dans la mémoire flash pour exécution avec la fonction **USR()**. 
+
 ```
->? peek($4000)
-   0
+>write eeprom,1,2,3,4,5 'ecris dans memoire eeprom
 
->write $4000,$aa
+>for a=eeprom to eeprom+5:?pe(a),:ne a ' verifie 
+   1   2   3   4   5   0
 
->?pe($4000)
- 170
+>write uflash+15,1,2,3,4,5 'ecris dans user flash 
 
+>for a=uf+14to uf+20:?pe(a),:ne a  ' verifie 
+   0   1   2   3   4   5   0
 >
 ```
 **AVERTISSEMENT: Écrire dans la mémoire FLASH peut endommagé le système Tiny BASIC** 

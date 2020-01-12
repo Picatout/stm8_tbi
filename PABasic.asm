@@ -62,13 +62,13 @@ acc8:  .blkb 1
 ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
 seedx: .blkw 1  ; xorshift 16 seed x 
 seedy: .blkw 1  ; xorshift 16 seed y 
-in.w.saved: .blkw 1 ; last parsed token value  
-farptr: .blkb 3 ; far pointer 
-ffree: .blkb 3 ; flash free address 
+in.w.saved: .blkw 1 ; set by get_token before parsing next token, used by unget_token
+farptr: .blkb 3 ; far pointer used by file system
+ffree: .blkb 3 ; flash free address ; file system free space pointer
 dstkptr: .blkw 1  ; data stack pointer 
 txtbgn: .ds 2 ; BASIC text beginning address 
 txtend: .ds 2 ; BASIC text end address 
-loop_depth: .ds 1 ; FOR loop depth 
+loop_depth: .ds 1 ; FOR loop depth, level of nested loop.  
 array_addr: .ds 2 ; address of @ array 
 array_size: .ds 2 ; array size 
 flags: .ds 1 ; boolean flags
@@ -83,10 +83,10 @@ free_ram: ; from here RAM free for BASIC text
     .org RAM_SIZE-STACK_SIZE-TIB_SIZE-PAD_SIZE-DSTACK_SIZE 
 tib: .ds TIB_SIZE             ; transaction input buffer
 pad: .ds PAD_SIZE             ; working buffer
-dstack: .ds DSTACK_SIZE 
-dstack_unf: ; dstack underflow 
+dstack: .ds DSTACK_SIZE 	  ; data stack used by FOR...NEXT 
+dstack_unf: ; dstack underflow ; data stack bottom 
 stack_full: .ds STACK_SIZE   ; control stack 
-stack_unf: ; stack underflow  
+stack_unf: ; stack underflow ; control_stack bottom 
 
 
 ;--------------------------------------
@@ -121,7 +121,7 @@ stack_unf: ; stack underflow
 	int NonHandledInterrupt ;int20 UART3 TX completed
 	int NonHandledInterrupt ;int21 UART3 RX full
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
-	int Timer4UpdateHandler	;int23 TIM4 update/overflow
+	int Timer4UpdateHandler	;int23 TIM4 update/overflow used as msec ticks counter
 	int NonHandledInterrupt ;int24 flash writing EOP/WR_PG_DIS
 	int NonHandledInterrupt ;int25  not used
 	int NonHandledInterrupt ;int26  not used
@@ -133,7 +133,7 @@ stack_unf: ; stack underflow
     .area CODE
 ;---------------------------------------
 .if DEBUG
-.asciz "TBI_STM8" ; I like to put module name here.
+.asciz "STM8_TBI" ; I like to put module name here.
 .endif 
 
 NonHandledInterrupt:
@@ -170,23 +170,22 @@ UserButtonHandler:
 1$: decw x 
 	jrne 1$
 	btjf USR_BTN_PORT,#USR_BTN_BIT, 1$
+; if MCU suspended by SLEEP resume program
     btjf flags,#FSLEEP,2$
 	bres flags,#FSLEEP 
 	iret
 2$:	btjt flags,#FRUN,4$
 	jp 9$ 
-4$:	bres flags,#FRUN 
+4$:	; program interrupted by user 
+	bres flags,#FRUN 
 	ldw x,#USER_ABORT
 	call puts 
 	ldw x,basicptr
 	ldw x,(x)
-	ldw acc16,x 
-	clr acc24 
-	clrw x 
-	ld a,#5
-	ld xl,a 
-	ld a,#10 
-	call prti24
+; print line number 
+	mov base,#10 
+	mov tab_width,#6
+	call print_int  	
 	ldw x,basicptr 
 	addw x,#3  
 	call puts 
@@ -194,7 +193,7 @@ UserButtonHandler:
 	call putc
 	clrw x  
 	ld a,in 
-	add a,#2 ; adjustment for line number display 
+	add a,#3 ; adjustment for line number display 
 	ld xl,a 
 	call spaces 
 	ld a,#'^
@@ -204,7 +203,6 @@ UserButtonHandler:
     ldw sp,x
 	rim 
 	jp warm_start
-
 
 USER_ABORT: .asciz "\nProgram aborted by user.\n"
 
@@ -270,11 +268,12 @@ unlock_flash:
 	btjf FLASH_IAPSR,#FLASH_IAPSR_PUL,.
 	ret
 
+	BLOCK_ERASE=0
 ;----------------------------
 ; erase block code must be 
 ;executed from RAM
 ;-----------------------------
-
+.if BLOCK_ERASE 
 ; this code is copied to RAM 
 erase_start:
 	clr a 
@@ -291,7 +290,7 @@ erase_start:
 	ret
 erase_end:
 
-
+; copy erase_start in RAM 
 move_code_in_ram:
 	ldw x,#erase_end 
 	subw x,#erase_start
@@ -323,7 +322,7 @@ erase_block:
 ; erase eeprom block
 	call unlock_eeprom 
 	sim 
-	call erase_start  
+	call pad   
 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
 	rim 
 	ret 
@@ -338,7 +337,7 @@ erase_flash:
     bres FLASH_IAPSR,#FLASH_IAPSR_PUL
 	rim 
 	ret 
-
+.endif ; BLOCK_ERASE 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
@@ -448,7 +447,6 @@ write_block:
 	call incr_farptr
 	_drop VSIZE
 	ret 
-
 
 
 ;---------------------------------------------
@@ -647,7 +645,7 @@ prt_peek:
 	ld a,#16 
 	call prti24
 	ret 
-.endif 
+.endif ; DEBUG  
 
 ;-------------------------------------
 ; retrun string length
@@ -979,7 +977,6 @@ is_alpha:
 	MAJOR=1
 	MINOR=0
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2020\nversion "
-usr_addr: .asciz "user space address: " 
 cold_start:
 ;set stack 
 	ldw x,#STACK_EMPTY
@@ -1027,11 +1024,6 @@ cold_start:
 	ld a,#CR 
 	call putc 
 	call seek_fdrive 
-	ldw x,#usr_addr
-	call puts  
-	ldw x,#user_space
-	mov base,#16
-	call print_int 
 ; configure LED2 pin 
     bset PC_CR1,#LED2_BIT
     bset PC_CR2,#LED2_BIT
@@ -1047,6 +1039,10 @@ cold_start:
 	ldw array_size,x 
     jp warm_start 
 
+;---------------------------
+; reset BASIC text variables 
+; and clear variables 
+;---------------------------
 clear_basic:
 	clrw x 
 	ldw lineno,x
@@ -1057,6 +1053,9 @@ clear_basic:
 	call clear_vars 
 	ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;   Tiny BASIC error messages     ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 err_msg:
 	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
 	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
@@ -1089,11 +1088,9 @@ tb_error:
 	ldw x,lineno 
 	tnzw x 
 	jreq 2$
-	ldw acc16,x 
-	clr acc24 
-	ldw x,#5 
-	ld a,#10 
-	call prti24
+	mov tab_width,#6
+	mov base,#10 
+	call print_int 
 2$:	 
 	ldw x,basicptr   
 	ld a,lineno 
@@ -1107,7 +1104,7 @@ tb_error:
 	ld a,lineno 
 	or a,lineno+1
 	jreq 4$
-	ldw x,#5 
+	ldw x,#3 
 4$:	addw x,in.w 
 	call spaces
 	ld a,#'^ 
@@ -1126,61 +1123,7 @@ warm_start:
 	ldw x,#tib 
 	ldw basicptr,x 
 ;----------------------------
-; tokenizer test
-;----------------------------
-  TOK_TEST=0 
-.if TOK_TEST 
-test_tok:
-	clr in.w 
-	clr in 
-	ld a,#CR 
-	call putc 
-	ld a,#'> 
-	call putc 
-	call readln
-	ldw x,#tib 
-1$:	call get_token	
-	tnz a 
-	jrne 2$
-	jra test_tok 
-2$:	push a 
-	cp a,#TK_INTGR
-	jrne 3$
-	ld a,#10 
-	clrw x
-	call itoa
-	ldw y,x 
-	ldw x,#pad 
-	call strcpy    
-3$:	ld a,(1,sp) 
-	cp a,#20
-	jrmi 34$
-	ld a,#'2 
-	call putc 
-	ld a,(1,sp)
-	sub a,#20
-	ld (1,sp),a
-	jra 36$   
-34$: 
-	cp a,#10
-	jrmi 36$ 
-	ld a,#'1 
-	call putc
-	ld a,(1,sp)
-	sub a,#10 
-	ld (1,sp),a  
-36$:
-	pop a 
-	add a,#'0 
-	call putc 
-	ld a,#SPACE 
-	call putc 
-	ldw x,#pad 
-	call puts 
-	ld a,#CR 
-	call putc 
-	jra 1$
-.endif
+;   BASIC interpreter
 ;----------------------------
 interp:
 	clr in.w
@@ -1210,7 +1153,7 @@ interp:
 	ld a,#'> 
 	call putc 
 	call readln
-interp_loop:
+interp_loop:  
 	ld a,in 
 	cp a,count 
 	jrpl interp
@@ -1371,7 +1314,7 @@ REG_X:   .asciz "\nX:"
 REG_A:   .asciz "\nA:" 
 REG_CC:  .asciz "\nCC:"
 REG_SP:  .asciz "\nSP:"
-.endif 
+.endif ; DEBUG 
 
 ;------------------------------------
 ; print integer in acc24 
@@ -1425,20 +1368,6 @@ prti24:
 	call putc 
 5$: _drop VSIZE 
     ret	
-
-;-----------------------------
-; intialize parser ready for
-; for a new line analysis
-; input:
-;   none
-; output:
-;	none 
-;------------------------------
-parser_init::
-	clr in.w 
-	clr in
-	clr pad  
-	ret 
 
 ;-----------------------------------
 ; print a 16 bit integer 
@@ -1506,7 +1435,7 @@ print_int:
 	ret 
 
 ;------------------------------------
-; convert integer to string
+; convert integer in acc24 to string
 ; input:
 ;   A	  	base
 ;	acc24	integer to convert
@@ -1628,8 +1557,8 @@ neg_acc24:
 ; input:
 ;	none
 ; local variable on stack:
-;	LL (1,sp)
-;   RXCHAR (2,sp)
+;	LL  line length
+;   RXCHAR last received chaaracte 
 ; output:
 ;   text in tib  buffer
 ;------------------------------------
@@ -1728,7 +1657,7 @@ readln_quit:
 .if DEBUG 	
 ;----------------------------
 ; command interface
-; only 2 commands:
+; only 3 commands:
 ;  'q' to resume application
 ;  'p [addr]' to print memory values 
 ;  's addr' to print string 
@@ -1749,13 +1678,17 @@ repl:
 	clr in.w 
 	clr in 
 	call readln
-	call get_token
-	ldw y,#pad 
+	ldw y,#tib  
 	ld a,(y)
-	incw y
+	jreq repl  
+	inc in 
+	call to_upper 
 	cp a,#'Q 
 	jrne test_p
 repl_exit:
+	clr tib 
+	clr count 
+	clr in 
 	_drop #VSIZE 	
 	ret  
 invalid:
@@ -1769,11 +1702,17 @@ test_p:
 	jrne invalid 
 print_string:	
 	call get_token
-	ldw x,acc16 
+	cp a,#TK_INTGR 
+	jrne invalid 
 	call puts
 	jp repl 	
-mem_peek:	 
-	call get_token
+mem_peek:
+	ld a,#SPACE 
+	call skip  	 
+	addw y,in.w 
+	ldw x,#pad 
+	call strcpy
+	call atoi24 	
 	ld a, acc24 
 	or a,acc16 
 	or a,acc8 
@@ -1808,7 +1747,6 @@ peek_byte:
 	adc a,farptr 
 	ld farptr,a 
 	jp repl  
-
 
 invalid_cmd: .asciz "not a command\n" 
 
@@ -1853,9 +1791,9 @@ fetchc: ; @C
 ;------------------------------------
 number::
 	call get_token
-	call atoi
+	call atoi24
 	ret
-.endif
+.endif ; DEBUG 
 
 ;------------------------------------
 ; parse quoted string 
@@ -1988,7 +1926,7 @@ parse_integer: ; { -- n }
 	cp a,#'G 
 	jrmi 2$ 
 3$:	clr (x)
-	call atoi
+	call atoi24
 	ldw x,acc16 
 	ld a,#TK_INTGR
 	_drop VSIZE  
@@ -2317,21 +2255,6 @@ is_digit:
 1$:	ccf 
     ret
 
-;----------------------------------
-; convert to lower case
-; input: 
-;   A 		character to convert
-; output:
-;   A		result 
-;----------------------------------
-to_lower::
-	cp a,#'A
-	jrult 9$
-	cp a,#'Z 
-	jrugt 9$
-	add a,#32
-9$: ret
-
 ;------------------------------------
 ; convert alpha to uppercase
 ; input:
@@ -2349,28 +2272,6 @@ to_upper::
 	ret
 	
 ;------------------------------------
-; uppercase pad content
-; input:
-;	pad      .asciz 
-; output:
-;   pad      uppercase string 
-;------------------------------------
-upper:
-	ldw y,#pad 
-upper_loop:	
-	ld a,(y)
-	jreq 4$
-	cp a,#'a 
-	jrmi 4$
-	cp a,#'z+1 
-	jrpl 4$ 
-	sub a,#0x20 
-	ld (y),a 
-	incw y 
-	jra upper_loop
-4$: ret 
-
-;------------------------------------
 ; convert pad content in integer
 ; input:
 ;    pad		.asciz to convert
@@ -2382,7 +2283,7 @@ upper_loop:
 	BASE=2 ; 1 byte, numeric base used in conversion
 	TEMP=3 ; 1 byte, temporary storage
 	VSIZE=3 ; 3 bytes reserved for local storage
-atoi:
+atoi24:
 	pushw x ;save x
 	sub sp,#VSIZE
 	; acc24=0 
@@ -2514,9 +2415,21 @@ skip:
 	jra 1$
 2$: _drop 1 
 	ret
+	
+;------------------------------
+; restore 'in.w' variable to 
+; its value before last call
+; to get_token.
+;------------------------------
+unget_token:
+	ldw x,in.w.saved
+	ldw in.w,x 
+	ret 
+
 
 ;******************************
-
+;  data stack manipulation
+;*****************************
 ;----------------------	
 ; push X on data stack 
 ; input:
@@ -2609,16 +2522,23 @@ store:
 	ldw (x),y 
 	ret 
 
-;------------------------------
-; restore 'in.w' variable to 
-; its value before last call
-; to get_token.
-;------------------------------
-unget_token:
-	ldw x,in.w.saved
-	ldw in.w,x 
+;---------------------------------
+; drop n elements from data stack 
+; input: 
+;   X 		n 
+; output:
+;   none 
+;-------------------------------------
+ddrop_n:
+	pushw y 
+	ldw y,dstkptr 
+	sllw x 
+	pushw x 
+	addw y,(1,sp)
+	ldw dstkptr,y 
+	popw x 
+	popw y
 	ret 
-
 
 dstk_prompt: .asciz "\ndstack: " 
 ;----------------------------
@@ -2673,21 +2593,6 @@ dotr_loop:
 9$:	ld a,#CR 
 	call putc 
 	_drop VSIZE 
-	clr a 
-	ret
-
-
-;--------------------------------
-; BASIC: SHOW 
-;  show content of dstack,cstack
-;--------------------------------
-show:
-	ld a,base 
-	push a 
-	call dots
-	call dotr 
-	pop a 
-	ld base,a 
 	clr a 
 	ret
 
@@ -2888,7 +2793,6 @@ divide:
 ; output:
 ;   X       N2%N1 
 ;----------------------------------
-	
 	N1=3
 	N2=5
 	VSIZE=4
@@ -2902,33 +2806,6 @@ modulo:
 	ldw x,y
 	_drop VSIZE 
 	ret 
-
-;---------------------------------
-; drop n elements from data stack 
-; input: 
-;   X 		n 
-; output:
-;   none 
-;-------------------------------------
-ddrop_n:
-	pushw y 
-	ldw y,dstkptr 
-	sllw x 
-	pushw x 
-	addw y,(1,sp)
-	ldw dstkptr,y 
-	popw x 
-	popw y
-	ret 
-
-;---------------------------------
-; execute procedure which address
-; is at TOS 
-; --------------------------------
-execute: ; { addr -- ? }
-	call dpop
-	jp (x)
-
 
 ;---------------------------------
 ; input:
@@ -3323,6 +3200,19 @@ rel_exit:
 	_drop VSIZE
 	ret 
 
+;--------------------------------
+; BASIC: SHOW 
+;  show content of dstack,cstack
+;--------------------------------
+show:
+	ld a,base 
+	push a 
+	call dots
+	call dotr 
+	pop a 
+	ld base,a 
+	clr a 
+	ret
 
 ;--------------------------------------------
 ; BASIC: HEX 
@@ -3369,6 +3259,12 @@ ubound:
 	ld a,#TK_INTGR
 	ret 
 
+;-----------------------------
+; BASIC: LET var=expr 
+; variable assignement 
+; output:
+;   A 		TK_NONE 
+;-----------------------------
 let:
 	call get_token 
 	cp a,#TK_VAR 
@@ -3469,8 +3365,6 @@ list_start:
 list_exit:
 	_drop VSIZE 
 	ret
-
-empty: .asciz "Nothing to list\n"
 
 ;--------------------------
 ; input:
@@ -3680,7 +3574,6 @@ input_exit:
 ;---------------------- 
 rem: 
 	ret 
-
 
 ;---------------------
 ; BASIC: WAIT addr,mask[,xor_mask] 
@@ -4164,6 +4057,10 @@ new:
 	call clear_basic 
 	ret 
 	 
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;   file system routines
+;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;--------------------
 ; input:
 ;   X     increment 
@@ -4230,26 +4127,7 @@ seek_fdrive:
 	ld a,farptr+2 
 	ldw ffree,x 
 	ld ffree+2,a  
-	ldw acc24,x 
-	ld acc8,a 
-	ld a,#0xff 
-	sub a,acc8 
-	ld acc8,a 
-	ld a,#0x7f 
-	sbc a,acc16 
-	ld acc16,a 
-	ld a,#0x2 
-	sbc a,acc24 
-	ld acc24,a 
-5$:	ldw x,#ffree_msg 
-	call puts 
-	clrw x 
-	ld a,#10
-	call prti24 
-	ld a,#CR 
-	call putc 
-	ret 
-ffree_msg: .asciz "\nflash drive bytes free: "
+5$:	ret 
 
 ;-----------------------
 ; compare file name 
@@ -4556,37 +4434,71 @@ dir_loop:
 	incw x
 	ldw (COUNT,sp),x  
 	jra dir_loop 
-8$:
+8$: ; print number of files 
 	ldw x,(COUNT,sp)
 	call print_int 
 	ldw x,#file_count 
 	call puts  
+; print drive free space 	
+	ld a,#0xff 
+	sub a,ffree+2 
+	ld acc8,a 
+	ld a,#0x7f 
+	sbc a,ffree+1 
+	ld acc16,a 
+	ld a,#2 
+	sbc a,ffree 
+	ld acc24,a 
+	clrw x  
+	ld a,#6 
+	ld xl,a 
+	ld a,#10 
+	call prti24 
+	ldw x,#drive_free
+	call puts 
 	_drop VSIZE 
 	ret
 file_count: .asciz " files\n"
+drive_free: .asciz " bytes free\n" 
 
 ;---------------------
-; BASIC: WRITE expr1,expr2 
-; write byte to FLASH or EEPROM 
+; BASIC: WRITE expr1,expr2[,expr]* 
+; write 1 or more byte to FLASH or EEPROM
+; starting at address  
 ; input:
 ;   expr1  	is address 
 ;   expr2   is byte to write
 ; output:
 ;   none 
 ;---------------------
+	ADDR=1
+	VSIZ=2 
 write:
+	_vars VSIZE 
 	clr farptr ; expect 16 bits address 
-	call arg_list  
-	cp a,#2
-	jreq 1$
+	call expression
+	cp a,#TK_INTGR 
+	jreq 0$
 	jp syntax_error
-1$:
-	call dpop 
-	ld a,xl 
-	call dpop 
+0$: ldw (ADDR,sp),x 
+	call get_token 
+	cp a,#TK_COMMA 
+	jreq 1$ 
+	jra 9$ 
+1$:	call expression
+	cp a,#TK_INTGR
+	jreq 2$
+	jp syntax_error
+2$:	ld a,xl 
+	ldw x,(ADDR,sp) 
 	ldw farptr+1,x 
 	clrw x 
-	call write_byte 
+	call write_byte
+	ldw x,(ADDR,sp)
+	incw x 
+	jra 0$ 
+9$:
+	_drop VSIZE
 	ret 
 
 
@@ -4766,6 +4678,33 @@ port_cr2:
 	ld a,#TK_INTGR
 	ret
 
+;-------------------------
+; BASIC: UFLASH 
+; return user flash address
+; input:
+;  none 
+; output:
+;	A		TK_INTGR
+;   X 		user address 
+;---------------------------
+uflash:
+	ldw x,#user_space 
+	ld a,#TK_INTGR 
+	ret 
+
+;-------------------------
+; BASIC: EEPROM 
+; return eeprom address
+; input:
+;  none 
+; output:
+;	A		TK_INTGR
+;   X 		eeprom address 
+;---------------------------
+eeprom:
+	ldw x,#EEPROM_BASE 
+	ld a,#TK_INTGR 
+	ret 
 
 ;---------------------
 ; BASIC: USR(addr[,arg])
@@ -4970,11 +4909,12 @@ random:
 ;------------------------------
 ;      dictionary 
 ; format:
-;   link   2 bytes 
-;   cmd_name 8 byte max 
-;   code_address 2 bytes 
+;   link:   2 bytes 
+;   name_length+flags:  1 byte, bits 0:4 lenght,5:8 flags  
+;   cmd_name: 16 byte max 
+;   code_address: 2 bytes 
 ;------------------------------
-	FFUNC=128 
+	FFUNC=128 ; function flag 
 	.macro _dict_entry len,name,cmd 
 	.word LINK 
 	LINK=.
@@ -5000,6 +4940,8 @@ kword_end:
 	_dict_entry 3,RUN,run
 	_dict_entry 4,LIST,list
 	_dict_entry,3+FFUNC,USR,usr
+	_dict_entry,6+FFUNC,EEPROM,eeprom 
+	_dict_entry,6+FFUNC,UFLASH,uflash 
 	_dict_entry,3+FFUNC,ODR,port_odr
 	_dict_entry,3+FFUNC,IDR,port_idr
 	_dict_entry,3+FFUNC,DDR,port_ddr 
@@ -5042,6 +4984,7 @@ kword_dict:
 	.bndry 128 ; align on FLASH block.
 ; free space for user application  
 user_space:
+; USR() function test
 	pushw x 
 	bset PC_ODR,#5 
 	popw x 
