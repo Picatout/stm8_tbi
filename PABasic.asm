@@ -747,9 +747,11 @@ move_loop:
 	addw y,(INCR,sp) 
 	ld a,(y)
 	ld (x),a 
-	dec acc8
-	jrpl move_loop
-	dec acc16
+	pushw x 
+	ldw x,acc16 
+	decw x 
+	ldw acc16,x 
+	popw x 
 	jra move_loop
 move_exit:
 	_drop VSIZE
@@ -3626,11 +3628,12 @@ bit_set:
 	cp a,#2	 
 	jreq 1$ 
 	jp syntax_error
-1$: call dpop ; mask 
+1$: 
+	call dpop ; mask 
 	ld a,xl 
 	call dpop ; addr  
 	or a,(x)
-	ld (x),a 
+	ld (x),a
 	ret 
 
 ;---------------------
@@ -3777,7 +3780,8 @@ to: ; { var_addr -- var_addr limit step }
 	cp a,#TK_INTGR 
 	jreq 2$ 
 	jp syntax_error
-2$: call dpush ; limit
+2$: 
+    call dpush ; limit
 	ldw x,in.w 
 	call get_token
 	cp a,#TK_NONE  
@@ -3814,7 +3818,7 @@ store_loop_addr:
 	ldw x,in.w 
 	ldw (INW,sp),x   
 	bres flags,#FFOR 
-	inc loop_depth 
+	inc loop_depth  
 	ret 
 
 ;--------------------------------
@@ -4619,8 +4623,7 @@ gpio:
 	call dpop 
 	addw x,(1,sp)
 	ldw (1,sp),x  
-	ldw x,#2 
-	call ddrop_n 
+	call ddrop  
 	popw x 
 	ld a,#TK_INTGR
 	ret
