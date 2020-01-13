@@ -4904,6 +4904,45 @@ random:
 	ld a,#TK_INTGR
 	ret 
 
+;---------------------------------
+; BASIC: WORDS 
+; affiche la listes des mots du
+; dictionnaire.
+;---------------------------------
+	WLEN=1
+	LLEN=2  
+	VSIZE=2 
+words:
+	_vars VSIZE
+	clr (LLEN,sp)
+	ldw y,#kword_dict+2
+0$:	ldw x,y
+	ld a,(x)
+	and a,#15 
+	ld (WLEN,sp),a 
+1$:	incw x 
+	ld a,(x)
+	call putc 
+	inc (LLEN,sp)
+	dec (WLEN,sp)
+	jrne 1$
+	ld a,#70
+	cp a,(LLEN,sp)
+	jrmi 2$   
+	ld a,#SPACE 
+	call putc 
+	inc (LLEN,sp) 
+	jra 3$
+2$: ld a,#CR 
+	call putc 
+	clr (LLEN,sp)
+3$:	subw y,#2 
+	ldw y,(y)
+	jrne 0$  
+	_drop VSIZE 
+	ret 
+
+
 ;*********************************
 
 ;------------------------------
@@ -4927,6 +4966,7 @@ name:
 	LINK=0
 kword_end:
 	_dict_entry,3,BYE,bye 
+	_dict_entry,5,WORDS,words 
 	_dict_entry,5,SLEEP,sleep 
 	_dict_entry,6,FORGET,forget 
 	_dict_entry,3,DIR,directory 

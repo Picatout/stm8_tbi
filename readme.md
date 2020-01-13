@@ -760,6 +760,17 @@ Cette commande sert à attendre un changement d'état sur un périphérique.
 Dans cet exemple l'adresse $5240 correspond au registre UART3_SR. Lorsque le bit 5 de ce registre passe à **1** ça signifit qu'un caractère a été reçu.
 L'exécution est suspendu jusqu'à la réception d'un caractère sur UART3.
 
+### WORDS {C,P}
+Affiche la liste de tous les mots qui sont dans le dictionnaire. La liste n'est pas triée par ordre alphabétique.
+```
+>words
+LET INPUT POKE PEEK RETURN UBOUND NEXT STEP TO FOR GOTO GOSUB IF PRINT REMARK
+WAIT BTOGL BRES BSET PAUSE RND ABS TICKS DEC HEX SIZE KEY QKEY CHAR ASC
+GPIO CRH CRL DDR IDR ODR UFLASH EEPROM USR LIST RUN SHOW STOP BREAK NEW
+WRITE SAVE LOAD DIR FORGET SLEEP WORDS BYE 
+>
+```
+
 ### WRITE *expr1*,*expr2*[,*expr*]* 
 Cette commande permet d'écrire un octet ou plusieurs dans la mémoire EEPROM ou dans la mémoire FLASH. *expr1* la liste d'expressions qui suivent  donne les valeurs à écrire aux adresses successives. le **STM8S208RB** possède 2Ko de mémoire EEPROM 128Ko de mémoire FLASH. Pour la mémoire flash seul la plage d'adresse à partir de **UFLASH** jusqu'à 65535 peuvent-être écritre. Cette commande est utile pour injecter du code machine dans la mémoire flash pour exécution avec la fonction **USR()**. 
 
@@ -804,8 +815,7 @@ Bytes written: 7808
 ```
 
 # Utilisation de TinyBASIC sur STM8
-A faire: écrire le manuel de l'[utilisateur de tinyBASIC](manuel_util_tb.md).
-
+Vous trouverez dans le manuel de l'[utilisateur de tiny BASIC](manuel_util_tb.md) des exemples d'utilisation. 
 
 # code source 
 
