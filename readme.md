@@ -145,6 +145,14 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
 
     >
 ```
+### BEEP *expr1*,*expr2* {C,P}
+Le MCU STM8S208RB possède un beeper. Cette commande utilise ce périphérique qui est connecté sur GPIO D:4  pour faire entendre une tonalité. *expr1* détermine la fréquence dans 3 choix possibles 1,2,4 Khz. *expr1* doit-être dans l'ensemble {1,2,4}. *expr2* détermine la durée du son en millisecondes.
+```
+>BEEP 2,1000 ' 2 Khz pendant 1 seconde
+
+>
+``` 
+
 ### BREAK {P}
 Outil d'aide au débogage. Cette commande interrompt l'exécution du programme au point où elle est insérée. L'utilisateur se retrouve donc sur la ligne de commande où il peut exécuter différentes commandes comme examiner le contenu des piles avec la commande **SHOW** ou imprimer la valeur d'une variable. Le programme est redémarré à son point d'arrêt avec la commande **RUN**.  La commande **STOP** interompt l'exécution.
 ```

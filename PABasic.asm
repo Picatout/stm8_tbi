@@ -4018,6 +4018,35 @@ stop:
 	jp warm_start
 
 ;-----------------------
+; BASIC BEEP expr1,expr2
+; used MCU internal beeper 
+; to produce a sound
+; arguments:
+;    expr1   frequency, {1,2,4} mapping to 1K,2K,4K
+;    expr2   duration msec.
+;---------------------------
+beep:
+	call arg_list 
+	cp a,#2 
+	jreq 2$
+	jp syntax_error 
+2$: ldw x,dstkptr 
+	ldw x,(2,x);frequency 
+	ld a,xl
+	dec a 
+	swap a 
+	sll a 
+	sll a 
+	add a,#0x3e 
+	ld BEEP_CSR,a 
+	call dpop 
+	call pause02 
+	call ddrop 
+	ld a,#0x1f
+	ld BEEP_CSR,a 
+	ret 
+
+;-----------------------
 ; BASIC: BREAK 
 ; insert a breakpoint 
 ; in pogram. 
@@ -4978,6 +5007,7 @@ kword_end:
 	_dict_entry,5,WRITE,write  
 	_dict_entry,3,NEW,new
 	_dict_entry,5,BREAK,break 
+	_dict_entry,4,BEEP,beep 
 	_dict_entry,4,STOP,stop 
     _dict_entry,4,SHOW,show 
 	_dict_entry 3,RUN,run
