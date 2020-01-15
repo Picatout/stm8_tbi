@@ -937,7 +937,7 @@ insert_line:
 insert_ln_exit:	
 	_drop VSIZE
 	ret
-	
+
 ;------------------------------------
 ;  set all variables to zero 
 ; input:
@@ -4046,6 +4046,64 @@ beep:
 	ld BEEP_CSR,a 
 	ret 
 
+;-------------------------------
+; BASIC: PWRADC 0|1,divisor  
+; disable/enanble ADC 
+;-------------------------------
+power_adc:
+	call arg_list 
+	cp a,#2	
+	jreq 1$
+	jp syntax_error 
+1$: ldw x,#2
+	ldw x,([dstkptr],x) ; on|off
+	tnzw x 
+	jreq 2$ 
+	ldw x,[dstkptr] ; channel
+	ld a,xl
+	and a,#7
+	swap a 
+	ld ADC_CR1,a
+	bset ADC_CR2,#ADC_CR2_ALIGN ; right 
+	bset ADC_CR1,#ADC_CR1_ADON 
+	_usec_dly 7 
+	jra 3$
+2$: bres ADC_CR1,#ADC_CR1_ADON 
+3$:	ldw x,#2
+	call ddrop_n 
+	ret
+
+;-----------------------------
+; BASIC: RDADC(channel)
+; read adc channel 
+; output:
+;   A 		TK_INTGR 
+;   X 		value 
+;-----------------------------
+read_adc:
+	ld a,#TK_LPAREN 
+	call expect 
+	call get_token 
+	cp a,#TK_INTGR 
+	jreq 1$
+	jp syntax_error
+1$: pushw x 
+	ld a,#TK_RPAREN 
+	call expect 
+	popw x 
+	cpw x,#16 
+	jrult 2$
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+2$: ld a,xl
+	ld ADC_CSR,a 
+	bset ADC_CR1,#ADC_CR1_ADON
+	btjf ADC_CSR,#ADC_CSR_EOC,.
+	ldw x,ADC_DRH 
+	ld a,#TK_INTGR
+	ret 
+
+
 ;-----------------------
 ; BASIC: BREAK 
 ; insert a breakpoint 
@@ -5021,6 +5079,8 @@ kword_end:
 	_dict_entry,3+FFUNC,CRL,port_cr1 
 	_dict_entry,3+FFUNC,CRH,port_cr2
 	_dict_entry,4+FFUNC,GPIO,gpio 
+	_dict_entry,6,PWRADC,power_adc 
+	_dict_entry,5+FFUNC,RDADC,read_adc
 	_dict_entry,3+FFUNC,ASC,ascii  
 	_dict_entry,4+FFUNC,CHAR,char
 	_dict_entry,4+FFUNC,QKEY,qkey  

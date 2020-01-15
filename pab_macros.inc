@@ -81,6 +81,14 @@
 ;-------------------------------------
     MATH_OVF=0 ; if 1 the stop on math overflow 
 
+
+    .macro _usec_dly n 
+    ldw x,#(16*n-2)/4
+    decw x
+    nop 
+    jrne .-4
+    .endm 
+    
 ;---------------------------------------
 ;  data stack macros 
 ;---------------------------------------

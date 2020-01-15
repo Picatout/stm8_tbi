@@ -551,6 +551,28 @@ Caractere recu du terminal Z
 
 >
 ```
+### PWRADC 0|1,Fclk
+Active **1** ou désactive **1** le convertisseur analogique/numérique. Fclk détermine la fréquence d'horloge du convertisseur et doit-être un entier dans l'intervalle {0..7}. Il s'agit d'un diviseur donc **7** correspond à la fréquence la plus basse. Le diviseur s'applique Fosc qui est de 16Mhz. Il faut 11 cycles d'horloges pour chaque conversion.  Il s'agit d'un convertisseur 10 bits donc le résultat est entre 0...1023
+
+paramètre|diviseur|fréquence
+-|-|-
+0|2|8Mhz
+1|3|5,33Mhz
+2|4|4Mhz
+3|6|2,66Mhz
+4|8|2Mhz
+5|10|1,6Mhz
+6|12|1,33Mhz 
+7|18|0,89Mhz
+```
+>pwradc 1,0 ' active ADC fréquence maximale
+
+>?rdadc(0) 'Lecture canal 0 
+ 757
+
+```
+On peut désactiver le convertisseur pour réduire la consommation du MCU.
+
 ### QKEY {C,P}
 Cette commande vérifie s'il y a un caractère en attente dans le tampon de réception du terminal. Retourne **1** si c'est le cas sinon retourne **0**.
 ```
@@ -559,6 +581,16 @@ Cette commande vérifie s'il y a un caractère en attente dans le tampon de réc
 >z
 ```
 Pour créer une boucle infinie on utilise un FOR...NEXT avec la valeur de STEP à zéro. À l'intérieur de la boucle on appelle la fonction **QKEY** dont la valeur est affectée à la variable **A** qui est la variable de contrôle de la boucle. Sitôt qu'une touche est enfoncée sur la console la valeur de **A** passe à **1** et la boucle se termine. De retour sur la ligne de commande le caractère reçu  de la console est affiché après le **'&gt;'** puisqu'il est lu par la fonction *readln* de l'interpréteur de commande.
+
+### RDADC(canal)
+Lecture d'une entrée analogique le **STM8S208RB** possède 16 entrées analogiques. L'argument **canal** détermine quel entrée est lue {0..15}.
+```
+>pwradc 1,0 ' active ADC fréquence maximale
+
+>?rdadc(0) 'Lecture canal 0 
+ 655
+
+```
 
 ### REM  *texte*
 La commande **REM**  sert à insérer des commentaires (*remark*) dans un programme pour le documenter. Le mot réservé **REM** peut-être avantageusement remplacé par le caractère apostrophe (**'**). Un commentaire se termine avec la ligne et est ignoré par l'interpréteur.
