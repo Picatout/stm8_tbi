@@ -27,17 +27,17 @@
         ; 0x3n -> relational operators 
         TK_NONE=0       ; undefined
         TK_COLON=1      ; command end marker ':' 
-        TK_VAR=2        ; variable letters {A..Z}
-        TK_ARRAY=3      ; array variable '@' 
-        TK_LPAREN=4     ; left parenthesis '('
-        TK_RPAREN=5     ; right parenthesis ')'
-        TK_QSTR=6       ; quoted string  
-        TK_CMD=7        ; BASIC command   
-        TK_COMMA=8      ; item separator ',' 
-        TK_SHARP=9      ; print colon width '#' 
-        TK_INTGR=10     ; integer 
-        TK_CHAR=11      ; ASCII character 
-        TK_FUNC=12      ; BASIC function 
+        TK_INTGR=2     ; integer 
+        TK_VAR=3        ; variable letters {A..Z}
+        TK_ARRAY=4      ; array variable '@' 
+        TK_CMD=5        ; BASIC command   
+        TK_FUNC=6      ; BASIC function 
+        TK_QSTR=7       ; quoted string  
+        TK_LPAREN=8     ; left parenthesis '('
+        TK_RPAREN=9     ; right parenthesis ')'
+        TK_COMMA=0xa     ; item separator ',' 
+        TK_SHARP=0xb     ; print colon width '#' 
+        TK_CHAR=0xc      ; ASCII character 
         TK_PLUS=0x10    ; addition operator '+'
         TK_MINUS=0x11   ; subtraction operator '-'
         TK_MULT=0x20    ; multiplication operator '*'
@@ -45,20 +45,22 @@
         TK_MOD=0x22     ; modulo operator '%'
 
         ; don't change these token values 
-        ; values chosen to be used as a mask with CC.
-        ; bits 4:5 identify group 
-        ; bits 0:2 are CC mask 
+        ; values chosen to be used as a mask.
+        ; bits 7:6  always 0 
+        ; bits 5:4 identify group 
+        ; bits 3:0 token identifier inside group  
         TK_GT=0x31      ; relation operator '>'
         TK_EQUAL=0x32   ; assignment or relation operator '='
         TK_GE=0x33      ; relation operator '>='
         TK_LT=0x34      ; relation operator '<'
-        TK_NE=0x35      ; relation operator '<>' not equal 
         TK_LE=0x36      ; relation operator '<='
-        TK_GRP_MASK=0X30 ; token groups: additive group 0x10, mult. group 0x20, rel_op group 0x30 
+        TK_NE=0x35      ; relation operator '<>' not equal 
+        TK_GRP_MASK=0x30 ; token groups: additive group 0x08, mult. group 0x10, rel_op group 0x11 
         TK_GRP_MISC=0x00 
         TK_GRP_ADD=0x10 
         TK_GRP_MULT=0x20 
-        TK_GRP_RELOP=0x30 
+        TK_GRP_RELOP=0x30
+        CMD_END=2
 
 ;--------------------------------------
 ;   error codes 

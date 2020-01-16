@@ -63,7 +63,9 @@ ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
 seedx: .blkw 1  ; xorshift 16 seed x 
 seedy: .blkw 1  ; xorshift 16 seed y 
 in.w.saved: .blkw 1 ; set by get_token before parsing next token, used by unget_token
-farptr: .blkb 3 ; far pointer used by file system
+farptr: .blkb 1 ; far pointer used by file system
+ptr16:  .blkb 1 ; middle byte of farptr
+ptr8:   .blkb 1 ; least byte of farptr 
 ffree: .blkb 3 ; flash free address ; file system free space pointer
 dstkptr: .blkw 1  ; data stack pointer 
 txtbgn: .ds 2 ; BASIC text beginning address 
@@ -784,7 +786,6 @@ search_ln_loop:
 	jrpl 8$ ; from here all lines are > lineno 
 	ld a,(2,y)
 	ld (LB,sp),a 
-	addw y,#3 
 	addw y,(LL,sp)
 	jra search_ln_loop 
 8$: exgw x,y 
@@ -804,7 +805,6 @@ search_ln_loop:
 del_line: 
 	_vars VSIZE 
 	ld a,(2,x) ; line length
-	add a,#3
 	ld (LLEN+1,sp),a 
 	clr (LLEN,sp)
 	ldw y,x  
@@ -863,8 +863,7 @@ create_gap:
 ; replace existing 
 ; if strlen(tib)==0 delete existing 
 ; input:
-;   X 				line number 
-;   tib[in.w]  		text to insert  
+;   ptr16 				pointer to tokenized line  
 ; output:
 ;   none
 ;---------------------------------------------
@@ -875,19 +874,22 @@ create_gap:
 	VSIZE=8  
 insert_line:
 	_vars VSIZE 
-	cpw x,#0  
-	jrugt 0$ 
-	jp syntax_error ; negative line number 
-0$: 
+	ldw x,ptr16  
+	cpw x,txtbgn 
+	jrne 0$
+	ldw x,#2 
+	ld a,([ptr16],x)
+	clrw x 
+	ld xl,a 
+	addw x,txtend 
+	ldw txtend,x 
+	jra insert_ln_exit 
+0$:	ldw x,[ptr16]
 	ldw (LINENO,sp),x 
-	ldw x,#tib 
-	addw x,in.w 
-	ldw (SRC,sp),x 
-	call strlen
-	tnzw x 
-	jreq 1$
-	incw x 
-1$:	ldw (LLEN,sp),x
+	ldw x,#2 
+	ld a,([ptr16],x); line length 
+	ld xl,a
+	ldw (LLEN,sp),x
 	ldw x,(LINENO,sp)
 	call search_lineno 
 	tnzw x 
@@ -900,43 +902,147 @@ insert_line:
 	call del_line
 ; leave or insert new line if LLEN>0
 3$: 
-; check for available space 
-	call size 
-	subw x,#3 
-    subw x,(LLEN,sp)
-	jrpl 31$
-	ld a,#ERR_MEM_FULL
-	jp tb_error 
-31$:	
 	tnz (LLEN+1,sp)
 	jreq insert_ln_exit ; empty line forget it.
 	ldw x,(DEST,sp)
 	cpw x,txtend 
 	jrpl 4$ 
 ; must create a gap 
+	ldw x,txtend 
+	addw x,(LLEN,sp)
+	ldw txtend,x 
+	ldw x,(DEST,sp)
 	ldw y,(LLEN,sp)
-	addw y,#3 ; space for lineno and linelen 
 	call create_gap 
 	jra 5$ 
-4$: ; insert at end. 
-	ldw y,txtend
-	ldw (DEST,sp),y
-	addw y,(LLEN,sp)
-	addw y,#3 
-	ldw txtend,y  
+4$: ; leave line at end. 
+	ldw x,txtend 
+	addw x,(LLEN,sp)
+	ldw txtend,x 
+	jra insert_ln_exit 
 5$:	
+	ldw x,(LLEN,sp)
+	ldw acc16,x 
+	ldw y,ptr16 
+	addw y,(LLEN,sp)
 	ldw x,(DEST,sp) ; dest address 
-	ldw y,(LINENO,sp) ; line number 
-	ldw (x),y 
-	addw x,#2
-	ld a,(LLEN+1,sp)
-	ld (x),a 
-	incw x 
-	ldw y,(SRC,sp) ; src addr  
-	call strcpy   
+	call move 
+	ldw x,txtend 
+	subw x,(LLEN,sp)
+	ldw txtend,x
+	clr (x) 
+	clr tib 
+	clr count 
+	clr in 
 insert_ln_exit:	
 	_drop VSIZE
 	ret
+
+
+;-----------------------------
+; check if text buffer full
+; input:
+;   ptr16     addr start tokenize line 
+;   X         buffer index 
+; output:
+;   none 
+;-----------------------------------
+check_full:
+	addw x,ptr16 
+	cpw x,#tib 
+	jrult 1$
+	ld a,#ERR_MEM_FULL
+	jp tb_error 
+1$: ret 
+
+
+;-----------------------------------
+; create token list form text line 
+; save this list in text area
+; input:
+;   none
+; output:
+;   basicptr     token list buffer
+;   lineno 		 BASIC line number 
+;   in.w  		 cleared 
+;-----------------------------------
+	.macro _incr_ptr16 n 
+	ldw x,#n 
+	addw x,ptr16 
+	ldw ptr16,x 
+	.endm 
+
+	XSAVE=1
+	BUFIDX=3
+	VSIZE=4
+compile:
+	_vars VSIZE 
+	ldw x,txtend
+	ldw ptr16,x 
+	clrw x 
+	ldw x,#3
+	ldw (BUFIDX,sp),X  
+	call check_full
+	clrw x 
+	ldw [ptr16],x 
+	call get_token
+	ldw (XSAVE,sp),x 
+	cp a,#TK_INTGR 
+	jrne 3$
+	cpw x,#0  
+	jrugt 1$
+	jp syntax_error 
+1$:	ldw [ptr16],x; line number
+2$:	call get_token
+	ldw (XSAVE,sp),x 
+3$:	cp a,#TK_NONE 
+	jreq 9$ 
+	ldw x,(BUFIDX,sp)
+	call check_full 
+	ldw y,(BUFIDX,sp) 
+	ld ([ptr16],y),a 
+	incw y
+	ldw (BUFIDX,sp),y
+	cp a,#TK_QSTR 
+	jrne 4$
+	ldw x,#pad 
+	call strlen
+	incw x  
+	call check_full 
+	ldw y,#pad 
+	ldw x,ptr16
+	addw x,(BUFIDX,sp)	
+	call strcpy 
+	ldw x,#pad 
+	call strlen 
+	incw x
+	addw x,(BUFIDX,sp) 
+	ldw (BUFIDX,sp),x
+	jra 2$  
+4$: cp a,#TK_INTGR
+	jrult 2$
+	cp a,#TK_FUNC 
+	Jrugt 2$
+	ldw x,(XSAVE,sp) 
+	ldw ([ptr16],y),x
+	addw y,#2 
+	ldw (BUFIDX,sp),y 
+	jra 2$
+9$: 
+	ldw x,#2
+	ldw y,(BUFIDX,sp)
+	ld a,yl 
+	ld ([ptr16],x),a  	
+	ldw x,[ptr16]
+	jreq 10$
+_dbg_prt_var txtend
+	call insert_line 
+_dbg_prt_var txtend
+10$: 
+trap 	
+	_drop VSIZE 
+	ret 
+
 
 ;------------------------------------
 ;  set all variables to zero 
@@ -1155,6 +1261,7 @@ interp:
 	ld a,#'> 
 	call putc 
 	call readln
+	call compile
 interp_loop:  
 	ld a,in 
 	cp a,count 
@@ -2993,11 +3100,12 @@ get_array_element:
 factor:
 	_vars VSIZE 
 	call get_token
-	cp a,#2 
+	cp a,#CMD_END 
 	jrmi 20$
 1$:	ld (NEG,sp),a 
-	and a,#TK_GRP_ADD  
-	jrne 2$
+	and a,#TK_GRP_MASK
+	cp a,#TK_GRP_ADD 
+	jreq 2$
 	ld a,(NEG,sp)
 	jra 4$  
 2$:	
@@ -3057,7 +3165,7 @@ factor:
 term:
 	_vars VSIZE
 	call factor
-	cp a,#2
+	cp a,#CMD_END
 	jrmi term_exit
 term01:	 ; check for  operator 
 	ldw (N2,sp),x  ; save first factor 
@@ -3108,7 +3216,7 @@ term_exit:
 expression:
 	_vars VSIZE 
 	call term
-	cp a,#2 
+	cp a,#CMD_END 
 	jrmi expr_exit 
 0$:	ldw (N2,sp),x 
 	call get_token
@@ -3155,7 +3263,7 @@ expr_exit:
 relation: 
 	_vars VSIZE
 	call expression
-	cp a,#2 
+	cp a,#CMD_END  
 	jrmi rel_exit 
 	; expect rel_op or leave 
 	ldw (N2,sp),x 
@@ -3165,7 +3273,7 @@ relation:
 1$:	
 	ld (RELOP,sp),a 
 	and a,#TK_GRP_MASK
-	cp a,#0x30 
+	cp a,#TK_GRP_RELOP 
 	jreq 2$
 	ld a,(RELOP,sp)
 	call unget_token  
