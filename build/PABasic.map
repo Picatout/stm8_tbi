@@ -21,7 +21,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      0000005A  l_DATA                          
      00000080  l_HOME                          
      00000138  l_SSEG0                         
-     00001F8E  l_CODE                          
+     0000210E  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -57,12 +57,12 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00001F8E =        8078. bytes (REL,CON)
+CODE                                00008080    0000210E =        8462. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008C33  number                             TBI_STM8
-     00008F20  to_upper                           TBI_STM8
+     00008C3E  number                             TBI_STM8
+     00008F28  to_upper                           TBI_STM8
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
