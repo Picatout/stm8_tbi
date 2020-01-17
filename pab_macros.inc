@@ -250,11 +250,13 @@
 
     .macro _dbg_mark n  
     .if DEBUG 
+    push cc
     push a 
     ld a,#n 
     call putc
     btjf UART3_SR,#UART_SR_TC,. 
     pop a 
+    pop cc 
     .endif 
     .endm 
     

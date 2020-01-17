@@ -4199,7 +4199,6 @@ loop_back:
 	ldw basicptr,x 
 	btjf flags,#FRUN,1$ 
 	ld a,(2,x)
-	add a,#2 
 	ld count,a
 	ldw x,(x)
 	ldw lineno,x
