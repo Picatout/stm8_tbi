@@ -811,7 +811,11 @@ del_line:
 	ldw y,x  
 	addw y,(LLEN,sp) ;SRC  
 	ldw (SRC,sp),y  ;save source 
-	ldw y,txtend 
+	ldw y,ptr16
+	ld a,(2,y)
+	clrw y 
+	ld yl,a  
+	addw y,txtend
 	subw y,(SRC,sp) ; y=count 
 	ldw acc16,y 
 	ldw y,(SRC,sp)    ; source
@@ -821,7 +825,6 @@ del_line:
 	ldw txtend,y  
 	_drop VSIZE     
 	ret 
-
 
 ;---------------------------------------------
 ; create a gap in text area 
@@ -881,10 +884,9 @@ insert_line:
 	ldw x,#2 
 	ld a,([ptr16],x)
 	clrw x 
-	ld xl,a 
-	addw x,txtend 
-	ldw txtend,x 
-	jra insert_ln_exit 
+	ld xl,a
+	ldw (LLEN,sp),x  
+	jra 4$
 0$:	ldw x,[ptr16]
 	ldw (LINENO,sp),x 
 	ldw x,#2 
@@ -917,8 +919,8 @@ insert_line:
 	call create_gap 
 	jra 5$ 
 4$: ; leave line at end. 
-	ldw x,txtend 
-	addw x,(LLEN,sp)
+	ldw x,(LLEN,sp) 
+	addw x,txtend 
 	ldw txtend,x 
 	jra insert_ln_exit 
 5$:	
@@ -1025,9 +1027,24 @@ compile:
 	ldw x,(XSAVE,sp) 
 	ldw y,(BUFIDX,sp)
 	ldw ([ptr16],y),x
+	cpw x,#rem 
+	jrne 5$
 	addw y,#2 
+	pushw y 
+	ldw x,ptr16 
+	addw x,(1,sp)
+	_drop 2  
+	ldw y,in.w 
+	addw y,#tib 
+	call strcpy 	
+	call strlen 
+	addw x,#3 ; rem exec address+string 0. 
+	addw x,(BUFIDX,sp)
+	ldw (BUFIDX,sp),x 
+	jra 9$
+5$:	addw y,#2 
 	ldw (BUFIDX,sp),y 
-	jra 2$
+	jp 2$
 9$: 
 	ldw x,#2
 	ldw y,(BUFIDX,sp)
@@ -2149,12 +2166,8 @@ parse_keyword: ; { -- exec_addr|var_addr}
 	_ldx_dict kword_dict
 	call search_dict
 	tnz a
-	jrne 3$ 
+	jrne 4$ 
 	jp syntax_error
-3$: cpw x,#rem  
-	jrne 4$
-	mov in,count 
-	clr a 
 4$:	ret  	
 
 
@@ -2275,12 +2288,9 @@ qmark_tst:
 	jp token_exit
 tick_tst: ; ignore comment 
 	_case TICK plus_tst 
-	ld a,(TCHAR,sp)
-	ld (x),a 
-	incw x 
-	clr (x)
-	mov in,count  
-	clr a 
+	inc in 
+	ld a,#TK_CMD 
+	ldw x,#rem 
 	jp token_exit 
 plus_tst:
 	_case '+' star_tst 
@@ -3605,7 +3615,16 @@ prt_basic_line:
 	jrne 4$
 2$:	
 	ldw x,([ptr16],x)
-	call cmd_name
+	cpw x,#rem 
+	jrne 3$
+	ld a,#''
+	call putc 
+	ldw x,(XSAVE,sp)
+	addw x,#2
+	addw x,ptr16  
+	call puts 
+	jp 90$ 
+3$:	call cmd_name
 	call prt_cmd_name
 	ld a,#SPACE 
 	call putc 
@@ -3639,7 +3658,7 @@ prt_basic_line:
 	ld a,#'@ 
 	call putc 
 	ldw x,(XSAVE,sp)
-	jra 1$ 
+	jp 1$ 
 7$: cp a,#TK_INTGR 
 	jrne 8$
 	ldw x,([ptr16],x)
@@ -3894,17 +3913,10 @@ input_exit:
 
 ;---------------------
 ; BASIC: REMARK | ' 
-; begin a comment 
-; comment are ignored 
-; use ' insted of REM 
-; This is never called
-; because get_token 
-; take care of skipping
-; comment. but required
-; for future use of 
-; keyword reverse search.  
+; skip comment to end of line 
 ;---------------------- 
-rem: 
+rem:
+ 	mov count,in 
 	ret 
 
 ;---------------------
@@ -4267,7 +4279,6 @@ go_common:
 2$: 
 	ldw basicptr,x 
 	ld a,(2,x)
-	add a,#3 
 	ld count,a 
 	ldw x,(x)
 	ldw lineno,x 
@@ -4637,6 +4648,9 @@ search_file:
 ; save text program in 
 ; flash memory used as 
 ;--------------------------------
+	BSIZE=1
+	NAMEPTR=3
+	VSIZE=4
 save:
 	btjf flags,#FRUN,0$ 
 	ld a,#ERR_CMD_ONLY 
@@ -4646,7 +4660,6 @@ save:
 	subw x,txtbgn
 	jrne 10$
 ; nothing to save 
-	clr a 
 	ret 
 10$:	
 	ld a,ffree 
@@ -4655,12 +4668,17 @@ save:
 	jrne 1$
 	ld a,#ERR_MEM_FULL
 	jp tb_error 
-1$: call next_token	
+1$:  
+	call next_token	
 	cp a,#TK_QSTR
 	jreq 2$
 	jp syntax_error
 2$: ; check for existing file of that name 
-	ldw y,x ; file name pointer 
+	_vars VSIZE
+	ldw y,basicptr 
+	addw y,in.w
+	ldw (NAMEPTR,sp),y  
+	mov in,count 
 	call search_file 
 	jrnc 3$ 
 	ld a,#ERR_DUPLICATE 
@@ -4670,18 +4688,17 @@ save:
 	ld a,ffree+2 
 	ldw farptr,x 
 	ld farptr+2,a 
-	ldw x,#pad  
+	ldw x,(NAMEPTR,sp)  
 	call strlen 
 	incw  x
-	pushw x 
+	ldw (BSIZE,sp),x  
 	clrw x   
-	ldw y,#pad 
+	ldw y,(NAMEPTR,sp)
 	call write_block  
-	_drop 2 ; drop pushed X 
 ;** write file length after name **
 	ldw x,txtend 
 	subw x,txtbgn
-	pushw x ; file size 
+	ldw (BSIZE,sp),x 
 	clrw x 
 	ld a,(1,sp)
 	call write_byte 
@@ -4692,12 +4709,12 @@ save:
 	call incr_farptr ; move farptr after SIZE field 
 ;** write BASIC text **
 ; copy BSIZE, cstack:{... bsize -- ... bsize bsize }	
-	ldw x,(1,sp)
+	ldw x,(BSIZE,sp)
 	pushw x 
 	clrw x 
 	ldw y,txtbgn  ; BASIC text to save 
 	call write_block 
-	_drop 2 ;  drop BSIZE argument
+	_drop 2 ;  drop BSIZE copy 
 ; save farptr in ffree
 	ldw x,farptr 
 	ld a,farptr+2 
@@ -4705,17 +4722,19 @@ save:
 	ld ffree+2,a
 ; write 4 zero bytes as a safe gard 
     clrw x 
+	push #4 
+4$:	tnz (1,sp)
+	jreq 5$
 	clr a 
 	call write_byte 
 	incw x 
-	clr a 
-	call write_byte
-	incw x 
-	clr a 
-	call write_byte
+	dec (1,sp)
+	jra 4$
+5$: pop a 
 ; display saved size  
-	popw x ; first copy of BSIZE 
-	ld a,#TK_INTGR 
+	ldw x,(BSIZE,sp) 
+	call print_int 
+	_drop VSIZE 
 	ret 
 
 
@@ -4735,7 +4754,9 @@ load:
 	jreq 1$
 	jp syntax_error 
 1$:	
-	ldw y,x 
+	ldw y,basicptr
+	addw y,in.w 
+	mov in,count 
 	call search_file 
 	jrc 2$ 
 	ld a,#ERR_NOT_FILE
@@ -4779,7 +4800,9 @@ forget:
 	cp a,#TK_QSTR
 	jreq 1$
 	jp syntax_error
-1$: ldw y,x
+1$: ldw y,basicptr
+	addw y,in.w
+	mov in,count 
 	call search_file
 	jrc 2$
 	ld a,#ERR_NOT_FILE 
@@ -4789,25 +4812,23 @@ forget:
 	ld a,farptr+2
 	jra 4$ 
 3$: ; forget all files 
-	ldw x,#fdrive
+	ldw x,#100
 	clr a 
-	rrwa x 
 	ldw farptr,x 
 	ld farptr+2,a 
 4$:
 	ldw ffree,x 
 	ld ffree+2,a 
-5$:	clrw x 
+	push #4
+	clrw x 
+5$: tnz (1,sp)
+	jreq 6$ 
 	clr a  
 	call write_byte 
-	ldw x,#1 
-	call incr_farptr
-	ld a,farptr
-	cp a,ffree 
-	jrmi 5$ 
-	ldw x,farptr+1 
-	cpw x,ffree+1
-	jrmi 5$
+	incw x 
+	dec (1,sp)
+	jra 5$	
+6$: pop a 
 	ret 
 
 ;----------------------
@@ -4844,7 +4865,9 @@ dir_loop:
 	ld yl,a 
 	pushw y 
 	addw x,(1,sp)
+; skip to next file 
 	call incr_farptr 
+; print file size 
 	popw x ; file size 
 	call print_int 
 	ld a,#CR 
@@ -5456,3 +5479,4 @@ user_space:
 	.area FLASH_DRIVE (ABS)
 	.org 0x10000
 fdrive:
+;.byte 0,0,0,0
