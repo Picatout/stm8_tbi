@@ -27,10 +27,10 @@
         ; 0x3n -> relational operators 
         TK_NONE=0       ; undefined
         TK_COLON=1      ; command end marker ':' 
-        TK_INTGR=2     ; integer 
-        TK_VAR=3        ; variable letters {A..Z}
-        TK_ARRAY=4      ; array variable '@' 
-        TK_CHAR=5      ; ASCII character 
+        TK_CHAR=2      ; ASCII character 
+        TK_INTGR=3     ; integer 
+        TK_VAR=4        ; variable letters {A..Z}
+        TK_ARRAY=5      ; array variable '@' 
         TK_CMD=6        ; BASIC command   
         TK_FUNC=7      ; BASIC function 
         TK_QSTR=8       ; quoted string  

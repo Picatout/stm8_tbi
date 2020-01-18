@@ -81,30 +81,21 @@ Notez que j'utilise les abbréviations les plus courtes de chaque commande.
 
 Dans cet exemple l'intensité de la LED est contrôlée par PWM logiciel.
 ```
-   10 r=0
-   15 k=0
-   20 if r:bs gp(2,odr),32
-   30 for a=0to r:ne a
-   35 br gp(2,odr),32
-   40 for a=a to 256:ne a
-   60 if qk: k=key 
-   70 if k=asc(\u):gosub 100
-   80 if k=asc(\d):gosub 200
-   84 if k=asc(\q):stop
-   90 goto 15
-  100 if r<256:r=r+1
-  110 ret
-  200 if r>0:r=r-1
-  210 ret
+    5 'Software PWM
+   10 R = 511 :PRINT R ,
+   20 K = 0 
+   30 IF R :BSET GPIO ( 2 ,ODR ), 32 
+   40 FOR A = 0 TO R :NEXT A 
+   50 BRES GPIO ( 2 ,ODR ), 32 
+   55 FOR A=A TO  1023 :NEXT A
+   60 IF QKEY :K =KEY 
+   70 IF K =ASC (\u):GOTO  200 
+   80 IF K =ASC (\d):GOTO  400 
+   90 IF K =ASC (\q):STOP 
+  100 GOTO  20 
+  200 IF R < 1023 :R =R + 1 :PRINT R ,:GOTO  20 
+  210 GOTO  20 
+  400 IF R > 0 :R =R - 1 :PRINT R ,:GOTO  20 
+  410 GOTO  20 
 ```
 L'intensité de la LED est contrôlée à partir du terminal avec les touches **u** pour augmenter l'intensitée et **d** pour la réduire. La variable **R** contrôle l'intensitée. 
-* **10** et **15** initialiation de variables 
-* **20** si **R** est **>0** on allume la LED 
-* **30** on compte jusqu'à ce que la variable **A** dépasse la valeur de **R** 
-* **35** on éteint la LED 
-* **40** on compte jusqu'à ce que la variable **A** dépasse 256.
-* **60** **QKEY** est appelée pour vérifiée s'il y a un caractère reçu de la console. Si c'est le cas le caractère est lu dans la variable **K**.
-* **70**,**80** et **84** on compare la valeur de **K** avec les caractères ASCII *u*,*d* et *q*. 
-* **90** on boucle à **15** au début du cycle **PWM**.
-* **100** sous-routine pour augmenter l'intensité.
-* **200** sous-routine pour réduire l'intensité.

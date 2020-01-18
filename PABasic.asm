@@ -997,13 +997,28 @@ compile:
 2$:	call get_token
 	ldw (XSAVE,sp),x 
 3$:	cp a,#TK_NONE 
-	jreq 9$ 
+	jrne 30$
+	jp 9$
+30$: 	 
 	ldw x,(BUFIDX,sp)
 	call check_full 
 	ldw y,(BUFIDX,sp) 
 	ld ([ptr16],y),a 
 	incw y
 	ldw (BUFIDX,sp),y
+	cp a,#TK_COLON 
+	jrne 31$
+	jra 2$ 
+31$:
+	cp a,#TK_CHAR
+	jrne 32$ 
+	ldw x,(XSAVE,sp)
+	ld a,xl 
+	ld ([ptr16],y),a
+	incw y 
+	ldw (BUFIDX,sp),y 
+	jra 2$ 
+32$:
 	cp a,#TK_QSTR 
 	jrne 4$
 	ldw x,#pad 
@@ -1332,15 +1347,22 @@ next_token:
 	inc in 
 	cp a,#CMD_END 
 	jrult 9$
-	cp a,#TK_QSTR 
+	cp a,#TK_CHAR
+	jrne 1$
+	ld a,([in.w],x)
+	inc in
+	clrw x 
+	ld xl,a 
+	ld a,#TK_CHAR
+	ret 
+1$:	cp a,#TK_QSTR 
 	jrugt 9$
 	jrult 2$
 	addw x,in.w 
 	jra 9$
 2$: ldw x,([in.w],x)
-	ldw y,in.w 
-	addw y,#2
-	ldw in.w,y
+	inc in 
+	inc in
 9$: ret	
 
 
@@ -3650,6 +3672,8 @@ prt_basic_line:
 	srl a 
 	add a,#'A 
 	call putc 
+	ld a,#SPACE 
+	call putc 
 	ldw x,(XSAVE,sp)
 	addw x,#2 
 	jra 1$ 
@@ -3710,7 +3734,17 @@ prt_basic_line:
 	addw x,#single_char 
 	ld a,(x)
 	jra 80$
-13$: ld a,#':
+13$: cp a,#TK_CHAR 
+	jrne 14$
+	ld a,#'\
+	call putc 
+	ldw x,(XSAVE,sp)
+	ld a,([ptr16],x)
+	incw x 
+	ldw (XSAVE,sp),x 
+	call putc 
+	jp 1$ 
+14$: ld a,#':
 80$: call putc 
 	ldw x,(XSAVE,sp)
 	jp 1$ 
