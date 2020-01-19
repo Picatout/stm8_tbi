@@ -1011,7 +1011,7 @@ compile:
 	ldw x,(BUFIDX,sp)
 	call check_full 
 	ldw y,(BUFIDX,sp) 
-	ld ([ptr16],y),a 
+	ld ([ptr16],y),a ; token attribute 
 	incw y
 	ldw (BUFIDX,sp),y
 	cp a,#TK_COLON 
@@ -1045,7 +1045,7 @@ compile:
 	jra 2$  
 4$: cp a,#TK_INTGR
 	jrult 2$
-	cp a,#TK_FUNC 
+	cp a,#TK_SFUNC 
 	Jrugt 2$
 	ldw x,(XSAVE,sp) 
 	ldw y,(BUFIDX,sp)
@@ -3007,7 +3007,7 @@ cmd_name:
 ;	X 		dictionary entry point 
 ;  pad		.asciz name to search 
 ; output:
-;  A 		TK_CMD|TK_FUNC|TK_NONE 
+;  A 		TK_CMD|TK_IFUNC|TK_NONE 
 ;  X		execution address | 0 
 ;---------------------------------
 	NLEN=1 ; cmd length 
@@ -3046,20 +3046,21 @@ no_match:
 str_match:
 	ldw y,(YSAVE,sp)
 	ld a,(y)
-	ld (NLEN,sp),a ; needed to test bit 7 
-	and a,#0x7f 
+	ld (NLEN,sp),a ; needed to test keyword type  
+	and a,#0xf 
 ; move y to procedure address field 	
 	inc a 
 	ld acc8,a 
 	clr acc16 
 	addw y,acc16 
 	ldw y,(y) ; routine entry point 
+;determine keyword type bits 7:6 
 	ld a,(NLEN,sp)
-	bcp a,#0x80 
-	jreq 1$
-	ld a,#TK_FUNC 
-	jra search_exit
-1$: ld a,#TK_CMD 
+	swap a 
+	and a,#0xc
+	srl a
+	srl a 
+	add a,#6
 search_exit: 
 	ldw x,y ; x=routine address 
 	_drop VSIZE 	 
@@ -3197,7 +3198,7 @@ factor:
 2$:	
 	call next_token 
 4$:	
-	cp a,#TK_FUNC 
+	cp a,#TK_IFUNC 
 	jrne 5$ 
 	call (x) 
 	jra 18$ 
@@ -3650,16 +3651,16 @@ prt_basic_line:
 	incw x
 1$:	ld a,xl 
 	cp a,(LLEN,sp)
-	jrmi 19$
+	jrmi 20$
 	jp 90$
-19$:	 
+20$:	 
 	ld a,([ptr16],x)
 	incw x 
 	ldw (XSAVE,sp),x 
 	cp a,#TK_CMD 
-	jreq 2$
-	cp a,#TK_FUNC 
-	jrne 4$
+	jrult 5$
+	cp a,#TK_SFUNC 
+	jrugt 4$
 2$:	
 	ldw x,([ptr16],x)
 	cpw x,#rem 
@@ -3824,10 +3825,11 @@ prt_loop:
 	call putc 
 	jra reset_comma 
 3$: 	
-	cp a,#TK_FUNC 
+	cp a,#TK_CFUNC 
 	jrne 4$ 
 	call (x)
-	call print_int 
+	ld a,xl 
+	call putc
 	jra reset_comma 
 4$: 
 	cp a,#TK_COMMA 
@@ -5446,7 +5448,6 @@ words:
 ;   cmd_name: 16 byte max 
 ;   code_address: 2 bytes 
 ;------------------------------
-	FFUNC=128 ; function flag 
 	.macro _dict_entry len,name,cmd 
 	.word LINK 
 	LINK=.
@@ -5473,27 +5474,27 @@ kword_end:
     _dict_entry,4,SHOW,show 
 	_dict_entry 3,RUN,run
 	_dict_entry 4,LIST,list
-	_dict_entry,3+FFUNC,USR,usr
-	_dict_entry,6+FFUNC,EEPROM,eeprom 
-	_dict_entry,6+FFUNC,UFLASH,uflash 
-	_dict_entry,3+FFUNC,ODR,port_odr
-	_dict_entry,3+FFUNC,IDR,port_idr
-	_dict_entry,3+FFUNC,DDR,port_ddr 
-	_dict_entry,3+FFUNC,CRL,port_cr1 
-	_dict_entry,3+FFUNC,CRH,port_cr2
-	_dict_entry,4+FFUNC,GPIO,gpio 
+	_dict_entry,3+F_IFUNC,USR,usr
+	_dict_entry,6+F_IFUNC,EEPROM,eeprom 
+	_dict_entry,6+F_IFUNC,UFLASH,uflash 
+	_dict_entry,3+F_IFUNC,ODR,port_odr
+	_dict_entry,3+F_IFUNC,IDR,port_idr
+	_dict_entry,3+F_IFUNC,DDR,port_ddr 
+	_dict_entry,3+F_IFUNC,CRL,port_cr1 
+	_dict_entry,3+F_IFUNC,CRH,port_cr2
+	_dict_entry,4+F_IFUNC,GPIO,gpio 
 	_dict_entry,6,PWRADC,power_adc 
-	_dict_entry,5+FFUNC,RDADC,read_adc
-	_dict_entry,3+FFUNC,ASC,ascii  
-	_dict_entry,4+FFUNC,CHAR,char
-	_dict_entry,4+FFUNC,QKEY,qkey  
-	_dict_entry,3+FFUNC,KEY,key 
-	_dict_entry,4+FFUNC,SIZE,size
+	_dict_entry,5+F_IFUNC,RDADC,read_adc
+	_dict_entry,3+F_IFUNC,ASC,ascii  
+	_dict_entry,4+F_CFUNC,CHAR,char
+	_dict_entry,4+F_IFUNC,QKEY,qkey  
+	_dict_entry,3+F_IFUNC,KEY,key 
+	_dict_entry,4+F_IFUNC,SIZE,size
 	_dict_entry,3,HEX,hex_base
 	_dict_entry,3,DEC,dec_base
-	_dict_entry,5+FFUNC,TICKS,get_ticks
-	_dict_entry,3+FFUNC,ABS,abs
-	_dict_entry,3+FFUNC,RND,random 
+	_dict_entry,5+F_IFUNC,TICKS,get_ticks
+	_dict_entry,3+F_IFUNC,ABS,abs
+	_dict_entry,3+F_IFUNC,RND,random 
 	_dict_entry,5,PAUSE,pause 
 	_dict_entry,4,BSET,bit_set 
 	_dict_entry,4,BRES,bit_reset
@@ -5508,9 +5509,9 @@ kword_end:
 	_dict_entry,2,TO,to
 	_dict_entry,4,STEP,step 
 	_dict_entry,4,NEXT,next 
-	_dict_entry,6+FFUNC,UBOUND,ubound 
+	_dict_entry,6+F_IFUNC,UBOUND,ubound 
 	_dict_entry,6,RETURN,return 
-	_dict_entry,4+FFUNC,PEEK,peek 
+	_dict_entry,4+F_IFUNC,PEEK,peek 
 	_dict_entry,4,POKE,poke 
 	_dict_entry,5,INPUT,input_var  
 kword_dict:

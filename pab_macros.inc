@@ -18,6 +18,12 @@
 ;--------------------------------------
         TAB_WIDTH=4 ; default tabulation width 
         EOF=0xff ; end of file marker 
+        ; keyword types 
+        F_CMD=0     ; command keyword
+        F_IFUNC=0x40 ; integer function keyword
+        F_CFUNC=0x80 ; character function keyword
+        F_SFUNC=0xC0 ; string function keyword
+
 ;--------------------------------------
 ;       token attribute
 ;--------------------------------------
@@ -33,12 +39,14 @@
         TK_VAR=4        ; variable letters {A..Z}
         TK_ARRAY=5      ; array variable '@' 
         TK_CMD=6        ; BASIC command   
-        TK_FUNC=7      ; BASIC function 
-        TK_QSTR=8       ; quoted string  
-        TK_LPAREN=9     ; left parenthesis '('
-        TK_RPAREN=0xa     ; right parenthesis ')'
-        TK_COMMA=0xb     ; item separator ',' 
-        TK_SHARP=0xc     ; print colon width '#' 
+        TK_IFUNC=7      ; BASIC integer function
+        TK_CFUNC=8      ; BASIC character function
+        TK_SFUNC=9      ; BASIC string function
+        TK_QSTR=0xa       ; quoted string  
+        TK_LPAREN=0xb     ; left parenthesis '('
+        TK_RPAREN=0xc     ; right parenthesis ')'
+        TK_COMMA=0xd     ; item separator ',' 
+        TK_SHARP=0xe     ; print colon width '#' 
         TK_PLUS=0x10    ; addition operator '+'
         TK_MINUS=0x11   ; subtraction operator '-'
         TK_MULT=0x20    ; multiplication operator '*'

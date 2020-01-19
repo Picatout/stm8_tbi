@@ -1,4 +1,4 @@
-# Manuel de l'utilisateur de TinyBASIC 
+# Manuel de l'utilisateur de Tiny BASIC 
 
 Tiny BASIC pour STM8 est un langage simple qui cependant permet de configurer et d'utiliser tous les périphériques du microcontrôleur. La seule limitation est que les interruptions ne sont pas utilisée. Tiny BASIC lui-même utilise l'interruption du TIMER4 et l'interruption externe 4 pour le bouton utilisateur qui est sur la carte. 
 

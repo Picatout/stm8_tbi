@@ -1,3 +1,10 @@
+### 2020-01-19
+
+* Résolue problème avec function CHAR() en créant des indentifiant lexical pour les différent type de fonctions. TK_IFUNC pour les fonctions qui retourne un entier. TK_CFUNC pour les fonctions qui retourne 1 caractère et TK_SFUNC pour les fonctions qui retourne un pointeur vers une chaîne de caractère. 
+ 
+** BOGUES À RÉSOUDRE** 
+1. La commande PRINT ne traite pas la fonction CHAR() correctement. La valeur ASCII du caractère est imprimé au lieu du caractère lui-même.
+
 ### 2020-01-18
 
 * Corrigé bogue dans remplacement et insertion et suppression de ligne de texte.
