@@ -17,6 +17,7 @@
 ;;
 ;--------------------------------------
         TAB_WIDTH=4 ; default tabulation width 
+        EOF=0xff ; end of file marker 
 ;--------------------------------------
 ;       token attribute
 ;--------------------------------------

@@ -81,21 +81,24 @@ Notez que j'utilise les abbréviations les plus courtes de chaque commande.
 
 Dans cet exemple l'intensité de la LED est contrôlée par PWM logiciel.
 ```
-    5 'Software PWM
+    5 'Software PWM, controle LD2 sur carte
+    7 PRINT # 6,
    10 R = 511 :PRINT R ,
    20 K = 0 
    30 IF R :BSET GPIO ( 2 ,ODR ), 32 
    40 FOR A = 0 TO R :NEXT A 
    50 BRES GPIO ( 2 ,ODR ), 32 
-   55 FOR A=A TO  1023 :NEXT A
-   60 IF QKEY :K =KEY 
-   70 IF K =ASC (\u):GOTO  200 
-   80 IF K =ASC (\d):GOTO  400 
-   90 IF K =ASC (\q):STOP 
-  100 GOTO  20 
-  200 IF R < 1023 :R =R + 1 :PRINT R ,:GOTO  20 
+   60 FOR A =A TO  1023 :NEXT A 
+   70 IF QKEY :K =KEY 
+   80 IF K =ASC (\u):GOTO  200 
+   90 IF K =ASC (\d):GOTO  400 
+  100 IF K =ASC (\q):STOP 
+  110 GOTO  20 
+  200 IF R < 1023 :R =R + 1 :GOTO  600 
   210 GOTO  20 
-  400 IF R > 0 :R =R - 1 :PRINT R ,:GOTO  20 
+  400 IF R > 0 :R =R - 1 :GOTO  600 
   410 GOTO  20 
+  600 PRINT "\b\b\b\b\b",R ,
+  610 GOTO  20 
 ```
 L'intensité de la LED est contrôlée à partir du terminal avec les touches **u** pour augmenter l'intensitée et **d** pour la réduire. La variable **R** contrôle l'intensitée. 

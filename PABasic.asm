@@ -797,6 +797,8 @@ search_ln_loop:
 
 ;-------------------------------------
 ; delete line at addr
+; move new line to insert with end of text 
+; otherwise it would be overwritten.
 ; input:
 ;   X 		addr of line i.e DEST for move 
 ;-------------------------------------
@@ -811,7 +813,7 @@ del_line:
 	ldw y,x  
 	addw y,(LLEN,sp) ;SRC  
 	ldw (SRC,sp),y  ;save source 
-	ldw y,ptr16
+	ldw y,txtend 
 	ld a,(2,y)
 	clrw y 
 	ld yl,a  
@@ -828,6 +830,8 @@ del_line:
 
 ;---------------------------------------------
 ; create a gap in text area 
+; move new line to insert in gap with end of text
+; otherwise it would be overwritten.
 ; input:
 ;    X 			addr gap start 
 ;    Y 			gap length 
@@ -840,8 +844,6 @@ del_line:
 	VSIZE=6 
 create_gap:
 	_vars VSIZE
-	cpw x,txtend 
-	jrpl 9$ ; no need for a gap since at end of text.
 	ldw (SRC,sp),x 
 	ldw (LEN,sp),y 
 	ldw acc16,y 
@@ -850,8 +852,12 @@ create_gap:
 	ldw (DEST,sp),x 
 ;compute size to move 	
 	ldw x,txtend 
+	ld a,(2,x) ; pending line length 
+	ld acc8,a 
+	clr acc16 
+	addw x,acc16 
 	subw x,(SRC,sp)
-	ldw acc16,x
+	ldw acc16,x ; size to move
 	ldw x,(DEST,sp) 
 	call move
 	ldw x,txtend
@@ -881,59 +887,61 @@ insert_line:
 	ldw x,ptr16  
 	cpw x,txtbgn 
 	jrne 0$
+;first text line 
 	ldw x,#2 
 	ld a,([ptr16],x)
 	clrw x 
 	ld xl,a
 	ldw (LLEN,sp),x  
-	jra 4$
+	jra 5$
 0$:	ldw x,[ptr16]
+; new line number
 	ldw (LINENO,sp),x 
 	ldw x,#2 
-	ld a,([ptr16],x); line length 
+	ld a,([ptr16],x)
 	ld xl,a
+; new line length
 	ldw (LLEN,sp),x
+; check if that line number already exit 	
 	ldw x,(LINENO,sp)
 	call search_lineno 
 	tnzw x 
 	jrne 2$
-; line doesn't exit 	
+; line doesn't exit
+; it will be inserted at this point.  	
 	ldw (DEST,sp),y 
 	jra 3$
-; line exit delete it.	
+; line exit delete it.
+; it will be replaced by new one 	
 2$: ldw (DEST,sp),x 
 	call del_line
-; leave or insert new line if LLEN>0
 3$: 
-	tnz (LLEN+1,sp)
-	jreq insert_ln_exit ; empty line forget it.
+; insert new line or leave if LLEN==3
+; LLEN==3 means empty line 
+	ld a,#3
+	cp a,(LLEN+1,sp)
+	jreq insert_ln_exit ; empty line exit.
+; if insertion point at txtend 
+; no move required 
 	ldw x,(DEST,sp)
 	cpw x,txtend 
-	jrpl 4$ 
-; must create a gap 
-	ldw x,txtend 
-	addw x,(LLEN,sp)
-	ldw txtend,x 
+	jrpl 5$ 
+; must create a gap
+; at insertion point  
 	ldw x,(DEST,sp)
 	ldw y,(LLEN,sp)
 	call create_gap 
-	jra 5$ 
-4$: ; leave line at end. 
+; move new line in gap 
+	ldw x,(LLEN,sp)
+	ldw acc16,x 
+	ldw y,txtend ;SRC 
+	ldw x,(DEST,sp) ; dest address 
+	call move 
+	jra insert_ln_exit  
+5$: ; no move required 
 	ldw x,(LLEN,sp) 
 	addw x,txtend 
 	ldw txtend,x 
-	jra insert_ln_exit 
-5$:	
-	ldw x,(LLEN,sp)
-	ldw acc16,x 
-	ldw y,ptr16 
-	addw y,(LLEN,sp)
-	ldw x,(DEST,sp) ; dest address 
-	call move 
-	ldw x,txtend 
-	subw x,(LLEN,sp)
-	ldw txtend,x
-	clr (x) 
 insert_ln_exit:	
 	_drop VSIZE
 	ret
@@ -2030,42 +2038,21 @@ parse_quote: ; { -- addr }
 ;   A  substitued char or same if not valid.
 ;---------------------------------------
 convert_escape:
-	cp a,#'a'
-	jrne 1$
-	ld a,#7
+	pushw x 
+	ldw x,#escaped 
+1$:	cp a,(x)
+	jreq 2$
+	tnz (x)
+	jreq 3$
+	incw x 
+	jra 1$
+2$: subw x,#escaped 
+	ld a,xl 
+	add a,#7
+3$:	popw x 
 	ret 
-1$: cp a,#'b'
-	jrne 2$
-	ld a,#8
-	ret 
-2$: cp a,#'e' 
-    jrne 3$
-	ld a,#'\'
-	ret  
-3$: cp a,#'\'
-	jrne 4$
-	ld a,#'\'
-	ret 
-4$: cp a,#'f' 
-	jrne 5$ 
-	ld a,#FF 
-	ret  
-5$: cp a,#'n' 
-    jrne 6$ 
-	ld a,#0xa 
-	ret  
-6$: cp a,#'r' 
-	jrne 7$
-	ld a,#0xd 
-	ret  
-7$: cp a,#'t' 
-	jrne 8$ 
-	ld a,#9 
-	ret  
-8$: cp a,#'v' 
-	jrne 9$  
-	ld a,#0xb 
-9$:	ret 
+
+escaped: .asciz "abtnvfr"
 
 ;-------------------------
 ; integer parser 
@@ -3594,6 +3581,44 @@ prt_cmd_name:
 	ret	
 
 ;--------------------------
+; print TK_QSTR
+; converting control character
+; to backslash sequence
+; input:
+;   X        char *
+;-----------------------------
+prt_quote:
+	ld a,#'"
+	call putc 
+1$:	ld a,(x)
+	jreq 9$
+	incw x 
+	cp a,#SPACE 
+	jrult 3$
+	call putc
+	cp a,#'\ 
+	jrne 1$ 
+2$:
+	call putc 
+	jra 1$
+3$: push a 
+	ld a,#'\
+	call putc 
+	pop a 
+	sub a,#7
+	ld acc8,a 
+	clr acc16
+	ldw y,#escaped 
+	addw y,acc16 
+	ld a,(y)
+	jra 2$
+9$: ld a,#'"
+	call putc 
+	incw x 
+	ret
+
+
+;--------------------------
 ; decompile line from token list 
 ; input:
 ;   X 		pointer at line
@@ -3655,13 +3680,8 @@ prt_basic_line:
 	jra 1$
 4$: cp a,#TK_QSTR 
 	jrne 5$
-	ld a,#'" 
-	call putc 
 	addw x,ptr16
-	call puts 
-	ld a,#'" 
-	call putc 
-	incw x
+	call prt_quote 
 	subw x,ptr16  
 	jra 1$
 5$:	cp a,#TK_VAR
@@ -4549,49 +4569,34 @@ incr_farptr:
 ;   ffree     free_addr| 0 if memory full.
 ;------------------------------
 seek_fdrive:
+; start scan at 0x10000 address 
 	ld a,#1
 	ld farptr,a 
 	clrw x 
 	ldw farptr+1,x 
 1$:
-	clrw x 
-	ldf a,([farptr],x) 
-	jrne 2$
-	incw x 
-	ldf a,([farptr],x)
-	jrne 2$ 
-	incw x 
-	ldf a,([farptr],x)
-	jrne 2$ 
-	incw x 
-	ldf a,([farptr],x)
-	jreq 4$ 
-2$: 
-	addw x,#1
+	ldw x,#3  
+2$:	ldf a,([farptr],x) 
+	jrne 3$
+	decw x
+	jrpl 2$
+	jra 4$ 
+3$:	incw x 
 	call incr_farptr
 	ldw x,#0x27f 
 	cpw x,farptr
 	jrpl 1$
+; drive full 
 	clr ffree 
 	clr ffree+1 
 	clr ffree+2 
-	clr acc24 
-	clr acc16
-	clr acc8 
-	jra 5$
+	ret
 4$: ; copy farptr to ffree	 
-	ldw x,farptr+1 
-	cpw x,#fdrive 
-	jreq 41$
-	; there is a file, last 0 of that file must be skipped.
-	ldw x,#1
-	call incr_farptr
-41$: 
 	ldw x,farptr 
 	ld a,farptr+2 
 	ldw ffree,x 
 	ld ffree+2,a  
-5$:	ret 
+	ret 
 
 ;-----------------------
 ; compare file name 
@@ -4661,6 +4666,7 @@ search_file:
 	ld (FSIZE+1,sp),a 
 	incw x 
 	addw x,(FSIZE,sp) ; count to skip 
+	incw x ; skip over EOF marker 
 	call incr_farptr ; now at next file 'name_field'
 	ldw x,#0x280
 	cpw x,farptr 
@@ -4692,27 +4698,35 @@ save:
 0$:	 
 	ldw x,txtend 
 	subw x,txtbgn
-	jrne 10$
+	jrne 1$
 ; nothing to save 
 	ret 
-10$:	
-	ld a,ffree 
-	or a,ffree+1
-	or a,ffree+2 
-	jrne 1$
-	ld a,#ERR_MEM_FULL
-	jp tb_error 
-1$:  
+1$:	
+	_vars VSIZE 
+	ldw (BSIZE,sp),x 
 	call next_token	
 	cp a,#TK_QSTR
 	jreq 2$
 	jp syntax_error
-2$: ; check for existing file of that name 
-	_vars VSIZE
+2$: 
 	ldw y,basicptr 
 	addw y,in.w
 	ldw (NAMEPTR,sp),y  
 	mov in,count 
+; check if enough free space 
+	ldw x,y 
+	call strlen 
+	addw x,#3 
+	addw x,(BSIZE,sp)
+	tnz ffree 
+	jrne 21$
+	subw x,ffree+1 
+	jrule 21$
+	ld a,#ERR_MEM_FULL 
+	jp tb_error
+21$: 
+; check for existing file of that name 
+	ldw y,(NAMEPTR,sp)	
 	call search_file 
 	jrnc 3$ 
 	ld a,#ERR_DUPLICATE 
@@ -4744,26 +4758,30 @@ save:
 ;** write BASIC text **
 ; copy BSIZE, cstack:{... bsize -- ... bsize bsize }	
 	ldw x,(BSIZE,sp)
-	pushw x 
+	pushw x ; write_block argument 
 	clrw x 
 	ldw y,txtbgn  ; BASIC text to save 
 	call write_block 
-	_drop 2 ;  drop BSIZE copy 
+	_drop 2 ;  drop write_block argument  
+; write en end of file marker 
+	ldw x,#1
+	ld a,#EOF  
+	call write_byte 
+	call incr_farptr
 ; save farptr in ffree
 	ldw x,farptr 
 	ld a,farptr+2 
 	ldw ffree,x 
 	ld ffree+2,a
-; write 4 zero bytes as a safe gard 
+;write 4 zero bytes as an end of all files marker 
     clrw x 
 	push #4 
-4$:	tnz (1,sp)
-	jreq 5$
+4$:
 	clr a 
 	call write_byte 
 	incw x 
 	dec (1,sp)
-	jra 4$
+	jrne 4$
 5$: pop a 
 ; display saved size  
 	ldw x,(BSIZE,sp) 
@@ -4815,7 +4833,7 @@ load:
 	incw y 
 	cpw y,txtend 
 	jrmi 3$
-; return loaded size 	 
+; print loaded size 	 
 	ldw x,txtend 
 	subw x,txtbgn
 	call print_int 
@@ -4855,13 +4873,12 @@ forget:
 	ld ffree+2,a 
 	push #4
 	clrw x 
-5$: tnz (1,sp)
-	jreq 6$ 
+5$: 
 	clr a  
 	call write_byte 
 	incw x 
 	dec (1,sp)
-	jra 5$	
+	jrne 5$	
 6$: pop a 
 	ret 
 
@@ -4899,6 +4916,7 @@ dir_loop:
 	ld yl,a 
 	pushw y 
 	addw x,(1,sp)
+	incw x ; skip EOF marker 
 ; skip to next file 
 	call incr_farptr 
 ; print file size 
