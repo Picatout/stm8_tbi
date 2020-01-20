@@ -1027,6 +1027,8 @@ compile:
 	ldw (BUFIDX,sp),y 
 	jra 2$ 
 32$:
+	cp a,#TK_ARRAY 
+	jreq 2$ 
 	cp a,#TK_QSTR 
 	jrne 4$
 	ldw x,#pad 
@@ -1248,7 +1250,7 @@ tb_error:
 	call puts 
 	ld a,#CR 
 	call putc
-	ldw x,#in.w.saved
+	ldw x,in.w
 	call spaces
 	ld a,#'^
 	call putc 
@@ -1353,8 +1355,8 @@ next_token:
 	ldw x,basicptr 
 	ld a,([in.w],x)
 	inc in 
-	cp a,#CMD_END 
-	jrult 9$
+	cp a,#TK_ARRAY  
+	jrule 9$
 	cp a,#TK_CHAR
 	jrne 1$
 	ld a,([in.w],x)
@@ -1794,16 +1796,16 @@ left_arrow:
 
 ;	jra readln_loop
 reprint: 
-	tnz count 
-	jreq readln_loop
 	tnz (LL,sp)
 	jrne readln_loop
 	ldw x,#tib 
-	call puts
+	call strlen 
 	ldw y,#tib 
-	ld a,count 
-	ld (LL,sp),a
-	clr count 
+	ld a,xl
+	jreq readln_loop
+	ld (LL,sp),a 
+	ldw x,#tib 
+	call puts
 	clr (LL_HB,sp)
 	addw y,(LL_HB,sp)
 	jra readln_loop 
@@ -3144,7 +3146,7 @@ arg_list:
 ;	X 		element address 
 ;----------------------
 get_array_element:
-	call ddrop 
+;	call ddrop 
 	ld a,#TK_LPAREN 
 	call expect
 	call relation 
@@ -4079,6 +4081,46 @@ bit_toggle:
 	xor a,(x)
 	ld (x),a 
 	ret 
+
+
+;---------------------
+; BASIC: BTEST(addr,bit)
+; return bit value at 'addr' 
+; bit is in range {0..7}.
+; arguments:
+; 	addr 		memory address RAM|PERIPHERAL 
+;   bit 	    bit position {0..7}  
+; output:
+;	none 
+;--------------------------
+bit_test:
+	ld a,#TK_LPAREN 
+	call expect 
+	call arg_list 
+	cp a,#2
+	jreq 0$
+	jp syntax_error
+0$:	ld a,#TK_RPAREN
+	call expect 
+	call dpop 
+	ld a,xl 
+	and a,#7
+	push a 
+	ld a,#1 
+1$: tnz (1,sp)
+	jreq 2$
+	sll a 
+	dec (1,sp)
+	jra 1$
+2$: call dpop 
+	and a,(x)
+	jreq 3$
+	ld a,#1 
+3$:	clrw x 
+	ld xl,a 
+	ld a,#TK_INTGR
+	_drop 1 
+	ret
 
 
 ;--------------------
@@ -5459,63 +5501,64 @@ name:
 
 	LINK=0
 kword_end:
-	_dict_entry,3,BYE,bye 
-	_dict_entry,5,WORDS,words 
-	_dict_entry,5,SLEEP,sleep 
-	_dict_entry,6,FORGET,forget 
-	_dict_entry,3,DIR,directory 
-	_dict_entry,4,LOAD,load 
-	_dict_entry,4,SAVE,save
 	_dict_entry,5,WRITE,write  
-	_dict_entry,3,NEW,new
-	_dict_entry,5,BREAK,break 
-	_dict_entry,4,BEEP,beep 
-	_dict_entry,4,STOP,stop 
-    _dict_entry,4,SHOW,show 
-	_dict_entry 3,RUN,run
-	_dict_entry 4,LIST,list
+	_dict_entry,5,WORDS,words 
+	_dict_entry 4,WAIT,wait 
 	_dict_entry,3+F_IFUNC,USR,usr
-	_dict_entry,6+F_IFUNC,EEPROM,eeprom 
 	_dict_entry,6+F_IFUNC,UFLASH,uflash 
+	_dict_entry,6+F_IFUNC,UBOUND,ubound 
+	_dict_entry,2,TO,to
+	_dict_entry,5+F_IFUNC,TICKS,get_ticks
+	_dict_entry,4,STOP,stop 
+	_dict_entry,4,STEP,step 
+	_dict_entry,5,SLEEP,sleep 
+	_dict_entry,4+F_IFUNC,SIZE,size
+    _dict_entry,4,SHOW,show 
+	_dict_entry,4,SAVE,save
+	_dict_entry 3,RUN,run
+	_dict_entry,3+F_IFUNC,RND,random 
+	_dict_entry,6,RETURN,return 
+	_dict_entry 6,REMARK,rem 
+	_dict_entry,5+F_IFUNC,RDADC,read_adc
+	_dict_entry,4+F_IFUNC,QKEY,qkey  
+	_dict_entry,6,PWRADC,power_adc 
+	_dict_entry 5,PRINT,print 
+	_dict_entry,4,POKE,poke 
+	_dict_entry,4+F_IFUNC,PEEK,peek 
+	_dict_entry,5,PAUSE,pause 
 	_dict_entry,3+F_IFUNC,ODR,port_odr
+	_dict_entry,3,NEW,new
+	_dict_entry,4,NEXT,next 
+	_dict_entry,4,LOAD,load 
+	_dict_entry 4,LIST,list
+	_dict_entry 3,LET,let 
+	_dict_entry,3+F_IFUNC,KEY,key 
+	_dict_entry,5,INPUT,input_var  
+	_dict_entry,2,IF,if 
 	_dict_entry,3+F_IFUNC,IDR,port_idr
+	_dict_entry,3,HEX,hex_base
+	_dict_entry,4+F_IFUNC,GPIO,gpio 
+	_dict_entry,4,GOTO,goto 
+	_dict_entry,5,GOSUB,gosub 
+	_dict_entry,6,FORGET,forget 
+	_dict_entry,3,FOR,for 
+	_dict_entry,6+F_IFUNC,EEPROM,eeprom 
+	_dict_entry,3,DIR,directory 
+	_dict_entry,3,DEC,dec_base
 	_dict_entry,3+F_IFUNC,DDR,port_ddr 
 	_dict_entry,3+F_IFUNC,CRL,port_cr1 
 	_dict_entry,3+F_IFUNC,CRH,port_cr2
-	_dict_entry,4+F_IFUNC,GPIO,gpio 
-	_dict_entry,6,PWRADC,power_adc 
-	_dict_entry,5+F_IFUNC,RDADC,read_adc
-	_dict_entry,3+F_IFUNC,ASC,ascii  
 	_dict_entry,4+F_CFUNC,CHAR,char
-	_dict_entry,4+F_IFUNC,QKEY,qkey  
-	_dict_entry,3+F_IFUNC,KEY,key 
-	_dict_entry,4+F_IFUNC,SIZE,size
-	_dict_entry,3,HEX,hex_base
-	_dict_entry,3,DEC,dec_base
-	_dict_entry,5+F_IFUNC,TICKS,get_ticks
-	_dict_entry,3+F_IFUNC,ABS,abs
-	_dict_entry,3+F_IFUNC,RND,random 
-	_dict_entry,5,PAUSE,pause 
+	_dict_entry,3,BYE,bye 
+	_dict_entry,5,BTOGL,bit_toggle
+	_dict_entry,5+F_IFUNC,BTEST,bit_test 
 	_dict_entry,4,BSET,bit_set 
 	_dict_entry,4,BRES,bit_reset
-	_dict_entry,5,BTOGL,bit_toggle
-	_dict_entry 4,WAIT,wait 
-	_dict_entry 6,REMARK,rem 
-	_dict_entry 5,PRINT,print 
-	_dict_entry,2,IF,if 
-	_dict_entry,5,GOSUB,gosub 
-	_dict_entry,4,GOTO,goto 
-	_dict_entry,3,FOR,for 
-	_dict_entry,2,TO,to
-	_dict_entry,4,STEP,step 
-	_dict_entry,4,NEXT,next 
-	_dict_entry,6+F_IFUNC,UBOUND,ubound 
-	_dict_entry,6,RETURN,return 
-	_dict_entry,4+F_IFUNC,PEEK,peek 
-	_dict_entry,4,POKE,poke 
-	_dict_entry,5,INPUT,input_var  
+	_dict_entry,5,BREAK,break 
+	_dict_entry,4,BEEP,beep 
+	_dict_entry,3+F_IFUNC,ASC,ascii  
 kword_dict:
-	_dict_entry 3,LET,let 
+	_dict_entry,3+F_IFUNC,ABS,abs
 	
 
 	.bndry 128 ; align on FLASH block.

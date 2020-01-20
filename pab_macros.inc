@@ -34,15 +34,15 @@
         ; 0x3n -> relational operators 
         TK_NONE=0       ; undefined
         TK_COLON=1      ; command end marker ':' 
-        TK_CHAR=2      ; ASCII character 
-        TK_INTGR=3     ; integer 
-        TK_VAR=4        ; variable letters {A..Z}
-        TK_ARRAY=5      ; array variable '@' 
+        TK_ARRAY=2      ; array variable '@' 
+        TK_CHAR=3     ; ASCII character 
+        TK_INTGR=4     ; integer 
+        TK_VAR=5        ; variable letters {A..Z}
         TK_CMD=6        ; BASIC command   
         TK_IFUNC=7      ; BASIC integer function
         TK_CFUNC=8      ; BASIC character function
         TK_SFUNC=9      ; BASIC string function
-        TK_QSTR=0xa       ; quoted string  
+        TK_QSTR=0xa      ; quoted string  
         TK_LPAREN=0xb     ; left parenthesis '('
         TK_RPAREN=0xc     ; right parenthesis ')'
         TK_COMMA=0xd     ; item separator ',' 

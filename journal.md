@@ -1,9 +1,17 @@
 ### 2020-01-19
 
-* Résolue problème avec function CHAR() en créant des indentifiant lexical pour les différent type de fonctions. TK_IFUNC pour les fonctions qui retourne un entier. TK_CFUNC pour les fonctions qui retourne 1 caractère et TK_SFUNC pour les fonctions qui retourne un pointeur vers une chaîne de caractère. 
- 
+* Corrigé bogue numéro 3. Afficher la position d'une erreur runtime n'est pas implémentée car la procédure serait trop complexe pour le bénéfice. Seule le dernier attribue lexical valide avant l'appel de tb_erreor est affiché sous la ligne de code où l'erreur s'est produite.
+
+* Corrigé bogue numéro 2. 
+
+* Ajout de la fonction BTEST()
+
+* Résolue bogue 1 en créant des indentifiant lexical pour les différent type de fonctions. TK_IFUNC pour les fonctions qui retourne un entier. TK_CFUNC pour les fonctions qui retourne 1 caractère et TK_SFUNC pour les fonctions qui retourne un pointeur vers une chaîne de caractère. 
+
 ** BOGUES À RÉSOUDRE** 
 1. La commande PRINT ne traite pas la fonction CHAR() correctement. La valeur ASCII du caractère est imprimé au lieu du caractère lui-même.
+1. @ ne compile pas correctement.
+1. tb_error n'affiche pas correctement la position d'une l'erreur détectée pendant la compilation.
 
 ### 2020-01-18
 

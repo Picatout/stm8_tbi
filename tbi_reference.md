@@ -171,11 +171,23 @@ La commande **bit set** met à **1** les bits de l'octet situé à *addr*. Seul 
 
 Allume la LED2 sur la carte en mettant le bit 5 à 1.
 
+### BTEST(addr,bit) {C,P}
+Cette fonction retourne l'état du *bit* à *addr*.  Permet entre autre de lire l'état d'une broche GPIO configurée en entrée.
+*bit* doit-être dans l'intervalle {0..7}. 
+```
+>? btest($50f3,0)
+   1
+
+>? btest($50f3,5)
+   0
+```
+
 ### BTOGL addr,mask  {C,P}
 La commande **bit toggle** inverse les bits de l'octet situé à *addr*. Seul les bits à **1** dans l'argument *mask* sont affectés. 
-
-
+```
     >btogl $500a,32
+```
+
 Inverse l'état de la LED2 sur la carte. 
 
 ### BYE  {C,P}
