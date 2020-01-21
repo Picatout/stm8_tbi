@@ -1,3 +1,14 @@
+### 2020-01-21
+
+* Modification à commmande **BEEP expr1, expr2**. Maintenant la fréquence = 128000/(8*(expr1%31)).
+
+### 2020-01-20
+
+* Corrigé bogue dans commande FORGET
+* Modifié commande PWRADC, deuxième argument maintenant optionnel.
+
+* Travail sur [manuel de l'utilisateur](manuel_util_tb.md).
+
 ### 2020-01-19
 
 * Corrigé bogue numéro 3. Afficher la position d'une erreur runtime n'est pas implémentée car la procédure serait trop complexe pour le bénéfice. Seule le dernier attribue lexical valide avant l'appel de tb_erreor est affiché sous la ligne de code où l'erreur s'est produite.

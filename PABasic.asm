@@ -4459,23 +4459,21 @@ stop:
 ; used MCU internal beeper 
 ; to produce a sound
 ; arguments:
-;    expr1   frequency, {1,2,4} mapping to 1K,2K,4K
+;    expr1   frequency  (expr1%32)
 ;    expr2   duration msec.
 ;---------------------------
 beep:
 	call arg_list 
 	cp a,#2 
-	jreq 2$
+	jreq 1$
 	jp syntax_error 
-2$: ldw x,dstkptr 
+1$: 
+	ldw x,dstkptr 
 	ldw x,(2,x);frequency 
-	ld a,xl
-	dec a 
-	swap a 
-	sll a 
-	sll a 
-	add a,#0x3e 
-	ld BEEP_CSR,a 
+	ld a,#31
+	div x,a 
+	ld BEEP_CSR,a	
+	bset BEEP_CSR,#5 
 	call dpop 
 	call pause02 
 	call ddrop 
@@ -4484,19 +4482,23 @@ beep:
 	ret 
 
 ;-------------------------------
-; BASIC: PWRADC 0|1,divisor  
+; BASIC: PWRADC 0|1 [,divisor]  
 ; disable/enanble ADC 
 ;-------------------------------
 power_adc:
 	call arg_list 
 	cp a,#2	
 	jreq 1$
+	cp a,#1 
+	jreq 0$ 
 	jp syntax_error 
+0$: ldw x,#0
+	call dpush 
 1$: ldw x,#2
 	ldw x,([dstkptr],x) ; on|off
 	tnzw x 
 	jreq 2$ 
-	ldw x,[dstkptr] ; channel
+	ldw x,[dstkptr] ; divisor 
 	ld a,xl
 	and a,#7
 	swap a 
@@ -4908,7 +4910,7 @@ forget:
 	ld a,farptr+2
 	jra 4$ 
 3$: ; forget all files 
-	ldw x,#100
+	ldw x,#0x100
 	clr a 
 	ldw farptr,x 
 	ld farptr+2,a 

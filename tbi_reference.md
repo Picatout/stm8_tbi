@@ -126,11 +126,11 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
     >
 ```
 ### BEEP *expr1*,*expr2* {C,P}
-Le MCU STM8S208RB possède un beeper. Cette commande utilise ce périphérique qui est connecté sur GPIO D:4  pour faire entendre une tonalité. *expr1* détermine la fréquence dans 3 choix possibles 1,2,4 Khz. *expr1* doit-être dans l'ensemble {1,2,4}. *expr2* détermine la durée du son en millisecondes.
+Le MCU STM8S208RB possède un beeper. Cette commande utilise ce périphérique qui est connecté sur GPIO D:4  pour faire entendre une tonalité. *expr1* détermine la fréquence selon la formule __128000/(8*(expr1%31))__. *expr2* détermine la durée du son en millisecondes.
 ```
->BEEP 2,1000 ' 2 Khz pendant 1 seconde
+>BEEP 31,1000 ' 500 hz pendant 1 seconde
 
->
+>BEEP 0,500 ' 8000 hz pendant 500 millisecondes
 ``` 
 
 ### BREAK {P}
@@ -543,8 +543,8 @@ Caractere recu du terminal Z
 
 >
 ```
-### PWRADC 0|1,Fclk
-Active **1** ou désactive **1** le convertisseur analogique/numérique. Fclk détermine la fréquence d'horloge du convertisseur et doit-être un entier dans l'intervalle {0..7}. Il s'agit d'un diviseur donc **7** correspond à la fréquence la plus basse. Le diviseur s'applique Fosc qui est de 16Mhz. Il faut 11 cycles d'horloges pour chaque conversion.  Il s'agit d'un convertisseur 10 bits donc le résultat est entre 0...1023
+### PWRADC 0|1 [,diviseur]
+Active **1** ou désactive **0** le convertisseur analogique/numérique. *diviseur* détermine la fréquence d'horloge du convertisseur et doit-être un entier dans l'intervalle {0..7}. Il s'agit d'un diviseur donc **7** correspond à la fréquence la plus basse. Le diviseur s'applique à Fosc qui est de 16Mhz. Il faut 11 cycles d'horloges pour chaque conversion.  Il s'agit d'un convertisseur 10 bits donc le résultat est entre 0...1023. Si l'argument *diviseur* est omis c'est la fréquence maximale qui est utilisée.
 
 paramètre|diviseur|fréquence
 -|-|-
@@ -562,6 +562,7 @@ paramètre|diviseur|fréquence
 >?rdadc(0) 'Lecture canal 0 
  757
 
+>pwradc 0 ' desactive l'ADC.
 ```
 On peut désactiver le convertisseur pour réduire la consommation du MCU.
 
@@ -793,13 +794,13 @@ Dans cet exemple l'adresse $5240 correspond au registre UART3_SR. Lorsque le bit
 L'exécution est suspendu jusqu'à la réception d'un caractère sur UART3.
 
 ### WORDS {C,P}
-Affiche la liste de tous les mots qui sont dans le dictionnaire. La liste n'est pas triée par ordre alphabétique.
+Affiche la liste de tous les mots qui sont dans le dictionnaire. Le dictionnaire est une liste chaînée des noms des commandes et fonctions de Tiny Basic en relation avec l'adresse d'exécution. 
 ```
 >words
-LET INPUT POKE PEEK RETURN UBOUND NEXT STEP TO FOR GOTO GOSUB IF PRINT REMARK
-WAIT BTOGL BRES BSET PAUSE RND ABS TICKS DEC HEX SIZE KEY QKEY CHAR ASC
-GPIO CRH CRL DDR IDR ODR UFLASH EEPROM USR LIST RUN SHOW STOP BREAK NEW
-WRITE SAVE LOAD DIR FORGET SLEEP WORDS BYE 
+ABS ASC BEEP BREAK BRES BSET BTEST BTOGL BYE CHAR CRH CRL DDR DEC DIR EEPROM
+FOR FORGET GOSUB GOTO GPIO HEX IDR IF INPUT KEY LET LIST LOAD NEXT NEW ODR
+PAUSE PEEK POKE PRINT PWRADC QKEY RDADC REMARK RETURN RND RUN SAVE SHOW
+SIZE SLEEP STEP STOP TICKS TO UBOUND UFLASH USR WAIT WORDS WRITE 
 >
 ```
 

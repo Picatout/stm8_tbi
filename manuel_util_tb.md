@@ -4,12 +4,12 @@ Tiny BASIC pour STM8 est un langage simple qui cependant permet de configurer et
 
 L'objectif de ce manuel est de présenter les fonctionnalités du langage à travers des applications du microcontrôleur. Je n'ai pas définie toutes les constantes des registres du MCU dans le langage il est donc nécessaire de se réréfer au [feuillet de spécifications](docs/stm8s208rb.pdf) ainsi qu'au manuel de référence du [STM8S](docs/stm8s_reference.pdf). Le manuel d'utilisateur de la carte [NUCLEO-8S208RB](docs/nucleo-8s208rb_user_manual.pdf) est aussi utile.
 
-Il est aussi recommander de lire en pré-requis de ce manuel la [référence du langage Tiny BASIC](readme.md)
+Il est aussi recommander de lire en pré-requis de ce manuel la [référence du langage Tiny BASIC](tbi_reference.md)
 
 ### abbréviation des commandes 
-Le nom des commandes peut-être abrégé au plus court à 2 lettres. Il est avantageux d'utiliser l'abbréviation la plus courte pour sauver de la mémoire mais aussi pour un léger gain en vitesse d'exécution.
+Le nom des commandes peut-être abrégé au plus court à 2 lettres. Cependant même si vous entrez votre texte avec les abbréviation lorsque vous utilisez la commande LIST pour afficher votre programme les noms sont affichés dans toute leur longueur à l'exception de la commande **REMARK** qui s'affiche comme une apostrophe.
 
-la commande **WORDS** affiche la liste complète des mots qui sont dans le dictionnaires. Cette liste n'est pas en ordre alphabétique mais dans l'ordre de classement dans le dictionnaire. Il est préférable de mettre les mots les plus utilisés au début du dictionnaire.
+La commande **WORDS** affiche la liste complète des mots qui sont dans le dictionnaires. 
 
 nom|abrévation
 -|-
@@ -67,15 +67,23 @@ WAIT|WA
 WORDS|WO
 WRITE|WR
 
+### exécution des programmes
+Si une ligne de commande est saisie sans numéro de ligne elle est compilée et exécutée immédiatement. Par contre si le texte commence par un entier entre 1 et 32767 cette ligne est considérée comme faisant partie d'un programme est après sa compilation elle est insérée dans la zone texte réservée au progammes BASIC. Les programmes sont exécutés à partir de la mémoire RAM. Pour le STM8S208RB il y a 6Ko de mémoire RAM une partie ce cette mémoire est utilisée par l'interpréteur et il reste environ 5740 octets disponibles pour les progammes. Il serait possible d'exécuter un programme à partir de la mémoire FLASH mais la version 1 de Tiny BASIC pour STM8 ne supporte pas ce mode. 
 
 ## exemple 1 blinky 
-Sur la carte il y a une LED indentifiée **LD2**. Cette LED est connecté à la pin 5 du GPIO C. La proche en question est pré-configurée en mode sortie par le système Tiny-BASIC. Pour contrôler son état il suffit donc de modifier l'éatt du bit 5 du registre **ODR** du GPIO C. Dans ce premier exemple nous allons faire clignoer cette LED au rythme de 1 fois par seconde.
+Sur la carte il y a une LED indentifiée **LD2**. Cette LED est connecté à la broche qui correspond au bit 5 du GPIO C. Cette GPIO   est pré-configurée en mode sortie par le système Tiny BASIC. Pour contrôler son état il suffit donc de modifier l'éatt du bit 5 du registre **ODR** du GPIO C. Dans ce premier exemple nous allons faire clignoer cette LED au rythme de 1 fois par seconde.
 ```
-   10 bt gp(2,odr),32
-   20 pa 500
-   30 got 10
+   10 btoggle gpio(2,odr),32
+   20 pause 500
+   30 goto 10
 ```
-Notez que j'utilise les abbréviations les plus courtes de chaque commande.
+Notez que vous pouvez saisir le texte aussi bien en minuscules qu'en majuscules. l'interpréteur convertie en majuscules. La commande LIST affiche ceci:
+```
+>list
+   10 BTOGL GPIO ( 2 ,ODR ), 32 
+   20 PAUSE  500 
+   30 GOTO  10 
+```
 
 ## exemple 2 PWM logiciel
 
@@ -102,3 +110,24 @@ Dans cet exemple l'intensité de la LED est contrôlée par PWM logiciel.
   610 GOTO  20 
 ```
 L'intensité de la LED est contrôlée à partir du terminal avec les touches **u** pour augmenter l'intensitée et **d** pour la réduire. La variable **R** contrôle l'intensitée. 
+
+## exemple 3 lecture analogique
+Dans cet exemple il s'agit encore de contrôler l'intensité de LD2 mais cette fois l'intensité est déterminée par la lecture d'un potentimètre. Il faut brancher un potentiomètre de 10Ko entre **GND**,**V3,3** et **CN4-A5**. **CN4-A5** est branchée à l'entrée analogique **AN0** du MCU.
+```
+>li
+    5 'demo lecture analogique
+   10 K = 0 :PRINT # 6 ,:PWRADC  1 
+   20 R =RDADC ( 0 )
+   30 IF R :BSET GPIO ( 2 ,ODR ), 32 
+   40 FOR A = 0 TO R :NEXT A 
+   50 BRES GPIO ( 2 ,ODR ), 32 
+   60 FOR A =A TO  1023 :NEXT A 
+   70 IF QKEY :K =KEY 
+   80 IF K =ASC (\q):PWRADC  0 :STOP 
+   90 PRINT "\b\b\b\b\b\b",R ,
+  100 GOTO  20 
+
+>run
+   981
+ ```
+ Le programme peut-être interrompue par le bouton **USER** de la carte ou par le terminal en enfonçant la touche **q**. 
