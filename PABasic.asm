@@ -23,6 +23,9 @@
 ;
 ;--------------------------------------------------
 
+
+
+
     .module TBI_STM8
 
     .nlist
@@ -1182,7 +1185,7 @@ cold_start:
 	ld a,#CR 
 	call putc 
 	call seek_fdrive 
-; configure LED2 pin 
+; configure LD2 pin 
     bset PC_CR1,#LED2_BIT
     bset PC_CR2,#LED2_BIT
     bset PC_DDR,#LED2_BIT

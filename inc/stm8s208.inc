@@ -378,7 +378,7 @@ PI = 40
  IWDG_KR  = (0x50E0)
  IWDG_PR  = (0x50E1)
  IWDG_RLR  = (0x50E2)
- AWU_CSR1  = (0x50F0)
+ AWU_CSR  = (0x50F0)
  AWU_APR  = (0x50F1)
  AWU_TBR  = (0x50F2)
 

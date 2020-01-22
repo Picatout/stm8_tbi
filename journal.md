@@ -1,4 +1,12 @@
 ### 2020-01-21
+* Création de la branche **vm1** pour tester un machine virtuelle à bytecode. Considérant l'architecture STM8 je crois qu'un modèle de machine virtuelle à une seule pile serait la plus performante. Tous les arguments et paramètres seront sur  la pile du cpu. Il s'agit d'une alltération majeure du système.
+
+*  X registre de travail
+*  Y compteur ordinal de la VM 
+*  A registre de travail
+*  acc16  accumulateur 
+*  ptr16  pointeur 16 bits 
+
 
 * Modification à commmande **BEEP expr1, expr2**. Maintenant la fréquence = 128000/(8*(expr1%31)).
 
