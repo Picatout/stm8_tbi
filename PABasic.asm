@@ -56,28 +56,26 @@ _dbg
 
 in.w:  .blkb 1 ; parser position in text line
 in:    .blkb 1 ; low byte of in.w
-count: .blkb 1 ; length of string in text line  
-basicptr:  .blkb 2  ; point to text buffer 
-lineno: .blkb 2  ; BASIC line number 
-base:  .blkb 1 ; nemeric base used to print integer 
-acc24: .blkb 1 ; 24 accumulator
-acc16: .blkb 1
-acc8:  .blkb 1
-ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
-seedx: .blkw 1  ; xorshift 16 seed x 
-seedy: .blkw 1  ; xorshift 16 seed y 
 in.saved: .blkb 1 ; set by get_token before parsing next token, used by unget_token
-farptr: .blkb 1 ; far pointer used by file system
-ptr16:  .blkb 1 ; middle byte of farptr
-ptr8:   .blkb 1 ; least byte of farptr 
+count: .blkb 1 ; current BASIC line length and tib text length  
+basicptr:  .blkb 2  ; point to current BASIC line 
+base:  .blkb 1 ; nemeric base used to print integer 
+acc24: .blkb 1 ; 24 bit accumulator
+acc16: .blkb 1 ; 16 bit accumulator, middle byte of acc24
+acc8:  .blkb 1 ;  8 bit accumulator, least byte of acc24 
+ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
+seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
+seedy: .blkw 1  ; xorshift 16 seed y  used by RND() funcion
+farptr: .blkb 1 ; 24 bits pointer used by file system
+ptr16:  .blkb 1 ; 16 bits pointer ,  middle byte of farptr
+ptr8:   .blkb 1 ; 8 bits pointer, least byte of farptr 
 ffree: .blkb 3 ; flash free address ; file system free space pointer
 dstkptr: .blkw 1  ; data stack pointer 
-txtbgn: .ds 2 ; BASIC text beginning address 
-txtend: .ds 2 ; BASIC text end address 
-loop_depth: .ds 1 ; FOR loop depth, level of nested loop.  
-array_addr: .ds 2 ; address of @ array 
+txtbgn: .ds 2 ; tokenized BASIC text beginning address 
+txtend: .ds 2 ; tokenized BASIC text end address 
+loop_depth: .ds 1 ; FOR loop depth, level of nested loop. Conformity check   
 array_size: .ds 2 ; array size 
-flags: .ds 1 ; boolean flags
+flags: .ds 1 ; various boolean flags
 tab_width: .ds 1 ; print colon width (4)
 vars: .ds 2*26 ; BASIC variables A-Z, keep it as but last .
 ; keep as last variable 
@@ -765,35 +763,33 @@ move_exit:
 
 ;-------------------------------------
 ; search text area for a line with 
-; same number as lineno  
+; same number as line#  
 ; input:
-;	X 			lineno 
+;	X 			line# 
 ; output:
 ;   X 			addr of line | 0 
-;   Y           lineno|insert address if not found  
+;   Y           line#|insert address if not found  
 ;-------------------------------------
 	LL=1 ; line length 
 	LB=2 ; line length low byte 
 	VSIZE=2 
 search_lineno:
 	_vars VSIZE
-	ldw acc16,x 
 	clr (LL,sp)
 	ldw y,txtbgn
 search_ln_loop:
 	cpw y,txtend 
 	jrpl 8$
-	ldw x,y 
-	ldw x,(x) ; x=line number 
-	cpw x,acc16 
-	jreq 9$ 
-	jrpl 8$ ; from here all lines are > lineno 
+	cpw x,(y)
+	jreq 9$
+	jrmi 8$ 
 	ld a,(2,y)
 	ld (LB,sp),a 
 	addw y,(LL,sp)
 	jra search_ln_loop 
-8$: exgw x,y 
-	clrw y 	
+8$: 
+	clrw x 	
+	exgw x,y 
 9$: _drop VSIZE
 	exgw x,y   
 	ret 
@@ -974,7 +970,7 @@ check_full:
 ;   none
 ; output:
 ;   basicptr     token list buffer
-;   lineno 		 BASIC line number 
+;   line# 		 BASIC line number 
 ;   in.w  		 cleared 
 ;-----------------------------------
 	.macro _incr_ptr16 n 
@@ -1088,8 +1084,6 @@ compile:
 	ldw basicptr,x 
 	ld a,(2,x)
 	ld count,a 
-	ldw x,(x)
-	ldw lineno,x 
 	mov in,#3 
 11$:
 	_drop VSIZE 
@@ -1190,8 +1184,6 @@ cold_start:
     bset PC_CR2,#LED2_BIT
     bset PC_DDR,#LED2_BIT
 	rim 
-	ldw x,#tib
-	ldw array_addr,x 
 	inc seedy+1 
 	inc seedx+1 
 	call clear_basic
@@ -1205,8 +1197,6 @@ cold_start:
 ; and clear variables 
 ;---------------------------
 clear_basic:
-	clrw x 
-	ldw lineno,x
 	clr count 
 	ldw x,#free_ram 
 	ldw txtbgn,x 
@@ -1278,8 +1268,6 @@ warm_start:
 	ldw dstkptr,x 
 	mov tab_width,#TAB_WIDTH 
 	mov base,#10 
-	clrw x 
-	ldw lineno,x 
 	ldw x,#tib 
 	ldw basicptr,x 
 ;----------------------------
@@ -1300,8 +1288,6 @@ interp:
 	ldw basicptr,x ; start of next line  
 	ld a,(2,x)
 	ld count,a 
-	ldw x,(x) ; line no 
-	ldw lineno,x 
 	mov in,#3 ; skip first 3 bytes of line 
 	jra interp_loop 
 4$: ; commande line mode 	
@@ -3167,7 +3153,7 @@ get_array_element:
 	jreq 2$ 
 	sllw x 
 	pushw x 
-	ldw x,array_addr  
+	ldw x,#tib
 	subw x,(1,sp)
 	_drop 2   
 	ld a,#TK_INTGR
@@ -3456,7 +3442,14 @@ size:
 ubound:
 	ldw x,#tib
 	subw x,txtend 
-	srlw x 
+	ldw y,basicptr 
+	cpw y,txtend 
+	jrult 1$
+	push count 
+	push #0 
+	subw x,(1,sp)
+	_drop 2 
+1$:	srlw x 
 	ldw array_size,x
 	ld a,#TK_INTGR
 	ret 
@@ -3533,7 +3526,7 @@ lines_skip:
 2$:	ldw (LN_PTR,sp),x 
 	cpw x,txtend 
 	jrpl list_exit 
-	ldw x,(x) ;lineno 
+	ldw x,(x) ;line# 
 	cpw x,(FIRST,sp)
 	jrpl list_start 
 	ldw x,(LN_PTR,sp) 
@@ -3887,8 +3880,6 @@ print_exit:
 save_context:
 	ldw x,basicptr 
 	ldw (BPTR,sp),x
-	ldw x,lineno 
-	ldw (LNO,sp),x 
 	ld a,in 
 	ld (IN,sp),a
 	ld a,count 
@@ -3903,8 +3894,6 @@ save_context:
 rest_context:
 	ldw x,(BPTR,sp)
 	ldw basicptr,x 
-	ldw x,(LNO,sp)
-	ldw lineno,x 
 	ld a,(IN,sp)
 	ld in,a
 	ld a,(CNT,sp)
@@ -4313,8 +4302,6 @@ loop_back:
 	btjf flags,#FRUN,1$ 
 	ld a,(2,x)
 	ld count,a
-	ldw x,(x)
-	ldw lineno,x
 1$:	ldw x,(INW,sp)
 	ldw in.w,x 
 	ret 
@@ -4332,8 +4319,8 @@ loop_done:
 
 
 ;------------------------
-; BASIC: GOTO lineno 
-; jump to lineno 
+; BASIC: GOTO line# 
+; jump to line# 
 ; here cstack is 2 call deep from interp_loop 
 ;------------------------
 goto:
@@ -4344,9 +4331,9 @@ goto:
 0$:	jra go_common
 
 ;--------------------
-; BASIC: GOSUB lineno
+; BASIC: GOSUB line#
 ; basic subroutine call
-; actual lineno and basicptr 
+; actual line# and basicptr 
 ; are saved on cstack
 ; here cstack is 2 call deep from interp_loop 
 ;--------------------
@@ -4381,8 +4368,6 @@ go_common:
 	ldw basicptr,x 
 	ld a,(2,x)
 	ld count,a 
-	ldw x,(x)
-	ldw lineno,x 
 	mov in,#3 
 	ret 
 
@@ -4402,8 +4387,6 @@ return:
 	add a,#3 
 	ld count,a 
 	mov in,#3
-	ldw x,(x)
-	ldw lineno,x 
 	clr a 
 	popw x 
 	_drop 2
@@ -4438,8 +4421,6 @@ run:
 	ldw basicptr,x 
 	ld a,(2,x)
 	ld count,a
-	ldw x,(x)
-	ldw lineno,x
 	mov in,#3	
 	bset flags,#FRUN 
 	jp interp_loop 
@@ -4569,7 +4550,6 @@ break:
 	clr (x)
 	clr count  
 	clrw x 
-	ldw lineno,x 
 	ldw in.w,x
 	bres flags,#FRUN 
 	bset flags,#FBREAK
