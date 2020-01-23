@@ -66,7 +66,7 @@ acc8:  .blkb 1
 ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
 seedx: .blkw 1  ; xorshift 16 seed x 
 seedy: .blkw 1  ; xorshift 16 seed y 
-in.w.saved: .blkw 1 ; set by get_token before parsing next token, used by unget_token
+in.saved: .blkb 1 ; set by get_token before parsing next token, used by unget_token
 farptr: .blkb 1 ; far pointer used by file system
 ptr16:  .blkb 1 ; middle byte of farptr
 ptr8:   .blkb 1 ; least byte of farptr 
@@ -1050,23 +1050,23 @@ compile:
 	jra 2$  
 4$: cp a,#TK_INTGR
 	jrult 2$
-	cp a,#TK_SFUNC 
+	cp a,#TK_CONST 
 	Jrugt 2$
 	ldw x,(XSAVE,sp) 
 	ldw y,(BUFIDX,sp)
 	ldw ([ptr16],y),x
 	cpw x,#rem 
-	jrne 5$
-	addw y,#2 
-	pushw y 
+	jrne 5$	
+; comment advance in.w to eol 
+	addw y,#2 ; skip exec address 
+	ldw (BUFIDX,sp),y 
 	ldw x,ptr16 
-	addw x,(1,sp)
-	_drop 2  
+	addw x,(BUFIDX,sp)
 	ldw y,in.w 
 	addw y,#tib 
 	call strcpy 	
 	call strlen 
-	addw x,#3 ; rem exec address+string 0. 
+	incw x ; skip string 0. 
 	addw x,(BUFIDX,sp)
 	ldw (BUFIDX,sp),x 
 	jra 9$
@@ -1262,7 +1262,9 @@ tb_error:
 	call prt_basic_line
 	ldw x,#rt_msg 
 	call puts 
-	ldw x,in.w.saved 
+	clrw x 
+	ld a,in.saved 
+	ld xl,a 
 	ld a,([basicptr],x)
 	clrw x 
 	ld xl,a 
@@ -1348,13 +1350,10 @@ interp_loop:
 ;   X 		token value if there is one
 ;----------------------------------------
 next_token:
-	push #0
 	ld a,in 
-	cp a,count 
-	pop a 
-	jrpl 9$ 
-	ldw x,in.w 
-	ldw in.w.saved,x 
+	sub a,count 
+	jreq 9$
+	mov in.saved,in
 	ldw x,basicptr 
 	ld a,([in.w],x)
 	inc in 
@@ -1369,7 +1368,6 @@ next_token:
 	ld a,#TK_CHAR
 	ret 
 1$:	cp a,#TK_QSTR 
-	jrugt 9$
 	jrult 2$
 	addw x,in.w 
 	jra 9$
@@ -2222,7 +2220,7 @@ get_token:
 	ldw x, #pad
 	ld a,#SPACE
 	call skip
-	ldw in.w.saved,x 
+	mov in.saved,in 
 	ld a,([in.w],y)
 	jrne str_tst
 	clr pad 
@@ -2585,8 +2583,7 @@ skip:
 ; to get_token.
 ;------------------------------
 unget_token:
-	ldw x,in.w.saved
-	ldw in.w,x 
+	mov in,in.saved
 	ret 
 
 
@@ -3219,9 +3216,12 @@ factor:
 	jra 18$ 
 10$:
 	cp a,#TK_VAR 
-	jrne 12$
+	jrne 11$
 	ldw x,(x)
 	jra 18$
+11$: 
+	cp a,#TK_CONST 
+	jreq 18$
 12$:			
 	cp a,#TK_LPAREN
 	jrne 16$
@@ -3664,7 +3664,7 @@ prt_basic_line:
 	ldw (XSAVE,sp),x 
 	cp a,#TK_CMD 
 	jrult 5$
-	cp a,#TK_SFUNC 
+	cp a,#TK_CONST 
 	jrugt 4$
 2$:	
 	ldw x,([ptr16],x)
@@ -5170,55 +5170,6 @@ bad_port:
 	ld a,#ERR_BAD_VALUE
 	jp tb_error
 
-;----------------------
-; BASIC: ODR 
-; return offset of gpio
-; ODR register: 0
-; ---------------------
-port_odr:
-	ldw x,#GPIO_ODR
-	ld a,#TK_INTGR
-	ret
-
-;----------------------
-; BASIC: IDR 
-; return offset of gpio
-; IDR register: 1
-; ---------------------
-port_idr:
-	ldw x,#GPIO_IDR
-	ld a,#TK_INTGR
-	ret
-
-;----------------------
-; BASIC: DDR 
-; return offset of gpio
-; DDR register: 2
-; ---------------------
-port_ddr:
-	ldw x,#GPIO_DDR
-	ld a,#TK_INTGR
-	ret
-
-;----------------------
-; BASIC: CRL  
-; return offset of gpio
-; CR1 register: 3
-; ---------------------
-port_cr1:
-	ldw x,#GPIO_CR1
-	ld a,#TK_INTGR
-	ret
-
-;----------------------
-; BASIC: CRH  
-; return offset of gpio
-; CR2 register: 4
-; ---------------------
-port_cr2:
-	ldw x,#GPIO_CR2
-	ld a,#TK_INTGR
-	ret
 
 ;-------------------------
 ; BASIC: UFLASH 
@@ -5234,19 +5185,6 @@ uflash:
 	ld a,#TK_INTGR 
 	ret 
 
-;-------------------------
-; BASIC: EEPROM 
-; return eeprom address
-; input:
-;  none 
-; output:
-;	A		TK_INTGR
-;   X 		eeprom address 
-;---------------------------
-eeprom:
-	ldw x,#EEPROM_BASE 
-	ld a,#TK_INTGR 
-	ret 
 
 ;---------------------
 ; BASIC: USR(addr[,arg])
@@ -5524,6 +5462,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,RND,random 
 	_dict_entry,6,RETURN,return 
 	_dict_entry 6,REMARK,rem 
+	_dict_entry,6,REBOOT,cold_start 
 	_dict_entry,5+F_IFUNC,RDADC,read_adc
 	_dict_entry,4+F_IFUNC,QKEY,qkey  
 	_dict_entry,6,PWRADC,power_adc 
@@ -5531,7 +5470,7 @@ kword_end:
 	_dict_entry,4,POKE,poke 
 	_dict_entry,4+F_IFUNC,PEEK,peek 
 	_dict_entry,5,PAUSE,pause 
-	_dict_entry,3+F_IFUNC,ODR,port_odr
+	_dict_entry,3+F_CONST,ODR,GPIO_ODR
 	_dict_entry,3,NEW,new
 	_dict_entry,4,NEXT,next 
 	_dict_entry,4,LOAD,load 
@@ -5540,19 +5479,19 @@ kword_end:
 	_dict_entry,3+F_IFUNC,KEY,key 
 	_dict_entry,5,INPUT,input_var  
 	_dict_entry,2,IF,if 
-	_dict_entry,3+F_IFUNC,IDR,port_idr
+	_dict_entry,3+F_CONST,IDR,GPIO_IDR
 	_dict_entry,3,HEX,hex_base
 	_dict_entry,4+F_IFUNC,GPIO,gpio 
 	_dict_entry,4,GOTO,goto 
 	_dict_entry,5,GOSUB,gosub 
 	_dict_entry,6,FORGET,forget 
 	_dict_entry,3,FOR,for 
-	_dict_entry,6+F_IFUNC,EEPROM,eeprom 
+	_dict_entry,6+F_CONST,EEPROM,EEPROM_BASE  
 	_dict_entry,3,DIR,directory 
 	_dict_entry,3,DEC,dec_base
-	_dict_entry,3+F_IFUNC,DDR,port_ddr 
-	_dict_entry,3+F_IFUNC,CRL,port_cr1 
-	_dict_entry,3+F_IFUNC,CRH,port_cr2
+	_dict_entry,3+F_CONST,DDR,GPIO_DDR
+	_dict_entry,3+F_CONST,CRL,GPIO_CR1
+	_dict_entry,3+F_CONST,CRH,GPIO_CR2
 	_dict_entry,4+F_CFUNC,CHAR,char
 	_dict_entry,3,BYE,bye 
 	_dict_entry,5,BTOGL,bit_toggle

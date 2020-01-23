@@ -1,3 +1,10 @@
+### 2020=01-22
+
+* Retour à la branche master
+* Ajout de l'attribut TK_CONST pour les fonctions qui retourne une constante. Évite de faire un appel de sous-routine.
+* Ajout de la commande REBOOT pour réinitialiser le MCU.
+* Retravailler routine next_token pour essayer de réduire son temps d'exécution. 
+
 ### 2020-01-21
 * Création de la branche **vm1** pour tester un machine virtuelle à bytecode. Considérant l'architecture STM8 je crois qu'un modèle de machine virtuelle à une seule pile serait la plus performante. Tous les arguments et paramètres seront sur  la pile du cpu. Il s'agit d'une alltération majeure du système.
 

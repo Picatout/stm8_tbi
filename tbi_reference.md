@@ -584,8 +584,19 @@ Lecture d'une entrée analogique le **STM8S208RB** possède 16 entrées analogiq
  655
 
 ```
+### REBOOT {C,P}
+Réinitialise le MCU 
+```
+>reboot
 
-### REM  *texte*
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2020
+version 1.0
+
+>
+```
+
+### REMARK  *texte*
 La commande **REM**  sert à insérer des commentaires (*remark*) dans un programme pour le documenter. Le mot réservé **REM** peut-être avantageusement remplacé par le caractère apostrophe (**'**). Un commentaire se termine avec la ligne et est ignoré par l'interpréteur.
 ```
 >list

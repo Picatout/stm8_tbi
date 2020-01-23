@@ -1,7 +1,7 @@
 #############################
 # librairies make file
 #############################
-NAME=vm1
+NAME=PABasic
 SDAS=sdasstm8
 SDCC=sdcc
 SDAR=sdar

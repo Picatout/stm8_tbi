@@ -22,7 +22,7 @@
         F_CMD=0     ; command keyword
         F_IFUNC=0x40 ; integer function keyword
         F_CFUNC=0x80 ; character function keyword
-        F_SFUNC=0xC0 ; string function keyword
+        F_CONST=0xC0 ; function keyword that return a constant
 
 ;--------------------------------------
 ;       token attribute
@@ -41,7 +41,7 @@
         TK_CMD=6        ; BASIC command   
         TK_IFUNC=7      ; BASIC integer function
         TK_CFUNC=8      ; BASIC character function
-        TK_SFUNC=9      ; BASIC string function
+        TK_CONST=9      ; BASIC constant function
         TK_QSTR=0xa      ; quoted string  
         TK_LPAREN=0xb     ; left parenthesis '('
         TK_RPAREN=0xc     ; right parenthesis ')'
@@ -291,3 +291,4 @@
     _dbg_restore_regs
     .endif
     .endm 
+
