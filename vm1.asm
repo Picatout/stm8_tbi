@@ -22,13 +22,12 @@
 ;   DATE: 2019-12-17
 ;
 ;--------------------------------------------------
-;  X registre de travail
-;  Y compteur ordinal de la VM 
-;  A registre de travail
-;  acc16  accumulateur 
-;  ptr16  pointeur 16 bits 
+;  X working register
+;  Y VM program counter
+;  A working register
+;  acc16  temporary 
+;  ptr16  pointer 
 ;--------------------------------------------------
-
     .module VM1 
 
     .nlist
@@ -67,6 +66,7 @@ count: .blkb 1 ; length of string in text line
 basicptr:  .blkb 2  ; point to text buffer 
 lineno: .blkb 2  ; BASIC line number 
 base:  .blkb 1 ; nemeric base used to print integer 
+tos: .blkw 1 ; top of stack element 
 acc24: .blkb 1 ; 24 accumulator
 acc16: .blkb 1
 acc8:  .blkb 1
@@ -307,6 +307,23 @@ putchar:
 	ret  
 
 ;---------------------------------
+; send .asciz to uart3
+; input:
+;   X       pointer to string
+; output:
+;   none:
+;----------------------------------
+puts: 
+    ld a,(x)
+    jreq 9$
+    call putchar 
+    incw x 
+    jra puts
+9$: incw x 
+    ret 
+
+
+;---------------------------------
 ; wait character from UART3 
 ; input:
 ;   none
@@ -335,30 +352,176 @@ bksp:
 	call putchar 
 	ret 
 
+;----------------------------
+; multiply 2 unsigned 16 bits integer 
+; input:
+;   U1     on stack 
+;   U2     on stack 
+; output:  
+;   U1   overflow  
+;   U2   product
+;-----------------------------------
+        _argofs 0 
+        _arg U1 1 
+        _arg U2 3
+mul16u:
+    clr ptr16
+    ld a,(U1+1,sp)
+    ldw x,(U2,sp)
+    mul x,a 
+    ldw acc16,x
+    ldw x,(U2,sp)
+    swapw x 
+    mul x,a 
+    clr a 
+    rlwa x
+    ld ptr8,a 
+    addw x,acc16 
+    jrnc 2$
+    inc ptr8 
+2$: ldw acc16,x 
+    ld a,(U1,sp)
+    ldw x,(U2,sp)
+    mul x,a 
+    rlwa x 
+    add a,ptr8 
+    jrnc 4$
+    inc ptr16 
+4$: ld ptr8,a 
+    addw x,acc16
+    jrnc 6$
+    inc ptr8 
+    jrnc 6$
+    inc ptr16
+6$: ld a,(U1,sp)
+    ldw x,(U2,sp)
+    swapw x 
+    mul x,a 
+    addw x,ptr16 
+    ldw (U1,sp),x 
+    ldw x,acc16 
+    ldw (U2,sp),x
+    ret 
+
+;-----------------------------------
+; print a 16 bit integer 
+; using variable 'base' as conversion
+; format.
+; input:
+;   X       integer to print 
+;   base    conversion base 
+; output:
+;   none 
+;-----------------------------------
+	SIGN=1
+    YSAVE=2
+	VSIZE=3
+print_int: 
+	_vars VSIZE
+    ldw (YSAVE,sp),y 
+	clr (SIGN,sp)
+	ldw y,#pad+PAD_SIZE-1 
+	clr (y)
+	ld a,base  
+	cp a,#10 
+	jrne 1$ 
+	tnzw x 
+	jrpl 1$ 
+	cpl (SIGN,sp)
+	negw x 	 
+1$:	
+	ld a,base 
+	div x,a 
+	add a,#'0 
+	cp a,#'9+1 
+	jrmi 2$ 
+	add a,#7 
+2$: decw y 
+	ld (y),a 
+	tnzw x 
+	jrne 1$ 
+	ld a,#16 
+	cp a,base 
+	jrne 3$
+	ld a,#'$
+	decw y  
+	ld (y),a
+	jra 9$ 
+3$: tnz (SIGN,sp)
+	jreq 9$ 
+	ld a,#'-
+	decw y  
+	ld (y),a
+9$:	
+	ldw x,#pad+PAD_SIZE-1
+    ldw acc16,y
+    subw x,acc16 
+10$:
+	decw y 
+	ld a,#SPACE 
+	ld (y),a
+	incw x 
+	ld a,xl 
+	cp a,tab_width
+	jrmi 10$ 
+12$:
+    ldw x,y 
+	call puts 
+    ldw y,(YSAVE,sp) 
+	_drop VSIZE 
+	ret 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; machine code routine address
+; VM code routine address
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-bytecode: .word bye,putc,getc,puts,delete,spaces,lit,litc,plus,minus,slash
-          .word mod,star  
+bytecode: .word bye,subr,exit,exec,branch,zbranch,emit,key,qkey,dotq,delete
+        .word spaces,prtos,lit,litc,fetch,cfetch,store,cstore,rot,nrot
+        .word drop,dup,swap,over,neg,zlt,plus,minus,slash,mod,staru,star
+        .word decim,hexa
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  bytecode interpreter 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-next:
+next: ; vm instruction fetch 
     ld a,(y)
-    incw y 
+    incw y
     sll a 
     clrw x 
     ld xl,a
-    jp ([bytecode],x) 
+    ldw x,(bytecode,x) 
+    jp (x)
 
 ; put mcu in lowest power mode 
 ; until reset 
-bye:
+bye: ; { -- }
     btjf UART3_SR,#UART_SR_TC,.
     sim 
     halt 
     jp cold_start 
+
+key: ;{ -- c}
+    call getchar 
+    clrw x 
+    ld xl,a 
+    pushw x 
+    jp next 
+
+qkey: ; { -- 0| c 1 }
+    clrw x 
+    pushw x 
+    btjf UART3_SR,#UART_SR_RXNE,next
+    inc (2,sp) 
+    ld a,UART3_DR 
+    ld xl,a 
+    pushw x
+    jp next 
+
+emit: ; { c -- }
+    popw x 
+    ld a,xl 
+    call putchar
+    jp next 
 
 ; vm subroutine call 
 subr: ; { -- }
@@ -395,10 +558,10 @@ branch: ; { -- }
     exgw x,y 
     jp next 
 
-; branch if TOS==0
+; jump if TOS==0
 zbranch: ; { f -- }
     popw x 
-    tnzw 
+    tnzw x
     jreq branch
     addw y,#2 
     jp next 
@@ -411,14 +574,10 @@ zbranch: ; { f -- }
 ; output:
 ;   none 
 ;-------------------------------
-puts: ; { .asciz -- }
+dotq: ; { .asciz -- }
     popw x 
-1$: ld a,(x)
-	jreq 2$
-    call putchar 
-	incw x 
-	jra 1$ 
-2$:	jp next  
+    call puts 
+	jp next  
 
 
 ;---------------------------
@@ -461,51 +620,9 @@ spaces: ; { n -- }
 ; variables 'base' and 'tab_width'
 ; are used 
 prtos: ; { n -- }
-    ldw x,(TOS,sp) 
-    ldw (TOS,sp),y 
-    push #0 
-    ld a,xh 
-    bcp a,#0x80
-    jreq 2$ 
-    cpl (1,sp)
-    negw x 
-2$: ldw y,#pad+PAD_SIZE-1
-    clr(y)
-3$: ld a,base 
-    div x,a 
-    add a,#'0 
-    cp a,#'9
-    jrule 4$
-    add a,#7 
-4$: decw y 
-    ld (y),a 
-    tnzw x 
-    jrne 3$
-    ld a,#16 
-    cp a,base 
-    jrne 6$
-    ld a,#'$ 
-    decw y 
-    ld a,(y)
-    jra 8$ 
-6$: tnz (1,sp)
-    jreq 8$
-    ld a,#'-
-    decw y 
-    ld (y),a 
-8$: ldw x,#pad+PAD_SIZE-1
-    subw x,y 
-    ld a,xl 
-    cp a,tab_width 
-    jruge 9$
-    ld a,#SPACE 
-    decw y 
-    ld (y),a  
-    jra 8$ 
-9$: exgw x,y     
-    popw y 
-    pushw x 
-    jp puts  
+    popw x 
+    call print_int
+    jp next 
 
 lit: ; { -- n }
     ld a,(y)
@@ -525,6 +642,77 @@ litc: ; { -- c }
     pushw x 
     jp next 
 
+fetch: ; { addr -- n}
+    ldw x,(TOS,sp)
+    ldw x,(x)
+    ldw (TOS,sp),x 
+    jp next 
+
+cfetch: ; { addr -- c }
+    ldw x,(TOS,sp)
+    ld a,(x)
+    clrw x 
+    ld xl,a 
+    ldw (TOS,sp),x 
+    jp  next 
+
+store: ; { addr n -- }
+    ldw x,(N,sp)
+    ldw ptr16,x 
+    popw x 
+    ldw x,[ptr16]
+    _drop CELLL 
+    jp next
+
+cstore: ; { addr c -- }
+    ldw x,(N,sp)
+    ldw ptr16,x 
+    popw x 
+    ld a,xl 
+    ld [ptr16],a 
+    _drop CELLL 
+    jp next
+
+rot: ;{ n1 n2 n3 -- n3 n1 n2 }
+    ldw x,(TOS,sp)
+    ldw acc16,x 
+    ldw x,(N,sp)
+    ldw (TOS,sp),x
+    ldw x,(5,sp)
+    ldw (N,sp),x 
+    ldw x,acc16 
+    ldw (5,sp),x
+    jp next 
+
+nrot: ; {n1 n2 n3 -- n2 n3 n1 }
+    ldw x,(5,sp)
+    ldw acc16,x 
+    ldw x,(N,sp)
+    ldw (5,sp),x
+    ldw x,(TOS,sp)
+    ldw (N,sp),x
+    ldw x,acc16 
+    ldw (N,sp),x  
+    jp next 
+
+drop: 
+    _drop CELLL
+    jp next 
+    
+dup: ; { n -- n n }
+    ldw x,(TOS,sp)
+    pushw x 
+    jp next 
+
+swap: ; { n1 n2 -- n2 n1 }
+    ldw x,(TOS,sp)
+    ldw acc16,x 
+    ldw x,(N,sp)
+    ldw (TOS,sp),x
+    ldw x,acc16 
+    ldw (N,sp),x 
+    jp next 
+
 plus: ; { n1 n2 -- n1+n2 }
     popw x
     addw x,(TOS,sp)
@@ -535,7 +723,7 @@ minus: ; {n1 n2 -- n1-n2 }
     ldw x,(N,sp) 
     subw x,(TOS,sp) 
     ldw (N,sp),x 
-    _drop 2 
+    _drop CELLL
     jp next
 
 slash: ; {n1 n2 -- n1/n2}
@@ -560,46 +748,67 @@ mod: ; { n1 n2 -- n1%n2}
 
 ; unsigned multiply 
 ; overflow is discarded 
-staru: ; {n1 n2 -- n1*n2 }
-    ldw x,(TOS,sp) 
-    ldw (TOS,sp),y ; 
-    ldw acc16,x 
-    ld a (N+1,sp)
-    mul x,a 
-    ldw y,x 
-    ld a,acc16 
-    ld xl,a 
-    ld a,(N+1,sp)
-    mul 
-    swapw x 
-    clr a 
-    ld xl,a 
-    addw y,x 
-    ld a,acc8
-    ld xl,a 
-    ld a,(N,sp)
-    mul 
-    swapw x 
-    clr a 
-    ld xl,a 
-    addw y,x 
-    ldw (N,sp),y 
-    popw y
+staru: ; {u1 u2 -- u1*u2 }
+    call mul16u 
+    _drop CELLL ; discard overflow 
     jp next 
 
-swap: ; { n1 n2 -- n2 n1 }
-    ldw x,(TOS,sp)
-    ldw acc16,x 
+over: ; { n1 n2 -- n1 n2 n1 }
     ldw x,(N,sp)
+    pushw x 
+    jp next 
+    
+neg: ;{ n -- -n}
+    ldw x,(TOS,sp)
+    negw x 
     ldw (TOS,sp),x
-    ldw x,acc16 
-    ldw (N,sp),x 
     jp next 
 
-rot: ;{ n1 n2 n3 -- n3 n1 n2 }
+; n<0? 
+zlt: ; {n -- 0|1 }
+    clrw x 
+    ld a,(TOS,sp)
+    bcp a,#0x80
+    jreq  1$
+    incw x 
+1$: ldw (TOS,sp),x 
+    jp next 
 
+ 
+star: ; { n1 n2 -- n1*n2 }
+    ldw x,(TOS,sp)
+    ldw acc16,x
+    ldw x,(N,sp)
+    ldw ptr16,x 
+    clrw x
+    ldw (N,sp),x 
+    ldw x,ptr16
+    jrpl 1$
+    cpl (N,sp)
+    negw x 
+1$: ldw (TOS,sp),x
+    ldw x,acc16 
+    jrpl 2$
+    cpl (N,sp)
+    negw x 
+2$: pushw x 
+    call mul16u 
+    _drop CELLL ; discard overflow
+    popw x 
+    ld a,(TOS,sp)
+    bcp a,#0x80 
+    jreq 4$
+    negw x 
+4$: ldw (TOS,sp),x 
+    jp next     
 
-nrot: ; {n1 n2 n3 -- n2 n3 n1 }
+decim:
+    mov base,#10
+    jp next 
+
+hexa:
+    mov base,#16
+    jP next 
 
 ;-----------------------------
 ;  STARTUP CODE
@@ -635,12 +844,15 @@ cold_start:
 ; UART3 at 115200 BAUD
     call uart3_init
     rim 
+    mov base,#10
+    mov tab_width,#4 
     bres PC_ODR,#LED2_BIT 
-    ldw x,#test 
+    ldw y,#test 
     jp next 
-warm_start: 
+warm: 
 .asciz "ceci est test\n"
 test:
-    .byte LITC,'O',PUTC,LITC,'K',PUTC,LITC,10,PUTC,BYE 
+    .byte LITC,'O',EMIT,LITC,'K',EMIT,LITC,CR,EMIT
+    .byte LIT,test>>8,test,LIT,warm>>8,warm,MINUS,PRTOS,BYE
 
     
