@@ -3103,6 +3103,16 @@ arg_list:
 	ret 
 
 
+func_args:
+	ld a,#TK_LPAREN 
+	call expect 
+	call arg_list 
+	push a 
+	ld a,#TK_RPAREN 
+	call expect 
+	pop a 
+	ret 
+
 
 ;--------------------------------
 ;   BASIC commnands 
@@ -3132,18 +3142,12 @@ arg_list:
 ;	X 		element address 
 ;----------------------
 get_array_element:
-;	call ddrop 
-	ld a,#TK_LPAREN 
-	call expect
-	call relation 
-	cp a,#TK_INTGR 
+	call func_args 
+	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: pushw x 
-	ld a,#TK_RPAREN 
-	call expect
+1$: call dpop  
 	; check for bounds 
-	popw x   
 	cpw x,array_size 
 	jrule 3$
 ; bounds {1..array_size}	
@@ -4086,14 +4090,11 @@ bit_toggle:
 ;	none 
 ;--------------------------
 bit_test:
-	ld a,#TK_LPAREN 
-	call expect 
-	call arg_list 
+	call func_args 
 	cp a,#2
 	jreq 0$
 	jp syntax_error
-0$:	ld a,#TK_RPAREN
-	call expect 
+0$:	
 	call dpop 
 	ld a,xl 
 	and a,#7
@@ -4140,15 +4141,11 @@ poke:
 ;	X 		value 
 ;-----------------------
 peek:
-	ld a,#TK_LPAREN 
-	call expect 
-	call arg_list
-	cp a,#1 
+	call func_args
+	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$:	ld a,#TK_RPAREN 
-	call expect 
-	call dpop 
+1$:	call dpop 
 	ld a,(x)
 	clrw x 
 	ld xl,a 
@@ -4504,16 +4501,11 @@ power_adc:
 ;   X 		value 
 ;-----------------------------
 read_adc:
-	ld a,#TK_LPAREN 
-	call expect 
-	call next_token 
-	cp a,#TK_INTGR 
+	call func_args 
+	cp a,#1 
 	jreq 1$
 	jp syntax_error
-1$: pushw x 
-	ld a,#TK_RPAREN 
-	call expect 
-	popw x 
+1$: call dpop 
 	cpw x,#16 
 	jrult 2$
 	ld a,#ERR_BAD_VALUE
@@ -5032,16 +5024,11 @@ write:
 ; bits as ASCII character
 ;---------------------
 char:
-	ld a,#TK_LPAREN 
-	call expect 
-	call relation 
-	cp a,#TK_INTGR 
+	call func_args 
+	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$:	pushw x 
-	ld a,#TK_RPAREN 
-	call expect
-	popw x  
+1$:	call dpop 
 	ld a,xl 
 	and a,#0x7f 
 	ld xl,a
@@ -5055,8 +5042,7 @@ char:
 ; return it as TK_INTGR 
 ;---------------------
 ascii:
-	ld a,#TK_LPAREN
-	call expect 
+	call func_args 
 	call next_token 
 	cp a,#TK_QSTR 
 	jreq 1$
@@ -5071,10 +5057,6 @@ ascii:
 3$:	ld xl,a 
 	clr a  
 	ld xh,a 
-	pushw x  
-	ld a,#TK_RPAREN 
-	call expect 
-	popw x 
 	ld a,#TK_INTGR 
 	ret 
 
@@ -5121,15 +5103,11 @@ qkey:
 ;   X 		gpio register address
 ;----------------------------
 gpio:
-	ld a,#TK_LPAREN 
-	call expect 
-	call arg_list
+	call func_args 
 	cp a,#2
 	jreq 1$
 	jp syntax_error  
 1$:	
-	ld a,#TK_RPAREN 
-	call expect 
 	ldw x,#2
 	ldw x,([dstkptr],x) ; port 
 	jrmi bad_port
@@ -5182,14 +5160,11 @@ uflash:
 ;---------------------
 usr:
 	pushw y 	
-	ld a,#TK_LPAREN 
-	call expect 
-	call arg_list 
+	call func_args 
 	cp a,#1 
 	jrpl 2$ 
 	jp syntax_error 
-2$: ld a,#TK_RPAREN
-	call expect 
+2$: 
 	call dpop 
 	cp a,#2 
 	jrmi 4$
@@ -5269,21 +5244,97 @@ get_ticks:
 ;   X     	positive integer
 ;-------------------------------
 abs:
-	ld a,#TK_LPAREN
-	call expect 
-	call arg_list
+	call func_args 
 	cp a,#1 
 	jreq 0$ 
 	jp syntax_error
 0$:  
-	ld a,#TK_RPAREN 
-	call expect 
     call dpop   
 	ld a,xh 
 	bcp a,#0x80 
 	jreq 2$ 
 	negw x 
 2$: ld a,#TK_INTGR 
+	ret 
+
+;------------------------------
+; BASIC: AND(expr1,expr2)
+; Apply bit AND relation between
+; the 2 arguments, i.e expr1 & expr2 
+; output:
+; 	A 		TK_INTGR
+;   X 		result 
+;------------------------------
+bit_and:
+	call func_args 
+	cp a,#2
+	jreq 1$
+	jp syntax_error 
+1$:	call dpop 
+	pushw x 
+	call dpop 
+	ld a,xh 
+	and a,(1,sp)
+	ld xh,a 
+	ld a,xl
+	and a,(2,sp)
+	ld xl,a 
+	_drop 2 
+	ld a,#TK_INTGR
+	ret
+
+;------------------------------
+; BASIC: OR(expr1,expr2)
+; Apply bit OR relation between
+; the 2 arguments, i.e expr1 | expr2 
+; output:
+; 	A 		TK_INTGR
+;   X 		result 
+;------------------------------
+bit_or:
+	call func_args 
+	cp a,#2
+	jreq 1$
+	jp syntax_error 
+1$: 
+	call dpop 
+	pushw x 
+	call dpop 
+	ld a,xh 
+	or a,(1,sp)
+	ld xh,a 
+	ld a,xl 
+	or a,(2,sp)
+	ld xl,a 
+	_drop 2 
+	ld a,#TK_INTGR 
+	ret
+
+;------------------------------
+; BASIC: XOR(expr1,expr2)
+; Apply bit XOR relation between
+; the 2 arguments, i.e expr1 ^ expr2 
+; output:
+; 	A 		TK_INTGR
+;   X 		result 
+;------------------------------
+bit_xor:
+	call func_args 
+	cp a,#2
+	jreq 1$
+	jp syntax_error 
+1$: 
+	call dpop 
+	pushw x 
+	call dpop 
+	ld a,xh 
+	xor a,(1,sp)
+	ld xh,a 
+	ld a,xl 
+	xor a,(2,sp)
+	ld xl,a 
+	_drop 2 
+	ld a,#TK_INTGR 
 	ret 
 
 ;------------------------------
@@ -5297,14 +5348,11 @@ abs:
 ;	X 		random positive integer 
 ;------------------------------
 random:
-	ld a,#TK_LPAREN 
-	call expect 
-	call arg_list 
+	call func_args 
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: ld a,#TK_RPAREN
-	call expect 
+1$: 
 	call dpop 
 	pushw x 
 	ld a,xh 
@@ -5424,6 +5472,7 @@ name:
 
 	LINK=0
 kword_end:
+	_dict_entry,3+F_IFUNC,XOR,bit_xor
 	_dict_entry,5,WRITE,write  
 	_dict_entry,5,WORDS,words 
 	_dict_entry 4,WAIT,wait 
@@ -5450,6 +5499,7 @@ kword_end:
 	_dict_entry,4,POKE,poke 
 	_dict_entry,4+F_IFUNC,PEEK,peek 
 	_dict_entry,5,PAUSE,pause 
+	_dict_entry,2+F_IFUNC,OR,bit_or
 	_dict_entry,3+F_CONST,ODR,GPIO_ODR
 	_dict_entry,3,NEW,new
 	_dict_entry,4,NEXT,next 
@@ -5480,7 +5530,8 @@ kword_end:
 	_dict_entry,4,BRES,bit_reset
 	_dict_entry,5,BREAK,break 
 	_dict_entry,4,BEEP,beep 
-	_dict_entry,3+F_IFUNC,ASC,ascii  
+	_dict_entry,3+F_IFUNC,ASC,ascii
+	_dict_entry,3+F_IFUNC,AND,bit_and
 kword_dict:
 	_dict_entry,3+F_IFUNC,ABS,abs
 	

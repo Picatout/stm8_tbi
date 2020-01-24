@@ -1,4 +1,12 @@
 ### 2020-01-23
+
+**session #2**
+ 
+* Ajout des fonctions de bits AND(),OR() et XOR(). 
+* Factorisation de code par ajout de la routine *func_args* pour réduire les répétitions.
+
+**session #1**
+
 * Corrigé bogue dans la fonction UBOUND(). Lorsqu'utilisée sur la ligne de commande ne tenait pas compte de la liste de tokens en exécution qui se trouve après *txtend*.
 * Travail d'optimisation
     * élimination de la variable *lineno* et du code associé. Cette variable était assignée et sauvergardée à plusieurs endroit et pourtant elle n'était jamais lue.
