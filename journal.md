@@ -1,3 +1,10 @@
+### 2020-01-24
+
+**sessin #1**
+
+* Ajout des fonctions LSHIFT() et RSHIFT() 
+* Mise à jour du manuel de référence Tiny BASIC.
+
 ### 2020-01-23
 
 **session #2**

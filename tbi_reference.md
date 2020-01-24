@@ -114,6 +114,18 @@ Cette fonction retourne la valeur absolue de l'expression fournie en argument.
     >? abs(-45)
     45
 
+### AND(*expr1*,*expr2) {C,P}
+Il s'agit de la fonction logique **AND** binaire c'est à dire d'une application bit à bit entre les 2 expressions. L'équivalent de l'opérateur **&** en C. 
+```
+>? and(4,6)
+   4
+
+>? and(255,127)
+ 127
+
+>
+```
+
 ### ASC(*string*|*char*) {C,P}
 La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaîne fournie en argument ou du caractère.
 ```
@@ -477,6 +489,18 @@ Charge un fichier sauvegardé dans la mémoire flash vers la mémoire RAM dans l
      1     1     2     3     5     8    13    21    34    55    89   144   233   377   610   987  1597  2584  4181  6765 10946 17711 28657
 >
 ```
+
+### LSHIFT(*expr1*,*expr2*) {C,P}
+Cette fonction décale vers la gauche *expr1* par *expr2* bits. Le bit le plus faible est remplacé par **0**. 
+```
+>? lshift(1,15)
+ -32768
+
+>?rshift(-32768,15)
+   1
+
+```
+
 ### ODR {C,P}
 Renvoie l'index du registre **ODR** *(Output Data Register)* d'un périphérique **GPIO**. Ce registre est utilisé pour contrôler l'état des sorties du port GPIO. Considérez chaque GPIO comme un tableau à 5 valeurs, 
 qu'on définirait en 'C' par __uint8_t gpio[5]__. Les fonctions **ODR**,**IDR**,**DDR**,**CRL** et **CRH**  retourne l'index du tableau qui correspond à 1 des 5 registres du tableau. 
@@ -489,6 +513,18 @@ qu'on définirait en 'C' par __uint8_t gpio[5]__. Les fonctions **ODR**,**IDR**,
 >
 ``` 
 Dans cette exemple la LED2 est allumée puis éteinte. La LED est branchée sur le bit 5 du port **C**. **32=(1&lt;&lt;5)** donc ce masque affecte seulement le bit 5.  
+
+### OR(*expr1*,*expr2*) {C,P}
+ Cette fonction applique une opération **OU** bit à bit entre les 2 arguments.
+```
+>? or(14,1)
+  15
+
+>? or($AA,$55)
+ 255
+
+>
+```
 
 ### PAUSE *expr* {C,P}
 Cette commande suspend l'exécution pour un nombre de millisecondes équivalent à la valeur d'*epxr*. pendant la pause le CPU est en mode suspendu c'est à dire qu'aucune instruction n'est exécutée jusqu'à la prochaine interruption. La commande **PAUSE** utilise l'instruction machine *wfi* pour suspendre le processeur. Le TIMER4 génère une interruption à chaque milliseconde. Le compteur de **PAUSE** est alors décrémenté et lorsqu'il arrive à zéro l'exécution du programme reprend.
@@ -635,6 +671,18 @@ Cette fonction retourne un entier aléatoire dans l'intervalle {1..*expr*}.
  10061 15156  1114   572   587   771 13879  3472   109  7406  5650  9869   833 22330 22817 17725  7596  5740  2199  6776  9098 16066  8444 11069  2060 23863  1644  6927  2477  1129   893  9684 16320  2571 11309 25964  8347  2297  1663  1504  2144 17889  5946  4483 10146  1086  8073  2449  5911  5213   417  1796  4428  2811  8606  7311 25498  1127  1488 15552  8132  1370 23611 12255  7190  8535  3260 21717 19866  8811 11734 10410  2767  8649  2142 16396  4067   115  4256 16132  2431 10187 11490  2952  2431  2599 23978 11674  4296  1501 24609 26148  2133 20845  3084 18563    13  1086  3761 10511
 >
 ```
+### RSHIFT(*expr1*,*expr2*) {C,P}
+Cette fonction décale vers la droite *expr1* de *expr2* bits. Le bit le plus signficatif est remplacé par un **0**.
+```
+>? rshift($80,7)
+   1
+
+>?rshift($40,4) 
+   4
+
+>
+```
+
 ### RUN {C}
 Lance l'exécution du programme qui est chargé en mémoire RAM. Si aucun programme n'est chargé il ne se passe rien.
 
@@ -831,6 +879,18 @@ Cette commande permet d'écrire un octet ou plusieurs dans la mémoire EEPROM ou
 >
 ```
 **AVERTISSEMENT: Écrire dans la mémoire FLASH peut endommagé le système Tiny BASIC** 
+
+### XOR(*expr1*,*expr2*) {C,P}
+Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxressions.
+```
+>? xor($aa,$55)
+ 255
+
+>hex:?xor($aa,$a)
+ $A0
+
+>
+```
 
 ## Installation de Tiny BASIC sur la carte NUCLEO-8S208RB 
 À la ligne 36 du fichier [PABasic.asm](PABasic.asm) il y a une macro nommée **_dbg**. Cette macro ajoute du code supplémentaire lors du développement du système et doit-être mise en commentaire pour construire la version finale. construire Tiny BASIC et programmer la carte NUCLEO est très simple grâce la l'utilitaire **make**. Lorsque la carte est branchée et prête à être programmée faites la commande suivante:

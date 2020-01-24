@@ -5338,6 +5338,57 @@ bit_xor:
 	ret 
 
 ;------------------------------
+; BASIC: LSHIFT(expr1,expr2)
+; logical shift left expr1 by 
+; expr2 bits 
+; output:
+; 	A 		TK_INTGR
+;   X 		result 
+;------------------------------
+lshift:
+	call func_args
+	cp a,#2 
+	jreq 1$
+	jp syntax_error
+1$: call dpop  
+	exgw x,y 
+	call dpop
+	tnzw y 
+	jreq 4$
+2$:	sllw x 
+	decw y 
+	jrne 2$
+4$:  
+	ld a,#TK_INTGR
+	ret
+
+;------------------------------
+; BASIC: RSHIFT(expr1,expr2)
+; logical shift right expr1 by 
+; expr2 bits.
+; output:
+; 	A 		TK_INTGR
+;   X 		result 
+;------------------------------
+rshift:
+	call func_args
+	cp a,#2 
+	jreq 1$
+	jp syntax_error
+1$: call dpop  
+	exgw x,y 
+	call dpop
+	tnzw y 
+	jreq 4$
+2$:	srlw x 
+	decw y 
+	jrne 2$
+4$:  
+	ld a,#TK_INTGR
+	ret
+
+
+;------------------------------
 ; BASIC: RND(expr)
 ; return random number 
 ; between 1 and expr inclusive
@@ -5488,6 +5539,7 @@ kword_end:
     _dict_entry,4,SHOW,show 
 	_dict_entry,4,SAVE,save
 	_dict_entry 3,RUN,run
+	_dict_entry,6+F_IFUNC,RSHIFT,rshift
 	_dict_entry,3+F_IFUNC,RND,random 
 	_dict_entry,6,RETURN,return 
 	_dict_entry 6,REMARK,rem 
@@ -5503,6 +5555,7 @@ kword_end:
 	_dict_entry,3+F_CONST,ODR,GPIO_ODR
 	_dict_entry,3,NEW,new
 	_dict_entry,4,NEXT,next 
+	_dict_entry,6+F_IFUNC,LSHIFT,lshift
 	_dict_entry,4,LOAD,load 
 	_dict_entry 4,LIST,list
 	_dict_entry 3,LET,let 
