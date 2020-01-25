@@ -1,6 +1,10 @@
-### 2020-01-24
+### 2020-01-25
 
-**sessin #1**
+* Ajout de la commande FCPU pour contrôler la fréquence de fonctionnement du CPU. 
+
+* Mise à jour du [manuel de référence](tbi_reference.md)
+
+### 2020-01-24
 
 * Ajout des fonctions LSHIFT() et RSHIFT() 
 * Mise à jour du manuel de référence Tiny BASIC.

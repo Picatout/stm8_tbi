@@ -210,7 +210,6 @@ UserButtonHandler:
 
 USER_ABORT: .asciz "\nProgram aborted by user.\n"
 
-
 ;----------------------------------------
 ; inialize MCU clock 
 ; input:
@@ -238,11 +237,13 @@ clock_init:
 ; interrupt every millisecond 
 ;----------------------------------
 timer4_init:
+	bset CLK_PCKENR1,#CLK_PCKENR1_TIM4
 	mov TIM4_PSCR,#7 ; prescale 128  
 	mov TIM4_ARR,#125 ; set for 1msec.
 	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
 	bset TIM4_IER,#TIM4_IER_UIE 
 	ret
+
 
 ;----------------------------------
 ; unlock EEPROM for writing/erasing
@@ -465,6 +466,7 @@ write_block:
 ;   none
 ;---------------------------------------------
 uart3_init:
+	bset CLK_PCKENR1,#CLK_PCKENR1_UART3 
 	; configure tx pin
 	bset PD_DDR,#BIT5 ; tx pin
 	bset PD_CR1,#BIT5 ; push-pull output
@@ -1150,6 +1152,9 @@ cold_start:
 	ld PF_CR1,a 
 	ld PG_CR1,a 
 	ld PI_CR1,a 
+; disable peripherals clocks
+	clr CLK_PCKENR1 
+	clr CLK_PCKENR2 	
 ; select internal clock no divisor: 16 Mhz 	
 	ld a,#CLK_SWR_HSI 
 	clrw x  
@@ -4485,10 +4490,12 @@ power_adc:
 	swap a 
 	ld ADC_CR1,a
 	bset ADC_CR2,#ADC_CR2_ALIGN ; right 
+	bset CLK_PCKENR2,#CLK_PCKENR2_ADC
 	bset ADC_CR1,#ADC_CR1_ADON 
 	_usec_dly 7 
 	jra 3$
-2$: bres ADC_CR1,#ADC_CR1_ADON 
+2$: bres ADC_CR1,#ADC_CR1_ADON
+	bres CLK_PCKENR2,#CLK_PCKENR2_ADC
 3$:	ldw x,#2
 	call ddrop_n 
 	ret
@@ -5387,6 +5394,18 @@ rshift:
 	ld a,#TK_INTGR
 	ret
 
+;--------------------------
+; BASIC: FCPU integer
+; set CPU frequency 
+;-------------------------- 
+
+fcpu:
+	ld a,#TK_INTGR
+	call expect 
+	ld a,xl 
+	and a,#7 
+	ld CLK_CKDIVR,a 
+	ret 
 
 ;------------------------------
 ; BASIC: RND(expr)
@@ -5569,6 +5588,7 @@ kword_end:
 	_dict_entry,5,GOSUB,gosub 
 	_dict_entry,6,FORGET,forget 
 	_dict_entry,3,FOR,for 
+	_dict_entry,4,FCPU,fcpu 
 	_dict_entry,6+F_CONST,EEPROM,EEPROM_BASE  
 	_dict_entry,3,DIR,directory 
 	_dict_entry,3,DEC,dec_base

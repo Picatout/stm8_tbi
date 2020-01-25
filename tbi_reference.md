@@ -262,6 +262,23 @@ Retourne l'adresse du début de la mémoire EEPROM.
 
 >
 ```
+### FCPU *integer*
+Cette commande sert à contrôler la fréquence d'horloge du CPU. Au démarrage le CPU fonctionne à la fréquence de l'oscillateur interner **HSI** qui est de 16 Mhz. Cette commande permet de réduire de fréquence par puissance de 2 à dans l'intervalle **0..7**. Fcpu=16Mhz/2^7.
+```
+>fcpu 7 ' Fcpu=125 Khz
+
+>t=ticks:for a=1to1000:ne a:?ticks-t
+ 1890
+
+>fcpu 0 ' Fcpu=16 Mhz 
+
+>t=ticks:for a=1to1000:ne a:?ticks-t
+  12
+
+>
+
+```
+Réduire la vitesse du CPU permet de réduire la consommation électrique. Notez que la fréquence de fonctionnement des périphériques demeure à 16Mhz.
 
 ### FOR *var*=*expr1* TO *expr2* [STEP *expr3*] {C,P}
 Cette commande initialise une boucle avec compteur. La variable est initialisée avec la valeur de l'expression *expr1*. À chaque boucle la variable est incrémentée de la valeur indiquée par *expr3* qui suit le mot réservé **STEP**. Si **STEP** n'est pas indiqué la valeur par défaut **1** est utilisée. Une boucle **FOR** se termine par la commande **NEXT** tel qu'indiqué plus bas. Les instructions entre les comamndes **FOR** et **NEXT**

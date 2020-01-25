@@ -61,8 +61,8 @@ CODE                                00008080    0000220E =        8718. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008C63  number                             TBI_STM8
-     00008F20  to_upper                           TBI_STM8
+     00008C73  number                             TBI_STM8
+     00008F30  to_upper                           TBI_STM8
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
