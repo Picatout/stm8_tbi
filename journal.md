@@ -1,5 +1,18 @@
 ### 2020-01-25
 
+**session #2**
+
+La carte **NUCLEO-8S208RB posssède des connecteurs compatible avec les cartes Arduino. Je vais donc créer des commandes et fonctions compatibles avec l'API Arduino.
+
+* Ajout des constante **PINP** et **POUT** pour utiliser avec **PMODE**.
+
+* Ajout de la commande PMODE pour configurer les GPIO D0-D15 en mode entrée ou sortie. Cette fonction est équivalente à la fonction Arduino *PinMode*.
+
+* Renommé la fonction **RDADC** en **ANREAD** et limiter les entrées possible à {0..5} pour être compatible avec le connecteur Arduino CN4. Cette fonction devient équivalente à la fonction Arduio *AnalogRead*. 
+
+* Mise à jour du [manuel de référence](tbi_reference.md).
+**session #1**
+
 * Ajout de la commande FCPU pour contrôler la fréquence de fonctionnement du CPU. 
 
 * Mise à jour du [manuel de référence](tbi_reference.md)

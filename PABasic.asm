@@ -1152,9 +1152,12 @@ cold_start:
 	ld PF_CR1,a 
 	ld PG_CR1,a 
 	ld PI_CR1,a 
+; disable schmitt triggers on Arduino CN4 analog inputs
+	mov ADC_TDRL,0x3f
 ; disable peripherals clocks
 	clr CLK_PCKENR1 
-	clr CLK_PCKENR2 	
+	clr CLK_PCKENR2 
+			
 ; select internal clock no divisor: 16 Mhz 	
 	ld a,#CLK_SWR_HSI 
 	clrw x  
@@ -4489,7 +4492,6 @@ power_adc:
 	and a,#7
 	swap a 
 	ld ADC_CR1,a
-	bset ADC_CR2,#ADC_CR2_ALIGN ; right 
 	bset CLK_PCKENR2,#CLK_PCKENR2_ADC
 	bset ADC_CR1,#ADC_CR1_ADON 
 	_usec_dly 7 
@@ -4502,26 +4504,30 @@ power_adc:
 
 ;-----------------------------
 ; BASIC: RDADC(channel)
-; read adc channel 
+; read adc channel {0..5}
 ; output:
 ;   A 		TK_INTGR 
 ;   X 		value 
 ;-----------------------------
-read_adc:
+analog_read:
 	call func_args 
 	cp a,#1 
 	jreq 1$
 	jp syntax_error
 1$: call dpop 
-	cpw x,#16 
-	jrult 2$
+	cpw x,#5 
+	jrule 2$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
 2$: ld a,xl
-	ld ADC_CSR,a 
+	ld acc8,a 
+	ld a,#5
+	sub a,acc8 
+	ld ADC_CSR,a
+	bset ADC_CR2,#ADC_CR2_ALIGN
 	bset ADC_CR1,#ADC_CR1_ADON
 	btjf ADC_CSR,#ADC_CSR_EOC,.
-	ldw x,ADC_DRH 
+	ldw x,ADC_DRH
 	ld a,#TK_INTGR
 	ret 
 
@@ -5408,6 +5414,77 @@ fcpu:
 	ret 
 
 ;------------------------------
+; BASIC: PMODE pin#, mode 
+; define pin as input or output
+; pin#: {0..15}
+; mode: INPUT|OUTPUT  
+;------------------------------
+	PINNO=1
+	VSIZE=1
+pin_mode:
+	_vars VSIZE 
+	call arg_list 
+	cp a,#2 
+	jreq 1$
+	jp syntax_error 
+1$: call dpop ; mode 
+	exgw x,y 
+	call dpop 
+	sllw x 
+	addw x,#arduino_to_8s208 
+	ldw x,(x) ; xh=port,xl=pin 
+	ld a,xl 
+	ld (PINNO,sp),a 
+	swapw x 
+	ld a,#5 
+	mul x,a 
+	addw x,#GPIO_BASE ; port base address 
+	ld a,#1 
+	tnz (PINNO,sp)
+	jreq 4$
+2$:	sll a 
+	dec (PINNO,sp)
+	jrne 2$ 
+	ld (PINNO,sp),a
+	or a,(GPIO_CR1,x) ;if input->pull-up else push-pull 
+	ld (GPIO_CR1,x),a 
+4$:	cpw y,#OUTP 
+	jreq 6$
+; input mode
+	ld a,(PINNO,sp)
+	cpl a 
+	and a,(GPIO_DDR,x)	; bit==0 for input. 
+	jra 9$
+6$: ;output mode  
+	ld a,(PINNO,sp)
+	or a,(GPIO_CR2,x) ;port speed 10 Mhz 
+	ld (GPIO_CR2,x),a 
+	ld a,(PINNO,sp)
+	or a,(GPIO_DDR,x) ; bit==1 for output 
+9$:	ld (GPIO_DDR,x),a 
+	_drop VSIZE 
+	ret
+; translation from Arduino D0..D15 to stm8s208rb 
+arduino_to_8s208:
+.byte 3,6 ; D0 
+.byte 3,5 ; D1 
+.byte 4,0 ; D2 
+.byte 2,1 ; D3
+.byte 6,0 ; D4
+.byte 2,2 ; D5
+.byte 2,3 ; D6
+.byte 3,1 ; D7
+.byte 3,3 ; D8
+.byte 2,4 ; D9
+.byte 4,5 ; D10
+.byte 2,6 ; D11
+.byte 2,7 ; D12
+.byte 2,5 ; D13
+.byte 4,2 ; D14
+.byte 4,1 ; D15
+
+
+;------------------------------
 ; BASIC: RND(expr)
 ; return random number 
 ; between 1 and expr inclusive
@@ -5563,12 +5640,14 @@ kword_end:
 	_dict_entry,6,RETURN,return 
 	_dict_entry 6,REMARK,rem 
 	_dict_entry,6,REBOOT,cold_start 
-	_dict_entry,5+F_IFUNC,RDADC,read_adc
 	_dict_entry,4+F_IFUNC,QKEY,qkey  
 	_dict_entry,6,PWRADC,power_adc 
 	_dict_entry 5,PRINT,print 
+	_dict_entry,4+F_CONST,POUT,OUTP 
 	_dict_entry,4,POKE,poke 
+	_dict_entry,4+F_CONST,PINP,INP 
 	_dict_entry,4+F_IFUNC,PEEK,peek 
+	_dict_entry,5,PMODE,pin_mode 
 	_dict_entry,5,PAUSE,pause 
 	_dict_entry,2+F_IFUNC,OR,bit_or
 	_dict_entry,3+F_CONST,ODR,GPIO_ODR
@@ -5604,6 +5683,7 @@ kword_end:
 	_dict_entry,5,BREAK,break 
 	_dict_entry,4,BEEP,beep 
 	_dict_entry,3+F_IFUNC,ASC,ascii
+	_dict_entry,6+F_IFUNC,ANREAD,analog_read
 	_dict_entry,3+F_IFUNC,AND,bit_and
 kword_dict:
 	_dict_entry,3+F_IFUNC,ABS,abs

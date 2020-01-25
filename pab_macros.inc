@@ -25,6 +25,13 @@
         F_CONST=0xC0 ; function keyword that return a constant
 
 ;--------------------------------------
+;   constantes related to Arduino 
+;   API mapping 
+;-------------------------------------
+        INP=0
+        OUTP=1 
+
+;--------------------------------------
 ;       token attribute
 ;--------------------------------------
         ; bits 4:5 identify token group 

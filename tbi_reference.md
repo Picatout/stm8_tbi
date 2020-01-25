@@ -125,6 +125,15 @@ Il s'agit de la fonction logique **AND** binaire c'est à dire d'une application
 
 >
 ```
+### ANREAD(canal)
+Lecture d'une des 6 entrées analogiques reliées au connecteur CN4. L'argument **canal** détermine quel entrée est lue {0..5}. Cette fonction est l'équivalent de la fonction *AnalogRead* de l'API Arduino.
+```
+>pwradc 1,0 ' active ADC fréquence maximale
+
+>?anread(0) 'Lecture canal 0 
+ 655
+
+```
 
 ### ASC(*string*|*char*) {C,P}
 La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaîne fournie en argument ou du caractère.
@@ -569,6 +578,12 @@ Retourne la valeur de l'octet situé à l'adresse représentée par *expr*. Mêm
 
 >
 ```
+### PMODE *pin*,*mode*
+Configure le mode entrée/sortie d'une des 15 broches nommées **D0..D15** sur les connecteurs **CN7** et **CN8**. *pin* est un entier dans l'intervalle {0..15} et mode est {PINP,POUT}. Cette commande est équivalente à la fonction Arduino *PinMode*. 
+```
+
+```
+
 ### POKE *expr1*,*expr2*
 Dépose la valeur de *expr2* à l'adresse de *expr1*. Même si expr2 est un entier seul l'octet faible est utilisé. 
 ```
@@ -628,15 +643,6 @@ Cette commande vérifie s'il y a un caractère en attente dans le tampon de réc
 ```
 Pour créer une boucle infinie on utilise un FOR...NEXT avec la valeur de STEP à zéro. À l'intérieur de la boucle on appelle la fonction **QKEY** dont la valeur est affectée à la variable **A** qui est la variable de contrôle de la boucle. Sitôt qu'une touche est enfoncée sur la console la valeur de **A** passe à **1** et la boucle se termine. De retour sur la ligne de commande le caractère reçu  de la console est affiché après le **'&gt;'** puisqu'il est lu par la fonction *readln* de l'interpréteur de commande.
 
-### RDADC(canal)
-Lecture d'une entrée analogique le **STM8S208RB** possède 16 entrées analogiques. L'argument **canal** détermine quel entrée est lue {0..15}.
-```
->pwradc 1,0 ' active ADC fréquence maximale
-
->?rdadc(0) 'Lecture canal 0 
- 655
-
-```
 ### REBOOT {C,P}
 Réinitialise le MCU 
 ```
