@@ -1,3 +1,21 @@
+### 2020-01-26 
+```
+>for a=0to15:?(a),:ne a
+ 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114
+```
+Ce problème est résolue, dans *factor* après l'appel récursif à relation la fonction *expect* était appellée sans sauvegarder la valeur de **X**.
+```
+>for a=0to15:?dread(a),:ne a
+   1
+syntax error
+    0 FOR A = 0 TO  15 :PRINT DREAD (A ),:NEXT A 
+last token id:    5
+>
+```
+Ce problème est résolue. Dans digital_read l'argument de la fonction était retiré 2 fois de la pile dstack. 
+
+* Ajout d'un exemple utilisant DWRITE dans le manuel de l'utilisateur.
+
 ### 2020-01-25
 **session #3** 
 * ajout fonction DREAD() et commande DWRITE. 

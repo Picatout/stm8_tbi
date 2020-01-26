@@ -3224,8 +3224,10 @@ factor:
 	cp a,#TK_LPAREN
 	jrne 16$
 	call relation
+	pushw x 
 	ld a,#TK_RPAREN 
 	call expect
+	popw x 
 	jra 18$	
 16$:
 	call unget_token
@@ -4552,8 +4554,7 @@ digital_read:
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-2$:	call dpop
-	call select_pin 
+2$:	call select_pin 
 	ld (PINNO,sp),a
 	ld a,(GPIO_IDR,x)
 	tnz (PINNO,sp)
@@ -4569,7 +4570,7 @@ digital_read:
 	ret
 
 ;-----------------------
-; BASIC: DWRITE(pin,0|1)
+; BASIC: DWRITE pin,0|1
 ; write to a digital pin 
 ; pin# {0..15}
 ; output:
@@ -4581,7 +4582,7 @@ digital_read:
 	VSIZE=2
 digital_write:
 	_vars VSIZE 
-	call func_args 
+	call arg_list  
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
@@ -5763,7 +5764,7 @@ kword_end:
 	_dict_entry,3,FOR,for 
 	_dict_entry,4,FCPU,fcpu 
 	_dict_entry,6+F_CONST,EEPROM,EEPROM_BASE  
-	_dict_entry,6+F_IFUNC,DWRITE,digital_write
+	_dict_entry,6+F_CMD,DWRITE,digital_write
 	_dict_entry,5+F_IFUNC,DREAD,digital_read
 	_dict_entry,3,DIR,directory 
 	_dict_entry,3,DEC,dec_base

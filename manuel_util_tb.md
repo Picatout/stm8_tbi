@@ -84,6 +84,18 @@ Notez que vous pouvez saisir le texte aussi bien en minuscules qu'en majuscules.
    20 PAUSE  500 
    30 GOTO  10 
 ```
+Une autre méthode pour faire clignoter LD2 est d'utiliser la commande **DWRITE** comme illustré dans l'exemple suivant:
+```
+    5 ' enfoncez bouton USER pour arreter
+    7 ' clignote 3 fois par seconde
+   10 B = 1 
+   20 FOR A = 0 TO  0 STEP  0 ' boucle infinie
+   30 DWRITE  13 ,B 
+   40 B = 1 -B 
+   50 PAUSE  333 
+   60 NEXT A 
+
+```
 
 ## exemple 2 PWM logiciel
 
