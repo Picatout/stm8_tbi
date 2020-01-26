@@ -1,4 +1,18 @@
 ### 2020-01-25
+**session #3** 
+* ajout fonction DREAD() et commande DWRITE. 
+
+* Découvert bogue dans FOR..NEXT.
+```
+>for a=0to15:?(a),:ne a
+ 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114
+>for a=0to15:?dread(a),:ne a
+   1
+syntax error
+    0 FOR A = 0 TO  15 :PRINT DREAD (A ),:NEXT A 
+last token id:    5
+>
+```
 
 **session #2**
 
@@ -11,6 +25,7 @@ La carte **NUCLEO-8S208RB posssède des connecteurs compatible avec les cartes A
 * Renommé la fonction **RDADC** en **ANREAD** et limiter les entrées possible à {0..5} pour être compatible avec le connecteur Arduino CN4. Cette fonction devient équivalente à la fonction Arduio *AnalogRead*. 
 
 * Mise à jour du [manuel de référence](tbi_reference.md).
+
 **session #1**
 
 * Ajout de la commande FCPU pour contrôler la fréquence de fonctionnement du CPU. 

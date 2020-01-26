@@ -4531,6 +4531,86 @@ analog_read:
 	ld a,#TK_INTGR
 	ret 
 
+;-----------------------
+; BASIC: DREAD(pin)
+; read state of a digital pin 
+; pin# {0..15}
+; output:
+;    A 		TK_INTGR
+;    X      0|1 
+;-------------------------
+	PINNO=1
+	VSIZE=1
+digital_read:
+	_vars VSIZE 
+	call func_args
+	cp a,#1
+	jreq 1$
+	jp syntax_error
+1$: call dpop 
+	cpw x,#15 
+	jrule 2$
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+2$:	call dpop
+	call select_pin 
+	ld (PINNO,sp),a
+	ld a,(GPIO_IDR,x)
+	tnz (PINNO,sp)
+	jreq 8$
+3$: srl a 
+	dec (PINNO,sp)
+	jrne 3$ 
+8$: and a,#1 
+	clrw x 
+	ld xl,a 
+	ld a,#TK_INTGR
+	_drop VSIZE
+	ret
+
+;-----------------------
+; BASIC: DWRITE(pin,0|1)
+; write to a digital pin 
+; pin# {0..15}
+; output:
+;    A 		TK_INTGR
+;    X      0|1 
+;-------------------------
+	PINNO=1
+	PINVAL=2
+	VSIZE=2
+digital_write:
+	_vars VSIZE 
+	call func_args 
+	cp a,#2 
+	jreq 1$
+	jp syntax_error
+1$: call dpop 
+	ld a,xl 
+	ld (PINVAL,sp),a
+	call dpop
+	cpw x,#15 
+	jrule 2$
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+2$:	call select_pin 
+	ld (PINNO,sp),a 
+	ld a,#1
+	tnz (PINNO,sp)
+	jreq 4$
+3$: sll a
+	dec (PINNO,sp)
+	jrne 3$
+4$: tnz (PINVAL,sp)
+	jrne 5$
+	cpl a 
+	and a,(GPIO_ODR,x)
+	jra 8$
+5$: or a,(GPIO_ODR,x)
+8$: ld (GPIO_ODR,x),a 
+	_drop VSIZE 
+	ret
+
 
 ;-----------------------
 ; BASIC: BREAK 
@@ -5429,16 +5509,9 @@ pin_mode:
 	jp syntax_error 
 1$: call dpop ; mode 
 	exgw x,y 
-	call dpop 
-	sllw x 
-	addw x,#arduino_to_8s208 
-	ldw x,(x) ; xh=port,xl=pin 
-	ld a,xl 
-	ld (PINNO,sp),a 
-	swapw x 
-	ld a,#5 
-	mul x,a 
-	addw x,#GPIO_BASE ; port base address 
+	call dpop ; Dx pin 
+	call select_pin 
+	ld (PINNO,sp),a  
 	ld a,#1 
 	tnz (PINNO,sp)
 	jreq 4$
@@ -5464,6 +5537,27 @@ pin_mode:
 9$:	ld (GPIO_DDR,x),a 
 	_drop VSIZE 
 	ret
+
+;------------------------
+; select pin 
+; input:
+;   X 	 {0..15} Arduino Dx 
+; output:
+;   A     stm8s208 pin 
+;   X     base address s208 GPIO port 
+;---------------------------
+select_pin:
+	sllw x 
+	addw x,#arduino_to_8s208 
+	ldw x,(x)
+	ld a,xl 
+	push a 
+	swapw x 
+	ld a,#5 
+	mul x,a 
+	addw x,#GPIO_BASE 
+	pop a 
+	ret 
 ; translation from Arduino D0..D15 to stm8s208rb 
 arduino_to_8s208:
 .byte 3,6 ; D0 
@@ -5669,6 +5763,8 @@ kword_end:
 	_dict_entry,3,FOR,for 
 	_dict_entry,4,FCPU,fcpu 
 	_dict_entry,6+F_CONST,EEPROM,EEPROM_BASE  
+	_dict_entry,6+F_IFUNC,DWRITE,digital_write
+	_dict_entry,5+F_IFUNC,DREAD,digital_read
 	_dict_entry,3,DIR,directory 
 	_dict_entry,3,DEC,dec_base
 	_dict_entry,3+F_CONST,DDR,GPIO_DDR
