@@ -51,7 +51,7 @@
 	TIB_SIZE=80
     PAD_SIZE=40
 ;	DSTACK_SIZE=64 
-	STACK_SIZE= 192 ;128
+	STACK_SIZE= 128
 	STACK_EMPTY=RAM_SIZE-1  
 	FRUN=0 ; flags run code in variable flags
 	FTRAP=1 ; inside trap handler 
@@ -66,7 +66,6 @@ count: .blkb 1 ; length of string in text line
 basicptr:  .blkb 2  ; point to text buffer 
 lineno: .blkb 2  ; BASIC line number 
 base:  .blkb 1 ; nemeric base used to print integer 
-tos: .blkw 1 ; top of stack element 
 acc24: .blkb 1 ; 24 accumulator
 acc16: .blkb 1
 acc8:  .blkb 1
@@ -171,7 +170,7 @@ Timer4UpdateHandler:
 	ldw x,ticks
 	incw x
 	ldw ticks,x 
-	iret 
+    iret 
 
 
 ;------------------------------------
@@ -478,7 +477,8 @@ print_int:
 bytecode: .word bye,subr,exit,exec,branch,zbranch,emit,key,qkey,dotq,delete
         .word spaces,prtos,lit,litc,fetch,cfetch,store,cstore,rot,nrot
         .word drop,dup,swap,over,neg,zlt,plus,minus,slash,mod,staru,star
-        .word decim,hexa
+        .word decim,hexa,fticks,oneminus,oneplus,cellplus,lshift,rshift  
+        .word bit_not,bit_and,bit_or,bit_xor,pick,pause   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  bytecode interpreter 
@@ -486,7 +486,6 @@ bytecode: .word bye,subr,exit,exec,branch,zbranch,emit,key,qkey,dotq,delete
 next: ; vm instruction fetch 
     ld a,(y)
     incw y
-    sll a 
     clrw x 
     ld xl,a
     ldw x,(bytecode,x) 
@@ -808,7 +807,110 @@ decim:
 
 hexa:
     mov base,#16
-    jP next 
+    jp next 
+
+fticks: ; { -- n }
+    ldw x,ticks 
+    pushw x 
+    jp next 
+
+oneminus: ; { n -- n-1 }
+    ldw x,(TOS,sp)
+    decw x 
+    ldw (TOS,sp),x 
+    jp next 
+
+oneplus: ; { n -- n+1 }
+    ldw x,(TOS,sp)
+    incw x 
+    ldw (TOS,sp),x 
+    jp next 
+    
+cellplus: ; { n -- n+CELLL}
+    ldw x,(TOS,sp)
+    addw x,#CELLL  
+    ldw (TOS,sp),x 
+    jp next 
+
+lshift: ; { n1 n2 -- n1<<n2 }
+    ldw x,(3,sp)
+    clr (1,sp) 
+    tnz (2,sp)
+    jreq 4$
+2$: sllw x 
+    dec (2,sp) 
+    jrne 2$
+4$: ldw (3,sp),x 
+    _drop 2 
+    jp next 
+
+rshift: ; { n1 n2 -- n1<<n2 }
+    ldw x,(3,sp)
+    clr (1,sp) 
+    tnz (2,sp)
+    jreq 4$
+2$: srlw x 
+    dec (2,sp) 
+    jrne 2$
+4$: ldw (3,sp),x 
+    _drop CELLL
+    jp next 
+
+bit_not: ; { n -- ~n }
+    ldw x,(TOS,sp)
+    cplw x 
+    ldw (TOS,sp),x 
+    jp next 
+
+bit_and: ; { n1 n2 -- n1&n2 }
+    ld a,(TOS,sp)
+    and a,(N,sp)
+    ld (N,sp),a 
+    ld a,(TOS+1,sp)
+    and a,(N+1,sp)
+    ld (N+1,sp),a 
+    _drop CELLL 
+    jp next 
+
+bit_or: ; {n1 n2 -- n1|n2 }
+    ld a,(TOS,sp)
+    or a,(N,sp)
+    ld (N,sp),a 
+    ld a,(TOS+1,sp)
+    or a,(N+1,sp)
+    ld (N+1,sp),a 
+    _drop CELLL 
+    jp next 
+
+bit_xor: ; {n1 n2 -- n1^n2 }
+    ld a,(TOS,sp)
+    xor a,(N,sp)
+    ld (N,sp),a 
+    ld a,(TOS+1,sp)
+    xor a,(N+1,sp)
+    ld (N+1,sp),a 
+    _drop CELLL 
+    jp next 
+
+; copy on TOS nth element 
+pick: ; { x*i..N nth -- x*i..N xth }
+    ldw x,(1,sp) 
+    sllw x 
+    incw x 
+    ldw acc16,x 
+    ldw x,sp 
+    ldw x,([acc16],x)  
+    ldw (1,sp),x 
+    jp next 
+
+; suspend execution for n msec
+pause: ; { n -- }
+    popw x 
+1$: wfi 
+    decw x 
+    jrne 1$
+    jp next 
+
 
 ;-----------------------------
 ;  STARTUP CODE
@@ -840,7 +942,7 @@ cold_start:
 	ld a,#CLK_SWR_HSI 
 	clrw x  
     call clock_init 
-;    call timer4_init 
+    call timer4_init 
 ; UART3 at 115200 BAUD
     call uart3_init
     rim 
@@ -850,9 +952,14 @@ cold_start:
     ldw y,#test 
     jp next 
 warm: 
-.asciz "ceci est test\n"
+.asciz "ceci est un test\n"
 test:
     .byte LITC,'O',EMIT,LITC,'K',EMIT,LITC,CR,EMIT
-    .byte LIT,test>>8,test,LIT,warm>>8,warm,MINUS,PRTOS,BYE
+    .byte LIT,test>>8,test,LIT,warm>>8,warm,MINUS,PRTOS
+    .byte LIT,0,0x3f,SUBR,square>>8,square,PRTOS
+    .byte LITC,CR,EMIT,LIT,warm>>8,warm,DOTQ
+    .byte LITC,9,LITC,4,LITC,2,LITC,2,PICK,LSHIFT,LITC,2,RSHIFT,PRTOS
+    .byte BYE
 
-    
+square:
+    .byte SWAP,DUP,STAR,SWAP,EXIT

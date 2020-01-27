@@ -2,6 +2,7 @@
 # librairies make file
 #############################
 NAME=PABasic
+VM=vm1
 SDAS=sdasstm8
 SDCC=sdcc
 SDAR=sdar
@@ -10,7 +11,6 @@ INC=../inc/
 INCLUDES=$(INC)stm8s208.inc
 BUILD=build/
 LIB_PATH=../lib/
-SRC=TinyBasic.c defaultIL.c 
 OBJECTS=$(BUILD)$(SRC:.c=.rel)
 SYMBOLS=$(OBJECTS:.rel=.sym)
 LISTS=$(OBJECTS:.rel=.lst)
@@ -53,4 +53,8 @@ flash: $(LIB)
 	@echo "***************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx 
 
-
+vm: vm1.asm 
+	-rm build/vm1.* 
+	$(SDAS) -g -l -o $(BUILD)$(VM).rel $(VM).asm 
+	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(VM).ihx  $(BUILD)$(VM).rel
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(VM).ihx

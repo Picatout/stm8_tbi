@@ -1,4 +1,11 @@
 ### 2020-01-26 
+
+**session #2**
+
+* Travail sur VM1 qui sera la prochaine version de Tiny BASIC. Cette version exécutera du bytecode sur une machine virtuelle.
+
+**session #1**
+
 ```
 >for a=0to15:?(a),:ne a
  114 114 114 114 114 114 114 114 114 114 114 114 114 114 114 114
