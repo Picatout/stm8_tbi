@@ -1,3 +1,7 @@
+### 2020-01-28
+
+* Poursuite du travail sur VM1
+
 ### 2020-01-26 
 
 **session #2**
