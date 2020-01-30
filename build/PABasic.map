@@ -61,8 +61,8 @@ CODE                                00008080    0000238E =        9102. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008C78  number                             TBI_STM8
-     00008F35  to_upper                           TBI_STM8
+     00008C85  number                             TBI_STM8
+     00008F42  to_upper                           TBI_STM8
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 

@@ -122,8 +122,8 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int17 UART1 TX completed
 	int NonHandledInterrupt ;int18 UART1 RX full
 	int NonHandledInterrupt ;int19 I2C 
-	int NonHandledInterrupt ;int20 UART3 TX completed
-	int NonHandledInterrupt ;int21 UART3 RX full
+	int NonHandledInterrupt ;int20 UART1 TX completed
+	int NonHandledInterrupt ;int21 UART1 RX full
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
 	int Timer4UpdateHandler	;int23 TIM4 update/overflow used as msec ticks counter
 	int NonHandledInterrupt ;int24 flash writing EOP/WR_PG_DIS
@@ -455,65 +455,68 @@ write_block:
 
 
 ;---------------------------------------------
-;   UART3 subroutines
+;   UART1 subroutines
 ;---------------------------------------------
 
 ;---------------------------------------------
-; initialize UART3, 115200 8N1
+; initialize UART1, 115200 8N1
 ; input:
 ;	none
 ; output:
 ;   none
 ;---------------------------------------------
-uart3_init:
-	bset CLK_PCKENR1,#CLK_PCKENR1_UART3 
-	; configure tx pin
-	bset PD_DDR,#BIT5 ; tx pin
-	bset PD_CR1,#BIT5 ; push-pull output
-	bset PD_CR2,#BIT5 ; fast output
-uart3_set_baud: 
+uart1_init:
+    bset PA_DDR,#UART1_TX_PIN
+    bset PA_CR1,#UART1_TX_PIN 
+    bset PA_CR2,#UART1_TX_PIN 
+; enable UART1 clock
+	bset CLK_PCKENR1,#CLK_PCKENR1_UART1	
+uart1_set_baud: 
 ; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
 ; 1) check clock source, HSI at 16Mhz or HSE at 8Mhz  
 	ld a,#CLK_SWR_HSI
 	cp a,CLK_CMSR 
-	jreq hsi_clock 
-hse_clock: ; 8 Mhz 	
-	mov UART3_BRR2,#0x05 ; must be loaded first
-	mov UART3_BRR1,#0x4
-	jra uart_enable
-hsi_clock: ; 16 Mhz 	
-	mov UART3_BRR2,#0x0b ; must be loaded first
-	mov UART3_BRR1,#0x08
-uart_enable:	
-	mov UART3_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));
-	ret
-	
+	jreq 2$ 
+1$: ; 8 Mhz 	
+	mov UART1_BRR2,#0x05 ; must be loaded first
+	mov UART1_BRR1,#0x4
+	jra 3$
+2$: ; 16 Mhz 	
+	mov UART1_BRR2,#0x0b ; must be loaded first
+	mov UART1_BRR1,#0x08
+3$:
+    clr UART1_DR
+	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));
+	bset UART1_CR2,#UART_CR2_SBK
+    btjf UART1_SR,#UART_SR_TC,.
+    ret
+
 ;---------------------------------
-; send character to UART3 
+; send character to UART1 
 ; input:
 ;   A 
 ; output:
 ;   none 
 ;--------------------------------	
 putc:
-	btjf UART3_SR,#UART_SR_TXE,.
-	ld UART3_DR,a 
+	btjf UART1_SR,#UART_SR_TXE,.
+	ld UART1_DR,a 
 	ret 
 
 ;---------------------------------
-; wait character from UART3 
+; wait character from UART1 
 ; input:
 ;   none
 ; output:
 ;   A 			char  
 ;--------------------------------	
 getc:
-	btjf UART3_SR,#UART_SR_RXNE,.
-	ld a,UART3_DR 
+	btjf UART1_SR,#UART_SR_RXNE,.
+	ld a,UART1_DR 
 	ret 
 
 ;-----------------------------
-; send an ASCIZ string to UART3 
+; send an ASCIZ string to UART1 
 ; input: 
 ;   x 		char * 
 ; output:
@@ -1157,14 +1160,13 @@ cold_start:
 ; disable peripherals clocks
 	clr CLK_PCKENR1 
 	clr CLK_PCKENR2 
-			
 ; select internal clock no divisor: 16 Mhz 	
 	ld a,#CLK_SWR_HSI 
 	clrw x  
     call clock_init 
 	call timer4_init
-; UART3 at 115200 BAUD
-	call uart3_init
+; UART1 at 115200 BAUD
+	call uart1_init
 ; activate PE_4 (user button interrupt)
     bset PE_CR2,#USR_BTN_BIT 
 ; display system information
@@ -5182,7 +5184,7 @@ key:
 ;-----------------------
 qkey: 
 	clrw x 
-	btjf UART3_SR,#UART_SR_RXNE,9$ 
+	btjf UART1_SR,#UART_SR_RXNE,9$ 
 	incw x 
 9$: ld a,#TK_INTGR
 	ret 
@@ -5276,7 +5278,7 @@ usr:
 ; do a cold start on wakeup.
 ;------------------------------
 bye:
-	btjf UART3_SR,#UART_SR_TC,.
+	btjf UART1_SR,#UART_SR_TC,.
 	halt
 	jp cold_start  
 
@@ -5287,7 +5289,7 @@ bye:
 ; Resume progam after SLEEP command
 ;----------------------------------
 sleep:
-	btjf UART3_SR,#UART_SR_TC,.
+	btjf UART1_SR,#UART_SR_TC,.
 	bset flags,#FSLEEP
 	halt 
 	ret 

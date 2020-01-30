@@ -4,6 +4,21 @@ Il s'agit d'une implémentation du [Tiny BASIC](https://en.wikipedia.org/wiki/Ti
 
 Ce système a été développé et testé sur une carte NUCLEO-8S208RB ![NUCLEO-8S208RB](docs/images/carte.png)
 
+## utilisation
+Il suffit de brancher la carte **NUCLEO-8S208RB** avec un cable USB au PC. 
+Cette carte comprend son propre programmeur **ST-LINK/V2.1** ainsi qu'un canal de communication sériel utilisant le UART1 du mcu **STM8S208RB**. Tiny BASIC utilise ce canal de communication pour l'interface utilisateur. 
+
+Sur le PC lorsqu'on branche le cable de la carte un nouveau périphérique **/dev/ttyACMx** apparaît:
+```
+jacques@HP8200:~/github/stm8_tbi$ ls /dev/ttyACM*
+/dev/ttyACM0
+jacques@HP8200:~/github/stm8_tbi$ 
+```
+Il faut donc configurer l'émulateur de terminal pour utiliser ce périphérique:
+
+![configuration gtkTerm](docs/images/gtkTerm_config.png)
+
+![capture écran](docs/images/TinyBASIC_boot_msg.png)
 ## fonctionnement 
 
 Il s'agit d'un interpréteur. Au départ il s'agissait d'un interpréteur pur. C'est à dire que le texte source du programme était sauvegardé tel quel et était lu et analyser à chaque exécution. Il n'y avait  pas de génération de code intermédiaire pour exécution sur une machine virtuelle. L'avantage est au niveau de la simplicité. Par exemple la commande **LIST** ne nécessitait pas de désassemblage pour afficher le contenu du texte original puisque celui-ci était sauvegardé tel quel. 

@@ -1,3 +1,8 @@
+### 2020-01-30
+
+* Modification de PABasic.asm pour utiliser le **UART1** au lieu du **UART3**. Ce permet de se dispenser d'un adapteur de niveau RS-232 et de l'utilisatio d'un port sériel sur le PC. Le programmeur de la carte **NUCLEO-8S208RB** contient son propre émulateur de port sériel via la connection USB.
+
+
 ### 2020-01-28
 
 * Poursuite du travail sur VM1
