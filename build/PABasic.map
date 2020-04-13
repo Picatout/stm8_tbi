@@ -7,7 +7,6 @@ Area                                    Addr        Size        Decimal Bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     FFFFFFFF  s_SSEG                          
      00000000  .__.ABS.                           TBI_STM8
      00000000  l_FLASH_DRIVE                   
      00000000  l_FLASH_DRIVE1                  
@@ -15,6 +14,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000000  l__CODE                         
      00000000  s_FLASH_DRIVE                   
      00000000  s_FLASH_DRIVE1                  
+     00000000  s_SSEG                          
      00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
@@ -61,8 +61,8 @@ CODE                                00008080    0000238E =        9102. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008C85  number                             TBI_STM8
-     00008F42  to_upper                           TBI_STM8
+     00008C81  number                             TBI_STM8
+     00008F3E  to_upper                           TBI_STM8
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
@@ -76,6 +76,5 @@ User Base Address Definitions
 
 HOME = 0x8000
 DATA = 0x0001
-SSEG = 0xffffffff
 
 

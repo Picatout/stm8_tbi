@@ -1158,8 +1158,9 @@ cold_start:
 ; disable schmitt triggers on Arduino CN4 analog inputs
 	mov ADC_TDRL,0x3f
 ; disable peripherals clocks
-	clr CLK_PCKENR1 
-	clr CLK_PCKENR2 
+;	clr CLK_PCKENR1 
+;	clr CLK_PCKENR2
+	bset CLK_PCKENR2,#2 ; enable LSI for beeper
 ; select internal clock no divisor: 16 Mhz 	
 	ld a,#CLK_SWR_HSI 
 	clrw x  

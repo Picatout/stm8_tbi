@@ -149,7 +149,7 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
 ### BEEP *expr1*,*expr2* {C,P}
 Le MCU STM8S208RB possède un beeper. Cette commande utilise ce périphérique qui est connecté sur GPIO D:4  pour faire entendre une tonalité. *expr1* détermine la fréquence selon la formule __128000/(8*(expr1%31))__. *expr2* détermine la durée du son en millisecondes.
 ```
->BEEP 31,1000 ' 500 hz pendant 1 seconde
+>BEEP 30,1000 ' 500 hz pendant 1 seconde
 
 >BEEP 0,500 ' 8000 hz pendant 500 millisecondes
 ``` 
