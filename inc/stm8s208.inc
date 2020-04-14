@@ -382,6 +382,7 @@ PI = 40
  AWU_APR  = (0x50F1)
  AWU_TBR  = (0x50F2)
 
+AWU_CSR_AWUEN = 4 
 ; Beeper
 ; beeper output is alternate function AFR7 on PD4
 ; connected to CN9-6

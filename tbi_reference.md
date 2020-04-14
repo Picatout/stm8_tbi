@@ -146,6 +146,20 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
 
     >
 ```
+
+### AWU *expr*  {C,P}
+Cette commande arrête le MCU pour une durée déterminée. Son nom vient du périphérique utilisée **AWU** qui signifit  *Auto-WakeUp*.  Ce périphérique utilise l'oscillateur LSI de 128 Khz pour alimenter un compteur. Lorsque le compteur arrive à expiration une interruption est activée. Ce périphérique déclenché par l'instruction machine **HALT** qui arrête l'oscillateur interne **HSI** de sorte que le MCU et les périphériques internes à l'exception de celui-ci cessent de fonctionner. Ce mode réduit la consommation électrique au minimum. *expr* doit résutler en un entier dans l'interval {1..32720}. Cet entier correspond à la durée de la mise en sommeil en millisecondes.
+```
+>awu 1  ' sommeil d'une milliseconde
+
+>awu 30720 ' sommeil maximal de 3.07 secondes
+
+>
+```
+
+L'Oscillateur **LSI** possède une précision de +/-12.5% sur l'étendu de l'échelle de température d'opération du MCU.  Il ne faut donc pas attendre une grande précision de cette commande. La commande **PAUSE**  est plus précise mais consomme plus de courant. **AWU** est surtout utile pour les applications fonctionnant sur piles pour prolonger la durée de celles-ci.
+
+
 ### BEEP *expr1*,*expr2* {C,P}
 Le MCU STM8S208RB possède un beeper. Cette commande utilise ce périphérique qui est connecté sur GPIO D:4  pour faire entendre une tonalité. *expr1* détermine la fréquence selon la formule __128000/(8*(expr1%31))__. *expr2* détermine la durée du son en millisecondes.
 ```

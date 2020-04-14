@@ -103,7 +103,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;TRAP  software interrupt
 .endif
 	int NonHandledInterrupt ;int0 TLI   external top level interrupt
-	int NonHandledInterrupt ;int1 AWU   auto wake up from halt
+	int AWUHandler          ;int1 AWU   auto wake up from halt
 	int NonHandledInterrupt ;int2 CLK   clock controller
 	int NonHandledInterrupt ;int3 EXTI0 gpio A external interrupts
 	int NonHandledInterrupt ;int4 EXTI1 gpio B external interrupts
@@ -143,6 +143,11 @@ stack_unf: ; stack underflow ; control_stack bottom
 NonHandledInterrupt:
     .byte 0x71  ; reinitialize MCU
 
+AWUHandler:
+	bres AWU_CSR,#AWU_CSR_AWUEN
+	mov AWU_APR,0x3F
+	clr AWU_TBR 
+	iret
 
 ;------------------------------------
 ; software interrupt handler  
@@ -1160,6 +1165,7 @@ cold_start:
 ; disable peripherals clocks
 ;	clr CLK_PCKENR1 
 ;	clr CLK_PCKENR2
+	clr AWU_TBR 
 	bset CLK_PCKENR2,#2 ; enable LSI for beeper
 ; select internal clock no divisor: 16 Mhz 	
 	ld a,#CLK_SWR_HSI 
@@ -5318,6 +5324,60 @@ pause02:
 	ret 
 
 ;------------------------------
+; BASIC: AWU expr
+; halt mcu for 'expr' milliseconds
+; use Auto wakeup peripheral
+; all oscillators stopped except LSI
+; range: 1ms - 511ms
+; input:
+;  none
+; output:
+;  none:
+;------------------------------
+awu:
+  call expression
+  cp a,#TK_INTGR
+  jreq awu02
+  jp syntax_error
+awu02:
+  cpw x,#5120
+  jrmi 1$ 
+  mov AWU_TBR,#15 
+  ld a,#30
+  div x,a
+  ld a,#16
+  div x,a 
+  jra 4$
+1$: 
+  cpw x,#2048
+  jrmi 2$ 
+  mov AWU_TBR,#14
+  ld a,#80
+  div x,a 
+  jra 4$   
+2$:
+  mov AWU_TBR,#7
+3$:  
+; while X > 64  divide by 2 and increment AWU_TBR 
+  cpw x,#64 
+  jrule 4$ 
+  inc AWU_TBR 
+  srlw x 
+  jra 3$ 
+4$:
+  ld a, xl
+  dec a 
+  jreq 5$
+  dec a 	
+5$: 
+  and a,#0x3e 
+  ld AWU_APR,a 
+  bset AWU_CSR,#AWU_CSR_AWUEN
+  halt 
+
+  ret 
+
+;------------------------------
 ; BASIC: TICKS
 ; return msec ticks counter value 
 ; input:
@@ -5782,6 +5842,7 @@ kword_end:
 	_dict_entry,4,BRES,bit_reset
 	_dict_entry,5,BREAK,break 
 	_dict_entry,4,BEEP,beep 
+	_dict_entry,3,AWU,awu 
 	_dict_entry,3+F_IFUNC,ASC,ascii
 	_dict_entry,6+F_IFUNC,ANREAD,analog_read
 	_dict_entry,3+F_IFUNC,AND,bit_and
