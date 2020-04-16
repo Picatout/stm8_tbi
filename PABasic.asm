@@ -1,5 +1,5 @@
 ;;
-; Copyright Jacques Deschênes 2019 
+; Copyright Jacques Deschênes 2019,2020 
 ; This file is part of PABasic 
 ;
 ;     PABasic is free software: you can redistribute it and/or modify
@@ -54,6 +54,8 @@ _dbg
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 
 
+	AUTORUN_NAME=0x4000 ; address in EEPROM where auto run file name is saved 
+
 in.w:  .blkb 1 ; parser position in text line
 in:    .blkb 1 ; low byte of in.w
 in.saved: .blkb 1 ; set by get_token before parsing next token, used by unget_token
@@ -64,6 +66,7 @@ acc24: .blkb 1 ; 24 bit accumulator
 acc16: .blkb 1 ; 16 bit accumulator, middle byte of acc24
 acc8:  .blkb 1 ;  8 bit accumulator, least byte of acc24 
 ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
+timer: .blkw 1 ;  milliseconds count down timer 
 seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
 seedy: .blkw 1  ; xorshift 16 seed y  used by RND() funcion
 farptr: .blkb 1 ; 24 bits pointer used by file system
@@ -88,7 +91,7 @@ free_ram: ; from here RAM free for BASIC text
 tib: .ds TIB_SIZE             ; transaction input buffer
 pad: .ds PAD_SIZE             ; working buffer
 dstack: .ds DSTACK_SIZE 	  ; data stack used by FOR...NEXT 
-dstack_unf: ; dstack underflow ; data stack bottom 
+dstack_empty: ; dstack underflow ; data stack bottom 
 stack_full: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
 
@@ -166,6 +169,12 @@ Timer4UpdateHandler:
 	ldw x,ticks
 	incw x
 	ldw ticks,x 
+	ldw x,timer
+	tnzw x 
+	jreq 1$
+	decw x 
+	ldw timer,x 
+1$:	
 	iret 
 
 
@@ -1206,9 +1215,44 @@ cold_start:
 	call clear_basic
 	call ubound 
 	call dpop 
-	ldw array_size,x 
-    jp warm_start 
+	ldw array_size,x
+	call warm_init
+	call load_autorun
+    jp interp 
 
+warm_init:
+	clr flags 
+	clr loop_depth 
+	ldw x,#dstack_empty 
+	ldw dstkptr,x 
+	mov tab_width,#TAB_WIDTH 
+	mov base,#10 
+	ldw x,#tib 
+	ldw basicptr,x 
+	ret 
+
+;--------------------------
+; if autorun file defined 
+; in eeprom address AUTORUN_NAME 
+; load and run it.
+;-------------------------
+load_autorun:
+	ldw x,#AUTORUN_NAME
+	ld a,(x)
+	jreq 9$
+	ldw y,#AUTORUN_NAME
+	call search_file
+	jrc 2$ 
+	jra 9$ 
+2$:	call load_file
+	ldw x,#AUTORUN_NAME 
+	call puts
+	ldw x,#autorun_msg 
+	call puts 
+	jp run_it    
+9$: ret 	
+
+autorun_msg: .asciz " loaded and running\n"
 ;---------------------------
 ; reset BASIC text variables 
 ; and clear variables 
@@ -1279,14 +1323,7 @@ tb_error:
 6$: ldw x,#STACK_EMPTY 
     ldw sp,x
 warm_start:
-	clr flags 
-	clr loop_depth 
-	ldw x,#dstack_unf 
-	ldw dstkptr,x 
-	mov tab_width,#TAB_WIDTH 
-	mov base,#10 
-	ldw x,#tib 
-	ldw basicptr,x 
+	call warm_init
 ;----------------------------
 ;   BASIC interpreter
 ;----------------------------
@@ -2713,7 +2750,7 @@ dots:
 	_vars VSIZE 
 	ldw x,#dstk_prompt 
 	call puts
-	ldw x,#dstack_unf-CELL_SIZE
+	ldw x,#dstack_empty-CELL_SIZE
 	mov base,#10 
 1$:	cpw x,dstkptr 
 	jrult 4$ 
@@ -4171,6 +4208,33 @@ peek:
 	ld a,#TK_INTGR
 	ret 
 
+;----------------------------
+; BASIC: XPEEK(page,addr)
+; read extended memory byte
+; page in range {0,1,2}
+;----------------------------
+xpeek:
+	call func_args 
+	cp a,#2 
+	jreq 1$
+	jp syntax_error
+1$: 
+	call dpop 
+	ldw farptr+1,x 
+	call dpop 
+	ld a,xl 
+	ld farptr,a 
+	clrw x
+	ldf a,[farptr]
+	ld xl,a 
+	ld a,#TK_INTGR 
+	ret 
+
+;---------------------------
+; BASIC IF expr : instructions
+; evaluate expr and if true 
+; execute instructions on same line. 
+;----------------------------
 if: 
 	call relation 
 	cp a,#TK_INTGR
@@ -4428,10 +4492,12 @@ run:
 	jp interp_loop 
 1$:	ldw x,txtbgn
 	cpw x,txtend 
-	jrmi 2$ 
+	jrmi run_it 
 	clr a 
-	ret 
-2$: call ubound 
+	ret
+
+run_it:	 
+    call ubound 
 	_drop 2 
 	ldw x,txtbgn 
 	ldw basicptr,x 
@@ -4913,6 +4979,34 @@ save:
 	_drop VSIZE 
 	ret 
 
+;----------------------
+; load file in RAM memory
+; input:
+;    farptr point at file size 
+; output:
+;   y point after BASIC program in RAM.
+;------------------------
+load_file:
+	call incr_farptr  
+	call clear_basic  
+	clrw x
+	ldf a,([farptr],x)
+	ld yh,a 
+	incw x  
+	ldf a,([farptr],x)
+	incw x 
+	ld yl,a 
+	addw y,txtbgn
+	ldw txtend,y
+	ldw y,txtbgn
+3$:	; load BASIC text 	
+	ldf a,([farptr],x)
+	ld (y),a 
+	incw x 
+	incw y 
+	cpw y,txtend 
+	jrmi 3$
+	ret 
 
 ;------------------------
 ; BASIC: LOAD "file" 
@@ -4937,26 +5031,8 @@ load:
 	jrc 2$ 
 	ld a,#ERR_NOT_FILE
 	jp tb_error  
-2$:	
-	call incr_farptr  
-	call clear_basic  
-	clrw x
-	ldf a,([farptr],x)
-	ld yh,a 
-	incw x  
-	ldf a,([farptr],x)
-	incw x 
-	ld yl,a 
-	addw y,txtbgn
-	ldw txtend,y
-	ldw y,txtbgn
-3$:	; load BASIC text 	
-	ldf a,([farptr],x)
-	ld (y),a 
-	incw x 
-	incw y 
-	cpw y,txtend 
-	jrmi 3$
+2$:
+	call load_file
 ; print loaded size 	 
 	ldw x,txtend 
 	subw x,txtbgn
@@ -5288,6 +5364,47 @@ bye:
 	btjf UART1_SR,#UART_SR_TC,.
 	halt
 	jp cold_start  
+
+;----------------------------------
+; BASIC: AUTORUN "file_name" 
+; record in eeprom at adrress AUTORUN_NAME
+; the name of file to load and execute
+; at startup 
+; input:
+;   file_name   file to execute 
+; output:
+;   none
+;-----------------------------------
+autorun: 
+	btjf flags,#FRUN,0$ 
+	jreq 0$ 
+	ld a,#ERR_CMD_ONLY 
+	jp tb_error 
+0$:	
+	call next_token 
+	cp a,#TK_QSTR
+	jreq 1$
+	jp syntax_error 
+1$:	
+	pushw x ; file name char*
+	ldw y,x  
+	call search_file 
+	jrc 2$ 
+	ld a,#ERR_NOT_FILE
+	jp tb_error  
+2$: 
+	mov in,count 
+	clr farptr 
+	ldw x,#AUTORUN_NAME
+	ldw farptr+1,x 
+	ldw x,(1,sp)  
+	call strlen  ; return length in X 
+	popw y 
+	pushw x 
+	clrw x 
+	call write_block 
+	_drop 2 
+	ret 
 
 ;----------------------------------
 ; BASIC: SLEEP 
@@ -5756,6 +5873,47 @@ words:
 	ret 
 
 
+;-----------------------------
+; BASIC: TIMER expr 
+; initialize count down timer 
+;-----------------------------
+set_timer:
+	call arg_list
+	cp a,#1 
+	jreq 1$
+	jp syntax_error
+1$: 
+	call dpop 
+	ldw timer,x 
+	ret 
+
+;------------------------------
+; BASIC: TIMEOUT 
+; return state of timer 
+;------------------------------
+timeout:
+	ldw x,timer 
+logical_complement:
+	cplw x 
+	cpw x,#-1
+	jreq 2$
+	clrw x 
+2$:	ld a,#TK_INTGR
+	ret 
+
+;--------------------------------
+; BASIC NOT(expr) 
+; return logical complement of expr
+;--------------------------------
+func_not:
+	call func_args  
+	cp a,#1
+	jreq 1$
+	jp syntax_error
+1$:	call dpop 
+	jra logical_complement
+
+
 ;*********************************
 
 ;------------------------------
@@ -5777,6 +5935,7 @@ name:
 
 	LINK=0
 kword_end:
+	_dict_entry,5+F_IFUNC,XPEEK,xpeek 
 	_dict_entry,3+F_IFUNC,XOR,bit_xor
 	_dict_entry,5,WRITE,write  
 	_dict_entry,5,WORDS,words 
@@ -5785,6 +5944,8 @@ kword_end:
 	_dict_entry,6+F_IFUNC,UFLASH,uflash 
 	_dict_entry,6+F_IFUNC,UBOUND,ubound 
 	_dict_entry,2,TO,to
+	_dict_entry,7+F_IFUNC,TIMEOUT,timeout 
+	_dict_entry,5,TIMER,set_timer
 	_dict_entry,5+F_IFUNC,TICKS,get_ticks
 	_dict_entry,4,STOP,stop 
 	_dict_entry,4,STEP,step 
@@ -5809,6 +5970,7 @@ kword_end:
 	_dict_entry,5,PAUSE,pause 
 	_dict_entry,2+F_IFUNC,OR,bit_or
 	_dict_entry,3+F_CONST,ODR,GPIO_ODR
+	_dict_entry,3+F_IFUNC,NOT,func_not 
 	_dict_entry,3,NEW,new
 	_dict_entry,4,NEXT,next 
 	_dict_entry,6+F_IFUNC,LSHIFT,lshift
@@ -5843,6 +6005,7 @@ kword_end:
 	_dict_entry,5,BREAK,break 
 	_dict_entry,4,BEEP,beep 
 	_dict_entry,3,AWU,awu 
+	_dict_entry,7,AUTORUN,autorun
 	_dict_entry,3+F_IFUNC,ASC,ascii
 	_dict_entry,6+F_IFUNC,ANREAD,analog_read
 	_dict_entry,3+F_IFUNC,AND,bit_and
@@ -5864,4 +6027,4 @@ user_space:
 	.area FLASH_DRIVE (ABS)
 	.org 0x10000
 fdrive:
-;.byte 0,0,0,0
+.byte 0,0,0,0

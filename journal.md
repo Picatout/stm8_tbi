@@ -1,3 +1,15 @@
+### 2020-04-15
+
+* Ajout de la commande AUTORUN *file* . Cette sert à définir un fichier à exécuter automatique au démarrage. Le nom du fichier est sauvegardé dans l'EEPROM à l'adresse 0x4000 
+
+* Ajout de la commande TIMER *expr* . Celle-ci sert à initialiser une minuterie à rebours.
+
+* Ajout de la fonction TIMEOUT. Celle-ci retourne vrai si le TIMER a expiré. 
+
+* Ajout de la fonction NOT().  Cette fonction retourne la négation logique de l'expression. Retourne -1 si l'expression est nulle et 0 si non nul. 
+
+* ajout de la fonction XPEEK(*expr1*,*expr2*).  Cette fonction sert à lire un octet dans la mémoire étendue au delà de 65535.
+
 ### 2020-04-14
 
 * Ajout de la commande AWU et mise à jour du manuel tbi_reference.md 

@@ -146,6 +146,31 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
 
     >
 ```
+### AUTORUN *"file"*  {C}
+Cette commande définie un fichier programme à charger et exécuter au démarrage. Si le fichier n'existe pas il n'y a aucun message d'erreur, on se retrouve simplement sur la ligne de commande.
+Le nom du fichier est sauvegardé au début de la mémoire **EEPROM** qui est à l'adresse  **0x4000 (16384)**.  Il faut donc faire attention pour ne pas l'écraser avec la commande **WRITE**.
+```
+>10 btogl $500a,32: pause 333:if not(qkey):goto 10
+
+>20 bres $500a,32
+
+>li
+   10 BTOGL  20490 , 32 :PAUSE  333 :IF NOT (QKEY ):GOTO  10 
+   20 BRES  20490 , 32 
+
+>save "blink"
+  53
+>autorun "blink"
+
+>reboot
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2020
+version 1.0
+blink loaded and running
+```
+Maintenant chaque fois que la carte est réinitialisée le progamme **blink** est chargé et exécuté. 
 
 ### AWU *expr*  {C,P}
 Cette commande arrête le MCU pour une durée déterminée. Son nom vient du périphérique utilisée **AWU** qui signifit  *Auto-WakeUp*.  Ce périphérique utilise l'oscillateur LSI de 128 Khz pour alimenter un compteur. Lorsque le compteur arrive à expiration une interruption est activée. Ce périphérique déclenché par l'instruction machine **HALT** qui arrête l'oscillateur interne **HSI** de sorte que le MCU et les périphériques internes à l'exception de celui-ci cessent de fonctionner. Ce mode réduit la consommation électrique au minimum. *expr* doit résutler en un entier dans l'interval {1..32720}. Cet entier correspond à la durée de la mise en sommeil en millisecondes.
@@ -540,6 +565,15 @@ Cette fonction décale vers la gauche *expr1* par *expr2* bits. Le bit le plus f
    1
 
 ```
+#### NOT(*expr*) {C,P}
+Cette fonction retourne le complément logique de la valeur de l'expression passée en argument. 
+Autrement dit, si *expr*=0 la fonction retourne **-1** et pour toute autre valeur retourne **0**.
+```
+> ? not(qkey)
+-1
+>
+```
+S'il n'y a aucun caractère de reçu **QKEY** retourne **0** donc la fonction **NOT** renvoie **-1** qui veut dire **vrai**. 
 
 ### ODR {C,P}
 Renvoie l'index du registre **ODR** *(Output Data Register)* d'un périphérique **GPIO**. Ce registre est utilisé pour contrôler l'état des sorties du port GPIO. Considérez chaque GPIO comme un tableau à 5 valeurs, 
@@ -822,11 +856,31 @@ Cette commande arrête l'exécution d'un programme et retourne le contrôle à l
 Le systême entretien un compteur de millisecondes en utilisant le **TIMER4**.  Cette commande retourne la valeur de ce compteur. Le compteur est de 16 bits donc le *roll over* est de 65536 millisecondes. Ce compteur peut-être utilisé pour chronométrer la durée d'exécution d'une routine. Par exemple ça prend combien de temps pour exécuter 1000 boucles FOR vide.
 ```
 >t=ticks:fo a=1to1000:ne a:?ticks-t
-  56
+  12
 
 >
 ```
-Réponse: 56 millisecondes. 
+Réponse: 12 millisecondes. 
+
+### TIMEOUT 
+Cette foncition s'utilise avec la commande **TIMER** et retourne **-1** si la minuterie est expirée ou **0** autrement.
+
+```
+>timer 1000: ? timeout
+   0
+
+>? timeout ' après 1 seconde retourne **-1**. 
+  -1
+
+>
+
+```
+
+### TIMER *expr* {C,P}
+Cette commande sert à initialiser une minuterie. *expr* doit résulté en un entier qui représente le nombre de millisecondes. Contrairement à **PAUSE** la commande **TIMER** ne bloque pas l'exécution. On doit vérifier l'expiration de la minuterie avec la fonction **TIMEOUT**.  
+```
+>timer 1000 ' initialise à 1 seconde.
+```
 
 ### TO *expr* {C,P}
 Ce mot réservé est utilisé lors de l'initialisation d'une boucle **FOR**. **expr** détermine la valeur limite de la variable de contrôle de la boucle. Voir la commande **FOR** pour plus d'information. 
@@ -928,6 +982,16 @@ Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxre
 
 >
 ```
+
+### XPEEK(*expr1*,*expr2)  {C,P}
+Cette fonction sert à lire la mémoire au delà de l'adresse 65535. Comme ce BASIC fonctionne avec des entiers de 16 bits on ne peut adresser la mémoire étendue. **XPEEK** divise donc l'adresse en partie haute et basse. *expr1* est la partie haute de l'adresse et *expr2* est la partie basse. 
+```
+> ? xpeek($1,$a) ' adresse $1000a
+ 39
+
+> 
+```
+
 
 ## Installation de Tiny BASIC sur la carte NUCLEO-8S208RB 
 À la ligne 36 du fichier [PABasic.asm](PABasic.asm) il y a une macro nommée **_dbg**. Cette macro ajoute du code supplémentaire lors du développement du système et doit-être mise en commentaire pour construire la version finale. construire Tiny BASIC et programmer la carte NUCLEO est très simple grâce la l'utilitaire **make**. Lorsque la carte est branchée et prête à être programmée faites la commande suivante:

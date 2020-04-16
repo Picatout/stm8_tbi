@@ -9,7 +9,6 @@ Area                                    Addr        Size        Decimal Bytes (A
       -----  --------------------------------   ------------------------
      00000000  .__.ABS.                           TBI_STM8
      00000000  l_FLASH_DRIVE                   
-     00000000  l_FLASH_DRIVE1                  
      00000000  l_SSEG                          
      00000000  l__CODE                         
      00000000  s_FLASH_DRIVE                   
@@ -18,10 +17,11 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
-     00000055  l_DATA                          
+     00000004  l_FLASH_DRIVE1                  
+     00000057  l_DATA                          
      00000080  l_HOME                          
      00000138  l_SSEG0                         
-     0000238E  l_CODE                          
+     0000250E  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -30,7 +30,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-DATA                                00000001    00000055 =          85. bytes (REL,CON)
+DATA                                00000001    00000057 =          87. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -57,20 +57,29 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    0000238E =        9102. bytes (REL,CON)
+CODE                                00008080    0000250E =        9486. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008C93  number                             TBI_STM8
-     00008F50  to_upper                           TBI_STM8
+     00008CE0  number                             TBI_STM8
+     00008F9D  to_upper                           TBI_STM8
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+FLASH_DRIVE1                        00000000    00000004 =           4. bytes (ABS,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+ASxxxx Linker V03.00 + NoICE + sdld,  page 7.
 
 Files Linked                              [ module(s) ]
 
 build/PABasic.rel                         [ TBI_STM8 ]
 
-ASxxxx Linker V03.00 + NoICE + sdld,  page 7.
+ASxxxx Linker V03.00 + NoICE + sdld,  page 8.
 
 User Base Address Definitions
 
