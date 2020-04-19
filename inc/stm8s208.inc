@@ -378,11 +378,17 @@ PI = 40
  IWDG_KR  = (0x50E0)
  IWDG_PR  = (0x50E1)
  IWDG_RLR  = (0x50E2)
+ IWDG_KEY_ENABLE = 0xCC  ; enable IWDG key 
+ IWDG_KEY_REFRESH = 0xAA ; refresh counter key 
+ IWDG_KEY_ACCESS = 0x55 ; write register key 
+ 
  AWU_CSR  = (0x50F0)
  AWU_APR  = (0x50F1)
  AWU_TBR  = (0x50F2)
+ AWU_CSR_AWUEN = 4
 
-AWU_CSR_AWUEN = 4 
+
+
 ; Beeper
 ; beeper output is alternate function AFR7 on PD4
 ; connected to CN9-6

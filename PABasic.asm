@@ -5914,7 +5914,95 @@ func_not:
 	jra logical_complement
 
 
+
+;-----------------------------------
+; BASIC: ENIWDG expr1, expr2 
+; enable independant watchdog timer 
+;-----------------------------------
+enable_iwdg:
+	call arg_list
+	cp a,#2 
+	jreq 1$
+	jp syntax_error 
+1$: 	
+	mov IWDG_KR,#IWDG_KEY_ENABLE
+	call dpop 
+	mov IWDG_KR,#IWDG_KEY_ACCESS 
+	ld a,xl 
+	ld IWDG_RLR,a 
+	call dpop
+	ld a,#7
+	div x,a 
+	mov IWDG_KR,#IWDG_KEY_ACCESS 
+	ld IWDG_PR,a 
+	mov IWDG_KR,#IWDG_KEY_REFRESH
+	ret 
+
+
+;-----------------------------------
+; BASIC: IWDGREF  
+; refresh independant watchdog count down 
+; timer before it reset MCU. 
+;-----------------------------------
+refresh_iwdg:
+	mov IWDG_KR,#IWDG_KEY_REFRESH 
+	ret 
+
+
+;-------------------------------------
+; BASIC: LOG2(expr)
+; return logarithm base 2 of expr 
+; this is the position of most significant
+; bit set. 
+; input: 
+; output:
+;   X     log2 
+;   A     TK_INTGR 
 ;*********************************
+log2:
+	call func_args 
+	cp a,#1 
+	jreq 1$
+	jp syntax_error 
+1$: call dpop
+first_one:
+	tnzw x 
+	jreq 4$
+	ld a,#15 
+2$: rlcw x 
+    jrc 3$
+	dec a 
+	jra 2$
+3$: clrw x 
+    ld xl,a
+4$:	ld a,#TK_INTGR
+	ret 
+
+;-----------------------------------
+; BASIC: PWR(expr) 
+; expr ->{0..15}
+; return 2^expr 
+; output:
+;    x    2^expr 
+;-----------------------------------
+pwr2:
+    call func_args 
+	cp a,#1
+	jreq 1$
+	jp syntax_error 
+1$: call dpop 
+	ld a,xl 
+	and a,#15
+	clrw x 
+	incw x 
+2$: tnz a 
+	jreq 3$
+	slaw x 
+	dec a 
+	jra 2$ 
+3$: ld a,#TK_INTGR
+	ret 
+
 
 ;------------------------------
 ;      dictionary 
@@ -5960,7 +6048,7 @@ kword_end:
 	_dict_entry 6,REMARK,rem 
 	_dict_entry,6,REBOOT,cold_start 
 	_dict_entry,4+F_IFUNC,QKEY,qkey  
-	_dict_entry,6,PWRADC,power_adc 
+	_dict_entry,3+F_IFUNC,PWR,pwr2
 	_dict_entry 5,PRINT,print 
 	_dict_entry,4+F_CONST,POUT,OUTP 
 	_dict_entry,4,POKE,poke 
@@ -5974,10 +6062,13 @@ kword_end:
 	_dict_entry,3,NEW,new
 	_dict_entry,4,NEXT,next 
 	_dict_entry,6+F_IFUNC,LSHIFT,lshift
+	_dict_entry,3+F_IFUNC,LOG,log2 
 	_dict_entry,4,LOAD,load 
 	_dict_entry 4,LIST,list
 	_dict_entry 3,LET,let 
 	_dict_entry,3+F_IFUNC,KEY,key 
+	_dict_entry,7,IWDGREF,refresh_iwdg
+	_dict_entry,3,IWDG,enable_iwdg
 	_dict_entry,5,INPUT,input_var  
 	_dict_entry,2,IF,if 
 	_dict_entry,3+F_CONST,IDR,GPIO_IDR
@@ -6007,8 +6098,9 @@ kword_end:
 	_dict_entry,3,AWU,awu 
 	_dict_entry,7,AUTORUN,autorun
 	_dict_entry,3+F_IFUNC,ASC,ascii
-	_dict_entry,6+F_IFUNC,ANREAD,analog_read
 	_dict_entry,3+F_IFUNC,AND,bit_and
+	_dict_entry,7+F_IFUNC,ADCREAD,analog_read
+	_dict_entry,5,ADCON,power_adc 
 kword_dict:
 	_dict_entry,3+F_IFUNC,ABS,abs
 	

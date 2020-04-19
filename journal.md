@@ -1,3 +1,18 @@
+### 2020-04-18
+
+* Ajout de la commande IWDG expr, Auto wakeup watchdog
+
+* Ajout de la commande IWDGREF, rafraichie le compteur IWDGPR
+
+* Ajout de la fonction LOG(expr), retourne le log base 2 de *expr*
+
+* Ajout de la fonction PWR(expr), retourne 2^*expr* 
+
+* Renommé  **PWRADC** -&gt; **ADCON**
+
+* Renommé  **ANREAD** -&gt; **ADCREAD**
+
+
 ### 2020-04-15
 
 * Ajout de la commande AUTORUN *file* . Cette sert à définir un fichier à exécuter automatique au démarrage. Le nom du fichier est sauvegardé dans l'EEPROM à l'adresse 0x4000 

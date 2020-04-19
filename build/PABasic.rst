@@ -461,8 +461,14 @@ Hexadecimal [24-Bits]
                                  
                                  
                                  
-                                        
+                                         
                                  
+                                 
+                                 
+                                 
+                                        
+                                        
+                                        
                                         ; Beeper
                                         ; beeper output is alternate function AFR7 on PD4
                                         ; connected to CN9-6
@@ -1438,11 +1444,6 @@ Hexadecimal [24-Bits]
                                         
                                      37     .list 
                                      38 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 2.
-Hexadecimal [24-Bits]
-
-
-
       000001                         39 _dbg 
                            000001     1     DEBUG=1
                                      40 
@@ -1497,12 +1498,12 @@ Hexadecimal [24-Bits]
                                      89 ;-----------------------------------	
       0016C8                         90     .org RAM_SIZE-STACK_SIZE-TIB_SIZE-PAD_SIZE-DSTACK_SIZE 
       001718                         91 tib: .ds TIB_SIZE             ; transaction input buffer
-      001740                         92 pad: .ds PAD_SIZE             ; working buffer
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 3.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 2.
 Hexadecimal [24-Bits]
 
 
 
+      001740                         92 pad: .ds PAD_SIZE             ; working buffer
       001780                         93 dstack: .ds DSTACK_SIZE 	  ; data stack used by FOR...NEXT 
       001780                         94 dstack_empty: ; dstack underflow ; data stack bottom 
       001800                         95 stack_full: .ds STACK_SIZE   ; control stack 
@@ -1557,12 +1558,12 @@ Hexadecimal [24-Bits]
              49 00
                                     144 .endif 
                                     145 
-      008089                        146 NonHandledInterrupt:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 4.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 3.
 Hexadecimal [24-Bits]
 
 
 
+      008089                        146 NonHandledInterrupt:
       008089 71                     147     .byte 0x71  ; reinitialize MCU
                                     148 
       00808A                        149 AWUHandler:
@@ -1617,12 +1618,12 @@ Hexadecimal [24-Bits]
       0080D8 72 11 00 22      [ 1]  198 	bres flags,#FRUN 
       0080DC AE 81 16         [ 2]  199 	ldw x,#USER_ABORT
       0080DF CD 82 5D         [ 4]  200 	call puts 
-      0080E2 CE 00 05         [ 2]  201 	ldw x,basicptr
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 5.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 4.
 Hexadecimal [24-Bits]
 
 
 
+      0080E2 CE 00 05         [ 2]  201 	ldw x,basicptr
       0080E5 FE               [ 2]  202 	ldw x,(x)
                                     203 ; print line number 
       0080E6 35 0A 00 07      [ 1]  204 	mov base,#10 
@@ -1677,12 +1678,12 @@ Hexadecimal [24-Bits]
                                     250 ; TIM4 is configured to generate an 
                                     251 ; interrupt every millisecond 
                                     252 ;----------------------------------
-      008147                        253 timer4_init:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 6.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 5.
 Hexadecimal [24-Bits]
 
 
 
+      008147                        253 timer4_init:
       008147 72 18 50 C7      [ 1]  254 	bset CLK_PCKENR1,#CLK_PCKENR1_TIM4
       00814B 35 07 53 45      [ 1]  255 	mov TIM4_PSCR,#7 ; prescale 128  
       00814F 35 7D 53 46      [ 1]  256 	mov TIM4_ARR,#125 ; set for 1msec.
@@ -1737,12 +1738,12 @@ Hexadecimal [24-Bits]
                                     305     ldf [farptr],a
                                     306     inc farptr+2 
                                     307     ldf [farptr],a
-                                    308 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 7.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 6.
 Hexadecimal [24-Bits]
 
 
 
+                                    308 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
                                     309 	ret
                                     310 erase_end:
                                     311 
@@ -1797,12 +1798,12 @@ Hexadecimal [24-Bits]
                                     360 
                                     361 
                                     362 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
-                                    363 ; write a byte to FLASH or EEPROM 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 8.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 7.
 Hexadecimal [24-Bits]
 
 
 
+                                    363 ; write a byte to FLASH or EEPROM 
                                     364 ; input:
                                     365 ;    a  		byte to write
                                     366 ;    farptr  	address
@@ -1825,7 +1826,7 @@ Hexadecimal [24-Bits]
                                     382 ; check addr[23:16], if <> 0 then it is extened flash memory
       008184 72 5D 00 13      [ 1]  383 	tnz farptr 
       008188 26 14            [ 1]  384 	jrne write_flash
-      00818A 90 A3 A5 80      [ 2]  385     cpw y,#user_space
+      00818A 90 A3 A6 00      [ 2]  385     cpw y,#user_space
       00818E 24 0E            [ 1]  386     jruge write_flash
       008190 90 A3 40 00      [ 2]  387 	cpw y,#EEPROM_BASE  
       008194 25 52            [ 1]  388     jrult write_exit
@@ -1857,12 +1858,12 @@ Hexadecimal [24-Bits]
                                     414 	; pour modifier une option il faut modifier ces 2 bits
       0081C9 72 1E 50 5B      [ 1]  415     bset FLASH_CR2,#FLASH_CR2_OPT
       0081CD 72 1F 50 5C      [ 1]  416     bres FLASH_NCR2,#FLASH_CR2_OPT 
-      0081D1                        417 2$: 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 9.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 8.
 Hexadecimal [24-Bits]
 
 
 
+      0081D1                        417 2$: 
       0081D1 7B 01            [ 1]  418     ld a,(BTW,sp)
       0081D3 92 A7 00 13      [ 4]  419     ldf ([farptr],x),a
       0081D7 0D 02            [ 1]  420     tnz (OPT,sp)
@@ -1917,12 +1918,12 @@ Hexadecimal [24-Bits]
       008208 1E 01            [ 2]  465 	ldw x,(XSAVE,sp)
       00820A CD 9C 08         [ 4]  466 	call incr_farptr
       00018D                        467 	_drop VSIZE
-      00820D 5B 02            [ 2]    1     addw sp,#VSIZE 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 10.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 9.
 Hexadecimal [24-Bits]
 
 
 
+      00820D 5B 02            [ 2]    1     addw sp,#VSIZE 
       00820F 81               [ 4]  468 	ret 
                                     469 
                                     470 
@@ -1977,12 +1978,12 @@ Hexadecimal [24-Bits]
                                     519 
                                     520 ;---------------------------------
                                     521 ; wait character from UART1 
-                                    522 ; input:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 11.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 10.
 Hexadecimal [24-Bits]
 
 
 
+                                    522 ; input:
                                     523 ;   none
                                     524 ; output:
                                     525 ;   A 			char  
@@ -2037,12 +2038,12 @@ Hexadecimal [24-Bits]
       008278 0D 01            [ 1]  574 0$:	tnz (1,sp)
       00827A 27 07            [ 1]  575 	jreq 1$
       00827C CD 82 67         [ 4]  576 	call bksp 
-      00827F 0A 01            [ 1]  577 	dec (1,sp)
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 12.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 11.
 Hexadecimal [24-Bits]
 
 
 
+      00827F 0A 01            [ 1]  577 	dec (1,sp)
       008281 20 F5            [ 2]  578 	jra 0$
       008283 84               [ 1]  579 1$:	pop a 
       008284 81               [ 4]  580 	ret
@@ -2097,12 +2098,12 @@ Hexadecimal [24-Bits]
       0082AC CD 89 3E         [ 4]  624 	call prt_reg8 
                                     625 ; register X 
       0082AF 16 05            [ 2]  626 	ldw y,(R_X,sp)
-      0082B1 AE 8A 1B         [ 2]  627 	ldw x,#REG_X 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 13.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 12.
 Hexadecimal [24-Bits]
 
 
 
+      0082B1 AE 8A 1B         [ 2]  627 	ldw x,#REG_X 
       0082B4 CD 89 63         [ 4]  628 	call prt_reg16 
                                     629 ; register Y 
       0082B7 16 03            [ 2]  630 	ldw y,(R_Y,sp)
@@ -2157,12 +2158,12 @@ Hexadecimal [24-Bits]
                                     674 ; retrun string length
                                     675 ; input:
                                     676 ;   X         .asciz  
-                                    677 ; output:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 14.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 13.
 Hexadecimal [24-Bits]
 
 
 
+                                    677 ; output:
                                     678 ;   X         length 
                                     679 ;-------------------------------------
       00831F                        680 strlen:
@@ -2217,12 +2218,12 @@ Hexadecimal [24-Bits]
       008346 20 F6            [ 2]  729 	jra 1$ 
       008348 7F               [ 1]  730 9$:	clr (x)
       008349 85               [ 2]  731 	popw x 
-      00834A 81               [ 4]  732 	ret 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 15.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 14.
 Hexadecimal [24-Bits]
 
 
 
+      00834A 81               [ 4]  732 	ret 
                                     733 
                                     734 ;---------------------------------------
                                     735 ; move memory block 
@@ -2277,12 +2278,12 @@ Hexadecimal [24-Bits]
                                     782 
                                     783 ;-------------------------------------
                                     784 ; search text area for a line with 
-                                    785 ; same number as line#  
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 16.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 15.
 Hexadecimal [24-Bits]
 
 
 
+                                    785 ; same number as line#  
                                     786 ; input:
                                     787 ;	X 			line# 
                                     788 ; output:
@@ -2337,12 +2338,12 @@ Hexadecimal [24-Bits]
       0083C0 90 CE 00 1D      [ 2]  834 	ldw y,txtend 
       0083C4 90 E6 02         [ 1]  835 	ld a,(2,y)
       0083C7 90 5F            [ 1]  836 	clrw y 
-      0083C9 90 97            [ 1]  837 	ld yl,a  
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 17.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 16.
 Hexadecimal [24-Bits]
 
 
 
+      0083C9 90 97            [ 1]  837 	ld yl,a  
       0083CB 72 B9 00 1D      [ 2]  838 	addw y,txtend
       0083CF 72 F2 03         [ 2]  839 	subw y,(SRC,sp) ; y=count 
       0083D2 90 CF 00 09      [ 2]  840 	ldw acc16,y 
@@ -2397,12 +2398,12 @@ Hexadecimal [24-Bits]
                                     886 
                                     887 
                                     888 ;--------------------------------------------
-                                    889 ; insert line in tib into text area 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 18.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 17.
 Hexadecimal [24-Bits]
 
 
 
+                                    889 ; insert line in tib into text area 
                                     890 ; first search for already existing 
                                     891 ; replace existing 
                                     892 ; if strlen(tib)==0 delete existing 
@@ -2457,12 +2458,12 @@ Hexadecimal [24-Bits]
       00845C 11 08            [ 1]  940 	cp a,(LLEN+1,sp)
       00845E 27 27            [ 1]  941 	jreq insert_ln_exit ; empty line exit.
                                     942 ; if insertion point at txtend 
-                                    943 ; no move required 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 19.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 18.
 Hexadecimal [24-Bits]
 
 
 
+                                    943 ; no move required 
       008460 1E 01            [ 2]  944 	ldw x,(DEST,sp)
       008462 C3 00 1D         [ 2]  945 	cpw x,txtend 
       008465 2A 17            [ 1]  946 	jrpl 5$ 
@@ -2517,12 +2518,12 @@ Hexadecimal [24-Bits]
                                     994 ;-----------------------------------
                                     995 	.macro _incr_ptr16 n 
                                     996 	ldw x,#n 
-                                    997 	addw x,ptr16 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 20.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 19.
 Hexadecimal [24-Bits]
 
 
 
+                                    997 	addw x,ptr16 
                                     998 	ldw ptr16,x 
                                     999 	.endm 
                                    1000 
@@ -2577,12 +2578,12 @@ Hexadecimal [24-Bits]
       0084F8 A1 02            [ 1] 1048 	cp a,#TK_ARRAY 
       0084FA 27 CC            [ 1] 1049 	jreq 2$ 
       0084FC A1 0A            [ 1] 1050 	cp a,#TK_QSTR 
-      0084FE 26 25            [ 1] 1051 	jrne 4$
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 21.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 20.
 Hexadecimal [24-Bits]
 
 
 
+      0084FE 26 25            [ 1] 1051 	jrne 4$
       008500 AE 17 18         [ 2] 1052 	ldw x,#pad 
       008503 CD 83 1F         [ 4] 1053 	call strlen
       008506 5C               [ 2] 1054 	incw x  
@@ -2637,12 +2638,12 @@ Hexadecimal [24-Bits]
       008581 CF 00 05         [ 2] 1103 	ldw basicptr,x 
       008584 E6 02            [ 1] 1104 	ld a,(2,x)
       008586 C7 00 04         [ 1] 1105 	ld count,a 
-      008589 35 03 00 02      [ 1] 1106 	mov in,#3 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 22.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 21.
 Hexadecimal [24-Bits]
 
 
 
+      008589 35 03 00 02      [ 1] 1106 	mov in,#3 
       00858D                       1107 11$:
       00050D                       1108 	_drop VSIZE 
       00858D 5B 04            [ 2]    1     addw sp,#VSIZE 
@@ -2697,98 +2698,98 @@ Hexadecimal [24-Bits]
              67 68 74 2C 20 4A 61
              63 71 75 65 73 20 44
              65 73 63 68 65 6E 65
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 22.
+Hexadecimal  73-Bits]
+
+
+
              73 20 32 30 31 39 2C
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 23.
-Hexadecimal  32-Bits]
-
-
-
              32 30 32 30 0A 76 65
              72 73 69 6F 6E 20 00
       000579                       1154 cold_start:
                                    1155 ;set stack 
-      0085EC 30 32 30         [ 2] 1156 	ldw x,#STACK_EMPTY
-      0085EF 0A               [ 1] 1157 	ldw sp,x   
+      0085E5 20 32 30         [ 2] 1156 	ldw x,#STACK_EMPTY
+      0085E8 31               [ 1] 1157 	ldw sp,x   
                                    1158 ; clear all ram 
-      0085F0 76               [ 1] 1159 0$: clr (x)
-      0085F1 65               [ 2] 1160 	decw x 
-      0085F2 72 73            [ 1] 1161 	jrne 0$
+      0085E9 39               [ 1] 1159 0$: clr (x)
+      0085EA 2C               [ 2] 1160 	decw x 
+      0085EB 32 30            [ 1] 1161 	jrne 0$
                                    1162 ; activate pull up on all inputs 
-      0085F4 69 6F            [ 1] 1163 	ld a,#255 
-      0085F6 6E 20 00         [ 1] 1164 	ld PA_CR1,a 
-      0085F9 C7 50 08         [ 1] 1165 	ld PB_CR1,a 
-      0085F9 AE 17 FF         [ 1] 1166 	ld PC_CR1,a 
-      0085FC 94 7F 5A         [ 1] 1167 	ld PD_CR1,a 
-      0085FF 26 FC A6         [ 1] 1168 	ld PE_CR1,a 
-      008602 FF C7 50         [ 1] 1169 	ld PF_CR1,a 
-      008605 03 C7 50         [ 1] 1170 	ld PG_CR1,a 
-      008608 08 C7 50         [ 1] 1171 	ld PI_CR1,a 
+      0085ED 32 30            [ 1] 1163 	ld a,#255 
+      0085EF 0A 76 65         [ 1] 1164 	ld PA_CR1,a 
+      0085F2 72 73 69         [ 1] 1165 	ld PB_CR1,a 
+      0085F5 6F 6E 20         [ 1] 1166 	ld PC_CR1,a 
+      0085F8 00 50 12         [ 1] 1167 	ld PD_CR1,a 
+      0085F9 C7 50 17         [ 1] 1168 	ld PE_CR1,a 
+      0085F9 AE 17 FF         [ 1] 1169 	ld PF_CR1,a 
+      0085FC 94 7F 5A         [ 1] 1170 	ld PG_CR1,a 
+      0085FF 26 FC A6         [ 1] 1171 	ld PI_CR1,a 
                                    1172 ; disable schmitt triggers on Arduino CN4 analog inputs
-      00860B 0D C7 50 12 C7   [ 1] 1173 	mov ADC_TDRL,0x3f
+      008602 FF C7 50 03 C7   [ 1] 1173 	mov ADC_TDRL,0x3f
                                    1174 ; disable peripherals clocks
                                    1175 ;	clr CLK_PCKENR1 
                                    1176 ;	clr CLK_PCKENR2
-      008610 50 17 C7 50      [ 1] 1177 	clr AWU_TBR 
-      008614 1C C7 50 21      [ 1] 1178 	bset CLK_PCKENR2,#2 ; enable LSI for beeper
+      008607 50 08 C7 50      [ 1] 1177 	clr AWU_TBR 
+      00860B 0D C7 50 12      [ 1] 1178 	bset CLK_PCKENR2,#2 ; enable LSI for beeper
                                    1179 ; select internal clock no divisor: 16 Mhz 	
-      008618 C7 50            [ 1] 1180 	ld a,#CLK_SWR_HSI 
-      00861A 2B               [ 1] 1181 	clrw x  
-      00861B 55 00 3F         [ 4] 1182     call clock_init 
-      00861E 54 07 72         [ 4] 1183 	call timer4_init
+      00860F C7 50            [ 1] 1180 	ld a,#CLK_SWR_HSI 
+      008611 17               [ 1] 1181 	clrw x  
+      008612 C7 50 1C         [ 4] 1182     call clock_init 
+      008615 C7 50 21         [ 4] 1183 	call timer4_init
                                    1184 ; UART1 at 115200 BAUD
-      008621 5F 50 F2         [ 4] 1185 	call uart1_init
+      008618 C7 50 2B         [ 4] 1185 	call uart1_init
                                    1186 ; activate PE_4 (user button interrupt)
-      008624 72 14 50 CA      [ 1] 1187     bset PE_CR2,#USR_BTN_BIT 
+      00861B 55 00 3F 54      [ 1] 1187     bset PE_CR2,#USR_BTN_BIT 
                                    1188 ; display system information
-      008628 A6 E1 5F         [ 2] 1189 	ldw x,#software 
-      00862B CD 81 31         [ 4] 1190 	call puts 
-      00862E CD 81            [ 1] 1191 	ld a,#MAJOR 
-      008630 47 CD 82         [ 1] 1192 	ld acc8,a 
-      008633 10               [ 1] 1193 	clrw x 
-      008634 72 18 50         [ 2] 1194 	ldw acc24,x 
-      008637 18 AE            [ 1] 1195 	ld a,#10 
-      008639 85 B3 CD         [ 4] 1196 	call prti24 
-      00863C 82 5D            [ 1] 1197 	ld a,#'.
-      00863E A6 01 C7         [ 4] 1198 	call putc 
-      008641 00 0A            [ 1] 1199 	ld a,#MINOR 
-      008643 5F CF 00         [ 1] 1200 	ld acc8,a 
-      008646 08               [ 1] 1201 	clrw x 
-      008647 A6 0A CD         [ 2] 1202 	ldw acc24,x 
-      00864A 8A 2D            [ 1] 1203 	ld a,#10 
-      00864C A6 2E CD         [ 4] 1204 	call prti24 
-      00864F 82 4B            [ 1] 1205 	ld a,#CR 
-      008651 A6 00 C7         [ 4] 1206 	call putc 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 24.
+      00861F 07 72 5F         [ 2] 1189 	ldw x,#software 
+      008622 50 F2 72         [ 4] 1190 	call puts 
+      008625 14 50            [ 1] 1191 	ld a,#MAJOR 
+      008627 CA A6 E1         [ 1] 1192 	ld acc8,a 
+      00862A 5F               [ 1] 1193 	clrw x 
+      00862B CD 81 31         [ 2] 1194 	ldw acc24,x 
+      00862E CD 81            [ 1] 1195 	ld a,#10 
+      008630 47 CD 82         [ 4] 1196 	call prti24 
+      008633 10 72            [ 1] 1197 	ld a,#'.
+      008635 18 50 18         [ 4] 1198 	call putc 
+      008638 AE 85            [ 1] 1199 	ld a,#MINOR 
+      00863A B3 CD 82         [ 1] 1200 	ld acc8,a 
+      00863D 5D               [ 1] 1201 	clrw x 
+      00863E A6 01 C7         [ 2] 1202 	ldw acc24,x 
+      008641 00 0A            [ 1] 1203 	ld a,#10 
+      008643 5F CF 00         [ 4] 1204 	call prti24 
+      008646 08 A6            [ 1] 1205 	ld a,#CR 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 23.
 Hexadecimal [24-Bits]
 
 
 
-      008654 00 0A 5F         [ 4] 1207 	call seek_fdrive 
+      008648 0A CD 8A         [ 4] 1206 	call putc 
+      00864B 2D A6 2E         [ 4] 1207 	call seek_fdrive 
                                    1208 ; configure LD2 pin 
-      008657 CF 00 08 A6      [ 1] 1209     bset PC_CR1,#LED2_BIT
-      00865B 0A CD 8A 2D      [ 1] 1210     bset PC_CR2,#LED2_BIT
-      00865F A6 0D CD 82      [ 1] 1211     bset PC_DDR,#LED2_BIT
-      008663 4B               [ 1] 1212 	rim 
-      008664 CD 9C 16 72      [ 1] 1213 	inc seedy+1 
-      008668 1A 50 0D 72      [ 1] 1214 	inc seedx+1 
-      00866C 1A 50 0E         [ 4] 1215 	call clear_basic
-      00866F 72 1A 50         [ 4] 1216 	call ubound 
-      008672 0C 9A 72         [ 4] 1217 	call dpop 
-      008675 5C 00 12         [ 2] 1218 	ldw array_size,x
-      008678 72 5C 00         [ 4] 1219 	call warm_init
-      00867B 10 CD 86         [ 4] 1220 	call load_autorun
-      00867E E7 CD 94         [ 2] 1221     jp interp 
+      00864E CD 82 4B A6      [ 1] 1209     bset PC_CR1,#LED2_BIT
+      008652 00 C7 00 0A      [ 1] 1210     bset PC_CR2,#LED2_BIT
+      008656 5F CF 00 08      [ 1] 1211     bset PC_DDR,#LED2_BIT
+      00865A A6               [ 1] 1212 	rim 
+      00865B 0A CD 8A 2D      [ 1] 1213 	inc seedy+1 
+      00865F A6 0D CD 82      [ 1] 1214 	inc seedx+1 
+      008663 4B CD 9C         [ 4] 1215 	call clear_basic
+      008666 16 72 1A         [ 4] 1216 	call ubound 
+      008669 50 0D 72         [ 4] 1217 	call dpop 
+      00866C 1A 50 0E         [ 2] 1218 	ldw array_size,x
+      00866F 72 1A 50         [ 4] 1219 	call warm_init
+      008672 0C 9A 72         [ 4] 1220 	call load_autorun
+      008675 5C 00 12         [ 2] 1221     jp interp 
                                    1222 
       000611                       1223 warm_init:
-      008681 5E CD 90 7B      [ 1] 1224 	clr flags 
-      008685 CF 00 20 CD      [ 1] 1225 	clr loop_depth 
-      008689 86 91 CD         [ 2] 1226 	ldw x,#dstack_empty 
-      00868C 86 AE CC         [ 2] 1227 	ldw dstkptr,x 
-      00868F 88 6C 00 22      [ 1] 1228 	mov tab_width,#TAB_WIDTH 
-      008691 35 0A 00 06      [ 1] 1229 	mov base,#10 
-      008691 72 5F 00         [ 2] 1230 	ldw x,#tib 
-      008694 22 72 5F         [ 2] 1231 	ldw basicptr,x 
-      008697 00               [ 4] 1232 	ret 
+      008678 72 5C 00 10      [ 1] 1224 	clr flags 
+      00867C CD 86 E7 CD      [ 1] 1225 	clr loop_depth 
+      008680 94 5E CD         [ 2] 1226 	ldw x,#dstack_empty 
+      008683 90 7B CF         [ 2] 1227 	ldw dstkptr,x 
+      008686 00 20 CD 86      [ 1] 1228 	mov tab_width,#TAB_WIDTH 
+      00868A 91 CD 86 AE      [ 1] 1229 	mov base,#10 
+      00868E CC 88 6C         [ 2] 1230 	ldw x,#tib 
+      008691 CF 00 04         [ 2] 1231 	ldw basicptr,x 
+      008691 72               [ 4] 1232 	ret 
                                    1233 
                                    1234 ;--------------------------
                                    1235 ; if autorun file defined 
@@ -2796,54 +2797,54 @@ Hexadecimal [24-Bits]
                                    1237 ; load and run it.
                                    1238 ;-------------------------
       00062E                       1239 load_autorun:
-      008698 1F AE 17         [ 2] 1240 	ldw x,#AUTORUN_NAME
-      00869B 80               [ 1] 1241 	ld a,(x)
-      00869C CF 00            [ 1] 1242 	jreq 9$
-      00869E 19 35 04 00      [ 2] 1243 	ldw y,#AUTORUN_NAME
-      0086A2 23 35 0A         [ 4] 1244 	call search_file
-      0086A5 00 07            [ 1] 1245 	jrc 2$ 
-      0086A7 AE 16            [ 2] 1246 	jra 9$ 
-      0086A9 C8 CF 00         [ 4] 1247 2$:	call load_file
-      0086AC 05 81 00         [ 2] 1248 	ldw x,#AUTORUN_NAME 
-      0086AE CD 01 DD         [ 4] 1249 	call puts
-      0086AE AE 40 00         [ 2] 1250 	ldw x,#autorun_msg 
-      0086B1 F6 27 1D         [ 4] 1251 	call puts 
-      0086B4 90 AE 40         [ 2] 1252 	jp run_it    
-      0086B7 00               [ 4] 1253 9$: ret 	
+      008692 5F 00 22         [ 2] 1240 	ldw x,#AUTORUN_NAME
+      008695 72               [ 1] 1241 	ld a,(x)
+      008696 5F 00            [ 1] 1242 	jreq 9$
+      008698 1F AE 17 80      [ 2] 1243 	ldw y,#AUTORUN_NAME
+      00869C CF 00 19         [ 4] 1244 	call search_file
+      00869F 35 04            [ 1] 1245 	jrc 2$ 
+      0086A1 00 23            [ 2] 1246 	jra 9$ 
+      0086A3 35 0A 00         [ 4] 1247 2$:	call load_file
+      0086A6 07 AE 16         [ 2] 1248 	ldw x,#AUTORUN_NAME 
+      0086A9 C8 CF 00         [ 4] 1249 	call puts
+      0086AC 05 81 52         [ 2] 1250 	ldw x,#autorun_msg 
+      0086AE CD 01 DD         [ 4] 1251 	call puts 
+      0086AE AE 40 00         [ 2] 1252 	jp run_it    
+      0086B1 F6               [ 4] 1253 9$: ret 	
                                    1254 
-      0086B8 CD 9C 74 25 02 20 12  1255 autorun_msg: .asciz " loaded and running\n"
-             CD 9D 83 AE 40 00 CD
-             82 5D AE 86 D2 CD 82
+      0086B2 27 1D 90 AE 40 00 CD  1255 autorun_msg: .asciz " loaded and running\n"
+             9C 74 25 02 20 12 CD
+             9D 83 AE 40 00 CD 82
                                    1256 ;---------------------------
                                    1257 ; reset BASIC text variables 
                                    1258 ; and clear variables 
-                                   1259 ;---------------------------
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 25.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 24.
 Hexadecimal  5D-Bits]
 
 
 
+                                   1259 ;---------------------------
       000667                       1260 clear_basic:
-      0086CE CC 9A 6F 81      [ 1] 1261 	clr count 
-      0086D2 20 6C 6F         [ 2] 1262 	ldw x,#free_ram 
-      0086D5 61 64 65         [ 2] 1263 	ldw txtbgn,x 
-      0086D8 64 20 61         [ 2] 1264 	ldw txtend,x 
-      0086DB 6E 64 20         [ 4] 1265 	call clear_vars 
-      0086DE 72               [ 4] 1266 	ret 
+      0086C8 AE 86 D2 CD      [ 1] 1261 	clr count 
+      0086CC 82 5D CC         [ 2] 1262 	ldw x,#free_ram 
+      0086CF 9A 6F 81         [ 2] 1263 	ldw txtbgn,x 
+      0086D2 20 6C 6F         [ 2] 1264 	ldw txtend,x 
+      0086D5 61 64 65         [ 4] 1265 	call clear_vars 
+      0086D8 64               [ 4] 1266 	ret 
                                    1267 
                                    1268 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
                                    1269 ;;   Tiny BASIC error messages     ;;
                                    1270 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
       000678                       1271 err_msg:
-      0086DF 75 6E 6E 69 6E 67 0A  1272 	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
-             00 06 C7 06 D7
-      0086E7 06 EE 07 05 07 20 07  1273 	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
+      0086D9 20 61 6E 64 20 72 75  1272 	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
+             6E 6E 69 6E 67
+      0086E5 0A 00 07 05 07 20 07  1273 	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
              32 07 44
-      0086E7 72 5F                 1274 	.word err_no_access 
+      0086E7 07 51                 1274 	.word err_no_access 
                                    1275 
-      0086E9 00 04 AE 00 58 CF 00  1276 err_mem_full: .asciz "\nMemory full\n" 
-             1B CF 00 1D CD 85 94
-      0086F7 81 73 79 6E 74 61 78  1277 err_syntax: .asciz "\nsyntax error\n" 
+      0086E7 72 5F 00 04 AE 00 58  1276 err_mem_full: .asciz "\nMemory full\n" 
+             CF 00 1B CF 00 1D CD
+      0086F5 85 94 81 6E 74 61 78  1277 err_syntax: .asciz "\nsyntax error\n" 
              20 65 72 72 6F 72 0A
              00
       0086F8 0A 6D 61 74 68 20 6F  1278 err_math_ovf: .asciz "\nmath operation overflow\n"
@@ -2877,117 +2878,117 @@ Hexadecimal  5D-Bits]
              6D 61 6E 64 20 6C 69
              6E 65 20 6F 6E 6C 79
              20 75 73 61 67 65 2E
-             0A 00 0A 64 75 70 6C
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 26.
-Hexadecimal  69-Bits]
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 25.
+Hexadecimal  0A-Bits]
 
 
 
+             6E 27 74 20 62 65 20
              72 75 6E 20 66 72 6F
              6D 20 74 68 65 72 65
              2E 0A 00
                                    1287 
-      0087A6 63 61 74 65 20 6E 61  1288 rt_msg: .asciz "last token id: "
-             6D 65 2E 0A 00 0A 46
-             69 6C
+      00879F 00 0A 64 75 70 6C 69  1288 rt_msg: .asciz "last token id: "
+             63 61 74 65 20 6E 61
+             6D 65
                                    1289 
       000795                       1290 syntax_error:
-      0087B6 65 20            [ 1] 1291 	ld a,#ERR_SYNTAX 
+      0087AF 2E 0A            [ 1] 1291 	ld a,#ERR_SYNTAX 
                                    1292 
       000797                       1293 tb_error:
-      0087B8 6E 6F 74         [ 2] 1294 	ldw x, #err_msg 
-      0087BB 20 66 6F 75      [ 1] 1295 	clr acc16 
-      0087BF 6E               [ 1] 1296 	sll a
-      0087C0 64 2E 0A 00      [ 1] 1297 	rlc acc16  
-      0087C4 0A 62 61         [ 1] 1298 	ld acc8, a 
-      0087C7 64 20 76 61      [ 2] 1299 	addw x,acc16 
-      0087CB 6C               [ 2] 1300 	ldw x,(x)
-      0087CC 75 65 2E         [ 4] 1301 	call puts
-      0087CF 0A 00 0A 46 69   [ 2] 1302 	btjf flags,#FCOMP, 1$
-      0087D4 6C 65 20         [ 2] 1303 	ldw x,#tib
-      0087D7 69 6E 20         [ 4] 1304 	call puts 
-      0087DA 65 78            [ 1] 1305 	ld a,#CR 
-      0087DC 74 65 6E         [ 4] 1306 	call putc
-      0087DF 64 65 64         [ 2] 1307 	ldw x,in.w
-      0087E2 20 6D 65         [ 4] 1308 	call spaces
-      0087E5 6D 6F            [ 1] 1309 	ld a,#'^
-      0087E7 72 79 2C         [ 4] 1310 	call putc 
-      0087EA 20 63            [ 2] 1311 	jra 6$
-      0087EC 61 6E 27         [ 2] 1312 1$:	ldw x,basicptr
-      0087EF 74 20 62         [ 4] 1313 	call prt_basic_line
-      0087F2 65 20 72         [ 2] 1314 	ldw x,#rt_msg 
-      0087F5 75 6E 20         [ 4] 1315 	call puts 
-      0087F8 66               [ 1] 1316 	clrw x 
-      0087F9 72 6F 6D         [ 1] 1317 	ld a,in.saved 
-      0087FC 20               [ 1] 1318 	ld xl,a 
-      0087FD 74 68 65 72      [ 4] 1319 	ld a,([basicptr],x)
-      008801 65               [ 1] 1320 	clrw x 
-      008802 2E               [ 1] 1321 	ld xl,a 
-      008803 0A 00 6C         [ 4] 1322 	call print_int 
-      008806 61 73 74         [ 2] 1323 6$: ldw x,#STACK_EMPTY 
-      008809 20               [ 1] 1324     ldw sp,x
+      0087B1 00 0A 46         [ 2] 1294 	ldw x, #err_msg 
+      0087B4 69 6C 65 20      [ 1] 1295 	clr acc16 
+      0087B8 6E               [ 1] 1296 	sll a
+      0087B9 6F 74 20 66      [ 1] 1297 	rlc acc16  
+      0087BD 6F 75 6E         [ 1] 1298 	ld acc8, a 
+      0087C0 64 2E 0A 00      [ 2] 1299 	addw x,acc16 
+      0087C4 0A               [ 2] 1300 	ldw x,(x)
+      0087C5 62 61 64         [ 4] 1301 	call puts
+      0087C8 20 76 61 6C 75   [ 2] 1302 	btjf flags,#FCOMP, 1$
+      0087CD 65 2E 0A         [ 2] 1303 	ldw x,#tib
+      0087D0 00 0A 46         [ 4] 1304 	call puts 
+      0087D3 69 6C            [ 1] 1305 	ld a,#CR 
+      0087D5 65 20 69         [ 4] 1306 	call putc
+      0087D8 6E 20 65         [ 2] 1307 	ldw x,in.w
+      0087DB 78 74 65         [ 4] 1308 	call spaces
+      0087DE 6E 64            [ 1] 1309 	ld a,#'^
+      0087E0 65 64 20         [ 4] 1310 	call putc 
+      0087E3 6D 65            [ 2] 1311 	jra 6$
+      0087E5 6D 6F 72         [ 2] 1312 1$:	ldw x,basicptr
+      0087E8 79 2C 20         [ 4] 1313 	call prt_basic_line
+      0087EB 63 61 6E         [ 2] 1314 	ldw x,#rt_msg 
+      0087EE 27 74 20         [ 4] 1315 	call puts 
+      0087F1 62               [ 1] 1316 	clrw x 
+      0087F2 65 20 72         [ 1] 1317 	ld a,in.saved 
+      0087F5 75               [ 1] 1318 	ld xl,a 
+      0087F6 6E 20 66 72      [ 4] 1319 	ld a,([basicptr],x)
+      0087FA 6F               [ 1] 1320 	clrw x 
+      0087FB 6D               [ 1] 1321 	ld xl,a 
+      0087FC 20 74 68         [ 4] 1322 	call print_int 
+      0087FF 65 72 65         [ 2] 1323 6$: ldw x,#STACK_EMPTY 
+      008802 2E               [ 1] 1324     ldw sp,x
       0007E9                       1325 warm_start:
-      00880A 74 6F 6B         [ 4] 1326 	call warm_init
+      008803 0A 00 6C         [ 4] 1326 	call warm_init
                                    1327 ;----------------------------
                                    1328 ;   BASIC interpreter
                                    1329 ;----------------------------
       0007EC                       1330 interp:
-      00880D 65 6E 20 69      [ 1] 1331 	clr in.w
-      008811 64 3A 20 00 23   [ 2] 1332 	btjf flags,#FRUN,4$ 
+      008806 61 73 74 20      [ 1] 1331 	clr in.w
+      00880A 74 6F 6B 65 6E   [ 2] 1332 	btjf flags,#FRUN,4$ 
                                    1333 ; running program
                                    1334 ; goto next basic line 
-      008815 CE 00 04         [ 2] 1335 	ldw x,basicptr
-      008815 A6 02            [ 1] 1336 	ld a,(2,x) ; line length 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 27.
+      00880F 20 69 64         [ 2] 1335 	ldw x,basicptr
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 26.
 Hexadecimal [24-Bits]
 
 
 
-      008817 C7 00 09         [ 1] 1337 	ld acc8,a 
-      008817 AE 86 F8 72      [ 1] 1338 	clr acc16 
-      00881B 5F 00 09 48      [ 2] 1339 	addw x,acc16
-      00881F 72 59 00         [ 2] 1340 	cpw x,txtend 
-      008822 09 C7            [ 1] 1341 	jrpl warm_start
-      008824 00 0A 72         [ 2] 1342 	ldw basicptr,x ; start of next line  
-      008827 BB 00            [ 1] 1343 	ld a,(2,x)
-      008829 09 FE CD         [ 1] 1344 	ld count,a 
-      00882C 82 5D 72 0B      [ 1] 1345 	mov in,#3 ; skip first 3 bytes of line 
-      008830 00 22            [ 2] 1346 	jra interp_loop 
+      008812 3A 20            [ 1] 1336 	ld a,(2,x) ; line length 
+      008814 00 00 09         [ 1] 1337 	ld acc8,a 
+      008815 72 5F 00 08      [ 1] 1338 	clr acc16 
+      008815 A6 02 00 08      [ 2] 1339 	addw x,acc16
+      008817 C3 00 1C         [ 2] 1340 	cpw x,txtend 
+      008817 AE 86            [ 1] 1341 	jrpl warm_start
+      008819 F8 72 5F         [ 2] 1342 	ldw basicptr,x ; start of next line  
+      00881C 00 09            [ 1] 1343 	ld a,(2,x)
+      00881E 48 72 59         [ 1] 1344 	ld count,a 
+      008821 00 09 C7 00      [ 1] 1345 	mov in,#3 ; skip first 3 bytes of line 
+      008825 0A 72            [ 2] 1346 	jra interp_loop 
       000818                       1347 4$: ; commande line mode 	
-      008832 18 AE 16 C8      [ 1] 1348 	clr in
-      008836 CD 82            [ 1] 1349 	ld a,#CR 
-      008838 5D A6 0D         [ 4] 1350 	call putc 
-      00883B CD 82            [ 1] 1351 	ld a,#'> 
-      00883D 4B CE 00         [ 4] 1352 	call putc 
-      008840 01 CD 82         [ 4] 1353 	call readln
-      008843 85 A6 5E         [ 4] 1354 	call compile
+      008827 BB 00 09 FE      [ 1] 1348 	clr in
+      00882B CD 82            [ 1] 1349 	ld a,#CR 
+      00882D 5D 72 0B         [ 4] 1350 	call putc 
+      008830 00 22            [ 1] 1351 	ld a,#'> 
+      008832 18 AE 16         [ 4] 1352 	call putc 
+      008835 C8 CD 82         [ 4] 1353 	call readln
+      008838 5D A6 0D         [ 4] 1354 	call compile
       00082C                       1355 interp_loop:  
-      008846 CD 82 4B         [ 1] 1356 	ld a,in 
-      008849 20 1A CE         [ 1] 1357 	cp a,count  
-      00884C 00 05            [ 1] 1358 	jrpl interp
-      00884E CD 95 7B         [ 4] 1359 	call next_token
-      008851 AE 88            [ 1] 1360 	cp a,#TK_COLON 
-      008853 05 CD            [ 1] 1361 	jreq interp_loop 
-      008855 82 5D            [ 1] 1362 	cp a,#TK_NONE 
+      00883B CD 82 4B         [ 1] 1356 	ld a,in 
+      00883E CE 00 01         [ 1] 1357 	cp a,count  
+      008841 CD 82            [ 1] 1358 	jrpl interp
+      008843 85 A6 5E         [ 4] 1359 	call next_token
+      008846 CD 82            [ 1] 1360 	cp a,#TK_COLON 
+      008848 4B 20            [ 1] 1361 	jreq interp_loop 
+      00884A 1A CE            [ 1] 1362 	cp a,#TK_NONE 
                                    1363 ;	jreq interp 
       00083D                       1364 1$:
-      008857 5F C6            [ 1] 1365 	cp a,#TK_VAR
-      008859 00 03            [ 1] 1366 	jrne 2$
-      00885B 97 72 D6         [ 4] 1367 	call let02  
-      00885E 00 05            [ 2] 1368 	jra interp_loop 
+      00884C 00 05            [ 1] 1365 	cp a,#TK_VAR
+      00884E CD 95            [ 1] 1366 	jrne 2$
+      008850 7B AE 88         [ 4] 1367 	call let02  
+      008853 05 CD            [ 2] 1368 	jra interp_loop 
       000846                       1369 2$:	
-      008860 5F 97            [ 1] 1370 	cp a,#TK_ARRAY 
-      008862 CD 8A            [ 1] 1371 	jrne 3$
-      008864 75 AE 17         [ 4] 1372 	call get_array_element
-      008867 FF 94 0A         [ 4] 1373 	call let02 
-      008869 20 DA            [ 2] 1374 	jra interp_loop 
+      008855 82 5D            [ 1] 1370 	cp a,#TK_ARRAY 
+      008857 5F C6            [ 1] 1371 	jrne 3$
+      008859 00 03 97         [ 4] 1372 	call get_array_element
+      00885C 72 D6 00         [ 4] 1373 	call let02 
+      00885F 05 5F            [ 2] 1374 	jra interp_loop 
       000852                       1375 3$:
-      008869 CD 86            [ 1] 1376 	cp a,#TK_CMD
-      00886B 91 03            [ 1] 1377 	jrne 4$
-      00886C FD               [ 4] 1378 	call (x) 
-      00886C 72 5F            [ 2] 1379 	jra interp_loop 
+      008861 97 CD            [ 1] 1376 	cp a,#TK_CMD
+      008863 8A 75            [ 1] 1377 	jrne 4$
+      008865 AE               [ 4] 1378 	call (x) 
+      008866 17 FF            [ 2] 1379 	jra interp_loop 
       000859                       1380 4$:	
-      00886E 00 01 72         [ 2] 1381 	jp syntax_error 
+      008868 94 07 95         [ 2] 1381 	jp syntax_error 
                                    1382 
                                    1383 ;--------------------------
                                    1384 ; extract next token from
@@ -2997,38 +2998,38 @@ Hexadecimal [24-Bits]
                                    1388 ; output:
                                    1389 ;   A 		token attribute
                                    1390 ;   X 		token value if there is one
-                                   1391 ;----------------------------------------
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 28.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 27.
 Hexadecimal [24-Bits]
 
 
 
-      00085C                       1392 next_token:
-      008871 01 00 22         [ 1] 1393 	ld a,in 
-      008874 23 CE 00         [ 1] 1394 	sub a,count 
-      008877 05 E6            [ 1] 1395 	jreq 9$
-      008879 02 C7 00 0A 72   [ 1] 1396 	mov in.saved,in
-      00887E 5F 00 09         [ 2] 1397 	ldw x,basicptr 
-      008881 72 BB 00 09      [ 4] 1398 	ld a,([in.w],x)
-      008885 C3 00 1D 2A      [ 1] 1399 	inc in 
-      008889 DF CF            [ 1] 1400 	cp a,#TK_ARRAY  
-      00888B 00 05            [ 2] 1401 	jrule 9$
-      00888D E6 02            [ 1] 1402 	cp a,#TK_CHAR
-      00888F C7 00            [ 1] 1403 	jrne 1$
-      008891 04 35 03 00      [ 4] 1404 	ld a,([in.w],x)
-      008895 02 20 14 01      [ 1] 1405 	inc in
-      008898 5F               [ 1] 1406 	clrw x 
-      008898 72               [ 1] 1407 	ld xl,a 
-      008899 5F 00            [ 1] 1408 	ld a,#TK_CHAR
-      00889B 02               [ 4] 1409 	ret 
-      00889C A6 0D            [ 1] 1410 1$:	cp a,#TK_QSTR 
-      00889E CD 82            [ 1] 1411 	jrult 2$
-      0088A0 4B A6 3E CD      [ 2] 1412 	addw x,in.w 
-      0088A4 82 4B            [ 2] 1413 	jra 9$
-      0088A6 CD 8B 63 CD      [ 5] 1414 2$: ldw x,([in.w],x)
-      0088AA 84 99 00 01      [ 1] 1415 	inc in 
-      0088AC 72 5C 00 01      [ 1] 1416 	inc in
-      0088AC C6               [ 4] 1417 9$: ret	
+                                   1391 ;----------------------------------------
+      008869                       1392 next_token:
+      008869 CD 86 91         [ 1] 1393 	ld a,in 
+      00886C C0 00 03         [ 1] 1394 	sub a,count 
+      00886C 72 5F            [ 1] 1395 	jreq 9$
+      00886E 00 01 72 01 00   [ 1] 1396 	mov in.saved,in
+      008873 22 23 CE         [ 2] 1397 	ldw x,basicptr 
+      008876 00 05 E6 02      [ 4] 1398 	ld a,([in.w],x)
+      00887A C7 00 0A 72      [ 1] 1399 	inc in 
+      00887E 5F 00            [ 1] 1400 	cp a,#TK_ARRAY  
+      008880 09 72            [ 2] 1401 	jrule 9$
+      008882 BB 00            [ 1] 1402 	cp a,#TK_CHAR
+      008884 09 C3            [ 1] 1403 	jrne 1$
+      008886 00 1D 2A DF      [ 4] 1404 	ld a,([in.w],x)
+      00888A CF 00 05 E6      [ 1] 1405 	inc in
+      00888E 02               [ 1] 1406 	clrw x 
+      00888F C7               [ 1] 1407 	ld xl,a 
+      008890 00 04            [ 1] 1408 	ld a,#TK_CHAR
+      008892 35               [ 4] 1409 	ret 
+      008893 03 00            [ 1] 1410 1$:	cp a,#TK_QSTR 
+      008895 02 20            [ 1] 1411 	jrult 2$
+      008897 14 BB 00 00      [ 2] 1412 	addw x,in.w 
+      008898 20 0C            [ 2] 1413 	jra 9$
+      008898 72 5F 00 02      [ 5] 1414 2$: ldw x,([in.w],x)
+      00889C A6 0D CD 82      [ 1] 1415 	inc in 
+      0088A0 4B A6 3E CD      [ 1] 1416 	inc in
+      0088A4 82               [ 4] 1417 9$: ret	
                                    1418 
                                    1419 
                                    1420 ;----------------------------------------
@@ -3037,32 +3038,32 @@ Hexadecimal [24-Bits]
                            000001  1423 .if DEBUG 
                                    1424 ; turn LED on 
       0008A0                       1425 ledon:
-      0088AD 00 02 C1 00      [ 1] 1426     bset PC_ODR,#LED2_BIT
-      0088B1 04               [ 4] 1427     ret 
+      0088A5 4B CD 8B 63      [ 1] 1426     bset PC_ODR,#LED2_BIT
+      0088A9 CD               [ 4] 1427     ret 
                                    1428 
                                    1429 ; turn LED off 
       0008A5                       1430 ledoff:
-      0088B2 2A B8 CD 88      [ 1] 1431     bres PC_ODR,#LED2_BIT 
-      0088B6 DC               [ 4] 1432     ret 
+      0088AA 84 99 50 0A      [ 1] 1431     bres PC_ODR,#LED2_BIT 
+      0088AC 81               [ 4] 1432     ret 
                                    1433 
                                    1434 ; invert LED status 
       0008AA                       1435 ledtoggle:
-      0088B7 A1 01            [ 1] 1436     ld a,#LED2_MASK
-      0088B9 27 F1 A1         [ 1] 1437     xor a,PC_ODR
-      0088BC 00 50 0A         [ 1] 1438     ld PC_ODR,a
-      0088BD 81               [ 4] 1439     ret 
+      0088AC C6 00            [ 1] 1436     ld a,#LED2_MASK
+      0088AE 02 C1 00         [ 1] 1437     xor a,PC_ODR
+      0088B1 04 2A B8         [ 1] 1438     ld PC_ODR,a
+      0088B4 CD               [ 4] 1439     ret 
                                    1440 
       0008B3                       1441 left_paren:
-      0088BD A1 05            [ 1] 1442 	ld a,#SPACE 
-      0088BF 26 05 CD         [ 4] 1443 	call putc
-      0088C2 94 8A            [ 1] 1444 	ld a,#'( 
-      0088C4 20 E6 CB         [ 4] 1445 	call putc 	
-      0088C6 81               [ 4] 1446 	ret 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 29.
+      0088B5 88 DC            [ 1] 1442 	ld a,#SPACE 
+      0088B7 A1 01 27         [ 4] 1443 	call putc
+      0088BA F1 A1            [ 1] 1444 	ld a,#'( 
+      0088BC 00 01 CB         [ 4] 1445 	call putc 	
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 28.
 Hexadecimal [24-Bits]
 
 
 
+      0088BD 81               [ 4] 1446 	ret 
                                    1447 
                                    1448 ;------------------------------
                                    1449 ; print 8 bit register 
@@ -3073,22 +3074,22 @@ Hexadecimal [24-Bits]
                                    1454 ;   none
                                    1455 ;------------------------------- 
       0008BE                       1456 prt_reg8:
-      0088C6 A1               [ 1] 1457 	push a 
-      0088C7 02 26 08         [ 4] 1458 	call puts 
-      0088CA CD 92            [ 1] 1459 	ld a,(1,sp) 
-      0088CC CF CD 94         [ 1] 1460 	ld acc8,a 
-      0088CF 8A               [ 1] 1461 	clrw x 
-      0088D0 20               [ 1] 1462 	ld xl,a 
-      0088D1 DA 10 00 06      [ 1] 1463 	mov base,#16
-      0088D2 CD 09 F5         [ 4] 1464 	call print_int 
-      0088D2 A1 06 26         [ 4] 1465 	call left_paren 
-      0088D5 03               [ 1] 1466 	pop a 
-      0088D6 FD               [ 1] 1467 	clrw x 
-      0088D7 20               [ 1] 1468 	ld xl,a 
-      0088D8 D3 0A 00 06      [ 1] 1469 	mov base,#10 
-      0088D9 CD 09 F5         [ 4] 1470 	call print_int  
-      0088D9 CC 88            [ 1] 1471 	ld a,#') 
-      0088DB 15 01 CB         [ 4] 1472 	call putc
+      0088BD A1               [ 1] 1457 	push a 
+      0088BE 05 26 05         [ 4] 1458 	call puts 
+      0088C1 CD 94            [ 1] 1459 	ld a,(1,sp) 
+      0088C3 8A 20 E6         [ 1] 1460 	ld acc8,a 
+      0088C6 5F               [ 1] 1461 	clrw x 
+      0088C6 A1               [ 1] 1462 	ld xl,a 
+      0088C7 02 26 08 CD      [ 1] 1463 	mov base,#16
+      0088CB 92 CF CD         [ 4] 1464 	call print_int 
+      0088CE 94 8A 20         [ 4] 1465 	call left_paren 
+      0088D1 DA               [ 1] 1466 	pop a 
+      0088D2 5F               [ 1] 1467 	clrw x 
+      0088D2 A1               [ 1] 1468 	ld xl,a 
+      0088D3 06 26 03 FD      [ 1] 1469 	mov base,#10 
+      0088D7 20 D3 F5         [ 4] 1470 	call print_int  
+      0088D9 A6 29            [ 1] 1471 	ld a,#') 
+      0088D9 CC 88 15         [ 4] 1472 	call putc
       0088DC 81               [ 4] 1473 	ret
                                    1474 
                                    1475 ;--------------------------------
@@ -3117,12 +3118,12 @@ Hexadecimal [24-Bits]
                                    1498 ; print registers contents saved on
                                    1499 ; stack by trap interrupt.
                                    1500 ;------------------------------------
-      000902                       1501 print_registers:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 30.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 29.
 Hexadecimal [24-Bits]
 
 
 
+      000902                       1501 print_registers:
       0088FB 0D 72 D6         [ 2] 1502 	ldw x,#STATES
       0088FE 00 01 72         [ 4] 1503 	call puts
                                    1504 ; print EPC 
@@ -3177,12 +3178,12 @@ Hexadecimal [24-Bits]
       00896B 10 00 07 CD           1545 REG_A:   .asciz "\nA:" 
       00896F 8A 75 CD 89 33        1546 REG_CC:  .asciz "\nCC:"
       008974 85 35 0A 00 07        1547 REG_SP:  .asciz "\nSP:"
-                                   1548 .endif ; DEBUG 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 31.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 30.
 Hexadecimal [24-Bits]
 
 
 
+                                   1548 .endif ; DEBUG 
                                    1549 
                                    1550 ;------------------------------------
                                    1551 ; print integer in acc24 
@@ -3237,12 +3238,12 @@ Hexadecimal [24-Bits]
       0089B8 CD 89 3E         [ 4] 1599 	call putc 
       0009F2                       1600 5$: _drop VSIZE 
       0089BB AE 8A            [ 2]    1     addw sp,#VSIZE 
-      0089BD 23               [ 4] 1601     ret	
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 32.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 31.
 Hexadecimal [24-Bits]
 
 
 
+      0089BD 23               [ 4] 1601     ret	
                                    1602 
                                    1603 ;-----------------------------------
                                    1604 ; print a 16 bit integer 
@@ -3297,12 +3298,12 @@ Hexadecimal [24-Bits]
       008A02 2D 2D 2D         [ 2] 1652 	subw x,#pad+PAD_SIZE-1 
       008A05 2D               [ 2] 1653 	negw x  
       000A3D                       1654 10$:
-      008A06 2D 2D            [ 2] 1655 	decw y 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 33.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 32.
 Hexadecimal [24-Bits]
 
 
 
+      008A06 2D 2D            [ 2] 1655 	decw y 
       008A08 2D 2D            [ 1] 1656 	ld a,#SPACE 
       008A0A 2D 2D            [ 1] 1657 	ld (y),a
       008A0C 2D               [ 2] 1658 	incw x 
@@ -3357,12 +3358,12 @@ Hexadecimal [24-Bits]
       008A49 0A 89            [ 1] 1706     jrne itoa_loop
                                    1707 	;conversion done, next add '$' or '-' as required
       008A4B CD 83            [ 1] 1708 	ld a,(BASE,sp)
-      008A4D 1F 9F            [ 1] 1709 	cp a,#16
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 34.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 33.
 Hexadecimal [24-Bits]
 
 
 
+      008A4D 1F 9F            [ 1] 1709 	cp a,#16
       008A4F 85 31            [ 1] 1710 	jreq 8$
       008A51 00 0A            [ 1] 1711 	ld a,(SIGN,sp)
       008A53 C0 00            [ 1] 1712     jreq 10$
@@ -3417,12 +3418,12 @@ Hexadecimal [24-Bits]
       008A81 07               [ 4] 1761 	ret
                                    1762 
                                    1763 ;------------------------------------
-                                   1764 ;  two's complement acc24
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 35.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 34.
 Hexadecimal [24-Bits]
 
 
 
+                                   1764 ;  two's complement acc24
                                    1765 ;  input:
                                    1766 ;		acc24 variable
                                    1767 ;  output:
@@ -3477,12 +3478,12 @@ Hexadecimal [24-Bits]
       008ABA 17 3F            [ 1] 1816 	jreq del_ln
       008ABC 50 12            [ 1] 1817 	cp a,#CTRL_R 
       008ABD 27 06            [ 1] 1818 	jreq reprint 
-                                   1819 ;	cp a,#'[
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 36.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 35.
 Hexadecimal [24-Bits]
 
 
 
+                                   1819 ;	cp a,#'[
                                    1820 ;	jreq ansi_seq
       000B05                       1821 final_test:
       008ABD 90 5A            [ 1] 1822 	cp a,#SPACE
@@ -3537,12 +3538,12 @@ Hexadecimal [24-Bits]
       008AFC 00 09            [ 1] 1871 	jreq readln_loop
       008AFE CA 00            [ 1] 1872 	ld a,(RXCHAR,sp)
       008B00 0A 26            [ 1] 1873 	ld (y),a
-      008B02 E6 7B            [ 1] 1874 	inc (LL,sp)
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 37.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 36.
 Hexadecimal [24-Bits]
 
 
 
+      008B02 E6 7B            [ 1] 1874 	inc (LL,sp)
       008B04 02 A1            [ 2] 1875 	incw y
       008B06 10 27            [ 1] 1876 	clr (y)
       008B08 08 7B 01         [ 4] 1877 	call putc 
@@ -3597,12 +3598,12 @@ Hexadecimal [24-Bits]
       008B59 00               [ 4] 1924 	ret  
       000BB2                       1925 invalid:
       008B5A 09 4F C9         [ 2] 1926 	ldw x,#invalid_cmd 
-      008B5D 00 08 C7         [ 4] 1927 	call puts 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 38.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 37.
 Hexadecimal [24-Bits]
 
 
 
+      008B5D 00 08 C7         [ 4] 1927 	call puts 
       008B60 00 08            [ 2] 1928 	jra repl 
       000BBA                       1929 test_p:	
       008B62 81 50            [ 1] 1930     cp a,#'P 
@@ -3657,12 +3658,12 @@ Hexadecimal [24-Bits]
       008BB6 0F 02 20         [ 1] 1979 	ld farptr,a 
       008BB9 AF 0B 7B         [ 2] 1980 	jp repl  
                                    1981 
-      008BBA 6E 6F 74 20 61 20 63  1982 invalid_cmd: .asciz "not a command\n" 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 39.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 38.
 Hexadecimal [24-Bits]
 
 
 
+      008BBA 6E 6F 74 20 61 20 63  1982 invalid_cmd: .asciz "not a command\n" 
              6F 6D 6D 61 6E 64 0A
              00
                                    1983 
@@ -3717,12 +3718,12 @@ Hexadecimal [24-Bits]
                                    2032 ;   Y 	pointer to tib 
                                    2033 ;   X   pointer to pad
                                    2034 ; output:
-                                   2035 ;	pad   parsed string
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 40.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 39.
 Hexadecimal [24-Bits]
 
 
 
+                                   2035 ;	pad   parsed string
                                    2036 ;   TOS  char* to pad  
                                    2037 ;------------------------------------
                            000001  2038 	PREV = 1
@@ -3777,12 +3778,12 @@ Hexadecimal [24-Bits]
       008C17 E3 72 5C         [ 2] 2085 	ldw x,#escaped 
       008C1A 00               [ 1] 2086 1$:	cp a,(x)
       008C1B 02 CD            [ 1] 2087 	jreq 2$
-      008C1D 8F               [ 1] 2088 	tnz (x)
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 41.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 40.
 Hexadecimal [24-Bits]
 
 
 
+      008C1D 8F               [ 1] 2088 	tnz (x)
       008C1E 9D A1            [ 1] 2089 	jreq 3$
       008C20 51               [ 2] 2090 	incw x 
       008C21 26 17            [ 2] 2091 	jra 1$
@@ -3837,12 +3838,12 @@ Hexadecimal [24-Bits]
       008C5B CD 83 3D         [ 2] 2139 	ldw x,acc16 
       008C5E CD 8F            [ 1] 2140 	ld a,#TK_INTGR
       000CF7                       2141 	_drop VSIZE  
-      008C60 A9 C6            [ 2]    1     addw sp,#VSIZE 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 42.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 41.
 Hexadecimal [24-Bits]
 
 
 
+      008C60 A9 C6            [ 2]    1     addw sp,#VSIZE 
       008C62 00               [ 4] 2142 	ret 	
                                    2143 
                                    2144 ;-------------------------
@@ -3897,12 +3898,12 @@ Hexadecimal [24-Bits]
                                    2192 ;   pad 	keyword|var_name  
                                    2193 ;   TOS     exec_addr|var_addr 
                                    2194 ;--------------------------  
-      000D22                       2195 parse_keyword: ; { -- exec_addr|var_addr}
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 43.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 42.
 Hexadecimal [24-Bits]
 
 
 
+      000D22                       2195 parse_keyword: ; { -- exec_addr|var_addr}
       008C89 5F CF 00         [ 4] 2196 	call to_upper 
       008C8C 08               [ 1] 2197 	ld (x),a 
       008C8D A6               [ 2] 2198 	incw x 
@@ -3957,12 +3958,12 @@ Hexadecimal [24-Bits]
                                    2245 	jrne t
                                    2246 	.endm 
                                    2247 
-                           000001  2248 	TCHAR=1
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 44.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 43.
 Hexadecimal [24-Bits]
 
 
 
+                           000001  2248 	TCHAR=1
                            000002  2249 	ATTRIB=2 
                            000002  2250 	VSIZE=2
       000D5C                       2251 get_token: 
@@ -4017,12 +4018,12 @@ Hexadecimal [24-Bits]
       000DC1                       2293 bkslsh_tst:
       000DC1                       2294 	_case '\',rparnt_tst
       008D15 72 5C            [ 1]    1 	ld a,#'\' 
-      008D17 00 02            [ 1]    2 	cp a,(TCHAR,sp) 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 45.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 44.
 Hexadecimal [24-Bits]
 
 
 
+      008D17 00 02            [ 1]    2 	cp a,(TCHAR,sp) 
       008D19 7F AE            [ 1]    3 	jrne rparnt_tst
       008D1B 17 18            [ 1] 2295 	ld a,(TCHAR,sp)
       008D1D 5B               [ 1] 2296 	ld (x),a 
@@ -4077,12 +4078,12 @@ Hexadecimal [24-Bits]
       008D65 02 A1            [ 1]    2 	cp a,(TCHAR,sp) 
       008D67 41 2B            [ 1]    3 	jrne qmark_tst
       008D69 04 A1            [ 1] 2329 	ld a,#TK_ARRAY 
-      008D6B 47 2B DD         [ 2] 2330 	jp token_char
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 46.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 45.
 Hexadecimal [24-Bits]
 
 
 
+      008D6B 47 2B DD         [ 2] 2330 	jp token_char
       000E21                       2331 qmark_tst:
       000E21                       2332 	_case '?' tick_tst 
       008D6E 7F CD            [ 1]    1 	ld a,#'?' 
@@ -4137,12 +4138,12 @@ Hexadecimal [24-Bits]
       000E76                       2364 eql_tst:
       000E76                       2365 	_case '=' gt_tst 		
       008DB8 26 15            [ 1]    1 	ld a,#'=' 
-      008DBA C6 17            [ 1]    2 	cp a,(TCHAR,sp) 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 47.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 46.
 Hexadecimal [24-Bits]
 
 
 
+      008DBA C6 17            [ 1]    2 	cp a,(TCHAR,sp) 
       008DBC 18 A0            [ 1]    3 	jrne gt_tst
       008DBE 41 48            [ 1] 2366 	ld a,#TK_EQUAL
       008DC0 88 4B 00         [ 2] 2367 	jp token_char 
@@ -4156,7 +4157,7 @@ Hexadecimal [24-Bits]
       008DCD 20 0C 00 01      [ 1] 2372 	inc in 
       008DCF 91 D6 00         [ 4] 2373 	ld a,([in.w],y)
       008DCF AE A5            [ 1] 2374 	cp a,#'=
-      008DD1 00 CD            [ 1] 2375 	jrne 1$
+      008DD1 90 CD            [ 1] 2375 	jrne 1$
       008DD3 92 39            [ 1] 2376 	ld a,(TCHAR,sp)
       008DD5 4D               [ 1] 2377 	ld (x),a
       008DD6 26               [ 2] 2378 	incw x 
@@ -4197,12 +4198,12 @@ Hexadecimal [24-Bits]
       008E0C 22 11            [ 1] 2410 	jrne 2$
       008E0E 01 26            [ 1] 2411 	ld a,(TCHAR,sp)
       008E10 06               [ 1] 2412 	ld (x),a 
-      008E11 CD               [ 2] 2413 	incw x 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 48.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 47.
 Hexadecimal [24-Bits]
 
 
 
+      008E11 CD               [ 2] 2413 	incw x 
       008E12 8C E7            [ 1] 2414 	ld a,#'>
       008E14 CC 8F            [ 1] 2415 	ld (TCHAR,sp),a 
       008E16 91 35            [ 1] 2416 	ld a,#TK_NE 
@@ -4257,12 +4258,12 @@ Hexadecimal [24-Bits]
                                    2464 ;    a  uppercase character
                                    2465 ;------------------------------------
       000F1D                       2466 to_upper::
-      008E43 11 01            [ 1] 2467 	cp a,#'a
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 49.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 48.
 Hexadecimal [24-Bits]
 
 
 
+      008E43 11 01            [ 1] 2467 	cp a,#'a
       008E45 26 18            [ 1] 2468 	jrpl 1$
       008E47 7B               [ 4] 2469 0$:	ret
       008E48 01 F7            [ 1] 2470 1$: cp a,#'z	
@@ -4317,12 +4318,12 @@ Hexadecimal [24-Bits]
       008E80 A6 23            [ 1] 2519 	cp a,#10
       008E82 11 01            [ 1] 2520 	jrmi 5$
       008E84 26 05            [ 1] 2521 	sub a,#7
-      008E86 A6 0E            [ 1] 2522 	cp a,(BASE,sp)
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 50.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 49.
 Hexadecimal [24-Bits]
 
 
 
+      008E86 A6 0E            [ 1] 2522 	cp a,(BASE,sp)
       008E88 CC 8F            [ 1] 2523 	jrpl 9$
       008E8A 81 03            [ 1] 2524 5$:	ld (TEMP,sp),a
       008E8B 7B 02            [ 1] 2525 	ld a,(BASE,sp)
@@ -4377,12 +4378,12 @@ Hexadecimal [24-Bits]
                                    2574 ; multipy middle byte
       008EBB 01 26 0C         [ 1] 2575 	ld a,acc24+1
       008EBE 72               [ 1] 2576 	ld xl,a
-      008EBF 5C 00            [ 1] 2577 	ld a, (U8,sp)
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 51.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 50.
 Hexadecimal [24-Bits]
 
 
 
+      008EBF 5C 00            [ 1] 2577 	ld a, (U8,sp)
       008EC1 02               [ 4] 2578 	mul x,a
                                    2579 ; add overflow to this partial product
       008EC2 A6 06 AE         [ 2] 2580 	addw x,(OVFH,sp)
@@ -4437,12 +4438,12 @@ Hexadecimal [24-Bits]
                                    2628 
                                    2629 
                                    2630 ;******************************
-                                   2631 ;  data stack manipulation
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 52.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 51.
 Hexadecimal [24-Bits]
 
 
 
+                                   2631 ;  data stack manipulation
                                    2632 ;*****************************
                                    2633 ;----------------------	
                                    2634 ; push X on data stack 
@@ -4497,12 +4498,12 @@ Hexadecimal [24-Bits]
       008F20 20 5F A1 3C      [ 1]    2     inc dstkptr+1
       008F24 26               [ 4] 2678 	ret
                                    2679 	
-                                   2680 ;-----------------------------
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 53.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 52.
 Hexadecimal [24-Bits]
 
 
 
+                                   2680 ;-----------------------------
                                    2681 ; duplicate TOS 
                                    2682 ;  dstack: { ix...n -- ix...n n }
                                    2683 ;-----------------------------
@@ -4557,12 +4558,12 @@ Hexadecimal [24-Bits]
                                    2730 ;   none 
                                    2731 ;-------------------------------------
       00105F                       2732 ddrop_n:
-      008F58 20 27            [ 2] 2733 	pushw y 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 54.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 53.
 Hexadecimal [24-Bits]
 
 
 
+      008F58 20 27            [ 2] 2733 	pushw y 
       008F5A A1 3E 26 0C      [ 2] 2734 	ldw y,dstkptr 
       008F5E 7B               [ 2] 2735 	sllw x 
       008F5F 01               [ 2] 2736 	pushw x 
@@ -4617,12 +4618,12 @@ Hexadecimal [24-Bits]
       008FA6 A0 20 81         [ 2] 2780 	addw x,#7 ; ignore XSAVE and 2 levels of return address.
       008FA9 1F 01            [ 2] 2781 	ldw (XSAVE,sp),x  
       008FA9 89 52 03         [ 2] 2782 	ldw x,#RAM_SIZE-2
-      008FAC 72 5F 00 08      [ 1] 2783 	mov base,#16
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 55.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 54.
 Hexadecimal [24-Bits]
 
 
 
+      008FAC 72 5F 00 08      [ 1] 2783 	mov base,#16
       0010C4                       2784 dotr_loop:
       008FB0 72 5F            [ 2] 2785 	cpw x,(XSAVE,sp)
       008FB2 00 09            [ 1] 2786 	jrmi 9$
@@ -4677,12 +4678,12 @@ Hexadecimal [24-Bits]
                            000005     1     N2=ARG_OFS+3 
       0010E4                       2829 substract:
       008FD0 08 A1            [ 2] 2830 	ldw x,(N2,sp)
-      008FD2 24 26 06         [ 2] 2831 	subw x,(N1,sp)
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 56.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 55.
 Hexadecimal [24-Bits]
 
 
 
+      008FD2 24 26 06         [ 2] 2831 	subw x,(N1,sp)
       008FD5 A6               [ 4] 2832 	ret 
                                    2833 
                                    2834 ;-------------------------------------
@@ -4737,12 +4738,12 @@ Hexadecimal [24-Bits]
                                    2877 	ld a,xh 
                                    2878 	bcp a,#0x80 
                                    2879 	jreq 4$ 
-                                   2880 	ld a,#ERR_MATH_OVF 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 57.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 56.
 Hexadecimal [24-Bits]
 
 
 
+                                   2880 	ld a,#ERR_MATH_OVF 
                                    2881 	jp tb_error
                                    2882 .endif 	 
       008FF6 90 1B            [ 2] 2883 4$:	ldw (PROD,sp),x
@@ -4797,12 +4798,12 @@ Hexadecimal [24-Bits]
                                    2931 ;    N1 	on cstack
                                    2932 ; output:
                                    2933 ;    X      n2/n1 
-                                   2934 ;    Y      remainder 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 58.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 57.
 Hexadecimal [24-Bits]
 
 
 
+                                   2934 ;    Y      remainder 
                                    2935 ;----------------------------------
       001132                       2936 	_argofs 2
                            000004     1     ARG_OFS=2+2 
@@ -4857,12 +4858,12 @@ Hexadecimal [24-Bits]
       001173                       2982 9$: 
       001173                       2983 	_drop VSIZE 
       009058 01 27            [ 2]    1     addw sp,#VSIZE 
-      00905A 0A               [ 4] 2984 	ret 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 59.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 58.
 Hexadecimal [24-Bits]
 
 
 
+      00905A 0A               [ 4] 2984 	ret 
                                    2985 
                                    2986 
                                    2987 ;----------------------------------
@@ -4917,12 +4918,12 @@ Hexadecimal [24-Bits]
       00907B 72               [ 2] 3033 	ldw x,(x) ; execution address 
       00907C CE 00            [ 2] 3034 	cpw x,(XADR,sp)
       00907E 19 72            [ 1] 3035 	jreq 2$
-      009080 5C 00            [ 2] 3036 	ldw x,(LINK,sp)
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 60.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 59.
 Hexadecimal [24-Bits]
 
 
 
+      009080 5C 00            [ 2] 3036 	ldw x,(LINK,sp)
       009082 1A               [ 2] 3037 	ldw x,(x) 
       009083 72 5C 00         [ 2] 3038 	subw x,#2  
       009086 1A 81            [ 1] 3039 	jrne 1$
@@ -4977,12 +4978,12 @@ Hexadecimal [24-Bits]
                                    3086 ;try next 
       0090BC 20 D2            [ 2] 3087 	jra search_next
       0011EB                       3088 str_match:
-      0090BC 72 CE            [ 2] 3089 	ldw y,(YSAVE,sp)
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 61.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 60.
 Hexadecimal [24-Bits]
 
 
 
+      0090BC 72 CE            [ 2] 3089 	ldw y,(YSAVE,sp)
       0090BE 00 19            [ 1] 3090 	ld a,(y)
       0090C0 58 72            [ 1] 3091 	ld (NLEN,sp),a ; needed to test keyword type  
       0090C2 BB 00            [ 1] 3092 	and a,#0xf 
@@ -5037,12 +5038,12 @@ Hexadecimal [24-Bits]
       00121B                       3140 arg_list:
       0090E4 19 58            [ 1] 3141 	push #0  
       0090E6 89 72 F9         [ 4] 3142 1$: call relation
-      0090E9 01 90            [ 1] 3143 	cp a,#TK_NONE 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 62.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 61.
 Hexadecimal [24-Bits]
 
 
 
+      0090E9 01 90            [ 1] 3143 	cp a,#TK_NONE 
       0090EB CF 00            [ 1] 3144 	jreq 5$
       0090ED 19 85            [ 1] 3145 	cp a,#TK_INTGR
       0090EF 90 85            [ 1] 3146 	jrne 4$
@@ -5097,12 +5098,12 @@ Hexadecimal [24-Bits]
                                    3195 ;   A 		TK_INTGR
                                    3196 ;	X 		element address 
                                    3197 ;----------------------
-      00124F                       3198 get_array_element:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 63.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 62.
 Hexadecimal [24-Bits]
 
 
 
+      00124F                       3198 get_array_element:
       009115 75 1E 01         [ 4] 3199 	call func_args 
       009118 1D 00            [ 1] 3200 	cp a,#1
       00911A 02 20            [ 1] 3201 	jreq 1$
@@ -5157,12 +5158,12 @@ Hexadecimal [24-Bits]
       009153 A6 0D            [ 1] 3248 	jrne 5$ 
       009155 CD               [ 4] 3249 	call (x) 
       009156 82 4B            [ 2] 3250 	jra 18$ 
-      001295                       3251 5$:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 64.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 63.
 Hexadecimal [24-Bits]
 
 
 
+      001295                       3251 5$:
       009158 5B 02            [ 1] 3252 	cp a,#TK_INTGR
       00915A 4F 81            [ 1] 3253 	jrne 6$
       00915C 20 2B            [ 2] 3254 	jra 18$
@@ -5217,12 +5218,12 @@ Hexadecimal [24-Bits]
                            000005  3302 	VSIZE=5
       0012D2                       3303 term:
       0012D2                       3304 	_vars VSIZE
-      009190 97 7B            [ 2]    1     sub sp,#VSIZE 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 65.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 64.
 Hexadecimal [24-Bits]
 
 
 
+      009190 97 7B            [ 2]    1     sub sp,#VSIZE 
       009192 08 42 9F         [ 4] 3305 	call factor
       009195 1B 02            [ 1] 3306 	cp a,#CMD_END
       009197 6B 02            [ 1] 3307 	jrmi term_exit
@@ -5277,12 +5278,12 @@ Hexadecimal [24-Bits]
       00131F                       3355 	_vars VSIZE 
       0091D7 50 16            [ 2]    1     sub sp,#VSIZE 
       0091D9 05 65 90         [ 4] 3356 	call term
-      0091DC CF 00            [ 1] 3357 	cp a,#CMD_END 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 66.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 65.
 Hexadecimal [24-Bits]
 
 
 
+      0091DC CF 00            [ 1] 3357 	cp a,#CMD_END 
       0091DE 09 0D            [ 1] 3358 	jrmi expr_exit 
       0091E0 02 27            [ 2] 3359 0$:	ldw (N2,sp),x 
       0091E2 0B 90 5D         [ 4] 3360 	call next_token
@@ -5329,7 +5330,7 @@ Hexadecimal [24-Bits]
                            000005  3400 	VSIZE=5 
       001363                       3401 relation: 
       001363                       3402 	_vars VSIZE
-      009210 A4 FE            [ 2]    1     sub sp,#VSIZE 
+      009210 A5 8E            [ 2]    1     sub sp,#VSIZE 
       009212 1F 03 E6         [ 4] 3403 	call expression
       009215 02 A4            [ 1] 3404 	cp a,#CMD_END  
       009217 0F C7            [ 1] 3405 	jrmi rel_exit 
@@ -5337,12 +5338,12 @@ Hexadecimal [24-Bits]
       009219 00 0A            [ 2] 3407 	ldw (N2,sp),x 
       00921B 1C 00 03         [ 4] 3408 	call next_token 
       00921E 72 BB            [ 1] 3409 	cp a,#2
-      009220 00 09            [ 1] 3410 	jrmi 9$
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 67.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 66.
 Hexadecimal [24-Bits]
 
 
 
+      009220 00 09            [ 1] 3410 	jrmi 9$
       001375                       3411 1$:	
       009222 FE 13            [ 1] 3412 	ld (RELOP,sp),a 
       009224 01 27            [ 1] 3413 	and a,#TK_GRP_MASK
@@ -5397,12 +5398,12 @@ Hexadecimal [24-Bits]
       009267 27 21 20         [ 1] 3461 	ld base,a 
       00926A D2               [ 1] 3462 	clr a 
       00926B 81               [ 4] 3463 	ret
-                                   3464 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 68.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 67.
 Hexadecimal [24-Bits]
 
 
 
+                                   3464 
                                    3465 ;--------------------------------------------
                                    3466 ; BASIC: HEX 
                                    3467 ; select hexadecimal base for integer print
@@ -5457,12 +5458,12 @@ Hexadecimal [24-Bits]
       009299 84               [ 4] 3515 	ret 
                                    3516 
                                    3517 ;-----------------------------
-                                   3518 ; BASIC: LET var=expr 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 69.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 68.
 Hexadecimal [24-Bits]
 
 
 
+                                   3518 ; BASIC: LET var=expr 
                                    3519 ; variable assignement 
                                    3520 ; output:
                                    3521 ;   A 		TK_NONE 
@@ -5517,12 +5518,12 @@ Hexadecimal [24-Bits]
       0092D3 01 27            [ 1] 3569 	jreq list_start 
       0092D5 03 CC            [ 1] 3570 	cp a,#2 
       0092D7 88 15            [ 1] 3571 	jreq 4$
-      0092D9 CD 90            [ 1] 3572 	cp a,#1 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 70.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 69.
 Hexadecimal [24-Bits]
 
 
 
+      0092D9 CD 90            [ 1] 3572 	cp a,#1 
       0092DB 7B C3            [ 1] 3573 	jreq first_line 
       0092DD 00 20 23         [ 2] 3574 	jp syntax_error 
       0092E0 05 A6 0A         [ 4] 3575 4$:	call dswap
@@ -5577,12 +5578,12 @@ Hexadecimal [24-Bits]
                                    3623 ; print counted string 
                                    3624 ; input:
                                    3625 ;   X 		address of string
-                                   3626 ;--------------------------
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 71.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 70.
 Hexadecimal [24-Bits]
 
 
 
+                                   3626 ;--------------------------
       0014AB                       3627 prt_cmd_name:
       009328 03               [ 1] 3628 	ld a,(x)
       009329 FE               [ 2] 3629 	incw x
@@ -5637,12 +5638,12 @@ Hexadecimal [24-Bits]
                                    3678 
                                    3679 
                                    3680 ;--------------------------
-                                   3681 ; decompile line from token list 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 72.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 71.
 Hexadecimal [24-Bits]
 
 
 
+                                   3681 ; decompile line from token list 
                                    3682 ; input:
                                    3683 ;   X 		pointer at line
                                    3684 ; output:
@@ -5697,12 +5698,12 @@ Hexadecimal [24-Bits]
       0093BD 68 20 1C         [ 2] 3732 	jp 90$ 
       0093C0 CD 11 87         [ 4] 3733 3$:	call cmd_name
       0093C0 CD 93 52         [ 4] 3734 	call prt_cmd_name
-      0093C3 A1 04            [ 1] 3735 	ld a,#SPACE 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 73.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 72.
 Hexadecimal [24-Bits]
 
 
 
+      0093C3 A1 04            [ 1] 3735 	ld a,#SPACE 
       0093C5 27 03 CC         [ 4] 3736 	call putc 
       0093C8 88 15            [ 2] 3737 	ldw x,(XSAVE,sp)
       0093CA 1F 01 7B         [ 2] 3738 	addw x,#2
@@ -5757,12 +5758,12 @@ Hexadecimal [24-Bits]
       009427 5F C6 00         [ 2] 3787 	jp 1$
       00942A 0A 14            [ 1] 3788 9$: cp a,#TK_PLUS 
       00942C 05 4D            [ 1] 3789 	jrne 10$
-      00942E 27 05            [ 1] 3790 	ld a,#'+
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 74.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 73.
 Hexadecimal [24-Bits]
 
 
 
+      00942E 27 05            [ 1] 3790 	ld a,#'+
       009430 5C 46            [ 2] 3791 	jra 80$ 
       009431 A1 11            [ 1] 3792 10$: cp a,#TK_MINUS
       009431 20 02            [ 1] 3793 	jrne 11$
@@ -5817,12 +5818,12 @@ Hexadecimal [24-Bits]
       009483 A1 05 27 03 CC 88 15  3841 relop_str: .word gt,equal,ge,lt,le,ne 
              64 16 66 16 69
       00948A 3E 00                 3842 gt: .asciz ">"
-      00948A CD 90                 3843 equal: .asciz "="
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 75.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 74.
 Hexadecimal [24-Bits]
 
 
 
+      00948A CD 90                 3843 equal: .asciz "="
       00948C 6E CD 88              3844 ge: .asciz ">="
       00948F DC A1                 3845 lt: .asciz "<"
       009491 32 27 03              3846 le: .asciz "<="
@@ -5877,12 +5878,12 @@ Hexadecimal [24-Bits]
       0094D7 01 A1            [ 1] 3895 	cpl (COMMA,sp) 
       0094D9 01 27 05         [ 2] 3896 	jp prt_loop   
       0094DC                       3897 5$: 
-      0094DC CD 90            [ 1] 3898 	cp a,#TK_SHARP
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 76.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 75.
 Hexadecimal [24-Bits]
 
 
 
+      0094DC CD 90            [ 1] 3898 	cp a,#TK_SHARP
       0094DE 7B 1F            [ 1] 3899 	jrne 7$
       0094E0 03 08 5C         [ 4] 3900 	call next_token
       0094E1 A1 04            [ 1] 3901 	cp a,#TK_INTGR 
@@ -5937,12 +5938,12 @@ Hexadecimal [24-Bits]
       009504 6B 07            [ 1] 3944 	ld (IN,sp),a
       009504 1E 05 03         [ 1] 3945 	ld a,count 
       009506 6B 08            [ 1] 3946 	ld (CNT,sp),a  
-      009506 CD               [ 4] 3947 	ret
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 77.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 76.
 Hexadecimal [24-Bits]
 
 
 
+      009506 CD               [ 4] 3947 	ret
                                    3948 
                                    3949 ;-----------------------
                                    3950 ; restore previously saved 
@@ -5997,12 +5998,12 @@ Hexadecimal [24-Bits]
       009548 A1 20 25         [ 2] 3998 	ldw x,#pad 
       00954B 0C CD 82         [ 4] 3999 	call puts   
       00173B                       4000 21$:
-      00954E 4B A1 5C         [ 4] 4001 	call save_context 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 78.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 77.
 Hexadecimal [24-Bits]
 
 
 
+      00954E 4B A1 5C         [ 4] 4001 	call save_context 
       009551 26 F1 C8         [ 2] 4002 	ldw x,#tib 
       009553 CF 00 04         [ 2] 4003 	ldw basicptr,x  
       009553 CD 82 4B 20      [ 1] 4004 	clr count  
@@ -6057,12 +6058,12 @@ Hexadecimal [24-Bits]
       00958F 35 05 00         [ 2] 4051 	jp syntax_error 
       009592 23 CD            [ 1] 4052 0$:	cp a,#3
       009594 8A 75            [ 1] 4053 	jrult 1$
-      009596 A6 20 CD         [ 4] 4054 	call dpop 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 79.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 78.
 Hexadecimal [24-Bits]
 
 
 
+      009596 A6 20 CD         [ 4] 4054 	call dpop 
       009599 82               [ 1] 4055 	ld a,xl
       00959A 4B 72            [ 1] 4056 	ld (XMASK,sp),a 
       00959C 5F 00 23         [ 4] 4057 1$: call dpop ; mask 
@@ -6117,12 +6118,12 @@ Hexadecimal [24-Bits]
       0095C7 26 14 A6         [ 2] 4105 	jp syntax_error
       0017C0                       4106 1$: 
       0095CA 27 CD 82         [ 4] 4107 	call dpop ; mask 
-      0095CD 4B               [ 1] 4108 	ld a,xl 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 80.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 79.
 Hexadecimal [24-Bits]
 
 
 
+      0095CD 4B               [ 1] 4108 	ld a,xl 
       0095CE 1E               [ 1] 4109 	cpl a 
       0095CF 03 1C 00         [ 4] 4110 	call dpop ; addr  
       0095D2 02               [ 1] 4111 	and a,(x)
@@ -6177,12 +6178,12 @@ Hexadecimal [24-Bits]
       0095FE 20 A9            [ 1] 4160 	jreq 2$
       009600 A1               [ 1] 4161 	sll a 
       009601 05 26            [ 1] 4162 	dec (1,sp)
-      009603 1A 72            [ 2] 4163 	jra 1$
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 81.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 80.
 Hexadecimal [24-Bits]
 
 
 
+      009603 1A 72            [ 2] 4163 	jra 1$
       009605 DE 00 14         [ 4] 4164 2$: call dpop 
       009608 1D               [ 1] 4165 	and a,(x)
       009609 00 24            [ 1] 4166 	jreq 3$
@@ -6237,12 +6238,12 @@ Hexadecimal [24-Bits]
                                    4214 ; page in range {0,1,2}
                                    4215 ;----------------------------
       001830                       4216 xpeek:
-      00963A 82 4B 1E         [ 4] 4217 	call func_args 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 82.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 81.
 Hexadecimal [24-Bits]
 
 
 
+      00963A 82 4B 1E         [ 4] 4217 	call func_args 
       00963D 03 1C            [ 1] 4218 	cp a,#2 
       00963F 00 02            [ 1] 4219 	jreq 1$
       009641 CC 95 A9         [ 2] 4220 	jp syntax_error
@@ -6297,12 +6298,12 @@ Hexadecimal [24-Bits]
       00967E 1C 96            [ 2]    1     sub sp,#4 
       009680 CE               [ 2] 4269 	pushw x  ; RETL1 
       009681 F6               [ 1] 4270 	clrw x 
-      009682 20 2C            [ 2] 4271 	ldw (BPTR,sp),x 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 83.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 82.
 Hexadecimal [24-Bits]
 
 
 
+      009682 20 2C            [ 2] 4271 	ldw (BPTR,sp),x 
       009684 A1 0B            [ 2] 4272 	ldw (INW,sp),x 
       009686 2B 0E A1         [ 4] 4273 	call next_token 
       009689 0E 22            [ 1] 4274 	cp a,#TK_CMD 
@@ -6357,12 +6358,12 @@ Hexadecimal [24-Bits]
       0096D4 DF 96 E1         [ 2] 4323 	jp syntax_error
                                    4324 ; leave loop back entry point on cstack 
                                    4325 ; cstack is 2 call deep from interp_loop
-      0018D0                       4326 store_loop_addr:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 84.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 83.
 Hexadecimal [24-Bits]
 
 
 
+      0018D0                       4326 store_loop_addr:
       0096D7 96 E4 96         [ 4] 4327 	call dpush 
       0096DA E6 96 E9         [ 2] 4328 	ldw x,basicptr  
       0096DD 3E 00            [ 2] 4329 	ldw (BPTR,sp),x 
@@ -6417,12 +6418,12 @@ Hexadecimal [24-Bits]
       00972A 82 4B            [ 1] 4378 	jrsgt loop_done
       00192E                       4379 loop_back:
       00972C 20 C0            [ 2] 4380 	ldw x,(BPTR,sp)
-      00972E CF 00 04         [ 2] 4381 	ldw basicptr,x 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 85.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 84.
 Hexadecimal [24-Bits]
 
 
 
+      00972E CF 00 04         [ 2] 4381 	ldw basicptr,x 
       00972E A1 0D 26 05 03   [ 2] 4382 	btjf flags,#FRUN,1$ 
       009733 01 CC            [ 1] 4383 	ld a,(2,x)
       009735 96 F0 03         [ 1] 4384 	ld count,a
@@ -6477,12 +6478,12 @@ Hexadecimal [24-Bits]
       009768 00 04 6B         [ 1] 4432 	ld acc8,a 
       00976B 08 81 00 08      [ 1] 4433 	clr acc16 
       00976D 72 BB 00 08      [ 2] 4434 	addw x,acc16
-      00976D 1E 03            [ 2] 4435 	ldw (GOS_RET,sp),x 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 86.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 85.
 Hexadecimal [24-Bits]
 
 
 
+      00976D 1E 03            [ 2] 4435 	ldw (GOS_RET,sp),x 
       001985                       4436 go_common: 
       00976F CF 00 05         [ 4] 4437 	call relation 
       009772 7B 07            [ 1] 4438 	cp a,#TK_INTGR
@@ -6537,12 +6538,12 @@ Hexadecimal [24-Bits]
       0097B1 72 5F 17 1A AE   [ 2] 4486 	btjf flags,#FBREAK,1$
       0019D3                       4487 	_drop 2 
       0097B6 17 18            [ 2]    1     addw sp,#2 
-      0097B8 CD 82 5D         [ 4] 4488 	call rest_context
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 87.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 86.
 Hexadecimal [24-Bits]
 
 
 
+      0097B8 CD 82 5D         [ 4] 4488 	call rest_context
       0097BB                       4489 	_drop CTXT_SIZE 
       0097BB CD 97            [ 2]    1     addw sp,#CTXT_SIZE 
       0097BD 5D AE 16 C8      [ 1] 4490 	bres flags,#FBREAK 
@@ -6597,12 +6598,12 @@ Hexadecimal [24-Bits]
       0097FF 02 24            [ 2] 4538 	ldw x,(2,x);frequency 
       009801 03 CC            [ 1] 4539 	ld a,#31
       009803 88               [ 2] 4540 	div x,a 
-      009804 15 A1 03         [ 1] 4541 	ld BEEP_CSR,a	
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 88.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 87.
 Hexadecimal [24-Bits]
 
 
 
+      009804 15 A1 03         [ 1] 4541 	ld BEEP_CSR,a	
       009807 25 06 CD 90      [ 1] 4542 	bset BEEP_CSR,#5 
       00980B 7B 9F 6B         [ 4] 4543 	call dpop 
       00980E 01 CD 90         [ 4] 4544 	call pause02 
@@ -6657,12 +6658,12 @@ Hexadecimal [24-Bits]
       001A8A                       4589 analog_read:
       009852 CC 88 15         [ 4] 4590 	call func_args 
       009855 CD 90            [ 1] 4591 	cp a,#1 
-      009857 7B 9F            [ 1] 4592 	jreq 1$
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 89.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 88.
 Hexadecimal [24-Bits]
 
 
 
+      009857 7B 9F            [ 1] 4592 	jreq 1$
       009859 CD 90 7B         [ 2] 4593 	jp syntax_error
       00985C F8 F7 81         [ 4] 4594 1$: call dpop 
       00985F A3 00 05         [ 2] 4595 	cpw x,#5 
@@ -6717,12 +6718,12 @@ Hexadecimal [24-Bits]
       0098A6 15 CD            [ 1] 4643 	ld a,#TK_INTGR
       001AEF                       4644 	_drop VSIZE
       0098A8 90 7B            [ 2]    1     addw sp,#VSIZE 
-      0098AA F6               [ 4] 4645 	ret
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 90.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 89.
 Hexadecimal [24-Bits]
 
 
 
+      0098AA F6               [ 4] 4645 	ret
                                    4646 
                                    4647 ;-----------------------
                                    4648 ; BASIC: DWRITE pin,0|1
@@ -6777,12 +6778,12 @@ Hexadecimal [24-Bits]
                                    4695 ; the program is resumed
                                    4696 ; with RUN 
                                    4697 ;-------------------------
-      001B31                       4698 break:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 91.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 90.
 Hexadecimal [24-Bits]
 
 
 
+      001B31                       4698 break:
       0098E2 02 81 00 21 02   [ 2] 4699 	btjt flags,#FRUN,2$
       0098E4 4F               [ 1] 4700 	clr a
       0098E4 A6               [ 4] 4701 	ret 
@@ -6837,12 +6838,12 @@ Hexadecimal [24-Bits]
       001B88                       4744 incr_farptr:
       009919 A1 04 27 03      [ 2] 4745 	addw x,farptr+1 
       00991D CC 88            [ 1] 4746 	jrnc 1$
-      00991F 15 5C 00 12      [ 1] 4747 	inc farptr 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 92.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 91.
 Hexadecimal [24-Bits]
 
 
 
+      00991F 15 5C 00 12      [ 1] 4747 	inc farptr 
       009920 CF 00 13         [ 2] 4748 1$:	ldw farptr+1,x  
       009920 CD               [ 4] 4749 	ret 
                                    4750 
@@ -6897,12 +6898,12 @@ Hexadecimal [24-Bits]
                                    4799 ;   X 		 farptr[x] point at size field  
                                    4800 ;   Carry    0|1 no match|match  
                                    4801 ;----------------------
-      001BD3                       4802 cmp_name:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 93.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 92.
 Hexadecimal [24-Bits]
 
 
 
+      001BD3                       4802 cmp_name:
       009951 90               [ 1] 4803 	clrw x
       009952 6E CE 00 05      [ 5] 4804 1$:	ldf a,([farptr],x)
       009956 1F 05            [ 1] 4805 	cp a,(y)
@@ -6957,12 +6958,12 @@ Hexadecimal [24-Bits]
       009986 09 72            [ 1] 4853 	ld (FSIZE,sp),a 
       009988 CE               [ 2] 4854 	incw x 
       009989 00 19 72 BB      [ 5] 4855 	ldf a,([farptr],x)
-      00998D 00 09            [ 1] 4856 	ld (FSIZE+1,sp),a 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 94.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 93.
 Hexadecimal [24-Bits]
 
 
 
+      00998D 00 09            [ 1] 4856 	ld (FSIZE+1,sp),a 
       00998F 90               [ 2] 4857 	incw x 
       009990 FF 90 93         [ 2] 4858 	addw x,(FSIZE,sp) ; count to skip 
       009993 72               [ 2] 4859 	incw x ; skip over EOF marker 
@@ -7017,12 +7018,12 @@ Hexadecimal [24-Bits]
       0099D0 72 5A 00 1F 81   [ 1] 4905 	mov in,count 
                                    4906 ; check if enough free space 
       0099D5 93               [ 1] 4907 	ldw x,y 
-      0099D5 72 00 00         [ 4] 4908 	call strlen 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 95.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 94.
 Hexadecimal [24-Bits]
 
 
 
+      0099D5 72 00 00         [ 4] 4908 	call strlen 
       0099D8 22 06 A6         [ 2] 4909 	addw x,#3 
       0099DB 06 CC 88         [ 2] 4910 	addw x,(BSIZE,sp)
       0099DE 17 81 20 23      [ 1] 4911 	tnz ffree 
@@ -7077,12 +7078,12 @@ Hexadecimal [24-Bits]
       009A31 CD 00 F8         [ 4] 4959 	call write_byte 
       009A31 1E 03 CF         [ 4] 4960 	call incr_farptr
                                    4961 ; save farptr in ffree
-      009A34 00 05 E6         [ 2] 4962 	ldw x,farptr 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 96.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 95.
 Hexadecimal [24-Bits]
 
 
 
+      009A34 00 05 E6         [ 2] 4962 	ldw x,farptr 
       009A37 02 AB 03         [ 1] 4963 	ld a,farptr+2 
       009A3A C7 00 04         [ 2] 4964 	ldw ffree,x 
       009A3D 35 03 00         [ 1] 4965 	ld ffree+2,a
@@ -7137,12 +7138,12 @@ Hexadecimal [24-Bits]
                                    5013 ; load file to RAM 
                                    5014 ; for execution 
                                    5015 ;------------------------
-      001D34                       5016 load:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 97.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 96.
 Hexadecimal [24-Bits]
 
 
 
+      001D34                       5016 load:
       009A7F 35 03 00 02 72   [ 2] 5017 	btjf flags,#FRUN,0$ 
       009A84 10 00            [ 1] 5018 	jreq 0$ 
       009A86 22 CC            [ 1] 5019 	ld a,#ERR_CMD_ONLY 
@@ -7197,12 +7198,12 @@ Hexadecimal [24-Bits]
       009ADB 19               [ 1] 5068 	clr a 
       009ADC 5D 27 1C         [ 2] 5069 	ldw farptr,x 
       009ADF 72 CE 00         [ 1] 5070 	ld farptr+2,a 
-      001DA6                       5071 4$:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 98.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 97.
 Hexadecimal [24-Bits]
 
 
 
+      001DA6                       5071 4$:
       009AE2 19 9F A4         [ 2] 5072 	ldw ffree,x 
       009AE5 07 4E C7         [ 1] 5073 	ld ffree+2,a 
       009AE8 54 01            [ 1] 5074 	push #4
@@ -7257,12 +7258,12 @@ Hexadecimal [24-Bits]
                                    5122 ; print file size 
       009B2D 72               [ 2] 5123 	popw x ; file size 
       009B2E 16 54 02         [ 4] 5124 	call print_int 
-      009B31 72 10            [ 1] 5125 	ld a,#CR 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 99.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 98.
 Hexadecimal [24-Bits]
 
 
 
+      009B31 72 10            [ 1] 5125 	ld a,#CR 
       009B33 54 01 72         [ 4] 5126 	call putc
       009B36 0F 54            [ 2] 5127 	ldw x,(COUNT,sp)
       009B38 00               [ 2] 5128 	incw x
@@ -7317,12 +7318,12 @@ Hexadecimal [24-Bits]
       009B78 02 27 03         [ 4] 5173 	call expression
       009B7B CC 88            [ 1] 5174 	cp a,#TK_INTGR 
       009B7D 15 CD            [ 1] 5175 	jreq 0$
-      009B7F 90 7B 9F         [ 2] 5176 	jp syntax_error
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 100.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 99.
 Hexadecimal [24-Bits]
 
 
 
+      009B7F 90 7B 9F         [ 2] 5176 	jp syntax_error
       009B82 6B 02            [ 2] 5177 0$: ldw (ADDR,sp),x 
       009B84 CD 90 7B         [ 4] 5178 	call next_token 
       009B87 A3 00            [ 1] 5179 	cp a,#TK_COMMA 
@@ -7377,12 +7378,12 @@ Hexadecimal [24-Bits]
       009BC0 52 06            [ 1] 5227 	jreq 1$
       009BC2 CD 97            [ 1] 5228 	cp a,#TK_CHAR 
       009BC4 5D AE            [ 1] 5229 	jreq 2$ 
-      009BC6 16 C8 CF         [ 2] 5230 	jp syntax_error
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 101.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 100.
 Hexadecimal [24-Bits]
 
 
 
+      009BC6 16 C8 CF         [ 2] 5230 	jp syntax_error
       001EAC                       5231 1$: 
       009BC9 00               [ 1] 5232 	ld a,(x)
       009BCA 05 7F            [ 2] 5233 	jra 3$
@@ -7437,12 +7438,12 @@ Hexadecimal [24-Bits]
                                    5282 ;   X 		gpio register address
                                    5283 ;----------------------------
       001EC8                       5284 gpio:
-      009BE5 20 70 6F         [ 4] 5285 	call func_args 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 102.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 101.
 Hexadecimal [24-Bits]
 
 
 
+      009BE5 20 70 6F         [ 4] 5285 	call func_args 
       009BE8 69 6E            [ 1] 5286 	cp a,#2
       009BEA 74 2C            [ 1] 5287 	jreq 1$
       009BEC 20 52 55         [ 2] 5288 	jp syntax_error  
@@ -7497,12 +7498,12 @@ Hexadecimal [24-Bits]
                                    5337 ;   A 		token attribute 
                                    5338 ;   X       returned value 
                                    5339 ;---------------------
-      009C16                       5340 usr:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 103.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 102.
 Hexadecimal [24-Bits]
 
 
 
+      009C16                       5340 usr:
       009C16 A6 01            [ 2] 5341 	pushw y 	
       009C18 C7 00 13         [ 4] 5342 	call func_args 
       009C1B 5F CF            [ 1] 5343 	cp a,#1 
@@ -7557,12 +7558,12 @@ Hexadecimal [24-Bits]
       009C53 5F 92            [ 1] 5392 	jrc 2$ 
       009C55 AF 00            [ 1] 5393 	ld a,#ERR_NOT_FILE
       009C57 13 90 F1         [ 2] 5394 	jp tb_error  
-      001F4B                       5395 2$: 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 104.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 103.
 Hexadecimal [24-Bits]
 
 
 
+      001F4B                       5395 2$: 
       009C5A 26 08 4D 27 12   [ 1] 5396 	mov in,count 
       009C5F 5C 90 5C 20      [ 1] 5397 	clr farptr 
       009C63 F0 40 00         [ 2] 5398 	ldw x,#AUTORUN_NAME
@@ -7617,12 +7618,12 @@ Hexadecimal [24-Bits]
                                    5446 ; use Auto wakeup peripheral
                                    5447 ; all oscillators stopped except LSI
                                    5448 ; range: 1ms - 511ms
-                                   5449 ; input:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 105.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 104.
 Hexadecimal [24-Bits]
 
 
 
+                                   5449 ; input:
                                    5450 ;  none
                                    5451 ; output:
                                    5452 ;  none:
@@ -7677,12 +7678,12 @@ Hexadecimal [24-Bits]
                                    5501 ; 	none 
                                    5502 ; output:
                                    5503 ;	X 		TK_INTGR
-                                   5504 ;-------------------------------
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 106.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 105.
 Hexadecimal [24-Bits]
 
 
 
+                                   5504 ;-------------------------------
       001FD0                       5505 get_ticks:
       009CCA 00 1D 72         [ 2] 5506 	ldw x,ticks 
       009CCD B0 00            [ 1] 5507 	ld a,#TK_INTGR
@@ -7737,12 +7738,12 @@ Hexadecimal [24-Bits]
       002005                       5556 	_drop 2 
       009CFB 5D 00            [ 2]    1     addw sp,#2 
       009CFD 16 26            [ 1] 5557 	ld a,#TK_INTGR
-      009CFF 0B               [ 4] 5558 	ret
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 107.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 106.
 Hexadecimal [24-Bits]
 
 
 
+      009CFF 0B               [ 4] 5558 	ret
                                    5559 
                                    5560 ;------------------------------
                                    5561 ; BASIC: OR(expr1,expr2)
@@ -7797,12 +7798,12 @@ Hexadecimal [24-Bits]
       009D30 ED               [ 1] 5609 	ld xl,a 
       002041                       5610 	_drop 2 
       009D31 CE 00            [ 2]    1     addw sp,#2 
-      009D33 1D 72            [ 1] 5611 	ld a,#TK_INTGR 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 108.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 107.
 Hexadecimal [24-Bits]
 
 
 
+      009D33 1D 72            [ 1] 5611 	ld a,#TK_INTGR 
       009D35 B0               [ 4] 5612 	ret 
                                    5613 
                                    5614 ;------------------------------
@@ -7857,12 +7858,12 @@ Hexadecimal [24-Bits]
                                    5663 
                                    5664 ;--------------------------
                                    5665 ; BASIC: FCPU integer
-                                   5666 ; set CPU frequency 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 109.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 108.
 Hexadecimal [24-Bits]
 
 
 
+                                   5666 ; set CPU frequency 
                                    5667 ;-------------------------- 
                                    5668 
       002080                       5669 fcpu:
@@ -7917,12 +7918,12 @@ Hexadecimal [24-Bits]
       009DB0 1D 2B            [ 1] 5717 	or a,(GPIO_DDR,x) ; bit==1 for output 
       009DB2 F1 81            [ 1] 5718 9$:	ld (GPIO_DDR,x),a 
       009DB4                       5719 	_drop VSIZE 
-      009DB4 72 01            [ 2]    1     addw sp,#VSIZE 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 110.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 109.
 Hexadecimal [24-Bits]
 
 
 
+      009DB4 72 01            [ 2]    1     addw sp,#VSIZE 
       009DB6 00               [ 4] 5720 	ret
                                    5721 
                                    5722 ;------------------------
@@ -7977,12 +7978,12 @@ Hexadecimal [24-Bits]
                                    5771 ;------------------------------
       009DE1                       5772 random:
       009DE1 CD 9D 83         [ 4] 5773 	call func_args 
-      009DE4 CE 00            [ 1] 5774 	cp a,#1
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 111.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 110.
 Hexadecimal [24-Bits]
 
 
 
+      009DE4 CE 00            [ 1] 5774 	cp a,#1
       009DE6 1D 72            [ 1] 5775 	jreq 1$
       009DE8 B0 00 1B         [ 2] 5776 	jp syntax_error
       00210B                       5777 1$: 
@@ -8037,12 +8038,12 @@ Hexadecimal [24-Bits]
       009E34 0A 01 26         [ 1] 5826 	xor a,seedy
       009E37 F7               [ 1] 5827 	ld xh,a 
       009E38 84 81 10         [ 2] 5828 	ldw seedy,x 
-                                   5829 ; return seedy modulo expr + 1 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 112.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 111.
 Hexadecimal [24-Bits]
 
 
 
+                                   5829 ; return seedy modulo expr + 1 
       009E3A 90 85            [ 2] 5830 	popw y 
       009E3A 52               [ 2] 5831 	divw x,y 
       009E3B 02               [ 1] 5832 	ldw x,y 
@@ -8062,7 +8063,7 @@ Hexadecimal [24-Bits]
       00216B                       5846 	_vars VSIZE
       009E40 00 14            [ 2]    1     sub sp,#VSIZE 
       009E42 35 01            [ 1] 5847 	clr (LLEN,sp)
-      009E44 00 13 24 80      [ 2] 5848 	ldw y,#kword_dict+2
+      009E44 00 13 25 10      [ 2] 5848 	ldw y,#kword_dict+2
       009E46 93               [ 1] 5849 0$:	ldw x,y
       009E46 5F               [ 1] 5850 	ld a,(x)
       009E47 92 AF            [ 1] 5851 	and a,#15 
@@ -8097,12 +8098,12 @@ Hexadecimal [24-Bits]
                                    5879 ;-----------------------------
       0021A5                       5880 set_timer:
       009E74 9C 08 85         [ 4] 5881 	call arg_list
-      009E77 CD 8A            [ 1] 5882 	cp a,#1 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 113.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 112.
 Hexadecimal [24-Bits]
 
 
 
+      009E77 CD 8A            [ 1] 5882 	cp a,#1 
       009E79 75 A6            [ 1] 5883 	jreq 1$
       009E7B 0D CD 82         [ 2] 5884 	jp syntax_error
       0021AF                       5885 1$: 
@@ -8137,841 +8138,969 @@ Hexadecimal [24-Bits]
       009E9D 17 C7            [ 2] 5914 	jra logical_complement
                                    5915 
                                    5916 
-                                   5917 ;*********************************
-                                   5918 
-                                   5919 ;------------------------------
-                                   5920 ;      dictionary 
-                                   5921 ; format:
-                                   5922 ;   link:   2 bytes 
-                                   5923 ;   name_length+flags:  1 byte, bits 0:4 lenght,5:8 flags  
-                                   5924 ;   cmd_name: 16 byte max 
-                                   5925 ;   code_address: 2 bytes 
-                                   5926 ;------------------------------
-                                   5927 	.macro _dict_entry len,name,cmd 
-                                   5928 	.word LINK 
-                                   5929 	LINK=.
-                                   5930 name:
-                                   5931 	.byte len 	
-                                   5932 	.ascii "name"
-                                   5933 	.word cmd 
-                                   5934 	.endm 
-                                   5935 
-                           000000  5936 	LINK=0
-      0021D2                       5937 kword_end:
+                                   5917 
+                                   5918 ;-----------------------------------
+                                   5919 ; BASIC: ENIWDG expr1, expr2 
+                                   5920 ; enable independant watchdog timer 
+                                   5921 ;-----------------------------------
+      0021D2                       5922 enable_iwdg:
+      009E9F 00 09 A6         [ 4] 5923 	call arg_list
+      009EA2 02 C2            [ 1] 5924 	cp a,#2 
+      009EA4 00 16            [ 1] 5925 	jreq 1$
+      009EA6 C7 00 08         [ 2] 5926 	jp syntax_error 
+      0021DC                       5927 1$: 	
+      009EA9 5F A6 06 97      [ 1] 5928 	mov IWDG_KR,#IWDG_KEY_ENABLE
+      009EAD A6 0A CD         [ 4] 5929 	call dpop 
+      009EB0 8A 2D AE 9E      [ 1] 5930 	mov IWDG_KR,#IWDG_KEY_ACCESS 
+      009EB4 C3               [ 1] 5931 	ld a,xl 
+      009EB5 CD 82 5D         [ 1] 5932 	ld IWDG_RLR,a 
+      009EB8 5B 02 81         [ 4] 5933 	call dpop
+      009EBB 20 66            [ 1] 5934 	ld a,#7
+      009EBD 69               [ 2] 5935 	div x,a 
+      009EBE 6C 65 73 0A      [ 1] 5936 	mov IWDG_KR,#IWDG_KEY_ACCESS 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 113.
+Hexadecimal [24-Bits]
+
+
+
+      009EC2 00 20 62         [ 1] 5937 	ld IWDG_PR,a 
+      009EC5 79 74 65 73      [ 1] 5938 	mov IWDG_KR,#IWDG_KEY_REFRESH
+      009EC9 20               [ 4] 5939 	ret 
+                                   5940 
+                                   5941 
+                                   5942 ;-----------------------------------
+                                   5943 ; BASIC: REFIWDG 0|1 
+                                   5944 ; refresh independant watchdog count down 
+                                   5945 ; timer before it reset MCU. 
+                                   5946 ;-----------------------------------
+      0021FD                       5947 refresh_iwdg:
+      009ECA 66 72 65 65      [ 1] 5948 	mov IWDG_KR,#IWDG_KEY_REFRESH 
+      009ECE 0A               [ 4] 5949 	ret 
+                                   5950 
+                                   5951 
+                                   5952 ;-------------------------------------
+                                   5953 ; BASIC: LOG2(expr)
+                                   5954 ; return logarithm base 2 of expr 
+                                   5955 ; this is the position of most significant
+                                   5956 ; bit set. 
+                                   5957 ; input: 
+                                   5958 ; output:
+                                   5959 ;   X     log2 
+                                   5960 ;   A     TK_INTGR 
+                                   5961 ;*********************************
+      002202                       5962 log2:
+      009ECF 00 12 3F         [ 4] 5963 	call func_args 
+      009ED0 A1 01            [ 1] 5964 	cp a,#1 
+      009ED0 52 02            [ 1] 5965 	jreq 1$
+      009ED2 72 5F 00         [ 2] 5966 	jp syntax_error 
+      009ED5 13 CD 93         [ 4] 5967 1$: call dpop
+      00220F                       5968 first_one:
+      009ED8 9F               [ 2] 5969 	tnzw x 
+      009ED9 A1 04            [ 1] 5970 	jreq 4$
+      009EDB 27 03            [ 1] 5971 	ld a,#15 
+      009EDD CC               [ 2] 5972 2$: rlcw x 
+      009EDE 88 15            [ 1] 5973     jrc 3$
+      009EE0 1F               [ 1] 5974 	dec a 
+      009EE1 01 CD            [ 2] 5975 	jra 2$
+      009EE3 88               [ 1] 5976 3$: clrw x 
+      009EE4 DC               [ 1] 5977     ld xl,a
+      009EE5 A1 0D            [ 1] 5978 4$:	ld a,#TK_INTGR
+      009EE7 27               [ 4] 5979 	ret 
+                                   5980 
+                                   5981 ;-----------------------------------
+                                   5982 ; BASIC: PWR(expr) 
+                                   5983 ; expr ->{0..15}
+                                   5984 ; return 2^expr 
+                                   5985 ; output:
+                                   5986 ;    x    2^expr 
+                                   5987 ;-----------------------------------
+      00221F                       5988 pwr2:
+      009EE8 02 20 19         [ 4] 5989     call func_args 
+      009EEB CD 93            [ 1] 5990 	cp a,#1
+      009EED 9F A1            [ 1] 5991 	jreq 1$
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 114.
 Hexadecimal [24-Bits]
 
 
 
-      0021D2                       5938 	_dict_entry,5+F_IFUNC,XPEEK,xpeek 
-      009E9F 00 09                    1 	.word LINK 
-                           0021D4     2 	LINK=.
-      0021D4                          3 XPEEK:
-      009EA1 A6                       4 	.byte 5+F_IFUNC 	
-      009EA2 02 C2 00 16 C7           5 	.ascii "XPEEK"
-      009EA7 00 08                    6 	.word xpeek 
-      0021DC                       5939 	_dict_entry,3+F_IFUNC,XOR,bit_xor
-      009EA9 5F A6                    1 	.word LINK 
-                           0021DE     2 	LINK=.
-      0021DE                          3 XOR:
-      009EAB 06                       4 	.byte 3+F_IFUNC 	
-      009EAC 97 A6 0A                 5 	.ascii "XOR"
-      009EAF CD 8A                    6 	.word bit_xor 
-      0021E4                       5940 	_dict_entry,5,WRITE,write  
-      009EB1 2D AE                    1 	.word LINK 
-                           0021E6     2 	LINK=.
-      0021E6                          3 WRITE:
-      009EB3 9E                       4 	.byte 5 	
-      009EB4 C3 CD 82 5D 5B           5 	.ascii "WRITE"
-      009EB9 02 81                    6 	.word write 
-      0021EE                       5941 	_dict_entry,5,WORDS,words 
-      009EBB 20 66                    1 	.word LINK 
-                           0021F0     2 	LINK=.
-      0021F0                          3 WORDS:
-      009EBD 69                       4 	.byte 5 	
-      009EBE 6C 65 73 0A 00           5 	.ascii "WORDS"
-      009EC3 20 62                    6 	.word words 
-      0021F8                       5942 	_dict_entry 4,WAIT,wait 
-      009EC5 79 74                    1 	.word LINK 
-                           0021FA     2 	LINK=.
-      0021FA                          3 WAIT:
-      009EC7 65                       4 	.byte 4 	
-      009EC8 73 20 66 72              5 	.ascii "WAIT"
-      009ECC 65 65                    6 	.word wait 
-      002201                       5943 	_dict_entry,3+F_IFUNC,USR,usr
-      009ECE 0A 00                    1 	.word LINK 
-                           002203     2 	LINK=.
-      009ED0                          3 USR:
-      009ED0 52                       4 	.byte 3+F_IFUNC 	
-      009ED1 02 72 5F                 5 	.ascii "USR"
-      009ED4 00 13                    6 	.word usr 
-      002209                       5944 	_dict_entry,6+F_IFUNC,UFLASH,uflash 
-      009ED6 CD 93                    1 	.word LINK 
-                           00220B     2 	LINK=.
-      00220B                          3 UFLASH:
-      009ED8 9F                       4 	.byte 6+F_IFUNC 	
-      009ED9 A1 04 27 03 CC 88        5 	.ascii "UFLASH"
-      009EDF 15 1F                    6 	.word uflash 
-      002214                       5945 	_dict_entry,6+F_IFUNC,UBOUND,ubound 
-      009EE1 01 CD                    1 	.word LINK 
-                           002216     2 	LINK=.
-      002216                          3 UBOUND:
-      009EE3 88                       4 	.byte 6+F_IFUNC 	
-      009EE4 DC A1 0D 27 02 20        5 	.ascii "UBOUND"
+      009EEF 04 27 03         [ 2] 5992 	jp syntax_error 
+      009EF2 CC 88 15         [ 4] 5993 1$: call dpop 
+      009EF5 9F               [ 1] 5994 	ld a,xl 
+      009EF6 1E 01            [ 1] 5995 	and a,#15
+      009EF8 CF               [ 1] 5996 	clrw x 
+      009EF9 00               [ 2] 5997 	incw x 
+      009EFA 14               [ 1] 5998 2$: tnz a 
+      009EFB 5F CD            [ 1] 5999 	jreq 3$
+      009EFD 81               [ 2] 6000 	slaw x 
+      009EFE 78               [ 1] 6001 	dec a 
+      009EFF 1E 01            [ 2] 6002 	jra 2$ 
+      009F01 5C 20            [ 1] 6003 3$: ld a,#TK_INTGR
+      009F03 DC               [ 4] 6004 	ret 
+                                   6005 
+                                   6006 
+                                   6007 ;------------------------------
+                                   6008 ;      dictionary 
+                                   6009 ; format:
+                                   6010 ;   link:   2 bytes 
+                                   6011 ;   name_length+flags:  1 byte, bits 0:4 lenght,5:8 flags  
+                                   6012 ;   cmd_name: 16 byte max 
+                                   6013 ;   code_address: 2 bytes 
+                                   6014 ;------------------------------
+                                   6015 	.macro _dict_entry len,name,cmd 
+                                   6016 	.word LINK 
+                                   6017 	LINK=.
+                                   6018 name:
+                                   6019 	.byte len 	
+                                   6020 	.ascii "name"
+                                   6021 	.word cmd 
+                                   6022 	.endm 
+                                   6023 
+                           000000  6024 	LINK=0
+      009F04                       6025 kword_end:
+      00223B                       6026 	_dict_entry,5+F_IFUNC,XPEEK,xpeek 
+      009F04 5B 02                    1 	.word LINK 
+                           00223D     2 	LINK=.
+      00223D                          3 XPEEK:
+      009F06 81                       4 	.byte 5+F_IFUNC 	
+      009F07 58 50 45 45 4B           5 	.ascii "XPEEK"
+      009F07 CD 92                    6 	.word xpeek 
+      002245                       6027 	_dict_entry,3+F_IFUNC,XOR,bit_xor
+      009F09 BF A1                    1 	.word LINK 
+                           002247     2 	LINK=.
+      002247                          3 XOR:
+      009F0B 01                       4 	.byte 3+F_IFUNC 	
+      009F0C 27 03 CC                 5 	.ascii "XOR"
+      009F0F 88 15                    6 	.word bit_xor 
+      00224D                       6028 	_dict_entry,5,WRITE,write  
+      009F11 CD 90                    1 	.word LINK 
+                           00224F     2 	LINK=.
+      00224F                          3 WRITE:
+      009F13 7B                       4 	.byte 5 	
+      009F14 9F A4 7F 97 A6           5 	.ascii "WRITE"
+      009F19 03 81                    6 	.word write 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 115.
 Hexadecimal [24-Bits]
 
 
 
-      009EEA 19 CD                    6 	.word ubound 
-      00221F                       5946 	_dict_entry,2,TO,to
-      009EEC 93 9F                    1 	.word LINK 
-                           002221     2 	LINK=.
-      002221                          3 TO:
-      009EEE A1                       4 	.byte 2 	
-      009EEF 04 27                    5 	.ascii "TO"
-      009EF1 03 CC                    6 	.word to 
-      002226                       5947 	_dict_entry,7+F_IFUNC,TIMEOUT,timeout 
-      009EF3 88 15                    1 	.word LINK 
-                           002228     2 	LINK=.
-      002228                          3 TIMEOUT:
-      009EF5 9F                       4 	.byte 7+F_IFUNC 	
-      009EF6 1E 01 CF 00 14 5F CD     5 	.ascii "TIMEOUT"
-      009EFD 81 78                    6 	.word timeout 
-      002232                       5948 	_dict_entry,5,TIMER,set_timer
-      009EFF 1E 01                    1 	.word LINK 
-                           002234     2 	LINK=.
-      002234                          3 TIMER:
-      009F01 5C                       4 	.byte 5 	
-      009F02 20 DC 4D 45 52           5 	.ascii "TIMER"
-      009F04 21 A5                    6 	.word set_timer 
-      00223C                       5949 	_dict_entry,5+F_IFUNC,TICKS,get_ticks
-      009F04 5B 02                    1 	.word LINK 
-                           00223E     2 	LINK=.
-      00223E                          3 TICKS:
-      009F06 81                       4 	.byte 5+F_IFUNC 	
-      009F07 54 49 43 4B 53           5 	.ascii "TICKS"
-      009F07 CD 92                    6 	.word get_ticks 
-      002246                       5950 	_dict_entry,4,STOP,stop 
-      009F09 BF A1                    1 	.word LINK 
-                           002248     2 	LINK=.
-      002248                          3 STOP:
-      009F0B 01                       4 	.byte 4 	
-      009F0C 27 03 CC 88              5 	.ascii "STOP"
-      009F10 15 CD                    6 	.word stop 
-      00224F                       5951 	_dict_entry,4,STEP,step 
-      009F12 90 7B                    1 	.word LINK 
-                           002251     2 	LINK=.
-      002251                          3 STEP:
-      009F14 9F                       4 	.byte 4 	
-      009F15 A4 7F 97 A6              5 	.ascii "STEP"
-      009F19 03 81                    6 	.word step 
-      009F1B                       5952 	_dict_entry,5,SLEEP,sleep 
+      009F1B                       6029 	_dict_entry,5,WORDS,words 
       009F1B CD 92                    1 	.word LINK 
-                           00225A     2 	LINK=.
-      00225A                          3 SLEEP:
+                           002259     2 	LINK=.
+      002259                          3 WORDS:
       009F1D BF                       4 	.byte 5 	
-      009F1E CD 88 DC A1 0A           5 	.ascii "SLEEP"
-      009F23 27 07                    6 	.word sleep 
-      002262                       5953 	_dict_entry,4+F_IFUNC,SIZE,size
+      009F1E CD 88 DC A1 0A           5 	.ascii "WORDS"
+      009F23 27 07                    6 	.word words 
+      002261                       6030 	_dict_entry 4,WAIT,wait 
       009F25 A1 03                    1 	.word LINK 
-                           002264     2 	LINK=.
-      002264                          3 SIZE:
-      009F27 27                       4 	.byte 4+F_IFUNC 	
+                           002263     2 	LINK=.
+      002263                          3 WAIT:
+      009F27 27                       4 	.byte 4 	
+      009F28 06 CC 88 15              5 	.ascii "WAIT"
+      009F2C 17 77                    6 	.word wait 
+      00226A                       6031 	_dict_entry,3+F_IFUNC,USR,usr
+      009F2C F6 20                    1 	.word LINK 
+                           00226C     2 	LINK=.
+      00226C                          3 USR:
+      009F2E 01                       4 	.byte 3+F_IFUNC 	
+      009F2F 55 53 52                 5 	.ascii "USR"
+      009F2F 9F 97                    6 	.word usr 
+      002272                       6032 	_dict_entry,6+F_IFUNC,UFLASH,uflash 
+      009F31 4F 95                    1 	.word LINK 
+                           002274     2 	LINK=.
+      002274                          3 UFLASH:
+      009F33 A6                       4 	.byte 6+F_IFUNC 	
+      009F34 04 81 4C 41 53 48        5 	.ascii "UFLASH"
+      009F36 1E FB                    6 	.word uflash 
+      00227D                       6033 	_dict_entry,6+F_IFUNC,UBOUND,ubound 
+      009F36 CD 82                    1 	.word LINK 
+                           00227F     2 	LINK=.
+      00227F                          3 UBOUND:
+      009F38 54                       4 	.byte 6+F_IFUNC 	
+      009F39 5F 97 A6 04 81 44        5 	.ascii "UBOUND"
+      009F3E 13 DE                    6 	.word ubound 
+      002288                       6034 	_dict_entry,2,TO,to
+      009F3E 5F 72                    1 	.word LINK 
+                           00228A     2 	LINK=.
+      00228A                          3 TO:
+      009F40 0B                       4 	.byte 2 	
+      009F41 52 30                    5 	.ascii "TO"
+      009F43 01 5C                    6 	.word to 
+      00228F                       6035 	_dict_entry,7+F_IFUNC,TIMEOUT,timeout 
+      009F45 A6 04                    1 	.word LINK 
+                           002291     2 	LINK=.
+      002291                          3 TIMEOUT:
+      009F47 81                       4 	.byte 7+F_IFUNC 	
+      009F48 54 49 4D 45 4F 55 54     5 	.ascii "TIMEOUT"
+      009F48 CD 92                    6 	.word timeout 
+      00229B                       6036 	_dict_entry,5,TIMER,set_timer
+      009F4A BF A1                    1 	.word LINK 
+                           00229D     2 	LINK=.
+      00229D                          3 TIMER:
+      009F4C 02                       4 	.byte 5 	
+      009F4D 27 03 CC 88 15           5 	.ascii "TIMER"
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 116.
 Hexadecimal [24-Bits]
 
 
 
-      009F28 06 CC 88 15              5 	.ascii "SIZE"
-      009F2C 13 D4                    6 	.word size 
-      00226B                       5954     _dict_entry,4,SHOW,show 
-      009F2C F6 20                    1 	.word LINK 
-                           00226D     2 	LINK=.
-      00226D                          3 SHOW:
-      009F2E 01                       4 	.byte 4 	
-      009F2F 53 48 4F 57              5 	.ascii "SHOW"
-      009F2F 9F 97                    6 	.word show 
-      002274                       5955 	_dict_entry,4,SAVE,save
-      009F31 4F 95                    1 	.word LINK 
-                           002276     2 	LINK=.
-      002276                          3 SAVE:
-      009F33 A6                       4 	.byte 4 	
-      009F34 04 81 56 45              5 	.ascii "SAVE"
-      009F36 1C 3F                    6 	.word save 
-      00227D                       5956 	_dict_entry 3,RUN,run
-      009F36 CD 82                    1 	.word LINK 
-                           00227F     2 	LINK=.
-      00227F                          3 RUN:
-      009F38 54                       4 	.byte 3 	
-      009F39 5F 97 A6                 5 	.ascii "RUN"
-      009F3C 04 81                    6 	.word run 
-      009F3E                       5957 	_dict_entry,6+F_IFUNC,RSHIFT,rshift
-      009F3E 5F 72                    1 	.word LINK 
-                           002287     2 	LINK=.
-      002287                          3 RSHIFT:
-      009F40 0B                       4 	.byte 6+F_IFUNC 	
-      009F41 52 30 01 5C A6 04        5 	.ascii "RSHIFT"
-      009F47 81 63                    6 	.word rshift 
-      009F48                       5958 	_dict_entry,3+F_IFUNC,RND,random 
-      009F48 CD 92                    1 	.word LINK 
-                           002292     2 	LINK=.
-      002292                          3 RND:
-      009F4A BF                       4 	.byte 3+F_IFUNC 	
-      009F4B A1 02 27                 5 	.ascii "RND"
-      009F4E 03 CC                    6 	.word random 
-      002298                       5959 	_dict_entry,6,RETURN,return 
-      009F50 88 15                    1 	.word LINK 
-                           00229A     2 	LINK=.
-      009F52                          3 RETURN:
-      009F52 AE                       4 	.byte 6 	
-      009F53 00 02 72 DE 00 19        5 	.ascii "RETURN"
-      009F59 2B 1B                    6 	.word return 
-      0022A3                       5960 	_dict_entry 6,REMARK,rem 
-      009F5B A3 00                    1 	.word LINK 
-                           0022A5     2 	LINK=.
-      0022A5                          3 REMARK:
-      009F5D 09                       4 	.byte 6 	
-      009F5E 2A 16 A6 05 42 1C        5 	.ascii "REMARK"
-      009F64 50 00                    6 	.word rem 
-      0022AE                       5961 	_dict_entry,6,REBOOT,cold_start 
-      009F66 89 CD                    1 	.word LINK 
-                           0022B0     2 	LINK=.
-      0022B0                          3 REBOOT:
+      009F52 21 A5                    6 	.word set_timer 
+      0022A5                       6037 	_dict_entry,5+F_IFUNC,TICKS,get_ticks
+      009F52 AE 00                    1 	.word LINK 
+                           0022A7     2 	LINK=.
+      0022A7                          3 TICKS:
+      009F54 02                       4 	.byte 5+F_IFUNC 	
+      009F55 72 DE 00 19 2B           5 	.ascii "TICKS"
+      009F5A 1B A3                    6 	.word get_ticks 
+      0022AF                       6038 	_dict_entry,4,STOP,stop 
+      009F5C 00 09                    1 	.word LINK 
+                           0022B1     2 	LINK=.
+      0022B1                          3 STOP:
+      009F5E 2A                       4 	.byte 4 	
+      009F5F 16 A6 05 42              5 	.ascii "STOP"
+      009F63 1C 50                    6 	.word stop 
+      0022B8                       6039 	_dict_entry,4,STEP,step 
+      009F65 00 89                    1 	.word LINK 
+                           0022BA     2 	LINK=.
+      0022BA                          3 STEP:
+      009F67 CD                       4 	.byte 4 	
+      009F68 90 7B 72 FB              5 	.ascii "STEP"
+      009F6C 01 1F                    6 	.word step 
+      0022C1                       6040 	_dict_entry,5,SLEEP,sleep 
+      009F6E 01 CD                    1 	.word LINK 
+                           0022C3     2 	LINK=.
+      0022C3                          3 SLEEP:
+      009F70 90                       4 	.byte 5 	
+      009F71 A2 85 A6 04 81           5 	.ascii "SLEEP"
+      009F76 1F 69                    6 	.word sleep 
+      0022CB                       6041 	_dict_entry,4+F_IFUNC,SIZE,size
+      009F76 A6 0A                    1 	.word LINK 
+                           0022CD     2 	LINK=.
+      0022CD                          3 SIZE:
+      009F78 CC                       4 	.byte 4+F_IFUNC 	
+      009F79 88 17 5A 45              5 	.ascii "SIZE"
+      009F7B 13 D4                    6 	.word size 
+      0022D4                       6042     _dict_entry,4,SHOW,show 
+      009F7B AE A6                    1 	.word LINK 
+                           0022D6     2 	LINK=.
+      0022D6                          3 SHOW:
+      009F7D 00                       4 	.byte 4 	
+      009F7E A6 04 81 57              5 	.ascii "SHOW"
+      009F81 13 BA                    6 	.word show 
+      0022DD                       6043 	_dict_entry,4,SAVE,save
+      009F81 90 89                    1 	.word LINK 
+                           0022DF     2 	LINK=.
+      0022DF                          3 SAVE:
+      009F83 CD                       4 	.byte 4 	
+      009F84 92 BF A1 01              5 	.ascii "SAVE"
+      009F88 2A 03                    6 	.word save 
+      0022E6                       6044 	_dict_entry 3,RUN,run
+      009F8A CC 88                    1 	.word LINK 
+                           0022E8     2 	LINK=.
+      0022E8                          3 RUN:
+      009F8C 15                       4 	.byte 3 	
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 117.
 Hexadecimal [24-Bits]
 
 
 
-      009F68 90                       4 	.byte 6 	
-      009F69 7B 72 FB 01 1F 01        5 	.ascii "REBOOT"
-      009F6F CD 90                    6 	.word cold_start 
-      0022B9                       5962 	_dict_entry,4+F_IFUNC,QKEY,qkey  
-      009F71 A2 85                    1 	.word LINK 
-                           0022BB     2 	LINK=.
-      0022BB                          3 QKEY:
-      009F73 A6                       4 	.byte 4+F_IFUNC 	
-      009F74 04 81 45 59              5 	.ascii "QKEY"
-      009F76 1E BE                    6 	.word qkey 
-      0022C2                       5963 	_dict_entry,6,PWRADC,power_adc 
-      009F76 A6 0A                    1 	.word LINK 
-                           0022C4     2 	LINK=.
-      0022C4                          3 PWRADC:
-      009F78 CC                       4 	.byte 6 	
-      009F79 88 17 52 41 44 43        5 	.ascii "PWRADC"
-      009F7B 1A 41                    6 	.word power_adc 
-      0022CD                       5964 	_dict_entry 5,PRINT,print 
-      009F7B AE A5                    1 	.word LINK 
-                           0022CF     2 	LINK=.
-      0022CF                          3 PRINT:
-      009F7D 80                       4 	.byte 5 	
-      009F7E A6 04 81 4E 54           5 	.ascii "PRINT"
-      009F81 16 6C                    6 	.word print 
-      0022D7                       5965 	_dict_entry,4+F_CONST,POUT,OUTP 
-      009F81 90 89                    1 	.word LINK 
-                           0022D9     2 	LINK=.
-      0022D9                          3 POUT:
-      009F83 CD                       4 	.byte 4+F_CONST 	
-      009F84 92 BF A1 01              5 	.ascii "POUT"
-      009F88 2A 03                    6 	.word OUTP 
-      0022E0                       5966 	_dict_entry,4,POKE,poke 
-      009F8A CC 88                    1 	.word LINK 
-                           0022E2     2 	LINK=.
-      0022E2                          3 POKE:
-      009F8C 15                       4 	.byte 4 	
-      009F8D 50 4F 4B 45              5 	.ascii "POKE"
-      009F8D CD 90                    6 	.word poke 
-      0022E9                       5967 	_dict_entry,4+F_CONST,PINP,INP 
+      009F8D 52 55 4E                 5 	.ascii "RUN"
+      009F8D CD 90                    6 	.word run 
+      0022EE                       6045 	_dict_entry,6+F_IFUNC,RSHIFT,rshift
       009F8F 7B A1                    1 	.word LINK 
-                           0022EB     2 	LINK=.
-      0022EB                          3 PINP:
-      009F91 02                       4 	.byte 4+F_CONST 	
-      009F92 2B 05 90 93              5 	.ascii "PINP"
-      009F96 CD 90                    6 	.word INP 
-      0022F2                       5968 	_dict_entry,4+F_IFUNC,PEEK,peek 
-      009F98 7B 51                    1 	.word LINK 
-                           0022F4     2 	LINK=.
-      0022F4                          3 PEEK:
-      009F9A 90                       4 	.byte 4+F_IFUNC 	
-      009F9B FD 90 85 81              5 	.ascii "PEEK"
-      009F9F 18 1D                    6 	.word peek 
-      0022FB                       5969 	_dict_entry,5,PMODE,pin_mode 
+                           0022F0     2 	LINK=.
+      0022F0                          3 RSHIFT:
+      009F91 02                       4 	.byte 6+F_IFUNC 	
+      009F92 2B 05 90 93 CD 90        5 	.ascii "RSHIFT"
+      009F98 7B 51                    6 	.word rshift 
+      0022F9                       6046 	_dict_entry,3+F_IFUNC,RND,random 
+      009F9A 90 FD                    1 	.word LINK 
+                           0022FB     2 	LINK=.
+      0022FB                          3 RND:
+      009F9C 90                       4 	.byte 3+F_IFUNC 	
+      009F9D 85 81 44                 5 	.ascii "RND"
+      009F9F 21 01                    6 	.word random 
+      002301                       6047 	_dict_entry,6,RETURN,return 
       009F9F 72 0D                    1 	.word LINK 
-                           0022FD     2 	LINK=.
+                           002303     2 	LINK=.
+      002303                          3 RETURN:
+      009FA1 52                       4 	.byte 6 	
+      009FA2 30 FB 8E CC 85 F9        5 	.ascii "RETURN"
+      009FA8 19 A7                    6 	.word return 
+      00230C                       6048 	_dict_entry 6,REMARK,rem 
+      009FA8 72 01                    1 	.word LINK 
+                           00230E     2 	LINK=.
+      00230E                          3 REMARK:
+      009FAA 00                       4 	.byte 6 	
+      009FAB 22 07 27 05 A6 07        5 	.ascii "REMARK"
+      009FB1 CC 88                    6 	.word rem 
+      002317                       6049 	_dict_entry,7,REFIWDG,refresh_iwdg
+      009FB3 17 0E                    1 	.word LINK 
+                           002319     2 	LINK=.
+      009FB4                          3 REFIWDG:
+      009FB4 CD                       4 	.byte 7 	
+      009FB5 88 DC A1 0A 27 03 CC     5 	.ascii "REFIWDG"
+      009FBC 88 15                    6 	.word refresh_iwdg 
+      009FBE                       6050 	_dict_entry,6,REBOOT,cold_start 
+      009FBE 89 90                    1 	.word LINK 
+                           002325     2 	LINK=.
+      002325                          3 REBOOT:
+      009FC0 93                       4 	.byte 6 	
+      009FC1 CD 9C 74 25 05 A6        5 	.ascii "REBOOT"
+      009FC7 09 CC                    6 	.word cold_start 
+      00232E                       6051 	_dict_entry,4+F_IFUNC,QKEY,qkey  
+      009FC9 88 17                    1 	.word LINK 
+                           002330     2 	LINK=.
+      009FCB                          3 QKEY:
+      009FCB 55                       4 	.byte 4+F_IFUNC 	
+      009FCC 00 04 00 02              5 	.ascii "QKEY"
+      009FD0 72 5F                    6 	.word qkey 
+      002337                       6052 	_dict_entry,3+F_IFUNC,PWR,pwr2
+      009FD2 00 13                    1 	.word LINK 
+                           002339     2 	LINK=.
+      002339                          3 PWR:
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 118.
 Hexadecimal [24-Bits]
 
 
 
-      0022FD                          3 PMODE:
-      009FA1 52                       4 	.byte 5 	
-      009FA2 30 FB 8E CC 85           5 	.ascii "PMODE"
-      009FA7 F9 8C                    6 	.word pin_mode 
-      009FA8                       5970 	_dict_entry,5,PAUSE,pause 
-      009FA8 72 01                    1 	.word LINK 
-                           002307     2 	LINK=.
-      002307                          3 PAUSE:
-      009FAA 00                       4 	.byte 5 	
-      009FAB 22 07 27 05 A6           5 	.ascii "PAUSE"
-      009FB0 07 CC                    6 	.word pause 
-      00230F                       5971 	_dict_entry,2+F_IFUNC,OR,bit_or
-      009FB2 88 17                    1 	.word LINK 
-                           002311     2 	LINK=.
-      009FB4                          3 OR:
-      009FB4 CD                       4 	.byte 2+F_IFUNC 	
-      009FB5 88 DC                    5 	.ascii "OR"
-      009FB7 A1 0A                    6 	.word bit_or 
-      002316                       5972 	_dict_entry,3+F_CONST,ODR,GPIO_ODR
-      009FB9 27 03                    1 	.word LINK 
-                           002318     2 	LINK=.
-      002318                          3 ODR:
-      009FBB CC                       4 	.byte 3+F_CONST 	
-      009FBC 88 15 52                 5 	.ascii "ODR"
-      009FBE 00 00                    6 	.word GPIO_ODR 
-      00231E                       5973 	_dict_entry,3+F_IFUNC,NOT,func_not 
-      009FBE 89 90                    1 	.word LINK 
-                           002320     2 	LINK=.
-      002320                          3 NOT:
-      009FC0 93                       4 	.byte 3+F_IFUNC 	
-      009FC1 CD 9C 74                 5 	.ascii "NOT"
-      009FC4 25 05                    6 	.word func_not 
-      002326                       5974 	_dict_entry,3,NEW,new
-      009FC6 A6 09                    1 	.word LINK 
-                           002328     2 	LINK=.
-      002328                          3 NEW:
-      009FC8 CC                       4 	.byte 3 	
-      009FC9 88 17 57                 5 	.ascii "NEW"
-      009FCB 1B 7D                    6 	.word new 
-      00232E                       5975 	_dict_entry,4,NEXT,next 
-      009FCB 55 00                    1 	.word LINK 
-                           002330     2 	LINK=.
-      002330                          3 NEXT:
-      009FCD 04                       4 	.byte 4 	
-      009FCE 00 02 72 5F              5 	.ascii "NEXT"
-      009FD2 00 13                    6 	.word next 
-      002337                       5976 	_dict_entry,6+F_IFUNC,LSHIFT,lshift
-      009FD4 AE 40                    1 	.word LINK 
-                           002339     2 	LINK=.
-      002339                          3 LSHIFT:
-      009FD6 00                       4 	.byte 6+F_IFUNC 	
-      009FD7 CF 00 14 1E 01 CD        5 	.ascii "LSHIFT"
-      009FDD 83 1F                    6 	.word lshift 
-      002342                       5977 	_dict_entry,4,LOAD,load 
-      009FDF 90 85                    1 	.word LINK 
+      009FD4 AE                       4 	.byte 3+F_IFUNC 	
+      009FD5 40 00 CF                 5 	.ascii "PWR"
+      009FD8 00 14                    6 	.word pwr2 
+      00233F                       6053 	_dict_entry 5,PRINT,print 
+      009FDA 1E 01                    1 	.word LINK 
+                           002341     2 	LINK=.
+      002341                          3 PRINT:
+      009FDC CD                       4 	.byte 5 	
+      009FDD 83 1F 90 85 89           5 	.ascii "PRINT"
+      009FE2 5F CD                    6 	.word print 
+      002349                       6054 	_dict_entry,4+F_CONST,POUT,OUTP 
+      009FE4 81 ED                    1 	.word LINK 
+                           00234B     2 	LINK=.
+      00234B                          3 POUT:
+      009FE6 5B                       4 	.byte 4+F_CONST 	
+      009FE7 02 81 55 54              5 	.ascii "POUT"
+      009FE9 00 01                    6 	.word OUTP 
+      002352                       6055 	_dict_entry,4,POKE,poke 
+      009FE9 72 0D                    1 	.word LINK 
+                           002354     2 	LINK=.
+      002354                          3 POKE:
+      009FEB 52                       4 	.byte 4 	
+      009FEC 30 FB 72 16              5 	.ascii "POKE"
+      009FF0 00 22                    6 	.word poke 
+      00235B                       6056 	_dict_entry,4+F_CONST,PINP,INP 
+      009FF2 8E 81                    1 	.word LINK 
+                           00235D     2 	LINK=.
+      009FF4                          3 PINP:
+      009FF4 CD                       4 	.byte 4+F_CONST 	
+      009FF5 93 9F A1 04              5 	.ascii "PINP"
+      009FF9 27 03                    6 	.word INP 
+      002364                       6057 	_dict_entry,4+F_IFUNC,PEEK,peek 
+      009FFB CC 88                    1 	.word LINK 
+                           002366     2 	LINK=.
+      002366                          3 PEEK:
+      009FFD 15                       4 	.byte 4+F_IFUNC 	
+      009FFE 50 45 45 4B              5 	.ascii "PEEK"
+      009FFE 5D 27                    6 	.word peek 
+      00236D                       6058 	_dict_entry,5,PMODE,pin_mode 
+      00A000 04 8F                    1 	.word LINK 
+                           00236F     2 	LINK=.
+      00236F                          3 PMODE:
+      00A002 5A                       4 	.byte 5 	
+      00A003 26 F9 4F 81 45           5 	.ascii "PMODE"
+      00A007 20 8C                    6 	.word pin_mode 
+      002377                       6059 	_dict_entry,5,PAUSE,pause 
+      00A007 CD 93                    1 	.word LINK 
+                           002379     2 	LINK=.
+      002379                          3 PAUSE:
+      00A009 9F                       4 	.byte 5 	
+      00A00A A1 04 27 03 CC           5 	.ascii "PAUSE"
+      00A00F 88 15                    6 	.word pause 
+      00A011                       6060 	_dict_entry,2+F_IFUNC,OR,bit_or
+      00A011 A3 14                    1 	.word LINK 
+                           002383     2 	LINK=.
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 119.
 Hexadecimal [24-Bits]
 
 
 
-                           002344     2 	LINK=.
-      002344                          3 LOAD:
-      009FE1 89                       4 	.byte 4 	
-      009FE2 5F CD 81 ED              5 	.ascii "LOAD"
-      009FE6 5B 02                    6 	.word load 
-      00234B                       5978 	_dict_entry 4,LIST,list
-      009FE8 81 44                    1 	.word LINK 
-                           00234D     2 	LINK=.
-      009FE9                          3 LIST:
-      009FE9 72                       4 	.byte 4 	
-      009FEA 0D 52 30 FB              5 	.ascii "LIST"
-      009FEE 72 16                    6 	.word list 
-      002354                       5979 	_dict_entry 3,LET,let 
-      009FF0 00 22                    1 	.word LINK 
-                           002356     2 	LINK=.
-      002356                          3 LET:
-      009FF2 8E                       4 	.byte 3 	
-      009FF3 81 45 54                 5 	.ascii "LET"
-      009FF4 14 00                    6 	.word let 
-      00235C                       5980 	_dict_entry,3+F_IFUNC,KEY,key 
-      009FF4 CD 93                    1 	.word LINK 
-                           00235E     2 	LINK=.
-      00235E                          3 KEY:
-      009FF6 9F                       4 	.byte 3+F_IFUNC 	
-      009FF7 A1 04 27                 5 	.ascii "KEY"
-      009FFA 03 CC                    6 	.word key 
-      002364                       5981 	_dict_entry,5,INPUT,input_var  
-      009FFC 88 15                    1 	.word LINK 
-                           002366     2 	LINK=.
-      009FFE                          3 INPUT:
-      009FFE 5D                       4 	.byte 5 	
-      009FFF 27 04 8F 5A 26           5 	.ascii "INPUT"
-      00A004 F9 4F                    6 	.word input_var 
-      00236E                       5982 	_dict_entry,2,IF,if 
-      00A006 81 66                    1 	.word LINK 
-                           002370     2 	LINK=.
-      00A007                          3 IF:
-      00A007 CD                       4 	.byte 2 	
-      00A008 93 9F                    5 	.ascii "IF"
-      00A00A A1 04                    6 	.word if 
-      002375                       5983 	_dict_entry,3+F_CONST,IDR,GPIO_IDR
-      00A00C 27 03                    1 	.word LINK 
-                           002377     2 	LINK=.
-      002377                          3 IDR:
-      00A00E CC                       4 	.byte 3+F_CONST 	
-      00A00F 88 15 52                 5 	.ascii "IDR"
-      00A011 00 01                    6 	.word GPIO_IDR 
-      00237D                       5984 	_dict_entry,3,HEX,hex_base
-      00A011 A3 14                    1 	.word LINK 
-                           00237F     2 	LINK=.
-      00237F                          3 HEX:
-      00A013 00                       4 	.byte 3 	
-      00A014 2B 0C 35                 5 	.ascii "HEX"
-      00A017 0F 50                    6 	.word hex_base 
-      002385                       5985 	_dict_entry,4+F_IFUNC,GPIO,gpio 
+      002383                          3 OR:
+      00A013 00                       4 	.byte 2+F_IFUNC 	
+      00A014 2B 0C                    5 	.ascii "OR"
+      00A016 35 0F                    6 	.word bit_or 
+      002388                       6061 	_dict_entry,3+F_CONST,ODR,GPIO_ODR
+      00A018 50 F2                    1 	.word LINK 
+                           00238A     2 	LINK=.
+      00238A                          3 ODR:
+      00A01A A6                       4 	.byte 3+F_CONST 	
+      00A01B 1E 62 A6                 5 	.ascii "ODR"
+      00A01E 10 62                    6 	.word GPIO_ODR 
+      002390                       6062 	_dict_entry,3+F_IFUNC,NOT,func_not 
+      00A020 20 1E                    1 	.word LINK 
+                           002392     2 	LINK=.
+      00A022                          3 NOT:
+      00A022 A3                       4 	.byte 3+F_IFUNC 	
+      00A023 08 00 2B                 5 	.ascii "NOT"
+      00A026 09 35                    6 	.word func_not 
+      002398                       6063 	_dict_entry,3,NEW,new
+      00A028 0E 50                    1 	.word LINK 
+                           00239A     2 	LINK=.
+      00239A                          3 NEW:
+      00A02A F2                       4 	.byte 3 	
+      00A02B A6 50 62                 5 	.ascii "NEW"
+      00A02E 20 10                    6 	.word new 
+      00A030                       6064 	_dict_entry,4,NEXT,next 
+      00A030 35 07                    1 	.word LINK 
+                           0023A2     2 	LINK=.
+      0023A2                          3 NEXT:
+      00A032 50                       4 	.byte 4 	
+      00A033 F2 45 58 54              5 	.ascii "NEXT"
+      00A034 18 E6                    6 	.word next 
+      0023A9                       6065 	_dict_entry,6+F_IFUNC,LSHIFT,lshift
+      00A034 A3 00                    1 	.word LINK 
+                           0023AB     2 	LINK=.
+      0023AB                          3 LSHIFT:
+      00A036 40                       4 	.byte 6+F_IFUNC 	
+      00A037 23 07 72 5C 50 F2        5 	.ascii "LSHIFT"
+      00A03D 54 20                    6 	.word lshift 
+      0023B4                       6066 	_dict_entry,3+F_IFUNC,LOG,log2 
+      00A03F F4 AB                    1 	.word LINK 
+                           0023B6     2 	LINK=.
+      00A040                          3 LOG:
+      00A040 9F                       4 	.byte 3+F_IFUNC 	
+      00A041 4A 27 01                 5 	.ascii "LOG"
+      00A044 4A 02                    6 	.word log2 
+      00A045                       6067 	_dict_entry,4,LOAD,load 
+      00A045 A4 3E                    1 	.word LINK 
+                           0023BE     2 	LINK=.
+      0023BE                          3 LOAD:
+      00A047 C7                       4 	.byte 4 	
+      00A048 50 F1 72 18              5 	.ascii "LOAD"
+      00A04C 50 F0                    6 	.word load 
+      0023C5                       6068 	_dict_entry 4,LIST,list
+      00A04E 8E 81                    1 	.word LINK 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 120.
 Hexadecimal [24-Bits]
 
 
 
-      00A019 F2 A6                    1 	.word LINK 
-                           002387     2 	LINK=.
-      002387                          3 GPIO:
-      00A01B 1E                       4 	.byte 4+F_IFUNC 	
-      00A01C 62 A6 10 62              5 	.ascii "GPIO"
-      00A020 20 1E                    6 	.word gpio 
-      00A022                       5986 	_dict_entry,4,GOTO,goto 
-      00A022 A3 08                    1 	.word LINK 
-                           002390     2 	LINK=.
-      002390                          3 GOTO:
-      00A024 00                       4 	.byte 4 	
-      00A025 2B 09 35 0E              5 	.ascii "GOTO"
-      00A029 50 F2                    6 	.word goto 
-      002397                       5987 	_dict_entry,5,GOSUB,gosub 
-      00A02B A6 50                    1 	.word LINK 
-                           002399     2 	LINK=.
-      002399                          3 GOSUB:
-      00A02D 62                       4 	.byte 5 	
-      00A02E 20 10 53 55 42           5 	.ascii "GOSUB"
-      00A030 19 62                    6 	.word gosub 
-      0023A1                       5988 	_dict_entry,6,FORGET,forget 
-      00A030 35 07                    1 	.word LINK 
-                           0023A3     2 	LINK=.
-      0023A3                          3 FORGET:
-      00A032 50                       4 	.byte 6 	
-      00A033 F2 4F 52 47 45 54        5 	.ascii "FORGET"
-      00A034 1D 6F                    6 	.word forget 
-      0023AC                       5989 	_dict_entry,3,FOR,for 
-      00A034 A3 00                    1 	.word LINK 
-                           0023AE     2 	LINK=.
-      0023AE                          3 FOR:
-      00A036 40                       4 	.byte 3 	
-      00A037 23 07 72                 5 	.ascii "FOR"
-      00A03A 5C 50                    6 	.word for 
-      0023B4                       5990 	_dict_entry,4,FCPU,fcpu 
-      00A03C F2 54                    1 	.word LINK 
-                           0023B6     2 	LINK=.
-      0023B6                          3 FCPU:
-      00A03E 20                       4 	.byte 4 	
-      00A03F F4 43 50 55              5 	.ascii "FCPU"
-      00A040 20 80                    6 	.word fcpu 
-      0023BD                       5991 	_dict_entry,6+F_CONST,EEPROM,EEPROM_BASE  
-      00A040 9F 4A                    1 	.word LINK 
-                           0023BF     2 	LINK=.
-      0023BF                          3 EEPROM:
-      00A042 27                       4 	.byte 6+F_CONST 	
-      00A043 01 4A 50 52 4F 4D        5 	.ascii "EEPROM"
-      00A045 40 00                    6 	.word EEPROM_BASE 
-      0023C8                       5992 	_dict_entry,6+F_CMD,DWRITE,digital_write
-      00A045 A4 3E                    1 	.word LINK 
-                           0023CA     2 	LINK=.
-      0023CA                          3 DWRITE:
-      00A047 C7                       4 	.byte 6+F_CMD 	
-      00A048 50 F1 72 18 50 F0        5 	.ascii "DWRITE"
-      00A04E 8E 81                    6 	.word digital_write 
+                           0023C7     2 	LINK=.
+      00A050                          3 LIST:
+      00A050 CE                       4 	.byte 4 	
+      00A051 00 0B A6 04              5 	.ascii "LIST"
+      00A055 81 28                    6 	.word list 
+      00A056                       6069 	_dict_entry 3,LET,let 
+      00A056 CD 92                    1 	.word LINK 
+                           0023D0     2 	LINK=.
+      0023D0                          3 LET:
+      00A058 BF                       4 	.byte 3 	
+      00A059 A1 01 27                 5 	.ascii "LET"
+      00A05C 03 CC                    6 	.word let 
+      0023D6                       6070 	_dict_entry,3+F_IFUNC,KEY,key 
+      00A05E 88 15                    1 	.word LINK 
+                           0023D8     2 	LINK=.
+      00A060                          3 KEY:
+      00A060 CD                       4 	.byte 3+F_IFUNC 	
+      00A061 90 7B 9E                 5 	.ascii "KEY"
+      00A064 A5 80                    6 	.word key 
+      0023DE                       6071 	_dict_entry,5,INPUT,input_var  
+      00A066 27 01                    1 	.word LINK 
+                           0023E0     2 	LINK=.
+      0023E0                          3 INPUT:
+      00A068 50                       4 	.byte 5 	
+      00A069 A6 04 81 55 54           5 	.ascii "INPUT"
+      00A06C 16 FD                    6 	.word input_var 
+      0023E8                       6072 	_dict_entry,2,IF,if 
+      00A06C CD 92                    1 	.word LINK 
+                           0023EA     2 	LINK=.
+      0023EA                          3 IF:
+      00A06E BF                       4 	.byte 2 	
+      00A06F A1 02                    5 	.ascii "IF"
+      00A071 27 03                    6 	.word if 
+      0023EF                       6073 	_dict_entry,3+F_CONST,IDR,GPIO_IDR
+      00A073 CC 88                    1 	.word LINK 
+                           0023F1     2 	LINK=.
+      0023F1                          3 IDR:
+      00A075 15                       4 	.byte 3+F_CONST 	
+      00A076 CD 90 7B                 5 	.ascii "IDR"
+      00A079 89 CD                    6 	.word GPIO_IDR 
+      0023F7                       6074 	_dict_entry,3,HEX,hex_base
+      00A07B 90 7B                    1 	.word LINK 
+                           0023F9     2 	LINK=.
+      0023F9                          3 HEX:
+      00A07D 9E                       4 	.byte 3 	
+      00A07E 14 01 95                 5 	.ascii "HEX"
+      00A081 9F 14                    6 	.word hex_base 
+      0023FF                       6075 	_dict_entry,4+F_IFUNC,GPIO,gpio 
+      00A083 02 97                    1 	.word LINK 
+                           002401     2 	LINK=.
+      002401                          3 GPIO:
+      00A085 5B                       4 	.byte 4+F_IFUNC 	
+      00A086 02 A6 04 81              5 	.ascii "GPIO"
+      00A08A 1E C8                    6 	.word gpio 
+      002408                       6076 	_dict_entry,4,GOTO,goto 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 121.
 Hexadecimal [24-Bits]
 
 
 
-      00A050                       5993 	_dict_entry,5+F_IFUNC,DREAD,digital_read
-      00A050 CE 00                    1 	.word LINK 
-                           0023D5     2 	LINK=.
-      0023D5                          3 DREAD:
-      00A052 0B                       4 	.byte 5+F_IFUNC 	
-      00A053 A6 04 81 41 44           5 	.ascii "DREAD"
-      00A056 1A C0                    6 	.word digital_read 
-      0023DD                       5994 	_dict_entry,3,DIR,directory 
-      00A056 CD 92                    1 	.word LINK 
-                           0023DF     2 	LINK=.
-      0023DF                          3 DIR:
-      00A058 BF                       4 	.byte 3 	
-      00A059 A1 01 27                 5 	.ascii "DIR"
-      00A05C 03 CC                    6 	.word directory 
-      0023E5                       5995 	_dict_entry,3,DEC,dec_base
-      00A05E 88 15                    1 	.word LINK 
-                           0023E7     2 	LINK=.
-      00A060                          3 DEC:
-      00A060 CD                       4 	.byte 3 	
-      00A061 90 7B 9E                 5 	.ascii "DEC"
-      00A064 A5 80                    6 	.word dec_base 
-      0023ED                       5996 	_dict_entry,3+F_CONST,DDR,GPIO_DDR
-      00A066 27 01                    1 	.word LINK 
-                           0023EF     2 	LINK=.
-      0023EF                          3 DDR:
-      00A068 50                       4 	.byte 3+F_CONST 	
-      00A069 A6 04 81                 5 	.ascii "DDR"
-      00A06C 00 02                    6 	.word GPIO_DDR 
-      0023F5                       5997 	_dict_entry,3+F_CONST,CRL,GPIO_CR1
-      00A06C CD 92                    1 	.word LINK 
-                           0023F7     2 	LINK=.
-      0023F7                          3 CRL:
-      00A06E BF                       4 	.byte 3+F_CONST 	
-      00A06F A1 02 27                 5 	.ascii "CRL"
-      00A072 03 CC                    6 	.word GPIO_CR1 
-      0023FD                       5998 	_dict_entry,3+F_CONST,CRH,GPIO_CR2
-      00A074 88 15                    1 	.word LINK 
-                           0023FF     2 	LINK=.
-      0023FF                          3 CRH:
-      00A076 CD                       4 	.byte 3+F_CONST 	
-      00A077 90 7B 89                 5 	.ascii "CRH"
-      00A07A CD 90                    6 	.word GPIO_CR2 
-      002405                       5999 	_dict_entry,4+F_CFUNC,CHAR,char
-      00A07C 7B 9E                    1 	.word LINK 
-                           002407     2 	LINK=.
-      002407                          3 CHAR:
-      00A07E 14                       4 	.byte 4+F_CFUNC 	
-      00A07F 01 95 9F 14              5 	.ascii "CHAR"
-      00A083 02 97                    6 	.word char 
-      00240E                       6000 	_dict_entry,3,BYE,bye 
-      00A085 5B 02                    1 	.word LINK 
-                           002410     2 	LINK=.
-      002410                          3 BYE:
-      00A087 A6                       4 	.byte 3 	
-      00A088 04 81 45                 5 	.ascii "BYE"
+      00A08A CD 92                    1 	.word LINK 
+                           00240A     2 	LINK=.
+      00240A                          3 GOTO:
+      00A08C BF                       4 	.byte 4 	
+      00A08D A1 02 27 03              5 	.ascii "GOTO"
+      00A091 CC 88                    6 	.word goto 
+      002411                       6077 	_dict_entry,5,GOSUB,gosub 
+      00A093 15 0A                    1 	.word LINK 
+                           002413     2 	LINK=.
+      00A094                          3 GOSUB:
+      00A094 CD                       4 	.byte 5 	
+      00A095 90 7B 89 CD 90           5 	.ascii "GOSUB"
+      00A09A 7B 9E                    6 	.word gosub 
+      00241B                       6078 	_dict_entry,6,FORGET,forget 
+      00A09C 1A 01                    1 	.word LINK 
+                           00241D     2 	LINK=.
+      00241D                          3 FORGET:
+      00A09E 95                       4 	.byte 6 	
+      00A09F 9F 1A 02 97 5B 02        5 	.ascii "FORGET"
+      00A0A5 A6 04                    6 	.word forget 
+      002426                       6079 	_dict_entry,3,FOR,for 
+      00A0A7 81 1D                    1 	.word LINK 
+                           002428     2 	LINK=.
+      00A0A8                          3 FOR:
+      00A0A8 CD                       4 	.byte 3 	
+      00A0A9 92 BF A1                 5 	.ascii "FOR"
+      00A0AC 02 27                    6 	.word for 
+      00242E                       6080 	_dict_entry,4,FCPU,fcpu 
+      00A0AE 03 CC                    1 	.word LINK 
+                           002430     2 	LINK=.
+      002430                          3 FCPU:
+      00A0B0 88                       4 	.byte 4 	
+      00A0B1 15 43 50 55              5 	.ascii "FCPU"
+      00A0B2 20 80                    6 	.word fcpu 
+      002437                       6081 	_dict_entry,6,ENIWDG,enable_iwdg
+      00A0B2 CD 90                    1 	.word LINK 
+                           002439     2 	LINK=.
+      002439                          3 ENIWDG:
+      00A0B4 7B                       4 	.byte 6 	
+      00A0B5 89 CD 90 7B 9E 18        5 	.ascii "ENIWDG"
+      00A0BB 01 95                    6 	.word enable_iwdg 
+      002442                       6082 	_dict_entry,6+F_CONST,EEPROM,EEPROM_BASE  
+      00A0BD 9F 18                    1 	.word LINK 
+                           002444     2 	LINK=.
+      002444                          3 EEPROM:
+      00A0BF 02                       4 	.byte 6+F_CONST 	
+      00A0C0 97 5B 02 A6 04 81        5 	.ascii "EEPROM"
+      00A0C6 40 00                    6 	.word EEPROM_BASE 
+      00244D                       6083 	_dict_entry,6+F_CMD,DWRITE,digital_write
+      00A0C6 CD 92                    1 	.word LINK 
+                           00244F     2 	LINK=.
+      00244F                          3 DWRITE:
+      00A0C8 BF                       4 	.byte 6+F_CMD 	
+      00A0C9 A1 02 27 03 CC 88        5 	.ascii "DWRITE"
+      00A0CF 15 CD                    6 	.word digital_write 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 122.
 Hexadecimal [24-Bits]
 
 
 
-      00A08A 1F 1F                    6 	.word bye 
-      002416                       6001 	_dict_entry,5,BTOGL,bit_toggle
-      00A08A CD 92                    1 	.word LINK 
-                           002418     2 	LINK=.
-      002418                          3 BTOGL:
-      00A08C BF                       4 	.byte 5 	
-      00A08D A1 02 27 03 CC           5 	.ascii "BTOGL"
-      00A092 88 15                    6 	.word bit_toggle 
-      00A094                       6002 	_dict_entry,5+F_IFUNC,BTEST,bit_test 
-      00A094 CD 90                    1 	.word LINK 
-                           002422     2 	LINK=.
-      002422                          3 BTEST:
-      00A096 7B                       4 	.byte 5+F_IFUNC 	
-      00A097 89 CD 90 7B 9E           5 	.ascii "BTEST"
-      00A09C 1A 01                    6 	.word bit_test 
-      00242A                       6003 	_dict_entry,4,BSET,bit_set 
-      00A09E 95 9F                    1 	.word LINK 
-                           00242C     2 	LINK=.
-      00242C                          3 BSET:
-      00A0A0 1A                       4 	.byte 4 	
-      00A0A1 02 97 5B 02              5 	.ascii "BSET"
-      00A0A5 A6 04                    6 	.word bit_set 
-      002433                       6004 	_dict_entry,4,BRES,bit_reset
-      00A0A7 81 2C                    1 	.word LINK 
-                           002435     2 	LINK=.
-      00A0A8                          3 BRES:
-      00A0A8 CD                       4 	.byte 4 	
-      00A0A9 92 BF A1 02              5 	.ascii "BRES"
-      00A0AD 27 03                    6 	.word bit_reset 
-      00243C                       6005 	_dict_entry,5,BREAK,break 
-      00A0AF CC 88                    1 	.word LINK 
-                           00243E     2 	LINK=.
-      00243E                          3 BREAK:
-      00A0B1 15                       4 	.byte 5 	
-      00A0B2 42 52 45 41 4B           5 	.ascii "BREAK"
-      00A0B2 CD 90                    6 	.word break 
-      002446                       6006 	_dict_entry,4,BEEP,beep 
-      00A0B4 7B 89                    1 	.word LINK 
-                           002448     2 	LINK=.
-      002448                          3 BEEP:
-      00A0B6 CD                       4 	.byte 4 	
-      00A0B7 90 7B 9E 18              5 	.ascii "BEEP"
-      00A0BB 01 95                    6 	.word beep 
-      00244F                       6007 	_dict_entry,3,AWU,awu 
-      00A0BD 9F 18                    1 	.word LINK 
-                           002451     2 	LINK=.
-      002451                          3 AWU:
-      00A0BF 02                       4 	.byte 3 	
-      00A0C0 97 5B 02                 5 	.ascii "AWU"
-      00A0C3 A6 04                    6 	.word awu 
-      002457                       6008 	_dict_entry,7,AUTORUN,autorun
-      00A0C5 81 51                    1 	.word LINK 
-                           002459     2 	LINK=.
-      00A0C6                          3 AUTORUN:
-      00A0C6 CD                       4 	.byte 7 	
+      002458                       6084 	_dict_entry,5+F_IFUNC,DREAD,digital_read
+      00A0D1 90 7B                    1 	.word LINK 
+                           00245A     2 	LINK=.
+      00245A                          3 DREAD:
+      00A0D3 51                       4 	.byte 5+F_IFUNC 	
+      00A0D4 CD 90 7B 90 5D           5 	.ascii "DREAD"
+      00A0D9 27 05                    6 	.word digital_read 
+      002462                       6085 	_dict_entry,3,DIR,directory 
+      00A0DB 58 90                    1 	.word LINK 
+                           002464     2 	LINK=.
+      002464                          3 DIR:
+      00A0DD 5A                       4 	.byte 3 	
+      00A0DE 26 FB 52                 5 	.ascii "DIR"
+      00A0E0 1D BA                    6 	.word directory 
+      00246A                       6086 	_dict_entry,3,DEC,dec_base
+      00A0E0 A6 04                    1 	.word LINK 
+                           00246C     2 	LINK=.
+      00246C                          3 DEC:
+      00A0E2 81                       4 	.byte 3 	
+      00A0E3 44 45 43                 5 	.ascii "DEC"
+      00A0E3 CD 92                    6 	.word dec_base 
+      002472                       6087 	_dict_entry,3+F_CONST,DDR,GPIO_DDR
+      00A0E5 BF A1                    1 	.word LINK 
+                           002474     2 	LINK=.
+      002474                          3 DDR:
+      00A0E7 02                       4 	.byte 3+F_CONST 	
+      00A0E8 27 03 CC                 5 	.ascii "DDR"
+      00A0EB 88 15                    6 	.word GPIO_DDR 
+      00247A                       6088 	_dict_entry,3+F_CONST,CRL,GPIO_CR1
+      00A0ED CD 90                    1 	.word LINK 
+                           00247C     2 	LINK=.
+      00247C                          3 CRL:
+      00A0EF 7B                       4 	.byte 3+F_CONST 	
+      00A0F0 51 CD 90                 5 	.ascii "CRL"
+      00A0F3 7B 90                    6 	.word GPIO_CR1 
+      002482                       6089 	_dict_entry,3+F_CONST,CRH,GPIO_CR2
+      00A0F5 5D 27                    1 	.word LINK 
+                           002484     2 	LINK=.
+      002484                          3 CRH:
+      00A0F7 05                       4 	.byte 3+F_CONST 	
+      00A0F8 54 90 5A                 5 	.ascii "CRH"
+      00A0FB 26 FB                    6 	.word GPIO_CR2 
+      00A0FD                       6090 	_dict_entry,4+F_CFUNC,CHAR,char
+      00A0FD A6 04                    1 	.word LINK 
+                           00248C     2 	LINK=.
+      00248C                          3 CHAR:
+      00A0FF 81                       4 	.byte 4+F_CFUNC 	
+      00A100 43 48 41 52              5 	.ascii "CHAR"
+      00A100 A6 04                    6 	.word char 
+      002493                       6091 	_dict_entry,3,BYE,bye 
+      00A102 CD 92                    1 	.word LINK 
+                           002495     2 	LINK=.
+      002495                          3 BYE:
+      00A104 8E                       4 	.byte 3 	
+      00A105 9F A4 07                 5 	.ascii "BYE"
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 123.
 Hexadecimal [24-Bits]
 
 
 
-      00A0C7 92 BF A1 02 27 03 CC     5 	.ascii "AUTORUN"
-      00A0CE 88 15                    6 	.word autorun 
-      002463                       6009 	_dict_entry,3+F_IFUNC,ASC,ascii
-      00A0D0 CD 90                    1 	.word LINK 
-                           002465     2 	LINK=.
-      002465                          3 ASC:
-      00A0D2 7B                       4 	.byte 3+F_IFUNC 	
-      00A0D3 51 CD 90                 5 	.ascii "ASC"
-      00A0D6 7B 90                    6 	.word ascii 
-      00246B                       6010 	_dict_entry,6+F_IFUNC,ANREAD,analog_read
-      00A0D8 5D 27                    1 	.word LINK 
-                           00246D     2 	LINK=.
-      00246D                          3 ANREAD:
-      00A0DA 05                       4 	.byte 6+F_IFUNC 	
-      00A0DB 58 90 5A 26 FB 44        5 	.ascii "ANREAD"
-      00A0E0 1A 8A                    6 	.word analog_read 
-      002476                       6011 	_dict_entry,3+F_IFUNC,AND,bit_and
-      00A0E0 A6 04                    1 	.word LINK 
-                           002478     2 	LINK=.
-      002478                          3 AND:
-      00A0E2 81                       4 	.byte 3+F_IFUNC 	
-      00A0E3 41 4E 44                 5 	.ascii "AND"
-      00A0E3 CD 92                    6 	.word bit_and 
-      00247E                       6012 kword_dict:
-      00247E                       6013 	_dict_entry,3+F_IFUNC,ABS,abs
-      00A0E5 BF A1                    1 	.word LINK 
-                           002480     2 	LINK=.
-      002480                          3 ABS:
-      00A0E7 02                       4 	.byte 3+F_IFUNC 	
-      00A0E8 27 03 CC                 5 	.ascii "ABS"
-      00A0EB 88 15                    6 	.word abs 
-                                   6014 	
-                                   6015 
-      002500                       6016 	.bndry 128 ; align on FLASH block.
-                                   6017 ; free space for user application  
-      002500                       6018 user_space:
-                                   6019 ; USR() function test
-      00A0ED CD               [ 2] 6020 	pushw x 
-      00A0EE 90 7B 51 CD      [ 1] 6021 	bset PC_ODR,#5 
-      00A0F2 90               [ 2] 6022 	popw x 
-      00A0F3 7B 90 5D         [ 4] 6023 	call pause02 
-      00A0F6 27 05 54 90      [ 1] 6024 	bres PC_ODR,#5 
-      00A0FA 5A               [ 4] 6025 	ret
-                                   6026 
-                                   6027 	.area FLASH_DRIVE (ABS)
-      010000                       6028 	.org 0x10000
-      010000                       6029 fdrive:
-      00A0FB 26 FB 00 00           6030 .byte 0,0,0,0
+      00A108 C7 50                    6 	.word bye 
+      00249B                       6092 	_dict_entry,5,BTOGL,bit_toggle
+      00A10A C6 81                    1 	.word LINK 
+                           00249D     2 	LINK=.
+      00A10C                          3 BTOGL:
+      00A10C 52                       4 	.byte 5 	
+      00A10D 01 CD 92 9B A1           5 	.ascii "BTOGL"
+      00A112 02 27                    6 	.word bit_toggle 
+      0024A5                       6093 	_dict_entry,5+F_IFUNC,BTEST,bit_test 
+      00A114 03 CC                    1 	.word LINK 
+                           0024A7     2 	LINK=.
+      0024A7                          3 BTEST:
+      00A116 88                       4 	.byte 5+F_IFUNC 	
+      00A117 15 CD 90 7B 51           5 	.ascii "BTEST"
+      00A11C CD 90                    6 	.word bit_test 
+      0024AF                       6094 	_dict_entry,4,BSET,bit_set 
+      00A11E 7B CD                    1 	.word LINK 
+                           0024B1     2 	LINK=.
+      0024B1                          3 BSET:
+      00A120 A1                       4 	.byte 4 	
+      00A121 51 6B 01 A6              5 	.ascii "BSET"
+      00A125 01 0D                    6 	.word bit_set 
+      0024B8                       6095 	_dict_entry,4,BRES,bit_reset
+      00A127 01 27                    1 	.word LINK 
+                           0024BA     2 	LINK=.
+      0024BA                          3 BRES:
+      00A129 0B                       4 	.byte 4 	
+      00A12A 48 0A 01 26              5 	.ascii "BRES"
+      00A12E FB 6B                    6 	.word bit_reset 
+      0024C1                       6096 	_dict_entry,5,BREAK,break 
+      00A130 01 EA                    1 	.word LINK 
+                           0024C3     2 	LINK=.
+      0024C3                          3 BREAK:
+      00A132 03                       4 	.byte 5 	
+      00A133 E7 03 90 A3 00           5 	.ascii "BREAK"
+      00A138 01 27                    6 	.word break 
+      0024CB                       6097 	_dict_entry,4,BEEP,beep 
+      00A13A 07 7B                    1 	.word LINK 
+                           0024CD     2 	LINK=.
+      0024CD                          3 BEEP:
+      00A13C 01                       4 	.byte 4 	
+      00A13D 43 E4 02 20              5 	.ascii "BEEP"
+      00A141 0A 19                    6 	.word beep 
+      00A142                       6098 	_dict_entry,3,AWU,awu 
+      00A142 7B 01                    1 	.word LINK 
+                           0024D6     2 	LINK=.
+      0024D6                          3 AWU:
+      00A144 EA                       4 	.byte 3 	
+      00A145 04 E7 04                 5 	.ascii "AWU"
+      00A148 7B 01                    6 	.word awu 
+      0024DC                       6099 	_dict_entry,7,AUTORUN,autorun
+      00A14A EA 02                    1 	.word LINK 
+                           0024DE     2 	LINK=.
+      0024DE                          3 AUTORUN:
+      00A14C E7                       4 	.byte 7 	
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 124.
 Hexadecimal [24-Bits]
 
-Symbol Table
 
-    .__.$$$.=  002710 L   |     .__.ABS.=  000000 G   |     .__.CPU.=  000000 L
-    .__.H$L.=  000001 L   |   5 ABS        002480 R   |     ADC_CR1 =  005401 
-    ADC_CR1_=  000000     |     ADC_CR1_=  000001     |     ADC_CR1_=  000004 
-    ADC_CR1_=  000005     |     ADC_CR1_=  000006     |     ADC_CR2 =  005402 
-    ADC_CR2_=  000003     |     ADC_CR2_=  000004     |     ADC_CR2_=  000005 
-    ADC_CR2_=  000006     |     ADC_CR2_=  000001     |     ADC_CR3 =  005403 
-    ADC_CR3_=  000007     |     ADC_CR3_=  000006     |     ADC_CSR =  005400 
-    ADC_CSR_=  000006     |     ADC_CSR_=  000004     |     ADC_CSR_=  000000 
-    ADC_CSR_=  000001     |     ADC_CSR_=  000002     |     ADC_CSR_=  000003 
-    ADC_CSR_=  000007     |     ADC_CSR_=  000005     |     ADC_DRH =  005404 
-    ADC_DRL =  005405     |     ADC_TDRH=  005406     |     ADC_TDRL=  005407 
-    ADDR    =  000001     |     ADD_SPAC=  000003     |     AFR     =  004803 
-    AFR0_ADC=  000000     |     AFR1_TIM=  000001     |     AFR2_CCO=  000002 
-    AFR3_TIM=  000003     |     AFR4_TIM=  000004     |     AFR5_TIM=  000005 
-    AFR6_I2C=  000006     |     AFR7_BEE=  000007     |   5 AND        002478 R
-  5 ANREAD     00246D R   |     ARG_CNT =  000001     |     ARG_OFS =  000002 
-  5 ASC        002465 R   |     ATTRIB  =  000002     |   5 AUTORUN    002459 R
-    AUTORUN_=  004000     |   5 AWU        002451 R   |   5 AWUHandl   00000A R
-    AWU_APR =  0050F1     |     AWU_CSR =  0050F0     |     AWU_CSR_=  000004 
-    AWU_TBR =  0050F2     |     B0_MASK =  000001     |     B115200 =  000006 
-    B19200  =  000003     |     B1_MASK =  000002     |     B230400 =  000007 
-    B2400   =  000000     |     B2_MASK =  000004     |     B38400  =  000004 
-    B3_MASK =  000008     |     B460800 =  000008     |     B4800   =  000001 
-    B4_MASK =  000010     |     B57600  =  000005     |     B5_MASK =  000020 
-    B6_MASK =  000040     |     B7_MASK =  000080     |     B921600 =  000009 
-    B9600   =  000002     |     BASE    =  000002     |     BASE_SAV=  000001 
-  5 BEEP       002448 R   |     BEEP_BIT=  000004     |     BEEP_CSR=  0050F3 
-    BEEP_MAS=  000010     |     BEEP_POR=  00000F     |     BELL    =  000007 
-    BINARY  =  000001     |     BIT0    =  000000     |     BIT1    =  000001 
-    BIT2    =  000002     |     BIT3    =  000003     |     BIT4    =  000004 
-    BIT5    =  000005     |     BIT6    =  000006     |     BIT7    =  000007 
-    BLOCK_ER=  000000     |     BLOCK_SI=  000080     |     BOOT_ROM=  006000 
-    BOOT_ROM=  007FFF     |     BPTR    =  000005     |   5 BREAK      00243E R
-  5 BRES       002435 R   |   5 BSET       00242C R   |     BSIZE   =  000001 
-    BSP     =  000008     |   5 BTEST      002422 R   |   5 BTOGL      002418 R
-    BTW     =  000001     |     BUFIDX  =  000003     |   5 BYE        002410 R
-    C       =  000001     |     CAN_DGR =  005426     |     CAN_FPSR=  005427 
-    CAN_IER =  005425     |     CAN_MCR =  005420     |     CAN_MSR =  005421 
-    CAN_P0  =  005428     |     CAN_P1  =  005429     |     CAN_P2  =  00542A 
-    CAN_P3  =  00542B     |     CAN_P4  =  00542C     |     CAN_P5  =  00542D 
-    CAN_P6  =  00542E     |     CAN_P7  =  00542F     |     CAN_P8  =  005430 
-    CAN_P9  =  005431     |     CAN_PA  =  005432     |     CAN_PB  =  005433 
-    CAN_PC  =  005434     |     CAN_PD  =  005435     |     CAN_PE  =  005436 
-    CAN_PF  =  005437     |     CAN_RFR =  005424     |     CAN_TPR =  005423 
-    CAN_TSR =  005422     |     CC_C    =  000000     |     CC_H    =  000004 
-    CC_I0   =  000003     |     CC_I1   =  000005     |     CC_N    =  000002 
-    CC_V    =  000007     |     CC_Z    =  000001     |     CELL_SIZ=  000002 
-    CFG_GCR =  007F60     |     CFG_GCR_=  000001     |     CFG_GCR_=  000000 
-  5 CHAR       002407 R   |     CLKOPT  =  004807     |     CLKOPT_C=  000002 
-    CLKOPT_E=  000003     |     CLKOPT_P=  000000     |     CLKOPT_P=  000001 
-    CLK_CCOR=  0050C9     |     CLK_CKDI=  0050C6     |     CLK_CKDI=  000000 
-    CLK_CKDI=  000001     |     CLK_CKDI=  000002     |     CLK_CKDI=  000003 
-    CLK_CKDI=  000004     |     CLK_CMSR=  0050C3     |     CLK_CSSR=  0050C8 
-    CLK_ECKR=  0050C1     |     CLK_ECKR=  000000     |     CLK_ECKR=  000001 
-    CLK_HSIT=  0050CC     |     CLK_ICKR=  0050C0     |     CLK_ICKR=  000002 
+
+      00A14D 02 5B 01 81 52 55 4E     5 	.ascii "AUTORUN"
+      00A151 1F 28                    6 	.word autorun 
+      0024E8                       6100 	_dict_entry,3+F_IFUNC,ASC,ascii
+      00A151 58 1C                    1 	.word LINK 
+                           0024EA     2 	LINK=.
+      0024EA                          3 ASC:
+      00A153 A1                       4 	.byte 3+F_IFUNC 	
+      00A154 61 FE 9F                 5 	.ascii "ASC"
+      00A157 88 5E                    6 	.word ascii 
+      0024F0                       6101 	_dict_entry,3+F_IFUNC,AND,bit_and
+      00A159 A6 05                    1 	.word LINK 
+                           0024F2     2 	LINK=.
+      0024F2                          3 AND:
+      00A15B 42                       4 	.byte 3+F_IFUNC 	
+      00A15C 1C 50 00                 5 	.ascii "AND"
+      00A15F 84 81                    6 	.word bit_and 
+      00A161                       6102 	_dict_entry,7+F_IFUNC,ADCREAD,analog_read
+      00A161 03 06                    1 	.word LINK 
+                           0024FA     2 	LINK=.
+      0024FA                          3 ADCREAD:
+      00A163 03                       4 	.byte 7+F_IFUNC 	
+      00A164 05 04 00 02 01 06 00     5 	.ascii "ADCREAD"
+      00A16B 02 02                    6 	.word analog_read 
+      002504                       6103 	_dict_entry,5,ADCON,power_adc 
+      00A16D 02 03                    1 	.word LINK 
+                           002506     2 	LINK=.
+      002506                          3 ADCON:
+      00A16F 03                       4 	.byte 5 	
+      00A170 01 03 03 02 04           5 	.ascii "ADCON"
+      00A175 04 05                    6 	.word power_adc 
+      00250E                       6104 kword_dict:
+      00250E                       6105 	_dict_entry,3+F_IFUNC,ABS,abs
+      00A177 02 06                    1 	.word LINK 
+                           002510     2 	LINK=.
+      002510                          3 ABS:
+      00A179 02                       4 	.byte 3+F_IFUNC 	
+      00A17A 07 02 05                 5 	.ascii "ABS"
+      00A17D 04 02                    6 	.word abs 
+                                   6106 	
+                                   6107 
+      002580                       6108 	.bndry 128 ; align on FLASH block.
+                                   6109 ; free space for user application  
+      002580                       6110 user_space:
+                                   6111 ; USR() function test
+      00A17F 04               [ 2] 6112 	pushw x 
+      00A180 01 1A 50 0A      [ 1] 6113 	bset PC_ODR,#5 
+      00A181 85               [ 2] 6114 	popw x 
+      00A181 CD 92 BF         [ 4] 6115 	call pause02 
+      00A184 A1 01 27 03      [ 1] 6116 	bres PC_ODR,#5 
+      00A188 CC               [ 4] 6117 	ret
+                                   6118 
+                                   6119 	.area FLASH_DRIVE (ABS)
+      010000                       6120 	.org 0x10000
+      010000                       6121 fdrive:
+      00A189 88 15 00 00           6122 .byte 0,0,0,0
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 125.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
-    CLK_ICKR=  000000     |     CLK_ICKR=  000001     |     CLK_ICKR=  000003 
-    CLK_ICKR=  000004     |     CLK_ICKR=  000005     |     CLK_PCKE=  0050C7 
-    CLK_PCKE=  000000     |     CLK_PCKE=  000001     |     CLK_PCKE=  000007 
-    CLK_PCKE=  000005     |     CLK_PCKE=  000006     |     CLK_PCKE=  000004 
-    CLK_PCKE=  000002     |     CLK_PCKE=  000003     |     CLK_PCKE=  0050CA 
-    CLK_PCKE=  000003     |     CLK_PCKE=  000002     |     CLK_PCKE=  000007 
-    CLK_SWCR=  0050C5     |     CLK_SWCR=  000000     |     CLK_SWCR=  000001 
-    CLK_SWCR=  000002     |     CLK_SWCR=  000003     |     CLK_SWIM=  0050CD 
-    CLK_SWR =  0050C4     |     CLK_SWR_=  0000B4     |     CLK_SWR_=  0000E1 
-    CLK_SWR_=  0000D2     |     CMD_END =  000002     |     CNT     =  000008 
-    COMMA   =  000001     |     COUNT   =  000001     |     CPU_A   =  007F00 
-    CPU_CCR =  007F0A     |     CPU_PCE =  007F01     |     CPU_PCH =  007F02 
-    CPU_PCL =  007F03     |     CPU_SPH =  007F08     |     CPU_SPL =  007F09 
-    CPU_XH  =  007F04     |     CPU_XL  =  007F05     |     CPU_YH  =  007F06 
-    CPU_YL  =  007F07     |     CR      =  00000D     |   5 CRH        0023FF R
-  5 CRL        0023F7 R   |     CTRL_A  =  000001     |     CTRL_B  =  000002 
-    CTRL_C  =  000003     |     CTRL_D  =  000004     |     CTRL_E  =  000005 
-    CTRL_F  =  000006     |     CTRL_G  =  000007     |     CTRL_H  =  000008 
-    CTRL_I  =  000009     |     CTRL_J  =  00000A     |     CTRL_K  =  00000B 
-    CTRL_L  =  00000C     |     CTRL_M  =  00000D     |     CTRL_N  =  00000E 
-    CTRL_O  =  00000F     |     CTRL_P  =  000010     |     CTRL_Q  =  000011 
-    CTRL_R  =  000012     |     CTRL_S  =  000013     |     CTRL_T  =  000014 
-    CTRL_U  =  000015     |     CTRL_V  =  000016     |     CTRL_W  =  000017 
-    CTRL_X  =  000018     |     CTRL_Y  =  000019     |     CTRL_Z  =  00001A 
-    CTXT_SIZ=  000006     |     CURR    =  000002     |     CX_BPTR =  000001 
-    CX_CNT  =  000005     |     CX_IN   =  000004     |     CX_LNO  =  000003 
-    DBG_A   =  000005     |     DBG_CC  =  000006     |     DBG_X   =  000003 
-    DBG_Y   =  000001     |   5 DDR        0023EF R   |     DEBUG   =  000001 
-    DEBUG_BA=  007F00     |     DEBUG_EN=  007FFF     |   5 DEC        0023E7 R
-    DEST    =  000001     |     DEVID_BA=  0048CD     |     DEVID_EN=  0048D8 
-    DEVID_LO=  0048D2     |     DEVID_LO=  0048D3     |     DEVID_LO=  0048D4 
-    DEVID_LO=  0048D5     |     DEVID_LO=  0048D6     |     DEVID_LO=  0048D7 
-    DEVID_LO=  0048D8     |     DEVID_WA=  0048D1     |     DEVID_XH=  0048CE 
-    DEVID_XL=  0048CD     |     DEVID_YH=  0048D0     |     DEVID_YL=  0048CF 
-  5 DIR        0023DF R   |     DIVIDND =  000007     |     DIVISR  =  000005 
-    DM_BK1RE=  007F90     |     DM_BK1RH=  007F91     |     DM_BK1RL=  007F92 
-    DM_BK2RE=  007F93     |     DM_BK2RH=  007F94     |     DM_BK2RL=  007F95 
-    DM_CR1  =  007F96     |     DM_CR2  =  007F97     |     DM_CSR1 =  007F98 
-    DM_CSR2 =  007F99     |     DM_ENFCT=  007F9A     |   5 DREAD      0023D5 R
-    DSTACK_S=  000040     |   5 DWRITE     0023CA R   |   5 EEPROM     0023BF R
-    EEPROM_B=  004000     |     EEPROM_E=  0047FF     |     EEPROM_S=  000800 
-    EOF     =  0000FF     |     ERR_BAD_=  00000A     |     ERR_CMD_=  000007 
-    ERR_DIV0=  000004     |     ERR_DUPL=  000008     |     ERR_MATH=  000003 
-    ERR_MEM_=  000001     |     ERR_NONE=  000000     |     ERR_NOT_=  000009 
-    ERR_NO_A=  00000B     |     ERR_NO_L=  000005     |     ERR_RUN_=  000006 
-    ERR_SYNT=  000002     |     ESC     =  00001B     |     EXTI_CR1=  0050A0 
-    EXTI_CR2=  0050A1     |     FBREAK  =  000004     |     FCOMP   =  000005 
-  5 FCPU       0023B6 R   |     FF      =  00000C     |     FFOR    =  000002 
-    FHSE    =  7A1200     |     FHSI    =  F42400     |     FIRST   =  000001 
-    FLASH_BA=  008000     |     FLASH_CR=  00505A     |     FLASH_CR=  000002 
-    FLASH_CR=  000000     |     FLASH_CR=  000003     |     FLASH_CR=  000001 
-    FLASH_CR=  00505B     |     FLASH_CR=  000005     |     FLASH_CR=  000004 
-    FLASH_CR=  000007     |     FLASH_CR=  000000     |     FLASH_CR=  000006 
-    FLASH_DU=  005064     |     FLASH_DU=  0000AE     |     FLASH_DU=  000056 
-    FLASH_EN=  027FFF     |     FLASH_FP=  00505D     |     FLASH_FP=  000000 
+    .__.$$$.=  002710 L   |     .__.ABS.=  000000 G   |     .__.CPU.=  000000 L
+    .__.H$L.=  000001 L   |   5 ABS        002510 R   |   5 ADCON      002506 R
+  5 ADCREAD    0024FA R   |     ADC_CR1 =  005401     |     ADC_CR1_=  000000 
+    ADC_CR1_=  000001     |     ADC_CR1_=  000004     |     ADC_CR1_=  000005 
+    ADC_CR1_=  000006     |     ADC_CR2 =  005402     |     ADC_CR2_=  000003 
+    ADC_CR2_=  000004     |     ADC_CR2_=  000005     |     ADC_CR2_=  000006 
+    ADC_CR2_=  000001     |     ADC_CR3 =  005403     |     ADC_CR3_=  000007 
+    ADC_CR3_=  000006     |     ADC_CSR =  005400     |     ADC_CSR_=  000006 
+    ADC_CSR_=  000004     |     ADC_CSR_=  000000     |     ADC_CSR_=  000001 
+    ADC_CSR_=  000002     |     ADC_CSR_=  000003     |     ADC_CSR_=  000007 
+    ADC_CSR_=  000005     |     ADC_DRH =  005404     |     ADC_DRL =  005405 
+    ADC_TDRH=  005406     |     ADC_TDRL=  005407     |     ADDR    =  000001 
+    ADD_SPAC=  000003     |     AFR     =  004803     |     AFR0_ADC=  000000 
+    AFR1_TIM=  000001     |     AFR2_CCO=  000002     |     AFR3_TIM=  000003 
+    AFR4_TIM=  000004     |     AFR5_TIM=  000005     |     AFR6_I2C=  000006 
+    AFR7_BEE=  000007     |   5 AND        0024F2 R   |     ARG_CNT =  000001 
+    ARG_OFS =  000002     |   5 ASC        0024EA R   |     ATTRIB  =  000002 
+  5 AUTORUN    0024DE R   |     AUTORUN_=  004000     |   5 AWU        0024D6 R
+  5 AWUHandl   00000A R   |     AWU_APR =  0050F1     |     AWU_CSR =  0050F0 
+    AWU_CSR_=  000004     |     AWU_TBR =  0050F2     |     B0_MASK =  000001 
+    B115200 =  000006     |     B19200  =  000003     |     B1_MASK =  000002 
+    B230400 =  000007     |     B2400   =  000000     |     B2_MASK =  000004 
+    B38400  =  000004     |     B3_MASK =  000008     |     B460800 =  000008 
+    B4800   =  000001     |     B4_MASK =  000010     |     B57600  =  000005 
+    B5_MASK =  000020     |     B6_MASK =  000040     |     B7_MASK =  000080 
+    B921600 =  000009     |     B9600   =  000002     |     BASE    =  000002 
+    BASE_SAV=  000001     |   5 BEEP       0024CD R   |     BEEP_BIT=  000004 
+    BEEP_CSR=  0050F3     |     BEEP_MAS=  000010     |     BEEP_POR=  00000F 
+    BELL    =  000007     |     BINARY  =  000001     |     BIT0    =  000000 
+    BIT1    =  000001     |     BIT2    =  000002     |     BIT3    =  000003 
+    BIT4    =  000004     |     BIT5    =  000005     |     BIT6    =  000006 
+    BIT7    =  000007     |     BLOCK_ER=  000000     |     BLOCK_SI=  000080 
+    BOOT_ROM=  006000     |     BOOT_ROM=  007FFF     |     BPTR    =  000005 
+  5 BREAK      0024C3 R   |   5 BRES       0024BA R   |   5 BSET       0024B1 R
+    BSIZE   =  000001     |     BSP     =  000008     |   5 BTEST      0024A7 R
+  5 BTOGL      00249D R   |     BTW     =  000001     |     BUFIDX  =  000003 
+  5 BYE        002495 R   |     C       =  000001     |     CAN_DGR =  005426 
+    CAN_FPSR=  005427     |     CAN_IER =  005425     |     CAN_MCR =  005420 
+    CAN_MSR =  005421     |     CAN_P0  =  005428     |     CAN_P1  =  005429 
+    CAN_P2  =  00542A     |     CAN_P3  =  00542B     |     CAN_P4  =  00542C 
+    CAN_P5  =  00542D     |     CAN_P6  =  00542E     |     CAN_P7  =  00542F 
+    CAN_P8  =  005430     |     CAN_P9  =  005431     |     CAN_PA  =  005432 
+    CAN_PB  =  005433     |     CAN_PC  =  005434     |     CAN_PD  =  005435 
+    CAN_PE  =  005436     |     CAN_PF  =  005437     |     CAN_RFR =  005424 
+    CAN_TPR =  005423     |     CAN_TSR =  005422     |     CC_C    =  000000 
+    CC_H    =  000004     |     CC_I0   =  000003     |     CC_I1   =  000005 
+    CC_N    =  000002     |     CC_V    =  000007     |     CC_Z    =  000001 
+    CELL_SIZ=  000002     |     CFG_GCR =  007F60     |     CFG_GCR_=  000001 
+    CFG_GCR_=  000000     |   5 CHAR       00248C R   |     CLKOPT  =  004807 
+    CLKOPT_C=  000002     |     CLKOPT_E=  000003     |     CLKOPT_P=  000000 
+    CLKOPT_P=  000001     |     CLK_CCOR=  0050C9     |     CLK_CKDI=  0050C6 
+    CLK_CKDI=  000000     |     CLK_CKDI=  000001     |     CLK_CKDI=  000002 
+    CLK_CKDI=  000003     |     CLK_CKDI=  000004     |     CLK_CMSR=  0050C3 
+    CLK_CSSR=  0050C8     |     CLK_ECKR=  0050C1     |     CLK_ECKR=  000000 
+    CLK_ECKR=  000001     |     CLK_HSIT=  0050CC     |     CLK_ICKR=  0050C0 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 126.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
-    FLASH_FP=  000001     |     FLASH_FP=  000002     |     FLASH_FP=  000003 
-    FLASH_FP=  000004     |     FLASH_FP=  000005     |     FLASH_IA=  00505F 
-    FLASH_IA=  000003     |     FLASH_IA=  000002     |     FLASH_IA=  000006 
-    FLASH_IA=  000001     |     FLASH_IA=  000000     |     FLASH_NC=  00505C 
-    FLASH_NF=  00505E     |     FLASH_NF=  000000     |     FLASH_NF=  000001 
-    FLASH_NF=  000002     |     FLASH_NF=  000003     |     FLASH_NF=  000004 
-    FLASH_NF=  000005     |     FLASH_PU=  005062     |     FLASH_PU=  000056 
-    FLASH_PU=  0000AE     |     FLASH_SI=  020000     |     FLASH_WS=  00480D 
-    FLSI    =  01F400     |   5 FOR        0023AE R   |   5 FORGET     0023A3 R
-    FRUN    =  000000     |     FSIZE   =  000001     |     FSLEEP  =  000003 
-    FTRAP   =  000001     |     F_CFUNC =  000080     |     F_CMD   =  000000 
-    F_CONST =  0000C0     |     F_IFUNC =  000040     |   5 GOSUB      002399 R
-    GOS_RET =  000003     |   5 GOTO       002390 R   |   5 GPIO       002387 R
-    GPIO_BAS=  005000     |     GPIO_CR1=  000003     |     GPIO_CR2=  000004 
-    GPIO_DDR=  000002     |     GPIO_IDR=  000001     |     GPIO_ODR=  000000 
-    GPIO_SIZ=  000005     |   5 HEX        00237F R   |     HSECNT  =  004809 
-    I2C_CCRH=  00521C     |     I2C_CCRH=  000080     |     I2C_CCRH=  0000C0 
-    I2C_CCRH=  000080     |     I2C_CCRH=  000000     |     I2C_CCRH=  000001 
-    I2C_CCRH=  000000     |     I2C_CCRL=  00521B     |     I2C_CCRL=  00001A 
-    I2C_CCRL=  000002     |     I2C_CCRL=  00000D     |     I2C_CCRL=  000050 
-    I2C_CCRL=  000090     |     I2C_CCRL=  0000A0     |     I2C_CR1 =  005210 
-    I2C_CR1_=  000006     |     I2C_CR1_=  000007     |     I2C_CR1_=  000000 
-    I2C_CR2 =  005211     |     I2C_CR2_=  000002     |     I2C_CR2_=  000003 
-    I2C_CR2_=  000000     |     I2C_CR2_=  000001     |     I2C_CR2_=  000007 
-    I2C_DR  =  005216     |     I2C_FREQ=  005212     |     I2C_ITR =  00521A 
-    I2C_ITR_=  000002     |     I2C_ITR_=  000000     |     I2C_ITR_=  000001 
-    I2C_OARH=  005214     |     I2C_OARH=  000001     |     I2C_OARH=  000002 
-    I2C_OARH=  000006     |     I2C_OARH=  000007     |     I2C_OARL=  005213 
-    I2C_OARL=  000000     |     I2C_OAR_=  000813     |     I2C_OAR_=  000009 
-    I2C_PECR=  00521E     |     I2C_READ=  000001     |     I2C_SR1 =  005217 
-    I2C_SR1_=  000003     |     I2C_SR1_=  000001     |     I2C_SR1_=  000002 
-    I2C_SR1_=  000006     |     I2C_SR1_=  000000     |     I2C_SR1_=  000004 
-    I2C_SR1_=  000007     |     I2C_SR2 =  005218     |     I2C_SR2_=  000002 
-    I2C_SR2_=  000001     |     I2C_SR2_=  000000     |     I2C_SR2_=  000003 
-    I2C_SR2_=  000005     |     I2C_SR3 =  005219     |     I2C_SR3_=  000001 
-    I2C_SR3_=  000007     |     I2C_SR3_=  000004     |     I2C_SR3_=  000000 
-    I2C_SR3_=  000002     |     I2C_TRIS=  00521D     |     I2C_TRIS=  000005 
-    I2C_TRIS=  000005     |     I2C_TRIS=  000005     |     I2C_TRIS=  000011 
-    I2C_TRIS=  000011     |     I2C_TRIS=  000011     |     I2C_WRIT=  000000 
-  5 IDR        002377 R   |   5 IF         002370 R   |     IN      =  000007 
-    INCR    =  000001     |     INP     =  000000     |   5 INPUT      002366 R
-    INPUT_DI=  000000     |     INPUT_EI=  000001     |     INPUT_FL=  000000 
-    INPUT_PU=  000001     |     INT_ADC2=  000016     |     INT_AUAR=  000012 
-    INT_AWU =  000001     |     INT_CAN_=  000008     |     INT_CAN_=  000009 
-    INT_CLK =  000002     |     INT_EXTI=  000003     |     INT_EXTI=  000004 
-    INT_EXTI=  000005     |     INT_EXTI=  000006     |     INT_EXTI=  000007 
-    INT_FLAS=  000018     |     INT_I2C =  000013     |     INT_SPI =  00000A 
-    INT_TIM1=  00000C     |     INT_TIM1=  00000B     |     INT_TIM2=  00000E 
-    INT_TIM2=  00000D     |     INT_TIM3=  000010     |     INT_TIM3=  00000F 
-    INT_TIM4=  000017     |     INT_TLI =  000000     |     INT_UART=  000011 
-    INT_UART=  000015     |     INT_UART=  000014     |     INT_VECT=  008060 
-    INT_VECT=  00800C     |     INT_VECT=  008028     |     INT_VECT=  00802C 
-    INT_VECT=  008010     |     INT_VECT=  008014     |     INT_VECT=  008018 
-    INT_VECT=  00801C     |     INT_VECT=  008020     |     INT_VECT=  008024 
-    INT_VECT=  008068     |     INT_VECT=  008054     |     INT_VECT=  008000 
+    CLK_ICKR=  000002     |     CLK_ICKR=  000000     |     CLK_ICKR=  000001 
+    CLK_ICKR=  000003     |     CLK_ICKR=  000004     |     CLK_ICKR=  000005 
+    CLK_PCKE=  0050C7     |     CLK_PCKE=  000000     |     CLK_PCKE=  000001 
+    CLK_PCKE=  000007     |     CLK_PCKE=  000005     |     CLK_PCKE=  000006 
+    CLK_PCKE=  000004     |     CLK_PCKE=  000002     |     CLK_PCKE=  000003 
+    CLK_PCKE=  0050CA     |     CLK_PCKE=  000003     |     CLK_PCKE=  000002 
+    CLK_PCKE=  000007     |     CLK_SWCR=  0050C5     |     CLK_SWCR=  000000 
+    CLK_SWCR=  000001     |     CLK_SWCR=  000002     |     CLK_SWCR=  000003 
+    CLK_SWIM=  0050CD     |     CLK_SWR =  0050C4     |     CLK_SWR_=  0000B4 
+    CLK_SWR_=  0000E1     |     CLK_SWR_=  0000D2     |     CMD_END =  000002 
+    CNT     =  000008     |     COMMA   =  000001     |     COUNT   =  000001 
+    CPU_A   =  007F00     |     CPU_CCR =  007F0A     |     CPU_PCE =  007F01 
+    CPU_PCH =  007F02     |     CPU_PCL =  007F03     |     CPU_SPH =  007F08 
+    CPU_SPL =  007F09     |     CPU_XH  =  007F04     |     CPU_XL  =  007F05 
+    CPU_YH  =  007F06     |     CPU_YL  =  007F07     |     CR      =  00000D 
+  5 CRH        002484 R   |   5 CRL        00247C R   |     CTRL_A  =  000001 
+    CTRL_B  =  000002     |     CTRL_C  =  000003     |     CTRL_D  =  000004 
+    CTRL_E  =  000005     |     CTRL_F  =  000006     |     CTRL_G  =  000007 
+    CTRL_H  =  000008     |     CTRL_I  =  000009     |     CTRL_J  =  00000A 
+    CTRL_K  =  00000B     |     CTRL_L  =  00000C     |     CTRL_M  =  00000D 
+    CTRL_N  =  00000E     |     CTRL_O  =  00000F     |     CTRL_P  =  000010 
+    CTRL_Q  =  000011     |     CTRL_R  =  000012     |     CTRL_S  =  000013 
+    CTRL_T  =  000014     |     CTRL_U  =  000015     |     CTRL_V  =  000016 
+    CTRL_W  =  000017     |     CTRL_X  =  000018     |     CTRL_Y  =  000019 
+    CTRL_Z  =  00001A     |     CTXT_SIZ=  000006     |     CURR    =  000002 
+    CX_BPTR =  000001     |     CX_CNT  =  000005     |     CX_IN   =  000004 
+    CX_LNO  =  000003     |     DBG_A   =  000005     |     DBG_CC  =  000006 
+    DBG_X   =  000003     |     DBG_Y   =  000001     |   5 DDR        002474 R
+    DEBUG   =  000001     |     DEBUG_BA=  007F00     |     DEBUG_EN=  007FFF 
+  5 DEC        00246C R   |     DEST    =  000001     |     DEVID_BA=  0048CD 
+    DEVID_EN=  0048D8     |     DEVID_LO=  0048D2     |     DEVID_LO=  0048D3 
+    DEVID_LO=  0048D4     |     DEVID_LO=  0048D5     |     DEVID_LO=  0048D6 
+    DEVID_LO=  0048D7     |     DEVID_LO=  0048D8     |     DEVID_WA=  0048D1 
+    DEVID_XH=  0048CE     |     DEVID_XL=  0048CD     |     DEVID_YH=  0048D0 
+    DEVID_YL=  0048CF     |   5 DIR        002464 R   |     DIVIDND =  000007 
+    DIVISR  =  000005     |     DM_BK1RE=  007F90     |     DM_BK1RH=  007F91 
+    DM_BK1RL=  007F92     |     DM_BK2RE=  007F93     |     DM_BK2RH=  007F94 
+    DM_BK2RL=  007F95     |     DM_CR1  =  007F96     |     DM_CR2  =  007F97 
+    DM_CSR1 =  007F98     |     DM_CSR2 =  007F99     |     DM_ENFCT=  007F9A 
+  5 DREAD      00245A R   |     DSTACK_S=  000040     |   5 DWRITE     00244F R
+  5 EEPROM     002444 R   |     EEPROM_B=  004000     |     EEPROM_E=  0047FF 
+    EEPROM_S=  000800     |   5 ENIWDG     002439 R   |     EOF     =  0000FF 
+    ERR_BAD_=  00000A     |     ERR_CMD_=  000007     |     ERR_DIV0=  000004 
+    ERR_DUPL=  000008     |     ERR_MATH=  000003     |     ERR_MEM_=  000001 
+    ERR_NONE=  000000     |     ERR_NOT_=  000009     |     ERR_NO_A=  00000B 
+    ERR_NO_L=  000005     |     ERR_RUN_=  000006     |     ERR_SYNT=  000002 
+    ESC     =  00001B     |     EXTI_CR1=  0050A0     |     EXTI_CR2=  0050A1 
+    FBREAK  =  000004     |     FCOMP   =  000005     |   5 FCPU       002430 R
+    FF      =  00000C     |     FFOR    =  000002     |     FHSE    =  7A1200 
+    FHSI    =  F42400     |     FIRST   =  000001     |     FLASH_BA=  008000 
+    FLASH_CR=  00505A     |     FLASH_CR=  000002     |     FLASH_CR=  000000 
+    FLASH_CR=  000003     |     FLASH_CR=  000001     |     FLASH_CR=  00505B 
+    FLASH_CR=  000005     |     FLASH_CR=  000004     |     FLASH_CR=  000007 
+    FLASH_CR=  000000     |     FLASH_CR=  000006     |     FLASH_DU=  005064 
+    FLASH_DU=  0000AE     |     FLASH_DU=  000056     |     FLASH_EN=  027FFF 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 127.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
-    INT_VECT=  008030     |     INT_VECT=  008038     |     INT_VECT=  008034 
-    INT_VECT=  008040     |     INT_VECT=  00803C     |     INT_VECT=  008048 
-    INT_VECT=  008044     |     INT_VECT=  008064     |     INT_VECT=  008008 
-    INT_VECT=  008004     |     INT_VECT=  008050     |     INT_VECT=  00804C 
-    INT_VECT=  00805C     |     INT_VECT=  008058     |     INW     =  000003 
-    ITC_SPR1=  007F70     |     ITC_SPR2=  007F71     |     ITC_SPR3=  007F72 
-    ITC_SPR4=  007F73     |     ITC_SPR5=  007F74     |     ITC_SPR6=  007F75 
-    ITC_SPR7=  007F76     |     ITC_SPR8=  007F77     |     IWDG_KR =  0050E0 
-    IWDG_PR =  0050E1     |     IWDG_RLR=  0050E2     |   5 KEY        00235E R
-    LAST    =  000003     |     LB      =  000002     |     LED2_BIT=  000005 
-    LED2_MAS=  000020     |     LED2_POR=  00500A     |     LEN     =  000005 
-  5 LET        002356 R   |     LINENO  =  000005     |   5 LINK    =  002480 R
-  5 LIST       00234D R   |     LL      =  000002     |     LLEN    =  000002 
-    LL_HB   =  000001     |     LNO     =  000005     |     LN_PTR  =  000005 
-  5 LOAD       002344 R   |   5 LSHIFT     002339 R   |     MAJOR   =  000001 
+    FLASH_FP=  00505D     |     FLASH_FP=  000000     |     FLASH_FP=  000001 
+    FLASH_FP=  000002     |     FLASH_FP=  000003     |     FLASH_FP=  000004 
+    FLASH_FP=  000005     |     FLASH_IA=  00505F     |     FLASH_IA=  000003 
+    FLASH_IA=  000002     |     FLASH_IA=  000006     |     FLASH_IA=  000001 
+    FLASH_IA=  000000     |     FLASH_NC=  00505C     |     FLASH_NF=  00505E 
+    FLASH_NF=  000000     |     FLASH_NF=  000001     |     FLASH_NF=  000002 
+    FLASH_NF=  000003     |     FLASH_NF=  000004     |     FLASH_NF=  000005 
+    FLASH_PU=  005062     |     FLASH_PU=  000056     |     FLASH_PU=  0000AE 
+    FLASH_SI=  020000     |     FLASH_WS=  00480D     |     FLSI    =  01F400 
+  5 FOR        002428 R   |   5 FORGET     00241D R   |     FRUN    =  000000 
+    FSIZE   =  000001     |     FSLEEP  =  000003     |     FTRAP   =  000001 
+    F_CFUNC =  000080     |     F_CMD   =  000000     |     F_CONST =  0000C0 
+    F_IFUNC =  000040     |   5 GOSUB      002413 R   |     GOS_RET =  000003 
+  5 GOTO       00240A R   |   5 GPIO       002401 R   |     GPIO_BAS=  005000 
+    GPIO_CR1=  000003     |     GPIO_CR2=  000004     |     GPIO_DDR=  000002 
+    GPIO_IDR=  000001     |     GPIO_ODR=  000000     |     GPIO_SIZ=  000005 
+  5 HEX        0023F9 R   |     HSECNT  =  004809     |     I2C_CCRH=  00521C 
+    I2C_CCRH=  000080     |     I2C_CCRH=  0000C0     |     I2C_CCRH=  000080 
+    I2C_CCRH=  000000     |     I2C_CCRH=  000001     |     I2C_CCRH=  000000 
+    I2C_CCRL=  00521B     |     I2C_CCRL=  00001A     |     I2C_CCRL=  000002 
+    I2C_CCRL=  00000D     |     I2C_CCRL=  000050     |     I2C_CCRL=  000090 
+    I2C_CCRL=  0000A0     |     I2C_CR1 =  005210     |     I2C_CR1_=  000006 
+    I2C_CR1_=  000007     |     I2C_CR1_=  000000     |     I2C_CR2 =  005211 
+    I2C_CR2_=  000002     |     I2C_CR2_=  000003     |     I2C_CR2_=  000000 
+    I2C_CR2_=  000001     |     I2C_CR2_=  000007     |     I2C_DR  =  005216 
+    I2C_FREQ=  005212     |     I2C_ITR =  00521A     |     I2C_ITR_=  000002 
+    I2C_ITR_=  000000     |     I2C_ITR_=  000001     |     I2C_OARH=  005214 
+    I2C_OARH=  000001     |     I2C_OARH=  000002     |     I2C_OARH=  000006 
+    I2C_OARH=  000007     |     I2C_OARL=  005213     |     I2C_OARL=  000000 
+    I2C_OAR_=  000813     |     I2C_OAR_=  000009     |     I2C_PECR=  00521E 
+    I2C_READ=  000001     |     I2C_SR1 =  005217     |     I2C_SR1_=  000003 
+    I2C_SR1_=  000001     |     I2C_SR1_=  000002     |     I2C_SR1_=  000006 
+    I2C_SR1_=  000000     |     I2C_SR1_=  000004     |     I2C_SR1_=  000007 
+    I2C_SR2 =  005218     |     I2C_SR2_=  000002     |     I2C_SR2_=  000001 
+    I2C_SR2_=  000000     |     I2C_SR2_=  000003     |     I2C_SR2_=  000005 
+    I2C_SR3 =  005219     |     I2C_SR3_=  000001     |     I2C_SR3_=  000007 
+    I2C_SR3_=  000004     |     I2C_SR3_=  000000     |     I2C_SR3_=  000002 
+    I2C_TRIS=  00521D     |     I2C_TRIS=  000005     |     I2C_TRIS=  000005 
+    I2C_TRIS=  000005     |     I2C_TRIS=  000011     |     I2C_TRIS=  000011 
+    I2C_TRIS=  000011     |     I2C_WRIT=  000000     |   5 IDR        0023F1 R
+  5 IF         0023EA R   |     IN      =  000007     |     INCR    =  000001 
+    INP     =  000000     |   5 INPUT      0023E0 R   |     INPUT_DI=  000000 
+    INPUT_EI=  000001     |     INPUT_FL=  000000     |     INPUT_PU=  000001 
+    INT_ADC2=  000016     |     INT_AUAR=  000012     |     INT_AWU =  000001 
+    INT_CAN_=  000008     |     INT_CAN_=  000009     |     INT_CLK =  000002 
+    INT_EXTI=  000003     |     INT_EXTI=  000004     |     INT_EXTI=  000005 
+    INT_EXTI=  000006     |     INT_EXTI=  000007     |     INT_FLAS=  000018 
+    INT_I2C =  000013     |     INT_SPI =  00000A     |     INT_TIM1=  00000C 
+    INT_TIM1=  00000B     |     INT_TIM2=  00000E     |     INT_TIM2=  00000D 
+    INT_TIM3=  000010     |     INT_TIM3=  00000F     |     INT_TIM4=  000017 
+    INT_TLI =  000000     |     INT_UART=  000011     |     INT_UART=  000015 
+    INT_UART=  000014     |     INT_VECT=  008060     |     INT_VECT=  00800C 
+    INT_VECT=  008028     |     INT_VECT=  00802C     |     INT_VECT=  008010 
+    INT_VECT=  008014     |     INT_VECT=  008018     |     INT_VECT=  00801C 
+    INT_VECT=  008020     |     INT_VECT=  008024     |     INT_VECT=  008068 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 128.
+Hexadecimal [24-Bits]
+
+Symbol Table
+
+    INT_VECT=  008054     |     INT_VECT=  008000     |     INT_VECT=  008030 
+    INT_VECT=  008038     |     INT_VECT=  008034     |     INT_VECT=  008040 
+    INT_VECT=  00803C     |     INT_VECT=  008048     |     INT_VECT=  008044 
+    INT_VECT=  008064     |     INT_VECT=  008008     |     INT_VECT=  008004 
+    INT_VECT=  008050     |     INT_VECT=  00804C     |     INT_VECT=  00805C 
+    INT_VECT=  008058     |     INW     =  000003     |     ITC_SPR1=  007F70 
+    ITC_SPR2=  007F71     |     ITC_SPR3=  007F72     |     ITC_SPR4=  007F73 
+    ITC_SPR5=  007F74     |     ITC_SPR6=  007F75     |     ITC_SPR7=  007F76 
+    ITC_SPR8=  007F77     |     IWDG_KEY=  000055     |     IWDG_KEY=  0000CC 
+    IWDG_KEY=  0000AA     |     IWDG_KR =  0050E0     |     IWDG_PR =  0050E1 
+    IWDG_RLR=  0050E2     |   5 KEY        0023D8 R   |     LAST    =  000003 
+    LB      =  000002     |     LED2_BIT=  000005     |     LED2_MAS=  000020 
+    LED2_POR=  00500A     |     LEN     =  000005     |   5 LET        0023D0 R
+    LINENO  =  000005     |   5 LINK    =  002510 R   |   5 LIST       0023C7 R
+    LL      =  000002     |     LLEN    =  000002     |     LL_HB   =  000001 
+    LNO     =  000005     |     LN_PTR  =  000005     |   5 LOAD       0023BE R
+  5 LOG        0023B6 R   |   5 LSHIFT     0023AB R   |     MAJOR   =  000001 
     MASK    =  000002     |     MATH_OVF=  000000     |     MINOR   =  000000 
     MULOP   =  000005     |     N1      =  000001     |     N1_HB   =  000006 
     N1_LB   =  000007     |     N2      =  000003     |     N2_HB   =  000008 
     N2_LB   =  000009     |     NAFR    =  004804     |     NAMEPTR =  000003 
-    NCLKOPT =  004808     |     NEG     =  000001     |   5 NEW        002328 R
-  5 NEXT       002330 R   |     NFLASH_W=  00480E     |     NHSECNT =  00480A 
+    NCLKOPT =  004808     |     NEG     =  000001     |   5 NEW        00239A R
+  5 NEXT       0023A2 R   |     NFLASH_W=  00480E     |     NHSECNT =  00480A 
     NL      =  00000A     |     NLEN    =  000001     |     NOPT1   =  004802 
     NOPT2   =  004804     |     NOPT3   =  004806     |     NOPT4   =  004808 
     NOPT5   =  00480A     |     NOPT6   =  00480C     |     NOPT7   =  00480E 
-    NOPTBL  =  00487F     |   5 NOT        002320 R   |     NUBC    =  004802 
+    NOPTBL  =  00487F     |   5 NOT        002392 R   |     NUBC    =  004802 
     NWDGOPT =  004806     |     NWDGOPT_=  FFFFFFFD     |     NWDGOPT_=  FFFFFFFC 
     NWDGOPT_=  FFFFFFFF     |     NWDGOPT_=  FFFFFFFE     |   5 NonHandl   000009 R
-  5 ODR        002318 R   |     OP      =  000005     |     OPT     =  000002 
+  5 ODR        00238A R   |     OP      =  000005     |     OPT     =  000002 
     OPT0    =  004800     |     OPT1    =  004801     |     OPT2    =  004803 
     OPT3    =  004805     |     OPT4    =  004807     |     OPT5    =  004809 
     OPT6    =  00480B     |     OPT7    =  00480D     |     OPTBL   =  00487E 
     OPTION_B=  004800     |     OPTION_E=  00487F     |     OPTION_S=  000080 
-  5 OR         002311 R   |     OUTP    =  000001     |     OUTPUT_F=  000001 
+  5 OR         002383 R   |     OUTP    =  000001     |     OUTPUT_F=  000001 
     OUTPUT_O=  000000     |     OUTPUT_P=  000001     |     OUTPUT_S=  000000 
     OVFH    =  000001     |     OVFL    =  000002     |     PA      =  000000 
-    PAD_SIZE=  000028     |   5 PAUSE      002307 R   |     PA_BASE =  005000 
+    PAD_SIZE=  000028     |   5 PAUSE      002379 R   |     PA_BASE =  005000 
     PA_CR1  =  005003     |     PA_CR2  =  005004     |     PA_DDR  =  005002 
     PA_IDR  =  005001     |     PA_ODR  =  005000     |     PB      =  000005 
     PB_BASE =  005005     |     PB_CR1  =  005008     |     PB_CR2  =  005009 
@@ -8981,7 +9110,7 @@ Symbol Table
     PC_ODR  =  00500A     |     PD      =  00000F     |     PD_BASE =  00500F 
     PD_CR1  =  005012     |     PD_CR2  =  005013     |     PD_DDR  =  005011 
     PD_IDR  =  005010     |     PD_ODR  =  00500F     |     PE      =  000014 
-  5 PEEK       0022F4 R   |     PE_BASE =  005014     |     PE_CR1  =  005017 
+  5 PEEK       002366 R   |     PE_BASE =  005014     |     PE_CR1  =  005017 
     PE_CR2  =  005018     |     PE_DDR  =  005016     |     PE_IDR  =  005015 
     PE_ODR  =  005014     |     PF      =  000019     |     PF_BASE =  005019 
     PF_CR1  =  00501C     |     PF_CR2  =  00501D     |     PF_DDR  =  00501B 
@@ -8989,216 +9118,217 @@ Symbol Table
     PG_BASE =  00501E     |     PG_CR1  =  005021     |     PG_CR2  =  005022 
     PG_DDR  =  005020     |     PG_IDR  =  00501F     |     PG_ODR  =  00501E 
     PH      =  000023     |     PH_BASE =  005023     |     PH_CR1  =  005026 
-    PH_CR2  =  005027     |     PH_DDR  =  005025     |     PH_IDR  =  005024 
-    PH_ODR  =  005023     |     PI      =  000028     |     PINNO   =  000001 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 128.
-Hexadecimal [24-Bits]
-
-Symbol Table
-
-  5 PINP       0022EB R   |     PINVAL  =  000002     |     PI_BASE =  005028 
-    PI_CR1  =  00502B     |     PI_CR2  =  00502C     |     PI_DDR  =  00502A 
-    PI_IDR  =  005029     |     PI_ODR  =  005028     |   5 PMODE      0022FD R
-  5 POKE       0022E2 R   |   5 POUT       0022D9 R   |     PREV    =  000001 
-  5 PRINT      0022CF R   |     PROD    =  000002     |     PSIZE   =  000001 
-  5 PWRADC     0022C4 R   |   5 QKEY       0022BB R   |     RAM_BASE=  000000 
-    RAM_END =  0017FF     |     RAM_SIZE=  001800     |   5 REBOOT     0022B0 R
-  5 REG_A      00099F R   |   5 REG_CC     0009A3 R   |   5 REG_EPC    000992 R
-  5 REG_SP     0009A8 R   |   5 REG_X      00099B R   |   5 REG_Y      000997 R
-    RELOP   =  000005     |   5 REMARK     0022A5 R   |     RETL1   =  000001 
-  5 RETURN     00229A R   |   5 RND        002292 R   |     ROP     =  004800 
-  5 RSHIFT     002287 R   |     RST_SR  =  0050B3     |   5 RUN        00227F R
-    RXCHAR  =  000001     |     R_A     =  000007     |     R_CC    =  000008 
-    R_X     =  000005     |     R_Y     =  000003     |   5 SAVE       002276 R
-    SDIVD   =  000002     |     SFR_BASE=  005000     |     SFR_END =  0057FF 
-    SHARP   =  000023     |   5 SHOW       00226D R   |     SIGN    =  000001 
-  5 SIZE       002264 R   |     SKIP    =  000006     |   5 SLEEP      00225A R
-    SPACE   =  000020     |     SPI_CR1 =  005200     |     SPI_CR2 =  005201 
-    SPI_CRCP=  005205     |     SPI_DR  =  005204     |     SPI_ICR =  005202 
-    SPI_RXCR=  005206     |     SPI_SR  =  005203     |     SPI_TXCR=  005207 
-    SQUOT   =  000001     |     SRC     =  000003     |     STACK_EM=  0017FF 
-    STACK_SI=  000080     |   5 STATES     000955 R   |   5 STEP       002251 R
-  5 STOP       002248 R   |     SWIM_CSR=  007F80     |     TAB     =  000009 
-    TAB_WIDT=  000004     |     TCHAR   =  000001     |     TEMP    =  000003 
-    TIB_SIZE=  000050     |     TICK    =  000027     |   5 TICKS      00223E R
-    TIM1_ARR=  005262     |     TIM1_ARR=  005263     |     TIM1_BKR=  00526D 
-    TIM1_CCE=  00525C     |     TIM1_CCE=  00525D     |     TIM1_CCM=  005258 
-    TIM1_CCM=  000000     |     TIM1_CCM=  000001     |     TIM1_CCM=  000004 
-    TIM1_CCM=  000005     |     TIM1_CCM=  000006     |     TIM1_CCM=  000007 
-    TIM1_CCM=  000002     |     TIM1_CCM=  000003     |     TIM1_CCM=  000007 
-    TIM1_CCM=  000002     |     TIM1_CCM=  000004     |     TIM1_CCM=  000005 
-    TIM1_CCM=  000006     |     TIM1_CCM=  000003     |     TIM1_CCM=  005259 
-    TIM1_CCM=  000000     |     TIM1_CCM=  000001     |     TIM1_CCM=  000004 
-    TIM1_CCM=  000005     |     TIM1_CCM=  000006     |     TIM1_CCM=  000007 
-    TIM1_CCM=  000002     |     TIM1_CCM=  000003     |     TIM1_CCM=  000007 
-    TIM1_CCM=  000002     |     TIM1_CCM=  000004     |     TIM1_CCM=  000005 
-    TIM1_CCM=  000006     |     TIM1_CCM=  000003     |     TIM1_CCM=  00525A 
-    TIM1_CCM=  000000     |     TIM1_CCM=  000001     |     TIM1_CCM=  000004 
-    TIM1_CCM=  000005     |     TIM1_CCM=  000006     |     TIM1_CCM=  000007 
-    TIM1_CCM=  000002     |     TIM1_CCM=  000003     |     TIM1_CCM=  000007 
-    TIM1_CCM=  000002     |     TIM1_CCM=  000004     |     TIM1_CCM=  000005 
-    TIM1_CCM=  000006     |     TIM1_CCM=  000003     |     TIM1_CCM=  00525B 
-    TIM1_CCM=  000000     |     TIM1_CCM=  000001     |     TIM1_CCM=  000004 
-    TIM1_CCM=  000005     |     TIM1_CCM=  000006     |     TIM1_CCM=  000007 
-    TIM1_CCM=  000002     |     TIM1_CCM=  000003     |     TIM1_CCM=  000007 
-    TIM1_CCM=  000002     |     TIM1_CCM=  000004     |     TIM1_CCM=  000005 
-    TIM1_CCM=  000006     |     TIM1_CCM=  000003     |     TIM1_CCR=  005265 
-    TIM1_CCR=  005266     |     TIM1_CCR=  005267     |     TIM1_CCR=  005268 
-    TIM1_CCR=  005269     |     TIM1_CCR=  00526A     |     TIM1_CCR=  00526B 
-    TIM1_CCR=  00526C     |     TIM1_CNT=  00525E     |     TIM1_CNT=  00525F 
-    TIM1_CR1=  005250     |     TIM1_CR2=  005251     |     TIM1_CR2=  000000 
-    TIM1_CR2=  000002     |     TIM1_CR2=  000004     |     TIM1_CR2=  000005 
-    TIM1_CR2=  000006     |     TIM1_DTR=  00526E     |     TIM1_EGR=  005257 
-    TIM1_EGR=  000007     |     TIM1_EGR=  000001     |     TIM1_EGR=  000002 
-    TIM1_EGR=  000003     |     TIM1_EGR=  000004     |     TIM1_EGR=  000005 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 129.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
-    TIM1_EGR=  000006     |     TIM1_EGR=  000000     |     TIM1_ETR=  005253 
-    TIM1_ETR=  000006     |     TIM1_ETR=  000000     |     TIM1_ETR=  000001 
-    TIM1_ETR=  000002     |     TIM1_ETR=  000003     |     TIM1_ETR=  000007 
-    TIM1_ETR=  000004     |     TIM1_ETR=  000005     |     TIM1_IER=  005254 
-    TIM1_IER=  000007     |     TIM1_IER=  000001     |     TIM1_IER=  000002 
-    TIM1_IER=  000003     |     TIM1_IER=  000004     |     TIM1_IER=  000005 
-    TIM1_IER=  000006     |     TIM1_IER=  000000     |     TIM1_OIS=  00526F 
-    TIM1_PSC=  005260     |     TIM1_PSC=  005261     |     TIM1_RCR=  005264 
-    TIM1_SMC=  005252     |     TIM1_SMC=  000007     |     TIM1_SMC=  000000 
-    TIM1_SMC=  000001     |     TIM1_SMC=  000002     |     TIM1_SMC=  000004 
-    TIM1_SMC=  000005     |     TIM1_SMC=  000006     |     TIM1_SR1=  005255 
-    TIM1_SR1=  000007     |     TIM1_SR1=  000001     |     TIM1_SR1=  000002 
-    TIM1_SR1=  000003     |     TIM1_SR1=  000004     |     TIM1_SR1=  000005 
-    TIM1_SR1=  000006     |     TIM1_SR1=  000000     |     TIM1_SR2=  005256 
-    TIM1_SR2=  000001     |     TIM1_SR2=  000002     |     TIM1_SR2=  000003 
-    TIM1_SR2=  000004     |     TIM2_ARR=  00530D     |     TIM2_ARR=  00530E 
-    TIM2_CCE=  005308     |     TIM2_CCE=  005309     |     TIM2_CCM=  005305 
-    TIM2_CCM=  005306     |     TIM2_CCM=  005307     |     TIM2_CCR=  00530F 
-    TIM2_CCR=  005310     |     TIM2_CCR=  005311     |     TIM2_CCR=  005312 
-    TIM2_CCR=  005313     |     TIM2_CCR=  005314     |     TIM2_CNT=  00530A 
-    TIM2_CNT=  00530B     |     TIM2_CR1=  005300     |     TIM2_EGR=  005304 
-    TIM2_IER=  005301     |     TIM2_PSC=  00530C     |     TIM2_SR1=  005302 
-    TIM2_SR2=  005303     |     TIM3_ARR=  00532B     |     TIM3_ARR=  00532C 
-    TIM3_CCE=  005327     |     TIM3_CCE=  000000     |     TIM3_CCE=  000001 
-    TIM3_CCE=  000004     |     TIM3_CCE=  000005     |     TIM3_CCE=  000000 
-    TIM3_CCE=  000001     |     TIM3_CCM=  005325     |     TIM3_CCM=  005326 
-    TIM3_CCM=  000000     |     TIM3_CCM=  000004     |     TIM3_CCM=  000003 
-    TIM3_CCR=  00532D     |     TIM3_CCR=  00532E     |     TIM3_CCR=  00532F 
-    TIM3_CCR=  005330     |     TIM3_CNT=  005328     |     TIM3_CNT=  005329 
-    TIM3_CR1=  005320     |     TIM3_CR1=  000007     |     TIM3_CR1=  000000 
-    TIM3_CR1=  000003     |     TIM3_CR1=  000001     |     TIM3_CR1=  000002 
-    TIM3_EGR=  005324     |     TIM3_IER=  005321     |     TIM3_PSC=  00532A 
-    TIM3_SR1=  005322     |     TIM3_SR2=  005323     |     TIM4_ARR=  005346 
-    TIM4_CNT=  005344     |     TIM4_CR1=  005340     |     TIM4_CR1=  000007 
-    TIM4_CR1=  000000     |     TIM4_CR1=  000003     |     TIM4_CR1=  000001 
-    TIM4_CR1=  000002     |     TIM4_EGR=  005343     |     TIM4_EGR=  000000 
-    TIM4_IER=  005341     |     TIM4_IER=  000000     |     TIM4_PSC=  005345 
-    TIM4_PSC=  000000     |     TIM4_PSC=  000007     |     TIM4_PSC=  000004 
-    TIM4_PSC=  000001     |     TIM4_PSC=  000005     |     TIM4_PSC=  000002 
-    TIM4_PSC=  000006     |     TIM4_PSC=  000003     |     TIM4_PSC=  000000 
-    TIM4_PSC=  000001     |     TIM4_PSC=  000002     |     TIM4_SR =  005342 
-    TIM4_SR_=  000000     |   5 TIMEOUT    002228 R   |   5 TIMER      002234 R
-    TIM_CR1_=  000007     |     TIM_CR1_=  000000     |     TIM_CR1_=  000006 
-    TIM_CR1_=  000005     |     TIM_CR1_=  000004     |     TIM_CR1_=  000003 
-    TIM_CR1_=  000001     |     TIM_CR1_=  000002     |     TK_ARRAY=  000002 
-    TK_CFUNC=  000008     |     TK_CHAR =  000003     |     TK_CMD  =  000006 
-    TK_COLON=  000001     |     TK_COMMA=  00000D     |     TK_CONST=  000009 
-    TK_DIV  =  000021     |     TK_EQUAL=  000032     |     TK_GE   =  000033 
-    TK_GRP_A=  000010     |     TK_GRP_M=  000030     |     TK_GRP_M=  000000 
-    TK_GRP_M=  000020     |     TK_GRP_R=  000030     |     TK_GT   =  000031 
-    TK_IFUNC=  000007     |     TK_INTGR=  000004     |     TK_LE   =  000036 
-    TK_LPARE=  00000B     |     TK_LT   =  000034     |     TK_MINUS=  000011 
-    TK_MOD  =  000022     |     TK_MULT =  000020     |     TK_NE   =  000035 
-    TK_NONE =  000000     |     TK_PLUS =  000010     |     TK_QSTR =  00000A 
-    TK_RPARE=  00000C     |     TK_SHARP=  00000E     |     TK_VAR  =  000005 
+    PH_CR2  =  005027     |     PH_DDR  =  005025     |     PH_IDR  =  005024 
+    PH_ODR  =  005023     |     PI      =  000028     |     PINNO   =  000001 
+  5 PINP       00235D R   |     PINVAL  =  000002     |     PI_BASE =  005028 
+    PI_CR1  =  00502B     |     PI_CR2  =  00502C     |     PI_DDR  =  00502A 
+    PI_IDR  =  005029     |     PI_ODR  =  005028     |   5 PMODE      00236F R
+  5 POKE       002354 R   |   5 POUT       00234B R   |     PREV    =  000001 
+  5 PRINT      002341 R   |     PROD    =  000002     |     PSIZE   =  000001 
+  5 PWR        002339 R   |   5 QKEY       002330 R   |     RAM_BASE=  000000 
+    RAM_END =  0017FF     |     RAM_SIZE=  001800     |   5 REBOOT     002325 R
+  5 REFIWDG    002319 R   |   5 REG_A      00099F R   |   5 REG_CC     0009A3 R
+  5 REG_EPC    000992 R   |   5 REG_SP     0009A8 R   |   5 REG_X      00099B R
+  5 REG_Y      000997 R   |     RELOP   =  000005     |   5 REMARK     00230E R
+    RETL1   =  000001     |   5 RETURN     002303 R   |   5 RND        0022FB R
+    ROP     =  004800     |   5 RSHIFT     0022F0 R   |     RST_SR  =  0050B3 
+  5 RUN        0022E8 R   |     RXCHAR  =  000001     |     R_A     =  000007 
+    R_CC    =  000008     |     R_X     =  000005     |     R_Y     =  000003 
+  5 SAVE       0022DF R   |     SDIVD   =  000002     |     SFR_BASE=  005000 
+    SFR_END =  0057FF     |     SHARP   =  000023     |   5 SHOW       0022D6 R
+    SIGN    =  000001     |   5 SIZE       0022CD R   |     SKIP    =  000006 
+  5 SLEEP      0022C3 R   |     SPACE   =  000020     |     SPI_CR1 =  005200 
+    SPI_CR2 =  005201     |     SPI_CRCP=  005205     |     SPI_DR  =  005204 
+    SPI_ICR =  005202     |     SPI_RXCR=  005206     |     SPI_SR  =  005203 
+    SPI_TXCR=  005207     |     SQUOT   =  000001     |     SRC     =  000003 
+    STACK_EM=  0017FF     |     STACK_SI=  000080     |   5 STATES     000955 R
+  5 STEP       0022BA R   |   5 STOP       0022B1 R   |     SWIM_CSR=  007F80 
+    TAB     =  000009     |     TAB_WIDT=  000004     |     TCHAR   =  000001 
+    TEMP    =  000003     |     TIB_SIZE=  000050     |     TICK    =  000027 
+  5 TICKS      0022A7 R   |     TIM1_ARR=  005262     |     TIM1_ARR=  005263 
+    TIM1_BKR=  00526D     |     TIM1_CCE=  00525C     |     TIM1_CCE=  00525D 
+    TIM1_CCM=  005258     |     TIM1_CCM=  000000     |     TIM1_CCM=  000001 
+    TIM1_CCM=  000004     |     TIM1_CCM=  000005     |     TIM1_CCM=  000006 
+    TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000003 
+    TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000004 
+    TIM1_CCM=  000005     |     TIM1_CCM=  000006     |     TIM1_CCM=  000003 
+    TIM1_CCM=  005259     |     TIM1_CCM=  000000     |     TIM1_CCM=  000001 
+    TIM1_CCM=  000004     |     TIM1_CCM=  000005     |     TIM1_CCM=  000006 
+    TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000003 
+    TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000004 
+    TIM1_CCM=  000005     |     TIM1_CCM=  000006     |     TIM1_CCM=  000003 
+    TIM1_CCM=  00525A     |     TIM1_CCM=  000000     |     TIM1_CCM=  000001 
+    TIM1_CCM=  000004     |     TIM1_CCM=  000005     |     TIM1_CCM=  000006 
+    TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000003 
+    TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000004 
+    TIM1_CCM=  000005     |     TIM1_CCM=  000006     |     TIM1_CCM=  000003 
+    TIM1_CCM=  00525B     |     TIM1_CCM=  000000     |     TIM1_CCM=  000001 
+    TIM1_CCM=  000004     |     TIM1_CCM=  000005     |     TIM1_CCM=  000006 
+    TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000003 
+    TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000004 
+    TIM1_CCM=  000005     |     TIM1_CCM=  000006     |     TIM1_CCM=  000003 
+    TIM1_CCR=  005265     |     TIM1_CCR=  005266     |     TIM1_CCR=  005267 
+    TIM1_CCR=  005268     |     TIM1_CCR=  005269     |     TIM1_CCR=  00526A 
+    TIM1_CCR=  00526B     |     TIM1_CCR=  00526C     |     TIM1_CNT=  00525E 
+    TIM1_CNT=  00525F     |     TIM1_CR1=  005250     |     TIM1_CR2=  005251 
+    TIM1_CR2=  000000     |     TIM1_CR2=  000002     |     TIM1_CR2=  000004 
+    TIM1_CR2=  000005     |     TIM1_CR2=  000006     |     TIM1_DTR=  00526E 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 130.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
-  5 TO         002221 R   |   5 Timer4Up   000027 R   |   5 TrapHand   000018 R
-    U8      =  000003     |     UART1   =  000000     |     UART1_BA=  005230 
-    UART1_BR=  005232     |     UART1_BR=  005233     |     UART1_CR=  005234 
-    UART1_CR=  005235     |     UART1_CR=  005236     |     UART1_CR=  005237 
-    UART1_CR=  005238     |     UART1_DR=  005231     |     UART1_GT=  005239 
-    UART1_PO=  000000     |     UART1_PS=  00523A     |     UART1_RX=  000004 
-    UART1_SR=  005230     |     UART1_TX=  000005     |     UART3   =  000001 
-    UART3_BA=  005240     |     UART3_BR=  005242     |     UART3_BR=  005243 
-    UART3_CR=  005244     |     UART3_CR=  005245     |     UART3_CR=  005246 
-    UART3_CR=  005247     |     UART3_CR=  004249     |     UART3_DR=  005241 
-    UART3_PO=  00000F     |     UART3_RX=  000006     |     UART3_SR=  005240 
-    UART3_TX=  000005     |     UART_BRR=  000002     |     UART_BRR=  000003 
-    UART_CR1=  000004     |     UART_CR1=  000004     |     UART_CR1=  000002 
-    UART_CR1=  000000     |     UART_CR1=  000001     |     UART_CR1=  000007 
-    UART_CR1=  000006     |     UART_CR1=  000005     |     UART_CR1=  000003 
-    UART_CR2=  000005     |     UART_CR2=  000004     |     UART_CR2=  000002 
-    UART_CR2=  000005     |     UART_CR2=  000001     |     UART_CR2=  000000 
-    UART_CR2=  000006     |     UART_CR2=  000003     |     UART_CR2=  000007 
-    UART_CR3=  000006     |     UART_CR3=  000003     |     UART_CR3=  000001 
-    UART_CR3=  000002     |     UART_CR3=  000000     |     UART_CR3=  000006 
-    UART_CR3=  000004     |     UART_CR3=  000005     |     UART_CR4=  000007 
-    UART_CR4=  000000     |     UART_CR4=  000001     |     UART_CR4=  000002 
-    UART_CR4=  000003     |     UART_CR4=  000004     |     UART_CR4=  000006 
-    UART_CR4=  000005     |     UART_CR5=  000008     |     UART_CR5=  000003 
-    UART_CR5=  000001     |     UART_CR5=  000002     |     UART_CR5=  000004 
-    UART_CR5=  000005     |     UART_CR6=  000009     |     UART_CR6=  000004 
-    UART_CR6=  000007     |     UART_CR6=  000001     |     UART_CR6=  000002 
-    UART_CR6=  000000     |     UART_CR6=  000005     |     UART_DR =  000001 
-    UART_GTR=  000009     |     UART_PSC=  00000A     |     UART_SR =  000000 
-    UART_SR_=  000001     |     UART_SR_=  000004     |     UART_SR_=  000002 
-    UART_SR_=  000003     |     UART_SR_=  000000     |     UART_SR_=  000005 
-    UART_SR_=  000006     |     UART_SR_=  000007     |     UBC     =  004801 
-  5 UBOUND     002216 R   |   5 UFLASH     00220B R   |   5 USER_ABO   000096 R
-  5 USR        002203 R   |     USR_BTN_=  000004     |     USR_BTN_=  000010 
-    USR_BTN_=  005015     |   5 UserButt   00003D R   |     VSIZ    =  000002 
-    VSIZE   =  000002     |     VT      =  00000B     |   5 WAIT       0021FA R
-    WDGOPT  =  004805     |     WDGOPT_I=  000002     |     WDGOPT_L=  000003 
-    WDGOPT_W=  000000     |     WDGOPT_W=  000001     |     WIDTH   =  000001 
-    WIDTH_SA=  000002     |     WLEN    =  000001     |   5 WORDS      0021F0 R
-  5 WRITE      0021E6 R   |     WWDG_CR =  0050D1     |     WWDG_WR =  0050D2 
-    XADR    =  000001     |     XMASK   =  000001     |   5 XOR        0021DE R
-  5 XPEEK      0021D4 R   |     XSAVE   =  000003     |     YSAVE   =  000003 
-  5 abs        001FD6 R   |   1 acc16      000008 R   |   1 acc24      000007 R
-  1 acc8       000009 R   |   5 accept_c   000B49 R   |   5 add        0010DC R
-  5 analog_r   001A8A R   |   5 ansi_seq   000B0B R   |   5 arduino_   0020E1 R
-  5 arg_list   00121B R   |   1 array_si   00001F R   |   5 ascii      001E9B R
-  5 at_tst     000E16 R   |   5 atoi24     000F29 R   |   5 atoi_exi   000F97 R
-  5 autorun    001F28 R   |   5 autorun_   000652 R   |   5 awu        001F87 R
-  5 awu02      001F91 R   |   5 bad_port   001EF6 R   |   1 base       000006 R
-  1 basicptr   000004 R   |   5 beep       001A19 R   |   5 bin_exit   000D1A R
-  5 bit_and    001FEC R   |   5 bit_or     00200A R   |   5 bit_rese   0017B6 R
-  5 bit_set    0017A2 R   |   5 bit_test   0017DF R   |   5 bit_togg   0017CB R
-  5 bit_xor    002028 R   |   5 bkslsh_t   000DC1 R   |   5 bksp       0001E7 R
-  5 break      001B31 R   |   5 break_po   001B5F R   |   5 bye        001F1F R
-  5 char       001E87 R   |   5 check_fu   00040A R   |   5 clear_ba   000667 R
+    TIM1_EGR=  005257     |     TIM1_EGR=  000007     |     TIM1_EGR=  000001 
+    TIM1_EGR=  000002     |     TIM1_EGR=  000003     |     TIM1_EGR=  000004 
+    TIM1_EGR=  000005     |     TIM1_EGR=  000006     |     TIM1_EGR=  000000 
+    TIM1_ETR=  005253     |     TIM1_ETR=  000006     |     TIM1_ETR=  000000 
+    TIM1_ETR=  000001     |     TIM1_ETR=  000002     |     TIM1_ETR=  000003 
+    TIM1_ETR=  000007     |     TIM1_ETR=  000004     |     TIM1_ETR=  000005 
+    TIM1_IER=  005254     |     TIM1_IER=  000007     |     TIM1_IER=  000001 
+    TIM1_IER=  000002     |     TIM1_IER=  000003     |     TIM1_IER=  000004 
+    TIM1_IER=  000005     |     TIM1_IER=  000006     |     TIM1_IER=  000000 
+    TIM1_OIS=  00526F     |     TIM1_PSC=  005260     |     TIM1_PSC=  005261 
+    TIM1_RCR=  005264     |     TIM1_SMC=  005252     |     TIM1_SMC=  000007 
+    TIM1_SMC=  000000     |     TIM1_SMC=  000001     |     TIM1_SMC=  000002 
+    TIM1_SMC=  000004     |     TIM1_SMC=  000005     |     TIM1_SMC=  000006 
+    TIM1_SR1=  005255     |     TIM1_SR1=  000007     |     TIM1_SR1=  000001 
+    TIM1_SR1=  000002     |     TIM1_SR1=  000003     |     TIM1_SR1=  000004 
+    TIM1_SR1=  000005     |     TIM1_SR1=  000006     |     TIM1_SR1=  000000 
+    TIM1_SR2=  005256     |     TIM1_SR2=  000001     |     TIM1_SR2=  000002 
+    TIM1_SR2=  000003     |     TIM1_SR2=  000004     |     TIM2_ARR=  00530D 
+    TIM2_ARR=  00530E     |     TIM2_CCE=  005308     |     TIM2_CCE=  005309 
+    TIM2_CCM=  005305     |     TIM2_CCM=  005306     |     TIM2_CCM=  005307 
+    TIM2_CCR=  00530F     |     TIM2_CCR=  005310     |     TIM2_CCR=  005311 
+    TIM2_CCR=  005312     |     TIM2_CCR=  005313     |     TIM2_CCR=  005314 
+    TIM2_CNT=  00530A     |     TIM2_CNT=  00530B     |     TIM2_CR1=  005300 
+    TIM2_EGR=  005304     |     TIM2_IER=  005301     |     TIM2_PSC=  00530C 
+    TIM2_SR1=  005302     |     TIM2_SR2=  005303     |     TIM3_ARR=  00532B 
+    TIM3_ARR=  00532C     |     TIM3_CCE=  005327     |     TIM3_CCE=  000000 
+    TIM3_CCE=  000001     |     TIM3_CCE=  000004     |     TIM3_CCE=  000005 
+    TIM3_CCE=  000000     |     TIM3_CCE=  000001     |     TIM3_CCM=  005325 
+    TIM3_CCM=  005326     |     TIM3_CCM=  000000     |     TIM3_CCM=  000004 
+    TIM3_CCM=  000003     |     TIM3_CCR=  00532D     |     TIM3_CCR=  00532E 
+    TIM3_CCR=  00532F     |     TIM3_CCR=  005330     |     TIM3_CNT=  005328 
+    TIM3_CNT=  005329     |     TIM3_CR1=  005320     |     TIM3_CR1=  000007 
+    TIM3_CR1=  000000     |     TIM3_CR1=  000003     |     TIM3_CR1=  000001 
+    TIM3_CR1=  000002     |     TIM3_EGR=  005324     |     TIM3_IER=  005321 
+    TIM3_PSC=  00532A     |     TIM3_SR1=  005322     |     TIM3_SR2=  005323 
+    TIM4_ARR=  005346     |     TIM4_CNT=  005344     |     TIM4_CR1=  005340 
+    TIM4_CR1=  000007     |     TIM4_CR1=  000000     |     TIM4_CR1=  000003 
+    TIM4_CR1=  000001     |     TIM4_CR1=  000002     |     TIM4_EGR=  005343 
+    TIM4_EGR=  000000     |     TIM4_IER=  005341     |     TIM4_IER=  000000 
+    TIM4_PSC=  005345     |     TIM4_PSC=  000000     |     TIM4_PSC=  000007 
+    TIM4_PSC=  000004     |     TIM4_PSC=  000001     |     TIM4_PSC=  000005 
+    TIM4_PSC=  000002     |     TIM4_PSC=  000006     |     TIM4_PSC=  000003 
+    TIM4_PSC=  000000     |     TIM4_PSC=  000001     |     TIM4_PSC=  000002 
+    TIM4_SR =  005342     |     TIM4_SR_=  000000     |   5 TIMEOUT    002291 R
+  5 TIMER      00229D R   |     TIM_CR1_=  000007     |     TIM_CR1_=  000000 
+    TIM_CR1_=  000006     |     TIM_CR1_=  000005     |     TIM_CR1_=  000004 
+    TIM_CR1_=  000003     |     TIM_CR1_=  000001     |     TIM_CR1_=  000002 
+    TK_ARRAY=  000002     |     TK_CFUNC=  000008     |     TK_CHAR =  000003 
+    TK_CMD  =  000006     |     TK_COLON=  000001     |     TK_COMMA=  00000D 
+    TK_CONST=  000009     |     TK_DIV  =  000021     |     TK_EQUAL=  000032 
+    TK_GE   =  000033     |     TK_GRP_A=  000010     |     TK_GRP_M=  000030 
+    TK_GRP_M=  000000     |     TK_GRP_M=  000020     |     TK_GRP_R=  000030 
+    TK_GT   =  000031     |     TK_IFUNC=  000007     |     TK_INTGR=  000004 
+    TK_LE   =  000036     |     TK_LPARE=  00000B     |     TK_LT   =  000034 
+    TK_MINUS=  000011     |     TK_MOD  =  000022     |     TK_MULT =  000020 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 131.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
-  5 clear_va   000514 R   |   5 clock_in   0000B1 R   |   5 cmd_itf    000B6D R
-  5 cmd_name   001187 R   |   5 cmp_name   001BD3 R   |   5 cold_sta   000579 R
-  5 colon_ts   000DEA R   |   5 comma_ts   000DF5 R   |   5 compile    000419 R
-  5 convert_   000CA2 R   |   1 count      000003 R   |   5 cp_loop    0011CA R
-  5 create_g   000369 R   |   5 cstk_pro   0010A6 R   |   5 dash_tst   000E0B R
-  5 ddrop      001022 R   |   5 ddrop_n    00105F R   |   5 ddup       00102B R
-  5 dec_base   0013CF R   |   5 del_back   000B3A R   |   5 del_line   000331 R
-  5 del_ln     000B2B R   |   5 delete     0001F7 R   |   5 digital_   001AC0 R
-  5 digital_   001AF2 R   |   5 dir_loop   001DC6 R   |   5 director   001DBA R
-  5 divide     001132 R   |   5 divu24_8   000A98 R   |   5 dotr       0010AF R
-  5 dotr_loo   0010C4 R   |   5 dots       00107C R   |   5 dpick      00103C R
-  5 dpop       000FFB R   |   5 dpush      000FEE R   |   5 drive_fr   001E43 R
-  3 dstack     001740 R   |   3 dstack_e   001780 R   |   5 dstk_pro   001072 R
-  1 dstkptr    000018 R   |   5 dswap      001008 R   |   5 eql_tst    000E76 R
-  5 equal      00165F R   |   5 err_bad_   000744 R   |   5 err_cmd_   000705 R
-  5 err_div0   0006C7 R   |   5 err_dupl   000720 R   |   5 err_math   0006AD R
-  5 err_mem_   000690 R   |   5 err_msg    000678 R   |   5 err_no_a   000751 R
-  5 err_no_l   0006D7 R   |   5 err_not_   000732 R   |   5 err_run_   0006EE R
-  5 err_synt   00069E R   |   5 escaped    000CB7 R   |   5 expect     00120E R
-  5 expr_exi   001360 R   |   5 expressi   00131F R   |   5 factor     001276 R
-  1 farptr     000012 R   |   5 fcpu       002080 R   |   7 fdrive     010000 R
-  5 fetch      00104B R   |   5 fetchc     000C5A R   |   1 ffree      000015 R
-  5 file_cou   001E3B R   |   5 final_te   000B05 R   |   5 first_li   001453 R
+    TK_NE   =  000035     |     TK_NONE =  000000     |     TK_PLUS =  000010 
+    TK_QSTR =  00000A     |     TK_RPARE=  00000C     |     TK_SHARP=  00000E 
+    TK_VAR  =  000005     |   5 TO         00228A R   |   5 Timer4Up   000027 R
+  5 TrapHand   000018 R   |     U8      =  000003     |     UART1   =  000000 
+    UART1_BA=  005230     |     UART1_BR=  005232     |     UART1_BR=  005233 
+    UART1_CR=  005234     |     UART1_CR=  005235     |     UART1_CR=  005236 
+    UART1_CR=  005237     |     UART1_CR=  005238     |     UART1_DR=  005231 
+    UART1_GT=  005239     |     UART1_PO=  000000     |     UART1_PS=  00523A 
+    UART1_RX=  000004     |     UART1_SR=  005230     |     UART1_TX=  000005 
+    UART3   =  000001     |     UART3_BA=  005240     |     UART3_BR=  005242 
+    UART3_BR=  005243     |     UART3_CR=  005244     |     UART3_CR=  005245 
+    UART3_CR=  005246     |     UART3_CR=  005247     |     UART3_CR=  004249 
+    UART3_DR=  005241     |     UART3_PO=  00000F     |     UART3_RX=  000006 
+    UART3_SR=  005240     |     UART3_TX=  000005     |     UART_BRR=  000002 
+    UART_BRR=  000003     |     UART_CR1=  000004     |     UART_CR1=  000004 
+    UART_CR1=  000002     |     UART_CR1=  000000     |     UART_CR1=  000001 
+    UART_CR1=  000007     |     UART_CR1=  000006     |     UART_CR1=  000005 
+    UART_CR1=  000003     |     UART_CR2=  000005     |     UART_CR2=  000004 
+    UART_CR2=  000002     |     UART_CR2=  000005     |     UART_CR2=  000001 
+    UART_CR2=  000000     |     UART_CR2=  000006     |     UART_CR2=  000003 
+    UART_CR2=  000007     |     UART_CR3=  000006     |     UART_CR3=  000003 
+    UART_CR3=  000001     |     UART_CR3=  000002     |     UART_CR3=  000000 
+    UART_CR3=  000006     |     UART_CR3=  000004     |     UART_CR3=  000005 
+    UART_CR4=  000007     |     UART_CR4=  000000     |     UART_CR4=  000001 
+    UART_CR4=  000002     |     UART_CR4=  000003     |     UART_CR4=  000004 
+    UART_CR4=  000006     |     UART_CR4=  000005     |     UART_CR5=  000008 
+    UART_CR5=  000003     |     UART_CR5=  000001     |     UART_CR5=  000002 
+    UART_CR5=  000004     |     UART_CR5=  000005     |     UART_CR6=  000009 
+    UART_CR6=  000004     |     UART_CR6=  000007     |     UART_CR6=  000001 
+    UART_CR6=  000002     |     UART_CR6=  000000     |     UART_CR6=  000005 
+    UART_DR =  000001     |     UART_GTR=  000009     |     UART_PSC=  00000A 
+    UART_SR =  000000     |     UART_SR_=  000001     |     UART_SR_=  000004 
+    UART_SR_=  000002     |     UART_SR_=  000003     |     UART_SR_=  000000 
+    UART_SR_=  000005     |     UART_SR_=  000006     |     UART_SR_=  000007 
+    UBC     =  004801     |   5 UBOUND     00227F R   |   5 UFLASH     002274 R
+  5 USER_ABO   000096 R   |   5 USR        00226C R   |     USR_BTN_=  000004 
+    USR_BTN_=  000010     |     USR_BTN_=  005015     |   5 UserButt   00003D R
+    VSIZ    =  000002     |     VSIZE   =  000002     |     VT      =  00000B 
+  5 WAIT       002263 R   |     WDGOPT  =  004805     |     WDGOPT_I=  000002 
+    WDGOPT_L=  000003     |     WDGOPT_W=  000000     |     WDGOPT_W=  000001 
+    WIDTH   =  000001     |     WIDTH_SA=  000002     |     WLEN    =  000001 
+  5 WORDS      002259 R   |   5 WRITE      00224F R   |     WWDG_CR =  0050D1 
+    WWDG_WR =  0050D2     |     XADR    =  000001     |     XMASK   =  000001 
+  5 XOR        002247 R   |   5 XPEEK      00223D R   |     XSAVE   =  000003 
+    YSAVE   =  000003     |   5 abs        001FD6 R   |   1 acc16      000008 R
+  1 acc24      000007 R   |   1 acc8       000009 R   |   5 accept_c   000B49 R
+  5 add        0010DC R   |   5 analog_r   001A8A R   |   5 ansi_seq   000B0B R
+  5 arduino_   0020E1 R   |   5 arg_list   00121B R   |   1 array_si   00001F R
+  5 ascii      001E9B R   |   5 at_tst     000E16 R   |   5 atoi24     000F29 R
+  5 atoi_exi   000F97 R   |   5 autorun    001F28 R   |   5 autorun_   000652 R
+  5 awu        001F87 R   |   5 awu02      001F91 R   |   5 bad_port   001EF6 R
+  1 base       000006 R   |   1 basicptr   000004 R   |   5 beep       001A19 R
+  5 bin_exit   000D1A R   |   5 bit_and    001FEC R   |   5 bit_or     00200A R
+  5 bit_rese   0017B6 R   |   5 bit_set    0017A2 R   |   5 bit_test   0017DF R
+  5 bit_togg   0017CB R   |   5 bit_xor    002028 R   |   5 bkslsh_t   000DC1 R
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 132.
+Hexadecimal [24-Bits]
+
+Symbol Table
+
+  5 bksp       0001E7 R   |   5 break      001B31 R   |   5 break_po   001B5F R
+  5 bye        001F1F R   |   5 char       001E87 R   |   5 check_fu   00040A R
+  5 clear_ba   000667 R   |   5 clear_va   000514 R   |   5 clock_in   0000B1 R
+  5 cmd_itf    000B6D R   |   5 cmd_name   001187 R   |   5 cmp_name   001BD3 R
+  5 cold_sta   000579 R   |   5 colon_ts   000DEA R   |   5 comma_ts   000DF5 R
+  5 compile    000419 R   |   5 convert_   000CA2 R   |   1 count      000003 R
+  5 cp_loop    0011CA R   |   5 create_g   000369 R   |   5 cstk_pro   0010A6 R
+  5 dash_tst   000E0B R   |   5 ddrop      001022 R   |   5 ddrop_n    00105F R
+  5 ddup       00102B R   |   5 dec_base   0013CF R   |   5 del_back   000B3A R
+  5 del_line   000331 R   |   5 del_ln     000B2B R   |   5 delete     0001F7 R
+  5 digital_   001AC0 R   |   5 digital_   001AF2 R   |   5 dir_loop   001DC6 R
+  5 director   001DBA R   |   5 divide     001132 R   |   5 divu24_8   000A98 R
+  5 dotr       0010AF R   |   5 dotr_loo   0010C4 R   |   5 dots       00107C R
+  5 dpick      00103C R   |   5 dpop       000FFB R   |   5 dpush      000FEE R
+  5 drive_fr   001E43 R   |   3 dstack     001740 R   |   3 dstack_e   001780 R
+  5 dstk_pro   001072 R   |   1 dstkptr    000018 R   |   5 dswap      001008 R
+  5 enable_i   0021D2 R   |   5 eql_tst    000E76 R   |   5 equal      00165F R
+  5 err_bad_   000744 R   |   5 err_cmd_   000705 R   |   5 err_div0   0006C7 R
+  5 err_dupl   000720 R   |   5 err_math   0006AD R   |   5 err_mem_   000690 R
+  5 err_msg    000678 R   |   5 err_no_a   000751 R   |   5 err_no_l   0006D7 R
+  5 err_not_   000732 R   |   5 err_run_   0006EE R   |   5 err_synt   00069E R
+  5 escaped    000CB7 R   |   5 expect     00120E R   |   5 expr_exi   001360 R
+  5 expressi   00131F R   |   5 factor     001276 R   |   1 farptr     000012 R
+  5 fcpu       002080 R   |   7 fdrive     010000 R   |   5 fetch      00104B R
+  5 fetchc     000C5A R   |   1 ffree      000015 R   |   5 file_cou   001E3B R
+  5 final_te   000B05 R   |   5 first_li   001453 R   |   5 first_on   00220F R
   1 flags      000021 R   |   5 for        001864 R   |   5 forget     001D6F R
   1 free_ram   000057 R   |   5 func_arg   00123F R   |   5 func_not   0021C3 R
   5 ge         001661 R   |   5 get_arra   00124F R   |   5 get_tick   001FD0 R
@@ -9211,40 +9341,41 @@ Symbol Table
   5 insert_l   000407 R   |   5 interp     0007EC R   |   5 interp_l   00082C R
   5 invalid    000BB2 R   |   5 invalid_   000C30 R   |   5 is_alpha   000522 R
   5 is_digit   000F14 R   |   5 itoa       000A51 R   |   5 itoa_loo   000A69 R
-  5 key        001EB6 R   |   5 kword_di   00247E R   |   5 kword_en   0021D2 R
+  5 key        001EB6 R   |   5 kword_di   00250E R   |   5 kword_en   00223B R
   5 last_lin   00145C R   |   5 le         001666 R   |   5 ledoff     0008A5 R
   5 ledon      0008A0 R   |   5 ledtoggl   0008AA R   |   5 left_arr   000B0B R
   5 left_par   0008B3 R   |   5 let        001400 R   |   5 let02      00140A R
   5 lines_sk   001461 R   |   5 list       001428 R   |   5 list_exi   0014A8 R
   5 list_sta   001484 R   |   5 load       001D34 R   |   5 load_aut   00062E R
-  5 load_fil   001D03 R   |   5 logical_   0021B9 R   |   5 loop_bac   00192E R
-  1 loop_dep   00001E R   |   5 loop_don   001943 R   |   5 lshift     002046 R
-  5 lt         001664 R   |   5 lt_tst     000EBA R   |   5 mem_peek   000BCF R
-  5 modulo     001176 R   |   5 move       0002CB R   |   5 move_dow   0002E9 R
-  5 move_exi   00030A R   |   5 move_loo   0002EE R   |   5 move_up    0002DB R
-  5 mul_char   00164E R   |   5 multiply   0010EA R   |   5 mulu24_8   000F9B R
-  5 nbr_tst    000D97 R   |   5 ne         001669 R   |   5 neg_acc2   000AC0 R
-  5 new        001B7D R   |   5 next       0018E6 R   |   5 next_tok   00085C R
-  5 no_match   0011DC R   |   5 none       000D5C R   |   5 number     000C60 GR
-  5 other      000EF2 R   |   3 pad        001718 R   |   5 parse_bi   000CFA R
-  5 parse_in   000CBF R   |   5 parse_ke   000D22 R   |   5 parse_qu   000C67 R
-  5 pause      001F74 R   |   5 pause02    001F7E R   |   5 peek       00181D R
-  5 peek_byt   000BFA R   |   5 pin_mode   00208C R   |   5 plus_tst   000E4A R
-  5 poke       00180A R   |   5 power_ad   001A41 R   |   5 prcnt_ts   000E6B R
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 132.
+  5 load_fil   001D03 R   |   5 log2       002202 R   |   5 logical_   0021B9 R
+  5 loop_bac   00192E R   |   1 loop_dep   00001E R   |   5 loop_don   001943 R
+  5 lshift     002046 R   |   5 lt         001664 R   |   5 lt_tst     000EBA R
+  5 mem_peek   000BCF R   |   5 modulo     001176 R   |   5 move       0002CB R
+  5 move_dow   0002E9 R   |   5 move_exi   00030A R   |   5 move_loo   0002EE R
+  5 move_up    0002DB R   |   5 mul_char   00164E R   |   5 multiply   0010EA R
+  5 mulu24_8   000F9B R   |   5 nbr_tst    000D97 R   |   5 ne         001669 R
+  5 neg_acc2   000AC0 R   |   5 new        001B7D R   |   5 next       0018E6 R
+  5 next_tok   00085C R   |   5 no_match   0011DC R   |   5 none       000D5C R
+  5 number     000C60 GR  |   5 other      000EF2 R   |   3 pad        001718 R
+  5 parse_bi   000CFA R   |   5 parse_in   000CBF R   |   5 parse_ke   000D22 R
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 133.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
-  5 print      00166C R   |   5 print_ex   0016D1 R   |   5 print_fa   000C3F R
-  5 print_in   0009F5 R   |   5 print_re   000902 R   |   5 print_st   000BC2 R
-  5 prt_basi   0014FB R   |   5 prt_cmd_   0014AB R   |   5 prt_loop   001670 R
-  5 prt_peek   00027B R   |   5 prt_quot   0014BF R   |   5 prt_reg1   0008E3 R
-  5 prt_reg8   0008BE R   |   5 prt_regs   000211 R   |   5 prti24     0009AD R
-  1 ptr16      000013 R   |   1 ptr8       000014 R   |   5 putc       0001CB R
-  5 puts       0001DD R   |   5 qkey       001EBE R   |   5 qmark_ts   000E21 R
-  5 random     002101 R   |   5 readln     000AE3 R   |   5 readln_l   000AE9 R
-  5 readln_q   000B5E R   |   5 regs_sta   000254 R   |   5 rel_exit   0013B7 R
+  5 parse_qu   000C67 R   |   5 pause      001F74 R   |   5 pause02    001F7E R
+  5 peek       00181D R   |   5 peek_byt   000BFA R   |   5 pin_mode   00208C R
+  5 plus_tst   000E4A R   |   5 poke       00180A R   |   5 power_ad   001A41 R
+  5 prcnt_ts   000E6B R   |   5 print      00166C R   |   5 print_ex   0016D1 R
+  5 print_fa   000C3F R   |   5 print_in   0009F5 R   |   5 print_re   000902 R
+  5 print_st   000BC2 R   |   5 prt_basi   0014FB R   |   5 prt_cmd_   0014AB R
+  5 prt_loop   001670 R   |   5 prt_peek   00027B R   |   5 prt_quot   0014BF R
+  5 prt_reg1   0008E3 R   |   5 prt_reg8   0008BE R   |   5 prt_regs   000211 R
+  5 prti24     0009AD R   |   1 ptr16      000013 R   |   1 ptr8       000014 R
+  5 putc       0001CB R   |   5 puts       0001DD R   |   5 pwr2       00221F R
+  5 qkey       001EBE R   |   5 qmark_ts   000E21 R   |   5 random     002101 R
+  5 readln     000AE3 R   |   5 readln_l   000AE9 R   |   5 readln_q   000B5E R
+  5 refresh_   0021FD R   |   5 regs_sta   000254 R   |   5 rel_exit   0013B7 R
   5 relation   001363 R   |   5 relop_st   001651 R   |   5 rem        001771 R
   5 repl       000B7B R   |   5 repl_exi   000BA3 R   |   5 reprint    000B0B R
   5 reset_co   00166E R   |   5 rest_con   0016ED R   |   5 return     0019A7 R
@@ -9270,13 +9401,13 @@ Symbol Table
   5 token_ex   000F11 R   |   1 txtbgn     00001A R   |   1 txtend     00001C R
   5 uart1_in   000190 R   |   5 uart1_se   0001A0 R   |   5 ubound     0013DE R
   5 uflash     001EFB R   |   5 unget_to   000FE8 R   |   5 unlock_e   0000DC R
-  5 unlock_f   0000EA R   |   5 user_spa   002500 R   |   5 usr        001F01 R
+  5 unlock_f   0000EA R   |   5 user_spa   002580 R   |   5 usr        001F01 R
   1 vars       000023 R   |   5 wait       001777 R   |   5 warm_ini   000611 R
   5 warm_sta   0007E9 R   |   5 words      00216B R   |   5 write      001E50 R
   5 write_bl   00016D R   |   5 write_by   0000F8 R   |   5 write_ee   000134 R
   5 write_ex   000168 R   |   5 write_fl   00011E R   |   5 xpeek      001830 R
 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 133.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 134.
 Hexadecimal [24-Bits]
 
 Area Table
@@ -9286,7 +9417,7 @@ Area Table
    2 SSEG       size      0   flags    8
    3 SSEG0      size    138   flags    8
    4 HOME       size     80   flags    0
-   5 CODE       size   250E   flags    0
+   5 CODE       size   258E   flags    0
    6 FLASH_DR   size      0   flags    8
    7 FLASH_DR   size      4   flags    8
 

@@ -114,6 +114,39 @@ Cette fonction retourne la valeur absolue de l'expression fournie en argument.
     >? abs(-45)
     45
 
+### ADCON 0|1 [,diviseur]
+Active **1** ou désactive **0** le convertisseur analogique/numérique. *diviseur* détermine la fréquence d'horloge du convertisseur et doit-être un entier dans l'intervalle {0..7}. Il s'agit d'un diviseur donc **7** correspond à la fréquence la plus basse. Le diviseur s'applique à Fosc qui est de 16Mhz. Il faut 11 cycles d'horloges pour chaque conversion.  Il s'agit d'un convertisseur 10 bits donc le résultat est entre 0...1023. Si l'argument *diviseur* est omis c'est la fréquence maximale qui est utilisée.
+
+paramètre|diviseur|fréquence
+-|-|-
+0|2|8Mhz
+1|3|5,33Mhz
+2|4|4Mhz
+3|6|2,66Mhz
+4|8|2Mhz
+5|10|1,6Mhz
+6|12|1,33Mhz 
+7|18|0,89Mhz
+```
+>adcon 1,0 ' active ADC fréquence maximale
+
+>?adcread(0) 'Lecture canal 0 
+ 757
+
+>adcon 0 ' desactive l'ADC.
+```
+On peut désactiver le convertisseur pour réduire la consommation du MCU.
+
+### ADCREAD(canal)
+Lecture d'une des 6 entrées analogiques reliées au connecteur CN4. L'argument **canal** détermine quel entrée est lue {0..5}. Cette fonction est l'équivalent de la fonction *AnalogRead* de l'API Arduino.
+```
+>adcon 1,0 ' active ADC fréquence maximale
+
+>?adcread(0) 'Lecture canal 0 
+ 655
+
+```
+
 ### AND(*expr1*,*expr2) {C,P}
 Il s'agit de la fonction logique **AND** binaire c'est à dire d'une application bit à bit entre les 2 expressions. L'équivalent de l'opérateur **&** en C. 
 ```
@@ -124,15 +157,6 @@ Il s'agit de la fonction logique **AND** binaire c'est à dire d'une application
  127
 
 >
-```
-### ANREAD(canal)
-Lecture d'une des 6 entrées analogiques reliées au connecteur CN4. L'argument **canal** détermine quel entrée est lue {0..5}. Cette fonction est l'équivalent de la fonction *AnalogRead* de l'API Arduino.
-```
->pwradc 1,0 ' active ADC fréquence maximale
-
->?anread(0) 'Lecture canal 0 
- 655
-
 ```
 
 ### ASC(*string*|*char*) {C,P}
@@ -479,6 +503,23 @@ sexe(1=M,2=F)? 1
 
 >
 ```
+### IWDG *expr* {C,P}
+Active l'*Independant WatchDog timer*. *expr* représente le délais du du de la minuterie avant le réinialiation du MCU. Le **IWDG** doit-être réinitialisé avant la fin de ce délais sinon le MCU est réinitialisé. Un **WatchDog timer** sert à détecter les pannes matérielle ou logicielle. Une fois activé le **IWDG** ne peut-être désactivé que par une réiniatiliation du MCU.  La commande **IWDGREF**  doit-être utilisée en boucle pour empêcher une réinitialisation intempestive du MCU. *expr* représente un délais en millisecondes entre 1 et 32270.
+```
+ 10 IWDG 1000 ' activation avec expiration a 1 seconde.
+ 20 IWDGREF   ' rafraissement du compteur avant qu'il n'expire
+ 30 ...  'code programme qui tourne en boucle
+ 40 ...
+ ...
+ 1000 goto 20  ' doit retourné à la ligne 20 en moins d'une seconde, sinon réinitialisation
+
+```
+
+### IWDGREF  {C,P}
+Cette commande sert à réinitialiser le compteur du **IWDG** avant l'expiration de sont délais.
+Voir commande **IWDG**.
+
+
 ### KEY {C,P}
 Attend qu'un caractère soit reçu de la console. Ce caractère est retourné sous la forme d'un entier et peut-être affecté à une variable.
 ```
@@ -553,6 +594,14 @@ Charge un fichier sauvegardé dans la mémoire flash vers la mémoire RAM dans l
 >run
      1     1     2     3     5     8    13    21    34    55    89   144   233   377   610   987  1597  2584  4181  6765 10946 17711 28657
 >
+```
+### LOG(*expr*) {C,P}
+Cette fonction retourne le log en base 2 de *expr*. I
+```
+> for i=1 to 16380 step 0: ? log(i),: i=i*2: next i
+   0   1   2   3   4   5   6   7   8   9  10  11  12  13
+>
+
 ```
 
 ### LSHIFT(*expr1*,*expr2*) {C,P}
@@ -659,28 +708,14 @@ Caractere recu du terminal Z
 
 >
 ```
-### PWRADC 0|1 [,diviseur]
-Active **1** ou désactive **0** le convertisseur analogique/numérique. *diviseur* détermine la fréquence d'horloge du convertisseur et doit-être un entier dans l'intervalle {0..7}. Il s'agit d'un diviseur donc **7** correspond à la fréquence la plus basse. Le diviseur s'applique à Fosc qui est de 16Mhz. Il faut 11 cycles d'horloges pour chaque conversion.  Il s'agit d'un convertisseur 10 bits donc le résultat est entre 0...1023. Si l'argument *diviseur* est omis c'est la fréquence maximale qui est utilisée.
-
-paramètre|diviseur|fréquence
--|-|-
-0|2|8Mhz
-1|3|5,33Mhz
-2|4|4Mhz
-3|6|2,66Mhz
-4|8|2Mhz
-5|10|1,6Mhz
-6|12|1,33Mhz 
-7|18|0,89Mhz
+### PWR(*expr*) {C,P}
+Cette fonction retourne 2^*expr*  (2 à la puissance n). 
 ```
->pwradc 1,0 ' active ADC fréquence maximale
+>for i=0 to 15: ? pwr(i),:next i
+   1   2   4   8  16  32  64 128 256 512 1024 2048 4096 8192 16384 -32768
+>
 
->?rdadc(0) 'Lecture canal 0 
- 757
-
->pwradc 0 ' desactive l'ADC.
 ```
-On peut désactiver le convertisseur pour réduire la consommation du MCU.
 
 ### QKEY {C,P}
 Cette commande vérifie s'il y a un caractère en attente dans le tampon de réception du terminal. Retourne **1** si c'est le cas sinon retourne **0**.
@@ -983,7 +1018,7 @@ Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxre
 >
 ```
 
-### XPEEK(*expr1*,*expr2)  {C,P}
+### XPEEK(*expr1*,*expr2*)  {C,P}
 Cette fonction sert à lire la mémoire au delà de l'adresse 65535. Comme ce BASIC fonctionne avec des entiers de 16 bits on ne peut adresser la mémoire étendue. **XPEEK** divise donc l'adresse en partie haute et basse. *expr1* est la partie haute de l'adresse et *expr2* est la partie basse. 
 ```
 > ? xpeek($1,$a) ' adresse $1000a
