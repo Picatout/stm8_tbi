@@ -38,6 +38,7 @@
 
 _dbg 
 
+	
 ;--------------------------------------
     .area DATA 
 ;--------------------------------------	
@@ -146,6 +147,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 NonHandledInterrupt:
     .byte 0x71  ; reinitialize MCU
 
+; auto wakeup from halt
 AWUHandler:
 	bres AWU_CSR,#AWU_CSR_AWUEN
 	mov AWU_APR,0x3F
@@ -198,24 +200,8 @@ UserButtonHandler:
 	bres flags,#FRUN 
 	ldw x,#USER_ABORT
 	call puts 
-	ldw x,basicptr
-	ldw x,(x)
-; print line number 
-	mov base,#10 
-	mov tab_width,#6
-	call print_int  	
 	ldw x,basicptr 
-	addw x,#3  
-	call puts 
-	ld a,#CR 
-	call putc
-	clrw x  
-	ld a,in 
-	add a,#3 ; adjustment for line number display 
-	ld xl,a 
-	call spaces 
-	ld a,#'^
-	call putc 
+	call prt_basic_line
 9$:
     ldw x,#STACK_EMPTY 
     ldw sp,x
@@ -245,6 +231,18 @@ clock_init:
 	ld a,xl 
 	ld CLK_CKDIVR,a  
 	ret
+
+;----------------------------------
+; TIMER4 used as audio tone output 
+; on port D:5.
+; channel 1 configured as PWM mode 1 
+;-----------------------------------  
+TIM2_CLK_FREQ=62500
+timer2_init:
+	bset CLK_PCKENR1,#CLK_PCKENR1_TIM2 ; enable TIMER2 clock 
+ 	mov TIM2_CCMR1,#(6<<TIM2_CCMR_OCM) ; PWM mode 1 
+	mov TIM2_PSCR,#8 ; 16Mhz/256=62500
+	ret 
 
 ;---------------------------------
 ; TIM4 is configured to generate an 
@@ -386,9 +384,9 @@ write_byte:
     jruge write_flash
 	cpw y,#EEPROM_BASE  
     jrult write_exit
-	cpw y,#OPTION_BASE
-	jrult write_eeprom
-    jra write_exit
+	cpw y,#OPTION_END 
+	jrugt write_exit
+	jra write_eeprom 
 ; write program memory
 write_flash:
 	call unlock_flash 
@@ -1181,6 +1179,7 @@ cold_start:
 	clrw x  
     call clock_init 
 	call timer4_init
+	call timer2_init
 ; UART1 at 115200 BAUD
 	call uart1_init
 ; activate PE_4 (user button interrupt)
@@ -4520,6 +4519,7 @@ stop:
 	bres flags,#FBREAK
 	jp warm_start
 
+
 ;-----------------------
 ; BASIC BEEP expr1,expr2
 ; used MCU internal beeper 
@@ -4528,23 +4528,43 @@ stop:
 ;    expr1   frequency  (expr1%32)
 ;    expr2   duration msec.
 ;---------------------------
-beep:
+tone:
 	call arg_list 
 	cp a,#2 
 	jreq 1$
 	jp syntax_error 
 1$: 
-	ldw x,dstkptr 
-	ldw x,(2,x);frequency 
-	ld a,#31
-	div x,a 
-	ld BEEP_CSR,a	
-	bset BEEP_CSR,#5 
-	call dpop 
-	call pause02 
-	call ddrop 
-	ld a,#0x1f
-	ld BEEP_CSR,a 
+	call dpop ; duration
+	pushw x 
+	call dpop ; frequency
+	ldw y,x 
+	ldw x,#TIM2_CLK_FREQ
+	divw x,y 
+; round to nearest integer 
+	cpw y,#TIM2_CLK_FREQ/2
+	jrmi 2$
+	incw x 
+2$:	 
+	ld a,xh 
+	ld TIM2_ARRH,a 
+	ld a,xl 
+	ld TIM2_ARRL,a 
+; 50% duty cycle 
+	ccf 
+	rrcw x 
+	ld a,xh 
+	ld TIM2_CCR1H,a 
+	ld a,xl
+	ld TIM2_CCR1L,a
+	bset TIM2_CCER1,#TIM2_CCER1_CC1E
+	bset TIM2_CR1,#TIM2_CR1_CEN
+	bset TIM2_EGR,#TIM2_EGR_UG
+	popw x 
+	ldw timer,x 
+3$: ldw x,timer 	
+	jrne 3$ 
+	bres TIM2_CCER1,#TIM2_CCER1_CC1E
+	bres TIM2_CR1,#TIM2_CR1_CEN 
 	ret 
 
 ;-------------------------------
@@ -5161,7 +5181,7 @@ drive_free: .asciz " bytes free\n"
 ; starting at address  
 ; input:
 ;   expr1  	is address 
-;   expr2   is byte to write
+;   expr2,...,exprn   are bytes to write
 ; output:
 ;   none 
 ;---------------------
@@ -5916,25 +5936,35 @@ func_not:
 
 
 ;-----------------------------------
-; BASIC: ENIWDG expr1, expr2 
-; enable independant watchdog timer 
+; BASIC: IWDGEN expr1 
+; enable independant watchdog timer
+; expr1 is delay in multiple of 62.5µsec
+; expr1 -> {1..16383}
 ;-----------------------------------
 enable_iwdg:
 	call arg_list
-	cp a,#2 
+	cp a,#1 
 	jreq 1$
 	jp syntax_error 
-1$: 	
+1$: push #0
 	mov IWDG_KR,#IWDG_KEY_ENABLE
-	call dpop 
-	mov IWDG_KR,#IWDG_KEY_ACCESS 
-	ld a,xl 
-	ld IWDG_RLR,a 
 	call dpop
-	ld a,#7
-	div x,a 
-	mov IWDG_KR,#IWDG_KEY_ACCESS 
+	ld a,xh 
+	and a,#0x3f
+	ld xh,a  
+2$:	cpw x,#255
+	jrule 3$
+	inc (1,sp)
+	rcf 
+	rrcw x 
+	jra 2$
+3$:	mov IWDG_KR,#IWDG_KEY_ACCESS 
+	pop a  
 	ld IWDG_PR,a 
+	ld a,xl
+	dec a 
+	mov IWDG_KR,#IWDG_KEY_ACCESS 
+	ld IWDG_RLR,a 
 	mov IWDG_KR,#IWDG_KEY_REFRESH
 	ret 
 
@@ -5950,7 +5980,7 @@ refresh_iwdg:
 
 
 ;-------------------------------------
-; BASIC: LOG2(expr)
+; BASIC: LOG(expr)
 ; return logarithm base 2 of expr 
 ; this is the position of most significant
 ; bit set. 
@@ -5965,7 +5995,7 @@ log2:
 	jreq 1$
 	jp syntax_error 
 1$: call dpop
-first_one:
+leading_one:
 	tnzw x 
 	jreq 4$
 	ld a,#15 
@@ -6031,6 +6061,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,USR,usr
 	_dict_entry,6+F_IFUNC,UFLASH,uflash 
 	_dict_entry,6+F_IFUNC,UBOUND,ubound 
+	_dict_entry,4,TONE,tone  
 	_dict_entry,2,TO,to
 	_dict_entry,7+F_IFUNC,TIMEOUT,timeout 
 	_dict_entry,5,TIMER,set_timer
@@ -6068,7 +6099,7 @@ kword_end:
 	_dict_entry 3,LET,let 
 	_dict_entry,3+F_IFUNC,KEY,key 
 	_dict_entry,7,IWDGREF,refresh_iwdg
-	_dict_entry,3,IWDG,enable_iwdg
+	_dict_entry,6,IWDGEN,enable_iwdg
 	_dict_entry,5,INPUT,input_var  
 	_dict_entry,2,IF,if 
 	_dict_entry,3+F_CONST,IDR,GPIO_IDR
@@ -6094,7 +6125,6 @@ kword_end:
 	_dict_entry,4,BSET,bit_set 
 	_dict_entry,4,BRES,bit_reset
 	_dict_entry,5,BREAK,break 
-	_dict_entry,4,BEEP,beep 
 	_dict_entry,3,AWU,awu 
 	_dict_entry,7,AUTORUN,autorun
 	_dict_entry,3+F_IFUNC,ASC,ascii

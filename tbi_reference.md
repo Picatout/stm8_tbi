@@ -209,13 +209,6 @@ Cette commande arrête le MCU pour une durée déterminée. Son nom vient du pé
 L'Oscillateur **LSI** possède une précision de +/-12.5% sur l'étendu de l'échelle de température d'opération du MCU.  Il ne faut donc pas attendre une grande précision de cette commande. La commande **PAUSE**  est plus précise mais consomme plus de courant. **AWU** est surtout utile pour les applications fonctionnant sur piles pour prolonger la durée de celles-ci.
 
 
-### BEEP *expr1*,*expr2* {C,P}
-Le MCU STM8S208RB possède un beeper. Cette commande utilise ce périphérique qui est connecté sur GPIO D:4  pour faire entendre une tonalité. *expr1* détermine la fréquence selon la formule __128000/(8*(expr1%31))__. *expr2* détermine la durée du son en millisecondes.
-```
->BEEP 30,1000 ' 500 hz pendant 1 seconde
-
->BEEP 0,500 ' 8000 hz pendant 500 millisecondes
-``` 
 
 ### BREAK {P}
 Outil d'aide au débogage. Cette commande interrompt l'exécution du programme au point où elle est insérée. L'utilisateur se retrouve donc sur la ligne de commande où il peut exécuter différentes commandes comme examiner le contenu des piles avec la commande **SHOW** ou imprimer la valeur d'une variable. Le programme est redémarré à son point d'arrêt avec la commande **RUN**.  La commande **STOP** interompt l'exécution.
@@ -503,10 +496,12 @@ sexe(1=M,2=F)? 1
 
 >
 ```
-### IWDG *expr* {C,P}
-Active l'*Independant WatchDog timer*. *expr* représente le délais du du de la minuterie avant le réinialiation du MCU. Le **IWDG** doit-être réinitialisé avant la fin de ce délais sinon le MCU est réinitialisé. Un **WatchDog timer** sert à détecter les pannes matérielle ou logicielle. Une fois activé le **IWDG** ne peut-être désactivé que par une réiniatiliation du MCU.  La commande **IWDGREF**  doit-être utilisée en boucle pour empêcher une réinitialisation intempestive du MCU. *expr* représente un délais en millisecondes entre 1 et 32270.
+### IWDGEN *expr* {C,P}
+Active l'*Independant WatchDog timer*. *expr* représente le délais de la minuterie en mulitiple de **62,5µsec** avant la réinialiation du MCU. Le compteur du **IWDG** doit-être rafraîchie avant la fin de ce délais sinon le MCU est réinitialisé. Un **WatchDog timer** sert à détecter les pannes matérielles ou logicielles. Une fois activé le **IWDG** ne peut-être désactivé que par une réiniatiliation du MCU.  La commande **IWDGREF**  doit-être utilisée en boucle pour empêcher une réinitialisation intempestive du MCU. *expr* doit-être dans l'interval {1..16383}.
+16383 représente un délais d'une seconde.
+
 ```
- 10 IWDG 1000 ' activation avec expiration a 1 seconde.
+ 10 IWDG 16383 ' activation avec expiration a 1 seconde.
  20 IWDGREF   ' rafraissement du compteur avant qu'il n'expire
  30 ...  'code programme qui tourne en boucle
  40 ...
@@ -516,8 +511,8 @@ Active l'*Independant WatchDog timer*. *expr* représente le délais du du de la
 ```
 
 ### IWDGREF  {C,P}
-Cette commande sert à réinitialiser le compteur du **IWDG** avant l'expiration de sont délais.
-Voir commande **IWDG**.
+Cette commande sert à rafraîchir le compteur du **IWDG** avant l'expiration de son délais.
+Voir commande **IWDGEN**.
 
 
 ### KEY {C,P}
@@ -919,6 +914,18 @@ Cette commande sert à initialiser une minuterie. *expr* doit résulté en un en
 
 ### TO *expr* {C,P}
 Ce mot réservé est utilisé lors de l'initialisation d'une boucle **FOR**. **expr** détermine la valeur limite de la variable de contrôle de la boucle. Voir la commande **FOR** pour plus d'information. 
+
+### TONE *expr1*,*expr2* {C,P}
+Cette commande génère une tonalité de fréquence déterminée par *expr1* et de durée *expr2* en millisecondes. La sortie est sur GPIO D:4. La minuterie **TIMER2** est utilisée sur le chanal sortie **1** configuré en mode PWM avec un rapport cyclique de 50%.
+  
+```
+5  ' ce programme joue la gamme. 
+10 @( 1 )= 440 :@( 2 )= 466 :@( 3 )= 494 :@( 4 )= 523 :@( 5 )= 554 :@( 6 )= 587 
+20 @( 7 )= 622 :@( 8 )= 659 :@( 9 )= 698 :@( 10 )= 740 :@( 11 )= 784 :@( 12 )= 831 
+30 FOR I = 1 TO  12 :TONE @(I ), 200 :NEXT I 
+
+
+``` 
 
 ### UBOUND
 Cette fonction retourne la taille de la variable tableau **@**. Comme expliqué plus haut cette variable utilise la mémoire RAM qui n'est pas utilisée par le programme BASIC. Donc plus le programme prend de place plus sa taille diminue. Un programme peut donc invoqué cette commande pour connaître la taille de **@** dont il dispose.

@@ -1,12 +1,23 @@
+### 2020=04-19
+
+* Modification de **IDWGEN**. L'argument représente un multiplede 62,5µsec. 
+
+* Modification à la routine UserButtonHandler. Correction bogue, la ligne BASIC au niveau de l'interruption n'était pas imprimée correctement.
+
+* Correction bogue dans **write_byte**, qui empêchait la modification des options à l'adresse **0x4800**.
+
+* Abandon de la commande **BEEP** remplacée par la commande **TONE** plus flexible. Cette commande utilise la minuterie **TIMER2/CH1** en mode PWM pour générer une tonalitée.
+
+
 ### 2020-04-18
 
-* Ajout de la commande IWDG expr, Auto wakeup watchdog
+* Ajout de la commande **IWDGEN** *expr*, Auto wakeup watchdog
 
-* Ajout de la commande IWDGREF, rafraichie le compteur IWDGPR
+* Ajout de la commande **IWDGREF**, rafraichie le compteur IWDGPR
 
-* Ajout de la fonction LOG(expr), retourne le log base 2 de *expr*
+* Ajout de la fonction **LOG**(*expr*), retourne le log base 2 de *expr*
 
-* Ajout de la fonction PWR(expr), retourne 2^*expr* 
+* Ajout de la fonction **PWR**(*expr*), retourne 2^*expr* 
 
 * Renommé  **PWRADC** -&gt; **ADCON**
 
