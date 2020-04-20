@@ -916,7 +916,7 @@ Cette commande sert à initialiser une minuterie. *expr* doit résulté en un en
 Ce mot réservé est utilisé lors de l'initialisation d'une boucle **FOR**. **expr** détermine la valeur limite de la variable de contrôle de la boucle. Voir la commande **FOR** pour plus d'information. 
 
 ### TONE *expr1*,*expr2* {C,P}
-Cette commande génère une tonalité de fréquence déterminée par *expr1* et de durée *expr2* en millisecondes. La sortie est sur GPIO D:4. La minuterie **TIMER2** est utilisée sur le chanal sortie **1** configuré en mode PWM avec un rapport cyclique de 50%.
+Cette commande génère une tonalité de fréquence déterminée par *expr1* et de durée *expr2* en millisecondes. La sortie est sur **GPIO D:4** branché sur **CN9-6**. La minuterie **TIMER2** est utilisée sur le chanal sortie **1** configuré en mode PWM avec un rapport cyclique de 50%.
   
 ```
 5  ' ce programme joue la gamme. 
