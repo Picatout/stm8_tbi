@@ -209,6 +209,15 @@ Cette commande arrête le MCU pour une durée déterminée. Son nom vient du pé
 L'Oscillateur **LSI** possède une précision de +/-12.5% sur l'étendu de l'échelle de température d'opération du MCU.  Il ne faut donc pas attendre une grande précision de cette commande. La commande **PAUSE**  est plus précise mais consomme plus de courant. **AWU** est surtout utile pour les applications fonctionnant sur piles pour prolonger la durée de celles-ci.
 
 
+### BIT(*expr*) {C,P}
+Cette fonction retourne 2^*expr*  (2 à la puissance n). *expr* doit-être entre {0..15} 
+```
+>for i=0 to 15: ? bit(i),:next i
+   1   2   4   8  16  32  64 128 256 512 1024 2048 4096 8192 16384 -32768
+   
+> bset $500a,bit(5) ' allume LD2 sur la carte
+
+```
 
 ### BREAK {P}
 Outil d'aide au débogage. Cette commande interrompt l'exécution du programme au point où elle est insérée. L'utilisateur se retrouve donc sur la ligne de commande où il peut exécuter différentes commandes comme examiner le contenu des piles avec la commande **SHOW** ou imprimer la valeur d'une variable. Le programme est redémarré à son point d'arrêt avec la commande **RUN**.  La commande **STOP** interompt l'exécution.
@@ -307,6 +316,20 @@ La commande *directory*  affiche la liste des fichiers sauvegardés en mémoire 
     hello   21
     blink   52
     3 files
+
+### DO {C,P}
+Mot réservé qui débute une boucle **DO ... UNTIL** Les instructions entre  **DO** et **UNTIL**  s'exécutent en boucle aussi longtemps que l'expression qui suit **UNTIL** est fausse.  Voir **UNTIL**. 
+```
+>li
+   10 A = 1 
+   20 DO 
+   30 PRINT A ,
+   40 A =A + 1 
+   50 UNTIL A > 10 
+
+>run
+   1   2   3   4   5   6   7   8   9  10
+``` 
 
 ### EEPROM {C,P}
 Retourne l'adresse du début de la mémoire EEPROM.
@@ -443,9 +466,9 @@ Passe le contrôle à la ligne dont le numéro est déterminé par *expr*. *expr
 ### GPIO(*expr1*,*reg*) {C,P}
 Cette commande retourne l'adresse d'un des registre de contrôle d'un port GPIO. *expr1* doit indiqué un numéro de port valide dans l'ensemble **{0..8}**. Ces valeurs correspondent aux ports {A,B,C,D,E,F,G,H,I} du MCU. *reg* indique le registre. Chaque GPIO a 5 registres de contrôle: **ODR**, **IDR**, **DDR**, **CRL**, **CRH**. 
 ```
->bset gpio(2,odr),32 ' allume LED2 
+>bset gpio(2,odr),32 ' allume LD2 
 
->bres gpio(2,odr),32 ' eteint LED2
+>bres gpio(2,odr),32 ' eteint LD2
 
 >
 ``` 
@@ -496,6 +519,16 @@ sexe(1=M,2=F)? 1
 
 >
 ```
+### INVERT(*expr*) {C,P}
+Cette fonciton retourne l'inverse binaire de *expr*. C'est à dire que la valeur de chaque bit de l'entier est inversé. 
+```
+> ? invert(5)
+   -6
+> hex: ? invert(&101)
+   $FFFA   
+```
+
+
 ### IWDGEN *expr* {C,P}
 Active l'*Independant WatchDog timer*. *expr* représente le délais de la minuterie en mulitiple de **62,5µsec** avant la réinialiation du MCU. Le compteur du **IWDG** doit-être rafraîchie avant la fin de ce délais sinon le MCU est réinitialisé. Un **WatchDog timer** sert à détecter les pannes matérielles ou logicielles. Une fois activé le **IWDG** ne peut-être désactivé que par une réiniatiliation du MCU.  La commande **IWDGREF**  doit-être utilisée en boucle pour empêcher une réinitialisation intempestive du MCU. *expr* doit-être dans l'interval {1..16383}.
 16383 représente un délais d'une seconde.
@@ -703,12 +736,16 @@ Caractere recu du terminal Z
 
 >
 ```
-### PWR(*expr*) {C,P}
-Cette fonction retourne 2^*expr*  (2 à la puissance n). 
+### PRTx {C,P}
+**PRTA**...**PRTI** sont des constates qui retourne un index de PORT pour la fonction **GPIO** 
 ```
->for i=0 to 15: ? pwr(i),:next i
-   1   2   4   8  16  32  64 128 256 512 1024 2048 4096 8192 16384 -32768
->
+>? gpio(prta,odr)
+ 20480
+
+>hex: ? gpio(prtc,odr)
+ $500A
+
+>bset gpio(prtc,odr),bit(5) ' allume LD2
 
 ```
 
@@ -956,6 +993,20 @@ Retourne l'adresse du début de la mémoire FLASH disponible à l'utilisateur.
 >
 ```
 Comme expliqué dans la discription de la commande **USR** il y a un petit programme *test* préinstallé à l'adresse **UFLASH**. le programme ci-haut affiche le code binaire de ce petit programme. Le dernier code **$81** corrrespond à l'instruction machine **RET**.
+
+### UNTIL *expr* {C,P}
+Mot réservé qui ferme une boucle **DO...UNTIL**.  Les instructions entre le **DO** et le **UNTIL** s'exécutent en boucle aussi longtemps que **expr** est faux. Voir **DO**.
+```
+>li
+   10 A = 1 
+   20 DO 
+   30 PRINT A ,
+   40 A =A + 1 
+   50 UNTIL A > 10 
+
+>run
+   1   2   3   4   5   6   7   8   9  10
+```
 
 ### USR(*addr*[,*expr*]) {C,P}
 La fonction **USR()** permet d'exécuter une routine écrite en code machine. *addr* est l'adresse de la routine et *expr* est un entier passé en argument à la routine. Au démarrage l'adresse de l'espace utilisateur est affichée en hexadécimal. Cette adresse est le début de l'espace mémoire flash qui n'est pas utilisé par Tiny BASIC et qui peut-être utilisé pour enregistrer des routines en code machine. Cette espace utilisateur se termine à l'adresse 65535 ($ffff). Par défaut un petit programme est enregistré à cet adresse à des fins de test. La commande **WRITE** peut-être utilisée pour enregistrer du code binaire dans cet espace utilisateur. 

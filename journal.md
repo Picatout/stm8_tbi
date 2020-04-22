@@ -1,4 +1,13 @@
-### 2020=04-19
+### 2020-04-21
+
+* Renommé la fonction **PWR** -&gt; **BIT** 
+
+* Ajouter la fonction **INVERT**(*expr*)  inverse tous les bits. i.e. Complément de 1.
+
+* Ajout de constante symbolique pour Les nom de port. **PRTA..PRTI**.
+
+* Ajout de la structure de contrôle **DO...UNTIL _expr_**
+### 2020-04-19
 
 * Modification de **IDWGEN**. L'argument représente un multiplede 62,5µsec. 
 

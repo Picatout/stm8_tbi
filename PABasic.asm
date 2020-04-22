@@ -50,7 +50,7 @@ _dbg
 	STACK_EMPTY=RAM_SIZE-1  
 	FRUN=0 ; flags run code in variable flags
 	FTRAP=1 ; inside trap handler 
-	FFOR=2 ; FOR loop in preparation 
+	FLOOP=2 ; FOR loop in preparation 
 	FSLEEP=3 ; halt produit par la commande SLEEP 
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 
@@ -1125,7 +1125,7 @@ clear_vars:
 	ret 
 
 ;-------------------------------------
-; check if A is a letter
+; check if A is a letter 
 ; input:
 ;   A 			character to test 
 ; output:
@@ -2765,7 +2765,7 @@ dots:
 	clr a 
 	ret
 
-cstk_prompt: .asciz "\nctack: "
+cstk_prompt: .asciz "\ncstack: "
 ;--------------------------------
 ; print cstack content
 ;--------------------------------
@@ -4251,7 +4251,7 @@ if:
 ; set variable to expression 
 ; leave variable address 
 ; on dstack and set
-; FFOR bit in 'flags'
+; FLOOP bit in 'flags'
 ;-----------------
 	RETL1=1
 	INW=3
@@ -4261,7 +4261,7 @@ for: ; { -- var_addr }
 	call expect
 	call dpush 
 	call let02 
-	bset flags,#FFOR 
+	bset flags,#FLOOP 
 ; open space on cstack for BPTR and INW 
 	popw x ; call return address 
 	_vars 4
@@ -4285,7 +4285,7 @@ for: ; { -- var_addr }
 ; FTO bit in 'flags'
 ;-----------------------------------
 to: ; { var_addr -- var_addr limit step }
-	btjt flags,#FFOR,1$
+	btjt flags,#FLOOP,1$
 	jp syntax_error
 1$: call relation  
 	cp a,#TK_INTGR 
@@ -4305,6 +4305,7 @@ to: ; { var_addr -- var_addr limit step }
 	call unget_token   	 
 4$:	
 	ldw x,#1   ; default step  
+	call dpush
 	jra store_loop_addr 
 
 
@@ -4314,21 +4315,21 @@ to: ; { var_addr -- var_addr limit step }
 ; initialization. 	
 ;------------------------------------
 step: ; {var limit -- var limit step}
-	btjt flags,#FFOR,1$
+	btjt flags,#FLOOP,1$
 	jp syntax_error
 1$: call relation
 	cp a,#TK_INTGR
-	jreq store_loop_addr  
+	jreq 2$
 	jp syntax_error
+2$:	call dpush
 ; leave loop back entry point on cstack 
 ; cstack is 2 call deep from interp_loop
 store_loop_addr:
-	call dpush 
 	ldw x,basicptr  
 	ldw (BPTR,sp),x 
 	ldw x,in.w 
 	ldw (INW,sp),x   
-	bres flags,#FFOR 
+	bres flags,#FLOOP 
 	inc loop_depth  
 	ret 
 
@@ -6009,13 +6010,13 @@ leading_one:
 	ret 
 
 ;-----------------------------------
-; BASIC: PWR(expr) 
+; BASIC: BITMASK(expr) 
 ; expr ->{0..15}
 ; return 2^expr 
 ; output:
 ;    x    2^expr 
 ;-----------------------------------
-pwr2:
+bitmask:
     call func_args 
 	cp a,#1
 	jreq 1$
@@ -6031,6 +6032,55 @@ pwr2:
 	dec a 
 	jra 2$ 
 3$: ld a,#TK_INTGR
+	ret 
+
+;------------------------------
+; BASIC: INVERT(expr)
+; 1's complement 
+;--------------------------------
+invert:
+	call func_args
+	cp a,#1 
+	jreq 1$
+	jp syntax_error
+1$: call dpop 
+	cplw x 
+	ld a,#TK_INTGR 
+	ret 
+
+;------------------------------
+; BASIC: DO 
+; initiate a DO ... UNTIL loop 
+;------------------------------
+do_loop:
+	popw x 
+	_vars 4 
+	pushw x 
+	jp store_loop_addr
+
+;--------------------------------
+; BASIC: UNTIL expr 
+; loop if exprssion is false 
+; else terminate loop
+;--------------------------------
+until: 
+	tnz loop_depth 
+	jrne 1$ 
+	jp syntax_error 
+1$: 
+	call relation 
+	cp a,#TK_INTGR
+	jreq 2$
+	jp syntax_error
+2$: 
+	tnzw x 
+	jrne 9$
+	jp loop_back 
+9$:	; remove loop info cstack  
+	popw x
+	_drop 4
+	pushw x 
+	dec loop_depth 
 	ret 
 
 
@@ -6059,6 +6109,7 @@ kword_end:
 	_dict_entry,5,WORDS,words 
 	_dict_entry 4,WAIT,wait 
 	_dict_entry,3+F_IFUNC,USR,usr
+	_dict_entry,5,UNTIL,until 
 	_dict_entry,6+F_IFUNC,UFLASH,uflash 
 	_dict_entry,6+F_IFUNC,UBOUND,ubound 
 	_dict_entry,4,TONE,tone  
@@ -6079,7 +6130,15 @@ kword_end:
 	_dict_entry 6,REMARK,rem 
 	_dict_entry,6,REBOOT,cold_start 
 	_dict_entry,4+F_IFUNC,QKEY,qkey  
-	_dict_entry,3+F_IFUNC,PWR,pwr2
+	_dict_entry,4+F_CONST,PRTI,8
+	_dict_entry,4+F_CONST,PRTH,7
+	_dict_entry,4+F_CONST,PRTG,6
+	_dict_entry,4+F_CONST,PRTF,5
+	_dict_entry,4+F_CONST,PRTE,4
+	_dict_entry,4+F_CONST,PRTD,3
+	_dict_entry,4+F_CONST,PRTC,2
+	_dict_entry,4+F_CONST,PRTB,1
+	_dict_entry,4+F_CONST,PRTA,0
 	_dict_entry 5,PRINT,print 
 	_dict_entry,4+F_CONST,POUT,OUTP 
 	_dict_entry,4,POKE,poke 
@@ -6100,6 +6159,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,KEY,key 
 	_dict_entry,7,IWDGREF,refresh_iwdg
 	_dict_entry,6,IWDGEN,enable_iwdg
+	_dict_entry,6+F_IFUNC,INVERT,invert 
 	_dict_entry,5,INPUT,input_var  
 	_dict_entry,2,IF,if 
 	_dict_entry,3+F_CONST,IDR,GPIO_IDR
@@ -6113,6 +6173,7 @@ kword_end:
 	_dict_entry,6+F_CONST,EEPROM,EEPROM_BASE  
 	_dict_entry,6+F_CMD,DWRITE,digital_write
 	_dict_entry,5+F_IFUNC,DREAD,digital_read
+	_dict_entry,2,DO,do_loop
 	_dict_entry,3,DIR,directory 
 	_dict_entry,3,DEC,dec_base
 	_dict_entry,3+F_CONST,DDR,GPIO_DDR
@@ -6125,6 +6186,7 @@ kword_end:
 	_dict_entry,4,BSET,bit_set 
 	_dict_entry,4,BRES,bit_reset
 	_dict_entry,5,BREAK,break 
+	_dict_entry,3+F_IFUNC,BIT,bitmask
 	_dict_entry,3,AWU,awu 
 	_dict_entry,7,AUTORUN,autorun
 	_dict_entry,3+F_IFUNC,ASC,ascii
@@ -6149,4 +6211,4 @@ user_space:
 	.area FLASH_DRIVE (ABS)
 	.org 0x10000
 fdrive:
-.byte 0,0,0,0
+;.byte 0,0,0,0
