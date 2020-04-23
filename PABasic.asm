@@ -75,13 +75,14 @@ ptr16:  .blkb 1 ; 16 bits pointer ,  middle byte of farptr
 ptr8:   .blkb 1 ; 8 bits pointer, least byte of farptr 
 ffree: .blkb 3 ; flash free address ; file system free space pointer
 dstkptr: .blkw 1  ; data stack pointer 
-txtbgn: .ds 2 ; tokenized BASIC text beginning address 
-txtend: .ds 2 ; tokenized BASIC text end address 
-loop_depth: .ds 1 ; FOR loop depth, level of nested loop. Conformity check   
-array_size: .ds 2 ; array size 
-flags: .ds 1 ; various boolean flags
-tab_width: .ds 1 ; print colon width (4)
-vars: .ds 2*26 ; BASIC variables A-Z, keep it as but last .
+txtbgn: .blkw 1 ; tokenized BASIC text beginning address 
+txtend: .blkw 1 ; tokenized BASIC text end address 
+loop_depth: .blkb 1 ; FOR loop depth, level of nested loop. Conformity check   
+array_size: .blkw 1 ; array size 
+flags: .blkb 1 ; various boolean flags
+tab_width: .blkb 1 ; print colon width (4)
+rx_char: .blkb 1 ; last received character 
+vars: .blkw 26 ; BASIC variables A-Z, keep it as but last .
 ; keep as last variable 
 free_ram: ; from here RAM free for BASIC text 
 
@@ -124,7 +125,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int15 TIM3 Update/overflow
 	int NonHandledInterrupt ;int16 TIM3 Capture/compare
 	int NonHandledInterrupt ;int17 UART1 TX completed
-	int NonHandledInterrupt ;int18 UART1 RX full
+	int Uart1RxHandler		;int18 UART1 RX full
 	int NonHandledInterrupt ;int19 I2C 
 	int NonHandledInterrupt ;int20 UART1 TX completed
 	int NonHandledInterrupt ;int21 UART1 RX full
@@ -153,6 +154,22 @@ AWUHandler:
 	mov AWU_APR,0x3F
 	clr AWU_TBR 
 	iret
+
+;--------------------------
+; UART1 receive character
+; CTRL-C (ASCII 3)
+; cancel program execution
+;--------------------------
+Uart1RxHandler:
+	btjf UART1_SR,#UART_SR_RXNE,.
+	ld a,UART1_DR 
+	cp a,#CTRL_C 
+	jrne 1$
+	clr rx_char 
+	jp user_interrupted
+1$:
+	ld rx_char,a 	
+	iret 
 
 ;------------------------------------
 ; software interrupt handler  
@@ -194,15 +211,18 @@ UserButtonHandler:
     btjf flags,#FSLEEP,2$
 	bres flags,#FSLEEP 
 	iret
-2$:	btjt flags,#FRUN,4$
-	jp 9$ 
+2$:	
+user_interrupted:
+    btjt flags,#FRUN,4$
+	jra UBTN_Handler_exit 
 4$:	; program interrupted by user 
 	bres flags,#FRUN 
 	ldw x,#USER_ABORT
 	call puts 
 	ldw x,basicptr 
+	ld a,in 
 	call prt_basic_line
-9$:
+UBTN_Handler_exit:
     ldw x,#STACK_EMPTY 
     ldw sp,x
 	rim 
@@ -498,7 +518,7 @@ uart1_set_baud:
 	mov UART1_BRR1,#0x08
 3$:
     clr UART1_DR
-	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN));
+	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
 	bset UART1_CR2,#UART_CR2_SBK
     btjf UART1_SR,#UART_SR_TC,.
     ret
@@ -523,8 +543,9 @@ putc:
 ;   A 			char  
 ;--------------------------------	
 getc:
-	btjf UART1_SR,#UART_SR_RXNE,.
-	ld a,UART1_DR 
+	ld a,rx_char 
+	jreq getc 
+	clr rx_char 
 	ret 
 
 ;-----------------------------
@@ -1284,7 +1305,7 @@ err_not_file: .asciz "\nFile not found.\n"
 err_bad_value: .asciz "\nbad value.\n"
 err_no_access: .asciz "\nFile in extended memory, can't be run from there.\n" 
 
-rt_msg: .asciz "last token id: "
+;rt_msg: .asciz "last token id: "
 
 syntax_error:
 	ld a,#ERR_SYNTAX 
@@ -1309,16 +1330,17 @@ tb_error:
 	call putc 
 	jra 6$
 1$:	ldw x,basicptr
+	ld a,in 
 	call prt_basic_line
-	ldw x,#rt_msg 
-	call puts 
-	clrw x 
-	ld a,in.saved 
-	ld xl,a 
-	ld a,([basicptr],x)
-	clrw x 
-	ld xl,a 
-	call print_int 
+;	ldw x,#rt_msg 
+;	call puts 
+;	clrw x 
+;	ld a,in.saved 
+;	ld xl,a 
+;	ld a,([basicptr],x)
+;	clrw x 
+;	ld xl,a 
+;	call print_int 
 6$: ldw x,#STACK_EMPTY 
     ldw sp,x
 warm_start:
@@ -1390,9 +1412,9 @@ interp_loop:
 ;----------------------------------------
 next_token:
 	ld a,in 
-	sub a,count 
+	sub a,count ; don't replace sub by cp.  
 	jreq 9$
-	mov in.saved,in
+	mov in.saved,in 
 	ldw x,basicptr 
 	ld a,([in.w],x)
 	inc in 
@@ -1407,19 +1429,91 @@ next_token:
 	ld a,#TK_CHAR
 	ret 
 1$:	cp a,#TK_QSTR 
-	jrult 2$
+	jrult 4$
+	jrne 9$
 	addw x,in.w 
-	jra 9$
-2$: ldw x,([in.w],x)
+	pushw x 
+2$:	tnz (x)
+	jreq 3$
+	incw x 
+	jra 2$ 
+3$:	incw x 
+    subw x,basicptr 
+	ldw in.w,x 
+	popw x 
+	ret 
+4$: ldw x,([in.w],x)
 	inc in 
 	inc in
-9$: ret	
+9$: 
+	ret	
 
 
 ;----------------------------------------
 ;   DEBUG support functions
 ;----------------------------------------
 .if DEBUG 
+
+;-------------------------------------
+; input:
+;    A    token ID
+;    X    token value 
+;    in.w  program counter position
+;------------------------------------
+print_token_info:
+	push a 
+	pushw x 
+	cp a,#15 
+	jrugt 2$
+	ldw x,token_ptr0 
+
+2$:	ret
+; token type name pointer  
+token_ptr0: .word tok_none,tok_colon,tok_array,tok_char,tok_int,tok_var,tok_cmd
+            .word tok_func,tok_cfunc,tok_const,tok_str,tok_lparen,tok_rparen
+			.word tok_comma,tok_sharp
+
+token_ptr1: .word tok_plus,tok_minus 
+
+token_ptr2: .word tok_star, tok_slash, tok_pcent 
+
+token_ptr3: .word tok_gt, tok_equ, tok_ge, tok_lt, tok_le, tok_ne 
+
+
+;token types 
+tok_grp0: 
+tok_none: .asciz "none"  ; 0
+tok_colon: .asciz ":"    ; 1
+tok_array: .asciz "@"    ; 2
+tok_char:  .asciz "char" ; 3 
+tok_int:   .asciz "int"  ; 4 
+tok_var:   .asciz "var"  ; 5
+tok_cmd:   .asciz "cmd"  ; 6 
+tok_func:  .asciz "func" ; 7 
+tok_cfunc: .asciz "char func" ; 8
+tok_const: .asciz "const"  ; 9
+tok_str:   .asciz "string" ; 10
+tok_lparen: .asciz "("  ; 11
+tok_rparen: .asciz ")" ; 12
+tok_comma: .asciz ","  ; 13
+tok_sharp: .asciz "#"  ; 14 
+tok_grp1: 
+tok_plus: .asciz "+"   ; 16
+tok_minus: .asciz "-"  ; 17
+tok_grp2:
+tok_star: .asciz "*"   ; 32 
+tok_slash: .asciz "/"  ; 33 
+tok_pcent: .asciz "%"  ; 34 
+tok_grp3:
+tok_gt: .asciz ">"     ; 49
+tok_equ: .asciz "="    ; 50
+tok_ge: .asciz ">="    ; 51
+tok_lt: .asciz "<"     ; 52 
+tok_le: .asciz "<="    ; 53
+tok_ne: .asciz "<>"    ; 54
+
+
+
 ; turn LED on 
 ledon:
     bset PC_ODR,#LED2_BIT
@@ -2289,7 +2383,7 @@ nbr_tst: ; check for number
 	_case '(' bkslsh_tst 
 	ld a,#TK_LPAREN
 	jp token_char   	
-bkslsh_tst:
+bkslsh_tst: ; character token 
 	_case '\',rparnt_tst
 	ld a,(TCHAR,sp)
 	ld (x),a 
@@ -3599,7 +3693,7 @@ lines_skip:
 ; print loop
 list_start:
 	ldw x,(LN_PTR,sp)
-3$:	
+3$:	ld a,(2,x) 
 	call prt_basic_line
 	ldw x,(LN_PTR,sp)
 	ld a,(2,x)
@@ -3679,6 +3773,7 @@ prt_quote:
 ;--------------------------
 ; decompile line from token list 
 ; input:
+;   A       stop at this position 
 ;   X 		pointer at line
 ; output:
 ;   none 
@@ -3689,7 +3784,8 @@ prt_quote:
 	LLEN=5
 	VSIZE=5 
 prt_basic_line:
-	_vars VSIZE 
+	_vars VSIZE
+	ld (LLEN,sp),a  
 	ld a,base
 	ld (BASE_SAV,sp),a  
 	ld a,tab_width 
@@ -3702,10 +3798,7 @@ prt_basic_line:
 	ld a,#SPACE 
 	call putc 
 	clr tab_width
-	ldw x,#2
-	ld a,([ptr16],x)
-	ld (LLEN,sp),a 
-	incw x
+	ldw x,#3
 1$:	ld a,xl 
 	cp a,(LLEN,sp)
 	jrmi 20$
@@ -3871,10 +3964,6 @@ prt_loop:
 1$:	cp a,#TK_QSTR
 	jrne 2$   
 	call puts
-	incw x 
-	subw x,basicptr 
-	ld a,xl 
-	ld in,a  
 	jra reset_comma
 2$: cp a,#TK_CHAR 
 	jrne 3$
@@ -5242,7 +5331,8 @@ char:
 ; return it as TK_INTGR 
 ;---------------------
 ascii:
-	call func_args 
+	ld a,#TK_LPAREN
+	call expect 
 	call next_token 
 	cp a,#TK_QSTR 
 	jreq 1$
@@ -5250,13 +5340,14 @@ ascii:
 	jreq 2$ 
 	jp syntax_error
 1$: 
-	ld a,(x)
-	jra 3$
+	ld a,(x) 
+	clrw x
+	ld xl,a 
 2$: 
-	ld a,xl 
-3$:	ld xl,a 
-	clr a  
-	ld xh,a 
+	pushw x 
+	ld a,#TK_RPAREN 
+	call expect
+	popw x 
 	ld a,#TK_INTGR 
 	ret 
 
@@ -5284,12 +5375,13 @@ key:
 ; input:
 ;  none 
 ; output:
-;   X 		0|1 
+;   X 		0|-1 
 ;-----------------------
 qkey: 
 	clrw x 
-	btjf UART1_SR,#UART_SR_RXNE,9$ 
-	incw x 
+	tnz rx_char
+	jreq 9$ 
+	cplw x 
 9$: ld a,#TK_INTGR
 	ret 
 

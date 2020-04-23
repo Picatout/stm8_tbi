@@ -1,12 +1,21 @@
+### 2020-04-22
+
+* Modification de la configuration  du UART pour utiliser l'interruption sur réception d'un caractère. Ceci pour permettre au caractère ASCII 3 i.e. CTRL-C d'arrête l'exécution d'un programme BASIC s'exécutant en boucle infinie.
+
+* corrigé bogue dans *next_token* 
+
+
+
 ### 2020-04-21
 
-* Renommé la fonction **PWR** -&gt; **BIT** 
+* Renommé la fonction **PWR** -> **BIT** 
 
 * Ajouter la fonction **INVERT**(*expr*)  inverse tous les bits. i.e. Complément de 1.
 
-* Ajout de constante symbolique pour Les nom de port. **PRTA..PRTI**.
+* Ajout de constantes symboliques pour Les noms de port GPIO. **PRTA..PRTI**.
 
 * Ajout de la structure de contrôle **DO...UNTIL _expr_**
+
 ### 2020-04-19
 
 * Modification de **IDWGEN**. L'argument représente un multiplede 62,5µsec. 
