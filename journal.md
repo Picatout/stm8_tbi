@@ -1,9 +1,18 @@
+### 2020-04-23
+
+* Retravaillé les routines *goto*,*gosub*, *return*. Maintenant un **GOSUB** n'est pas obligé d'être la dernière instruction sur la ligne. 
+
+* Remplacé les constantes systèmes par des fonctions qui retourne la valeur de la constante. Ça permet de retrouver le bon nom lors du désassemblage. le type de jeton TK_CONST a été éliminé. 
+
+* Modification à la routine *compile*, acceptait les numéros de lignes négatifs. Les numéros de lignes doivent-être dans l'interval **{1..32767}**. 
+
+* révision du code source.
+
 ### 2020-04-22
 
 * Modification de la configuration  du UART pour utiliser l'interruption sur réception d'un caractère. Ceci pour permettre au caractère ASCII 3 i.e. CTRL-C d'arrête l'exécution d'un programme BASIC s'exécutant en boucle infinie.
 
 * corrigé bogue dans *next_token* 
-
 
 
 ### 2020-04-21

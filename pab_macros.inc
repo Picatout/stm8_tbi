@@ -42,13 +42,12 @@
         TK_NONE=0       ; undefined
         TK_COLON=1      ; command end marker ':' 
         TK_ARRAY=2      ; array variable '@' 
-        TK_CHAR=3     ; ASCII character 
-        TK_INTGR=4     ; integer 
+        TK_CHAR=3       ; ASCII character 
+        TK_INTGR=4      ; integer 
         TK_VAR=5        ; variable letters {A..Z}
         TK_CMD=6        ; BASIC command   
         TK_IFUNC=7      ; BASIC integer function
         TK_CFUNC=8      ; BASIC character function
-        TK_CONST=9      ; BASIC constant function
         TK_QSTR=0xa      ; quoted string  
         TK_LPAREN=0xb     ; left parenthesis '('
         TK_RPAREN=0xc     ; right parenthesis ')'
@@ -257,9 +256,7 @@
 
     .macro _dbg_trap
     .if DEBUG 
-    .byte 0x72,0x2 
-    .word flags 
-    .byte 1  
+    bset flags,#FTRAP 
     trap 
     .endif 
     .endm 
@@ -299,3 +296,7 @@
     .endif
     .endm 
 
+    ; software reset 
+    .macro _swreset
+    mov WWDG_CR,#0X80
+    .endm 

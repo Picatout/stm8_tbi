@@ -110,8 +110,10 @@ Dans cet exemple l'intensité de la LED est contrôlée par PWM logiciel.
    50 BRES GPIO ( 2 ,ODR ), 32 
    60 FOR A =A TO  1023 :NEXT A 
    70 IF QKEY :K =KEY 
-   80 IF K =ASC (\u):GOTO  200 
+   80 IF K =ASC (\u):GOTO  200
+   84 if K =ASC (\f):R =1023: GOTO 600 ' pleine intensite 
    90 IF K =ASC (\d):GOTO  400 
+   94 IF K =ASC (\o):R=0:GOTO 600 ' eteindre
   100 IF K =ASC (\q):STOP 
   110 GOTO  20 
   200 IF R < 1023 :R =R + 1 :GOTO  600 

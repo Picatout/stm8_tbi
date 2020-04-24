@@ -23,9 +23,6 @@
 ;
 ;--------------------------------------------------
 
-
-
-
     .module TBI_STM8
 
     .nlist
@@ -45,7 +42,7 @@ _dbg
 
 	TIB_SIZE=80
     PAD_SIZE=40
-	DSTACK_SIZE=64 
+	DSTACK_SIZE=32 
 	STACK_SIZE=128
 	STACK_EMPTY=RAM_SIZE-1  
 	FRUN=0 ; flags run code in variable flags
@@ -61,7 +58,7 @@ in.w:  .blkb 1 ; parser position in text line
 in:    .blkb 1 ; low byte of in.w
 in.saved: .blkb 1 ; set by get_token before parsing next token, used by unget_token
 count: .blkb 1 ; current BASIC line length and tib text length  
-basicptr:  .blkb 2  ; point to current BASIC line 
+basicptr:  .blkb 2  ; point to current BASIC line address.
 base:  .blkb 1 ; nemeric base used to print integer 
 acc24: .blkb 1 ; 24 bit accumulator
 acc16: .blkb 1 ; 16 bit accumulator, middle byte of acc24
@@ -77,8 +74,8 @@ ffree: .blkb 3 ; flash free address ; file system free space pointer
 dstkptr: .blkw 1  ; data stack pointer 
 txtbgn: .blkw 1 ; tokenized BASIC text beginning address 
 txtend: .blkw 1 ; tokenized BASIC text end address 
-loop_depth: .blkb 1 ; FOR loop depth, level of nested loop. Conformity check   
-array_size: .blkw 1 ; array size 
+loop_depth: .blkb 1 ; level of nested loop. Conformity check   
+array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
 flags: .blkb 1 ; various boolean flags
 tab_width: .blkb 1 ; print colon width (4)
 rx_char: .blkb 1 ; last received character 
@@ -88,20 +85,20 @@ free_ram: ; from here RAM free for BASIC text
 
 ;-----------------------------------
     .area SSEG (ABS)
-;-----------------------------------	
+;-----------------------------------
+;;;; working buffers and stacks at end of RAM. 	
     .org RAM_SIZE-STACK_SIZE-TIB_SIZE-PAD_SIZE-DSTACK_SIZE 
 tib: .ds TIB_SIZE             ; transaction input buffer
 pad: .ds PAD_SIZE             ; working buffer
-dstack: .ds DSTACK_SIZE 	  ; data stack used by FOR...NEXT 
+dstack: .ds DSTACK_SIZE 	  ; data stack used by FOR...NEXT, and func/proc arguments  
 dstack_empty: ; dstack underflow ; data stack bottom 
 stack_full: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
 
-
 ;--------------------------------------
     .area HOME 
 ;--------------------------------------
-    int cold_start
+    int cold_start			; RESET vector 
 .if DEBUG
 	int TrapHandler 		;TRAP  software interrupt
 .else
@@ -125,12 +122,12 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int15 TIM3 Update/overflow
 	int NonHandledInterrupt ;int16 TIM3 Capture/compare
 	int NonHandledInterrupt ;int17 UART1 TX completed
-	int Uart1RxHandler		;int18 UART1 RX full
+	int Uart1RxHandler		;int18 UART1 RX full ; user communication channel.
 	int NonHandledInterrupt ;int19 I2C 
 	int NonHandledInterrupt ;int20 UART1 TX completed
 	int NonHandledInterrupt ;int21 UART1 RX full
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
-	int Timer4UpdateHandler	;int23 TIM4 update/overflow used as msec ticks counter
+	int Timer4UpdateHandler	;int23 TIM4 update/overflow ; used as msec ticks counter
 	int NonHandledInterrupt ;int24 flash writing EOP/WR_PG_DIS
 	int NonHandledInterrupt ;int25  not used
 	int NonHandledInterrupt ;int26  not used
@@ -145,10 +142,18 @@ stack_unf: ; stack underflow ; control_stack bottom
 .asciz "STM8_TBI" ; I like to put module name here.
 .endif 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; non handled interrupt 
+; reset MCU
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
 NonHandledInterrupt:
-    .byte 0x71  ; reinitialize MCU
+    .byte 0x71  ; invalid opcode reinitialize MCU
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; auto wakeup from halt
+; at iret, program continue 
+; after hatl instruction
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 AWUHandler:
 	bres AWU_CSR,#AWU_CSR_AWUEN
 	mov AWU_APR,0x3F
@@ -159,6 +164,7 @@ AWUHandler:
 ; UART1 receive character
 ; CTRL-C (ASCII 3)
 ; cancel program execution
+; and fall back to command line
 ;--------------------------
 Uart1RxHandler:
 	btjf UART1_SR,#UART_SR_RXNE,.
@@ -183,6 +189,11 @@ TrapHandler:
 	iret
 .endif 
 
+;------------------------------
+; TIMER 4 is used to maintain 
+; a milliseconds 'ticks' counter
+; and decrement 'timer' varaiable
+;--------------------------------
 Timer4UpdateHandler:
 	clr TIM4_SR 
 	ldw x,ticks
@@ -200,6 +211,8 @@ Timer4UpdateHandler:
 ;------------------------------------
 ; Triggered by pressing USER UserButton 
 ; on NUCLEO card.
+; This is used to abort a progam lock 
+; in infinite loop. 
 ;------------------------------------
 UserButtonHandler:
 ; wait button release
@@ -230,6 +243,10 @@ UBTN_Handler_exit:
 
 USER_ABORT: .asciz "\nProgram aborted by user.\n"
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;    peripherals initialization
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;----------------------------------------
 ; inialize MCU clock 
 ; input:
@@ -253,7 +270,7 @@ clock_init:
 	ret
 
 ;----------------------------------
-; TIMER4 used as audio tone output 
+; TIMER2 used as audio tone output 
 ; on port D:5.
 ; channel 1 configured as PWM mode 1 
 ;-----------------------------------  
@@ -276,9 +293,13 @@ timer4_init:
 	bset TIM4_IER,#TIM4_IER_UIE 
 	ret
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  routines to write to FLASH, EEPROM 
+;  and OPTION 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;----------------------------------
-; unlock EEPROM for writing/erasing
+; unlock EEPROM/OPT for writing/erasing
 ; wait endlessly for FLASH_IAPSR_DUL bit.
 ; input:
 ;  none
@@ -305,13 +326,14 @@ unlock_flash:
 	btjf FLASH_IAPSR,#FLASH_IAPSR_PUL,.
 	ret
 
-	BLOCK_ERASE=0
+USE_BLOCK_ERASE=0 
+.if USE_BLOCK_ERASE 
+; this code is copied to RAM 
+
 ;----------------------------
 ; erase block code must be 
-;executed from RAM
+; executed from RAM
 ;-----------------------------
-.if BLOCK_ERASE 
-; this code is copied to RAM 
 erase_start:
 	clr a 
     bset FLASH_CR2,#FLASH_CR2_ERASE
@@ -374,11 +396,10 @@ erase_flash:
     bres FLASH_IAPSR,#FLASH_IAPSR_PUL
 	rim 
 	ret 
-.endif ; BLOCK_ERASE 
-
+.endif ;;;; USE_BLOCK_ERASE ;;;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
-; write a byte to FLASH or EEPROM 
+; write a byte to FLASH or EEPROM/OPTION  
 ; input:
 ;    a  		byte to write
 ;    farptr  	address
@@ -486,9 +507,13 @@ write_block:
 	ret 
 
 
-;---------------------------------------------
-;   UART1 subroutines
-;---------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;   UART1 subroutines
+;;   used for user interface 
+;;   communication channel.
+;;   settings: 
+;;		115200 8N1 no flow control
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;---------------------------------------------
 ; initialize UART1, 115200 8N1
@@ -584,7 +609,7 @@ bksp:
 ; delete n character left of cursor 
 ; at terminal.
 ; input: 
-;   A   	number of characters to delete.
+;   A   number of characters to delete.
 ; output:
 ;    none 
 ;--------------------------	
@@ -692,7 +717,7 @@ prt_peek:
 ;-------------------------------------
 ; retrun string length
 ; input:
-;   X         .asciz  
+;   X         .asciz  pointer 
 ; output:
 ;   X         length 
 ;-------------------------------------
@@ -755,7 +780,7 @@ strcpy:
 ; input:
 ;   X 		destination 
 ;   Y 	    source 
-;   acc16	size 
+;   acc16	bytes count 
 ; output:
 ;   none 
 ;--------------------------------------
@@ -908,7 +933,7 @@ create_gap:
 ; insert line in tib into text area 
 ; first search for already existing 
 ; replace existing 
-; if strlen(tib)==0 delete existing 
+; if strlen(tib)==0 delete existing line
 ; input:
 ;   ptr16 				pointer to tokenized line  
 ; output:
@@ -1004,19 +1029,17 @@ check_full:
 ;-----------------------------------
 ; create token list form text line 
 ; save this list in text area
+;  compiled line format: 
+;    line_no  2 bytes {0...32767}
+;    count    1 byte 
+;    tokens   variable 
+;   
 ; input:
 ;   none
 ; output:
-;   basicptr     token list buffer
-;   line# 		 BASIC line number 
-;   in.w  		 cleared 
+;   basicptr     token list buffer address 
+;   in.w  		 cleared, index in buffer 
 ;-----------------------------------
-	.macro _incr_ptr16 n 
-	ldw x,#n 
-	addw x,ptr16 
-	ldw ptr16,x 
-	.endm 
-
 	XSAVE=1
 	BUFIDX=3
 	VSIZE=4
@@ -1024,26 +1047,27 @@ compile:
 	_vars VSIZE 
 	bset flags,#FCOMP 
 	ldw x,txtend
-	ldw ptr16,x 
+	ldw ptr16,x ; code buffer start address 
 	clrw x 
 	ldw x,#3
 	ldw (BUFIDX,sp),X  
 	call check_full
 	clrw x 
-	ldw [ptr16],x 
+	ldw [ptr16],x ; initialize line# to zero 
 	call get_token
 	ldw (XSAVE,sp),x 
 	cp a,#TK_INTGR 
 	jrne 3$
-	cpw x,#0  
-	jrugt 1$
-	jp syntax_error 
+	cpw x,#0 
+	jrsgt 1$
+	ld a,#ERR_BAD_VALUE 
+	jp tb_error ; line number must be in range {1..32767}
 1$:	ldw [ptr16],x; line number
 2$:	call get_token
 	ldw (XSAVE,sp),x 
 3$:	cp a,#TK_NONE 
 	jrne 30$
-	jp 9$
+	jp 9$ ; end of line. 
 30$: 	 
 	ldw x,(BUFIDX,sp)
 	call check_full 
@@ -1053,8 +1077,9 @@ compile:
 	ldw (BUFIDX,sp),y
 	cp a,#TK_COLON 
 	jrne 31$
-	jra 2$ 
-31$:
+	jra 2$ ; loop for next token 
+31$: ; check for token type 
+; character token have 1 byte attribute, i.e. ASCII character 
 	cp a,#TK_CHAR
 	jrne 32$ 
 	ldw x,(XSAVE,sp)
@@ -1065,9 +1090,11 @@ compile:
 	jra 2$ 
 32$:
 	cp a,#TK_ARRAY 
+; this token have not attribute. 
 	jreq 2$ 
 	cp a,#TK_QSTR 
 	jrne 4$
+; copy string as C string.	
 	ldw x,#pad 
 	call strlen
 	incw x  
@@ -1083,15 +1110,20 @@ compile:
 	ldw (BUFIDX,sp),x
 	jra 2$  
 4$: cp a,#TK_INTGR
-	jrult 2$
-	cp a,#TK_CONST 
-	Jrugt 2$
+	jrult 2$ ; 
+	cp a,#TK_CFUNC 
+	Jrugt 2$ ; those tokens have no attributes 
 	ldw x,(XSAVE,sp) 
 	ldw y,(BUFIDX,sp)
-	ldw ([ptr16],y),x
-	cpw x,#rem 
-	jrne 5$	
-; comment advance in.w to eol 
+	ldw ([ptr16],y),x ; the attribute is an address or integer. 
+	cpw x,#rem ; is this a comment? 
+	jreq 5$	
+	addw y,#2 
+	ldw (BUFIDX,sp),y 
+	jp 2$
+5$:
+; copy commment in code buffer and
+; skip to end of line.  
 	addw y,#2 ; skip exec address 
 	ldw (BUFIDX,sp),y 
 	ldw x,ptr16 
@@ -1103,21 +1135,17 @@ compile:
 	incw x ; skip string 0. 
 	addw x,(BUFIDX,sp)
 	ldw (BUFIDX,sp),x 
-	jra 9$
-5$:	addw y,#2 
-	ldw (BUFIDX,sp),y 
-	jp 2$
 9$: 
 	ldw x,#2
 	ldw y,(BUFIDX,sp)
 	ld a,yl 
-	ld ([ptr16],x),a  	
+	ld ([ptr16],x),a ; code byte count   	
 	ldw x,[ptr16]
 	jreq 10$
 	call insert_line
 	clr  count 
 	jra  11$ 
-10$: 
+10$: ; line# is zero 
 	ldw x,ptr16 
 	ldw basicptr,x 
 	ld a,(2,x)
@@ -1350,7 +1378,8 @@ warm_start:
 ;----------------------------
 interp:
 	clr in.w
-	btjf flags,#FRUN,4$ 
+	btjf flags,#FRUN,cmd_line
+; flag FRUN is set 
 ; running program
 ; goto next basic line 
 	ldw x,basicptr
@@ -1365,7 +1394,7 @@ interp:
 	ld count,a 
 	mov in,#3 ; skip first 3 bytes of line 
 	jra interp_loop 
-4$: ; commande line mode 	
+cmd_line: ; commande line interface  	
 	clr in
 	ld a,#CR 
 	call putc 
@@ -1373,6 +1402,13 @@ interp:
 	call putc 
 	call readln
 	call compile
+; if text begin with a line number
+; the compile set count=0   
+; so code is not interpreted
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; This is the interpreter loop
+;; for each BASIC code line. 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
 interp_loop:  
 	ld a,in 
 	cp a,count  
@@ -1380,8 +1416,6 @@ interp_loop:
 	call next_token
 	cp a,#TK_COLON 
 	jreq interp_loop 
-	cp a,#TK_NONE 
-;	jreq interp 
 1$:
 	cp a,#TK_VAR
 	jrne 2$
@@ -1453,66 +1487,6 @@ next_token:
 ;   DEBUG support functions
 ;----------------------------------------
 .if DEBUG 
-
-;-------------------------------------
-; input:
-;    A    token ID
-;    X    token value 
-;    in.w  program counter position
-;------------------------------------
-print_token_info:
-	push a 
-	pushw x 
-	cp a,#15 
-	jrugt 2$
-	ldw x,token_ptr0 
-
-2$:	ret
-; token type name pointer  
-token_ptr0: .word tok_none,tok_colon,tok_array,tok_char,tok_int,tok_var,tok_cmd
-            .word tok_func,tok_cfunc,tok_const,tok_str,tok_lparen,tok_rparen
-			.word tok_comma,tok_sharp
-
-token_ptr1: .word tok_plus,tok_minus 
-
-token_ptr2: .word tok_star, tok_slash, tok_pcent 
-
-token_ptr3: .word tok_gt, tok_equ, tok_ge, tok_lt, tok_le, tok_ne 
-
-
-;token types 
-tok_grp0: 
-tok_none: .asciz "none"  ; 0
-tok_colon: .asciz ":"    ; 1
-tok_array: .asciz "@"    ; 2
-tok_char:  .asciz "char" ; 3 
-tok_int:   .asciz "int"  ; 4 
-tok_var:   .asciz "var"  ; 5
-tok_cmd:   .asciz "cmd"  ; 6 
-tok_func:  .asciz "func" ; 7 
-tok_cfunc: .asciz "char func" ; 8
-tok_const: .asciz "const"  ; 9
-tok_str:   .asciz "string" ; 10
-tok_lparen: .asciz "("  ; 11
-tok_rparen: .asciz ")" ; 12
-tok_comma: .asciz ","  ; 13
-tok_sharp: .asciz "#"  ; 14 
-tok_grp1: 
-tok_plus: .asciz "+"   ; 16
-tok_minus: .asciz "-"  ; 17
-tok_grp2:
-tok_star: .asciz "*"   ; 32 
-tok_slash: .asciz "/"  ; 33 
-tok_pcent: .asciz "%"  ; 34 
-tok_grp3:
-tok_gt: .asciz ">"     ; 49
-tok_equ: .asciz "="    ; 50
-tok_ge: .asciz ">="    ; 51
-tok_lt: .asciz "<"     ; 52 
-tok_le: .asciz "<="    ; 53
-tok_ne: .asciz "<>"    ; 54
-
-
 
 ; turn LED on 
 ledon:
@@ -1638,7 +1612,10 @@ REG_X:   .asciz "\nX:"
 REG_A:   .asciz "\nA:" 
 REG_CC:  .asciz "\nCC:"
 REG_SP:  .asciz "\nSP:"
+
 .endif ; DEBUG 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 
 ;------------------------------------
 ; print integer in acc24 
@@ -2118,7 +2095,12 @@ number::
 	call atoi24
 	ret
 .endif ; DEBUG 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; compiler routines        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;------------------------------------
 ; parse quoted string 
 ; input:
@@ -2317,7 +2299,6 @@ parse_keyword: ; { -- exec_addr|var_addr}
 
 
 ;------------------------------------
-; Command line tokenizer
 ; scan text for next token
 ; move token in 'pad'
 ; input: 
@@ -2531,8 +2512,6 @@ token_char:
 token_exit:
 	_drop VSIZE 
 	ret
-
-
 
 ;------------------------------------
 ; check if character in {'0'..'9'}
@@ -2775,10 +2754,10 @@ ddrop: ; { n -- }
 ;  dstack: { ix...n -- ix...n n }
 ;-----------------------------
 ddup:
-	ldw x,[dstkptr]
-	_dp_down
-    ldw [dstkptr],x  
-	ret 
+;	ldw x,[dstkptr]
+;	_dp_down
+;   ldw [dstkptr],x  
+;	ret 
 
 
 ;----------------------------------
@@ -2787,12 +2766,12 @@ ddup:
 ; dstack: {ix,..,p -- ix,...,np }
 ;-----------------------------------
 dpick:
-	ldw x,[dstkptr]
-	sllw x 
-	addw x,dstkptr 
-	ldw x,(x)
-	ldw [dstkptr],x 
-	ret
+;	ldw x,[dstkptr]
+;	sllw x 
+;	addw x,dstkptr 
+;	ldw x,(x)
+;	ldw [dstkptr],x 
+;	ret
 
 ;---------------------------
 ;  fetch variable in X 
@@ -2823,14 +2802,9 @@ store:
 ;   none 
 ;-------------------------------------
 ddrop_n:
-	pushw y 
-	ldw y,dstkptr 
-	sllw x 
-	pushw x 
-	addw y,(1,sp)
-	ldw dstkptr,y 
-	popw x 
-	popw y
+	sllw x
+	addw x,dstkptr 
+	ldw dstkptr,x  
 	ret 
 
 dstk_prompt: .asciz "\ndstack: " 
@@ -2889,6 +2863,14 @@ dotr_loop:
 	clr a 
 	ret
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;   TINY BASIC  operators,
+;;   commands and functions 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Arithmetic operators
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;--------------------------------
 ;  add 2 integers
@@ -3102,8 +3084,8 @@ modulo:
 
 
 ;----------------------------------
-; search in kword_dict command name
-;  from its execution address 
+; search in kword_dict name
+; from its execution address 
 ; input:
 ;   X       	execution address 
 ; output:
@@ -3138,6 +3120,7 @@ cmd_name:
 
 
 ;---------------------------------
+; dictionary search 
 ; input:
 ;	X 		dictionary entry point 
 ;  pad		.asciz name to search 
@@ -3207,7 +3190,7 @@ search_exit:
 ; input:
 ;   A 		 expected token attribute
 ;  ouput:
-;   none     if fail call tb_error 
+;   none     if fail call syntax_error 
 ;--------------------
 expect:
 	push a 
@@ -3224,10 +3207,11 @@ expect:
 ; arguments list.
 ; arg_list::=  rel[','rel]*
 ; all arguments are of integer type
+; and pushed on dstack 
 ; input:
 ;   none
 ; output:
-;   A 			number of arguments pushed on dstack  
+;   A 	number of arguments pushed on dstack  
 ;--------------------------------
 	ARG_CNT=1 
 arg_list:
@@ -3249,7 +3233,10 @@ arg_list:
 5$:	pop a 
 	ret 
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+; parse arguments list 
+; between ()
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 func_args:
 	ld a,#TK_LPAREN 
 	call expect 
@@ -3353,12 +3340,9 @@ factor:
 	jra 18$ 
 10$:
 	cp a,#TK_VAR 
-	jrne 11$
+	jrne 12$
 	ldw x,(x)
 	jra 18$
-11$: 
-	cp a,#TK_CONST 
-	jreq 18$
 12$:			
 	cp a,#TK_LPAREN
 	jrne 16$
@@ -3715,7 +3699,7 @@ list_exit:
 ;-------------------------
 ; print counted string 
 ; input:
-;   X 		address of string
+;   X 	address of string
 ;--------------------------
 prt_cmd_name:
 	ld a,(x)
@@ -3809,7 +3793,7 @@ prt_basic_line:
 	ldw (XSAVE,sp),x 
 	cp a,#TK_CMD 
 	jrult 5$
-	cp a,#TK_CONST 
+	cp a,#TK_CFUNC 
 	jrugt 4$
 2$:	
 	ldw x,([ptr16],x)
@@ -4201,7 +4185,7 @@ bit_reset:
 	ret 
 
 ;---------------------
-; BASIC: BRES addr,mask
+; BASIC: BTOGL addr,mask
 ; toggle bits at 'addr' corresponding 
 ; to those of 'mask' that are at 1.
 ; arguments:
@@ -4486,6 +4470,21 @@ loop_done:
 	dec loop_depth 
 	ret 
 
+;----------------------------
+; called by goto/gosub
+; to get target line number 
+;---------------------------
+get_target_line:
+	call relation 
+	cp a,#TK_INTGR
+	jreq 1$
+	jp syntax_error
+1$:	call search_lineno  
+	tnzw x 
+	jrne 2$ 
+	ld a,#ERR_NO_LINE 
+	jp tb_error 
+2$:	ret 
 
 ;------------------------
 ; BASIC: GOTO line# 
@@ -4497,7 +4496,14 @@ goto:
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
 	ret 
-0$:	jra go_common
+0$:	call get_target_line
+jp_to_target:
+	ldw basicptr,x 
+	ld a,(2,x)
+	ld count,a 
+	mov in,#3 
+	ret 
+
 
 ;--------------------
 ; BASIC: GOSUB line#
@@ -4506,59 +4512,44 @@ goto:
 ; are saved on cstack
 ; here cstack is 2 call deep from interp_loop 
 ;--------------------
-	GOS_RET=3
+	RET_ADDR=3
+	RET_INW=5
+	VSIZE=4  
 gosub:
 	btjt flags,#FRUN,0$ 
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
 	ret 
 0$:	popw x 
-	sub sp,#2 
+	_vars VSIZE  
 	pushw x 
 	ldw x,basicptr
-	ld a,(2,x)
-	add a,#3 
-	ld acc8,a 
-	clr acc16 
-	addw x,acc16
-	ldw (GOS_RET,sp),x 
-go_common: 
-	call relation 
-	cp a,#TK_INTGR
-	jreq 1$ 
-	jp syntax_error
-1$: 
-	call search_lineno  
-	tnzw x 
-	jrne 2$ 
-	ld a,#ERR_NO_LINE 
-	jp tb_error 
-2$: 
-	ldw basicptr,x 
-	ld a,(2,x)
-	ld count,a 
-	mov in,#3 
-	ret 
+	ldw (RET_ADDR,sp),x 
+	call get_target_line  
+	pushw x 
+	ldw x,in.w 
+	ldw (RET_INW+2,sp),x
+	popw x 
+	jra jp_to_target
 
 ;------------------------
 ; BASIC: RETURN 
 ; exit from a subroutine 
-; cstack is 2 level deep from interp_loop 
+; 
 ;------------------------
 return:
 	btjt flags,#FRUN,0$ 
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
 0$:	
-	ldw x,(GOS_RET,sp) 
-	ldw basicptr,x 
+	ldw x,(RET_ADDR,sp) 
+	ldw basicptr,x
 	ld a,(2,x)
-	add a,#3 
-	ld count,a 
-	mov in,#3
-	clr a 
+	ld count,a  
+	ldw x,(RET_INW,sp)
+	ldw in.w,x 
 	popw x 
-	_drop 2
+	_drop VSIZE 
 	pushw x
 	ret  
 
@@ -4587,7 +4578,7 @@ run:
 
 run_it:	 
     call ubound 
-	_drop 2 
+	_drop 2 ; drop return address 
 	ldw x,txtbgn 
 	ldw basicptr,x 
 	ld a,(2,x)
@@ -4611,11 +4602,11 @@ stop:
 
 
 ;-----------------------
-; BASIC BEEP expr1,expr2
-; used MCU internal beeper 
-; to produce a sound
+; BASIC: TONE expr1,expr2
+; used TIMER2 channel 1
+; to produce a tone 
 ; arguments:
-;    expr1   frequency  (expr1%32)
+;    expr1   frequency 
 ;    expr2   duration msec.
 ;---------------------------
 tone:
@@ -4658,7 +4649,7 @@ tone:
 	ret 
 
 ;-------------------------------
-; BASIC: PWRADC 0|1 [,divisor]  
+; BASIC: ADCON 0|1 [,divisor]  
 ; disable/enanble ADC 
 ;-------------------------------
 power_adc:
@@ -4685,12 +4676,13 @@ power_adc:
 	jra 3$
 2$: bres ADC_CR1,#ADC_CR1_ADON
 	bres CLK_PCKENR2,#CLK_PCKENR2_ADC
-3$:	ldw x,#2
-	call ddrop_n 
+3$:	ldw x,#4 ; drop 2 elements on dstack 
+	addw x,dstkptr
+	ldw dstkptr,x 
 	ret
 
 ;-----------------------------
-; BASIC: RDADC(channel)
+; BASIC: ADCREAD (channel)
 ; read adc channel {0..5}
 ; output:
 ;   A 		TK_INTGR 
@@ -4720,6 +4712,7 @@ analog_read:
 
 ;-----------------------
 ; BASIC: DREAD(pin)
+; Arduino pins 
 ; read state of a digital pin 
 ; pin# {0..15}
 ; output:
@@ -4756,6 +4749,7 @@ digital_read:
 
 ;-----------------------
 ; BASIC: DWRITE pin,0|1
+; Arduino pins 
 ; write to a digital pin 
 ; pin# {0..15}
 ; output:
@@ -4842,7 +4836,11 @@ new:
 	ret 
 	 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
-;   file system routines
+;  file system routines
+;  MCU flash memory from
+;  0x10000-0x27fff is 
+;  used to store BASIC 
+;  program files. 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;--------------------
@@ -5789,6 +5787,7 @@ fcpu:
 
 ;------------------------------
 ; BASIC: PMODE pin#, mode 
+; Arduino pin. 
 ; define pin as input or output
 ; pin#: {0..15}
 ; mode: INPUT|OUTPUT  
@@ -5833,7 +5832,7 @@ pin_mode:
 	ret
 
 ;------------------------
-; select pin 
+; select Arduino pin 
 ; input:
 ;   X 	 {0..15} Arduino Dx 
 ; output:
@@ -6102,7 +6101,7 @@ leading_one:
 	ret 
 
 ;-----------------------------------
-; BASIC: BITMASK(expr) 
+; BASIC: BIT(expr) 
 ; expr ->{0..15}
 ; return 2^expr 
 ; output:
@@ -6175,6 +6174,94 @@ until:
 	dec loop_depth 
 	ret 
 
+;--------------------------
+; BASIC: PRTA...PRTI  
+;  return constant value 
+;  PORT  offset in GPIO
+;  array
+;---------------------------
+const_porta:
+	ldw x,#0
+	ld a,#TK_INTGR 
+	ret 
+const_portb:
+	ldw x,#1
+	ld a,#TK_INTGR 
+	ret 
+const_portc:
+	ldw x,#2
+	ld a,#TK_INTGR 
+	ret 
+const_portd:
+	ldw x,#3
+	ld a,#TK_INTGR 
+	ret 
+const_porte:
+	ldw x,#4
+	ld a,#TK_INTGR 
+	ret 
+const_portf:
+	ldw x,#5
+	ld a,#TK_INTGR 
+	ret 
+const_portg:
+	ldw x,#6
+	ld a,#TK_INTGR 
+	ret 
+const_porth:
+	ldw x,#7
+	ld a,#TK_INTGR 
+	ret 
+const_porti:
+	ldw x,#8
+	ld a,#TK_INTGR 
+	ret 
+
+;-------------------------------
+; following return constant 
+; related to GPIO register offset 
+;---------------------------------
+const_odr:
+	ld a,#TK_INTGR 
+	ldw x,#GPIO_ODR
+	ret 
+const_idr:
+	ld a,#TK_INTGR 
+	ldw x,#GPIO_IDR
+	ret 
+const_ddr:
+	ld a,#TK_INTGR 
+	ldw x,#GPIO_DDR
+	ret 
+const_cr1:
+	ld a,#TK_INTGR 
+	ldw x,#GPIO_CR1
+	ret 
+const_cr2:
+	ld a,#TK_INTGR 
+	ldw x,#GPIO_CR2
+	ret 
+;-------------------------
+;  constant for port mode
+;  used by PMODE 
+;  input or output
+;------------------------
+const_output:
+	ld a,#TK_INTGR 
+	ldw x,#OUTP
+	ret 
+const_input:
+	ld a,#TK_INTGR 
+	ldw x,#INP 
+	ret 
+;-----------------------
+; memory area constants
+;-----------------------
+const_eeprom_base:
+	ld a,#TK_INTGR 
+	ldw x,#EEPROM_BASE 
+	ret 
+
 
 ;------------------------------
 ;      dictionary 
@@ -6194,6 +6281,8 @@ name:
 	.endm 
 
 	LINK=0
+; respect alphabetic order for BASIC names from Z-A
+; this sort order is for a cleaner WORDS cmd output. 	
 kword_end:
 	_dict_entry,5+F_IFUNC,XPEEK,xpeek 
 	_dict_entry,3+F_IFUNC,XOR,bit_xor
@@ -6222,24 +6311,24 @@ kword_end:
 	_dict_entry 6,REMARK,rem 
 	_dict_entry,6,REBOOT,cold_start 
 	_dict_entry,4+F_IFUNC,QKEY,qkey  
-	_dict_entry,4+F_CONST,PRTI,8
-	_dict_entry,4+F_CONST,PRTH,7
-	_dict_entry,4+F_CONST,PRTG,6
-	_dict_entry,4+F_CONST,PRTF,5
-	_dict_entry,4+F_CONST,PRTE,4
-	_dict_entry,4+F_CONST,PRTD,3
-	_dict_entry,4+F_CONST,PRTC,2
-	_dict_entry,4+F_CONST,PRTB,1
-	_dict_entry,4+F_CONST,PRTA,0
+	_dict_entry,4+F_IFUNC,PRTI,const_porti 
+	_dict_entry,4+F_IFUNC,PRTH,const_porth 
+	_dict_entry,4+F_IFUNC,PRTG,const_portg 
+	_dict_entry,4+F_IFUNC,PRTF,const_portf
+	_dict_entry,4+F_IFUNC,PRTE,const_porte
+	_dict_entry,4+F_IFUNC,PRTD,const_portd
+	_dict_entry,4+F_IFUNC,PRTC,const_portc
+	_dict_entry,4+F_IFUNC,PRTB,const_portb
+	_dict_entry,4+F_IFUNC,PRTA,const_porta 
 	_dict_entry 5,PRINT,print 
-	_dict_entry,4+F_CONST,POUT,OUTP 
+	_dict_entry,4+F_IFUNC,POUT,const_output
 	_dict_entry,4,POKE,poke 
-	_dict_entry,4+F_CONST,PINP,INP 
+	_dict_entry,4+F_IFUNC,PINP,const_input
 	_dict_entry,4+F_IFUNC,PEEK,peek 
 	_dict_entry,5,PMODE,pin_mode 
 	_dict_entry,5,PAUSE,pause 
 	_dict_entry,2+F_IFUNC,OR,bit_or
-	_dict_entry,3+F_CONST,ODR,GPIO_ODR
+	_dict_entry,3+F_IFUNC,ODR,const_odr 
 	_dict_entry,3+F_IFUNC,NOT,func_not 
 	_dict_entry,3,NEW,new
 	_dict_entry,4,NEXT,next 
@@ -6254,7 +6343,7 @@ kword_end:
 	_dict_entry,6+F_IFUNC,INVERT,invert 
 	_dict_entry,5,INPUT,input_var  
 	_dict_entry,2,IF,if 
-	_dict_entry,3+F_CONST,IDR,GPIO_IDR
+	_dict_entry,3+F_IFUNC,IDR,const_idr 
 	_dict_entry,3,HEX,hex_base
 	_dict_entry,4+F_IFUNC,GPIO,gpio 
 	_dict_entry,4,GOTO,goto 
@@ -6262,15 +6351,15 @@ kword_end:
 	_dict_entry,6,FORGET,forget 
 	_dict_entry,3,FOR,for 
 	_dict_entry,4,FCPU,fcpu 
-	_dict_entry,6+F_CONST,EEPROM,EEPROM_BASE  
+	_dict_entry,6+F_IFUNC,EEPROM,const_eeprom_base   
 	_dict_entry,6+F_CMD,DWRITE,digital_write
 	_dict_entry,5+F_IFUNC,DREAD,digital_read
 	_dict_entry,2,DO,do_loop
 	_dict_entry,3,DIR,directory 
 	_dict_entry,3,DEC,dec_base
-	_dict_entry,3+F_CONST,DDR,GPIO_DDR
-	_dict_entry,3+F_CONST,CRL,GPIO_CR1
-	_dict_entry,3+F_CONST,CRH,GPIO_CR2
+	_dict_entry,3+F_IFUNC,DDR,const_ddr 
+	_dict_entry,3+F_IFUNC,CRL,const_cr1 
+	_dict_entry,3+F_IFUNC,CRH,const_cr2 
 	_dict_entry,4+F_CFUNC,CHAR,char
 	_dict_entry,3,BYE,bye 
 	_dict_entry,5,BTOGL,bit_toggle
