@@ -1,3 +1,30 @@
+### 2020-04-24
+
+* corrigé bogue dans **INPUT** 
+
+* Modifié *print_int* pour qu'il y est moins d'espace lorsque de la commande **LIST** est invoquée. 
+
+* Modifié routine d'initialisation du MCU. Au démarrage **LD2** est allumée et un beep 150 msec est entendue. Juste avant que *warm_init* soit appellée.  
+
+* Ajouter
+    * directive **DATA**  permettant d'inclure des données dans un programme.
+    * fonction **READ** pour lire les données définie par **DATA**. 
+    * Commande **DATALN** *expr* pour localiser le pointeur de **READ** sur une ligne de **DATA** spécifique. 
+    * Commande **RESTORE** remet le pointeur de **DATA** au début de la première ligne de données. 
+
+#### exemple d'utilisation du DATA 
+```
+>list
+    5 ' joue 4 mesures de l'hymne a la joie
+   10 RESTORE 
+   20 DATA 440,250,440,250,466,250,523,250,523,250,466,250,440,250
+   30 DATA 392,250,349,250,349,250,392,250,440,250,440,375,392,125
+   40 DATA 392,500
+   50 FOR I =1TO 15:TONE READ ,READ :NEXT I 
+
+```
+la commande **RESTORE** ou **DATALN** doit-être utilisée pour initialiser le pointeur avant de faire un **READ** 
+
 ### 2020-04-23
 
 * Retravaillé les routines *goto*,*gosub*, *return*. Maintenant un **GOSUB** n'est pas obligé d'être la dernière instruction sur la ligne. 

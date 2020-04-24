@@ -293,6 +293,39 @@ Cette fonction retourne l'index du registre **CR2** *(Control Register 2)* d'un 
 
 Cette fonction retourne l'index du registre **CR1** *(Control Register 1)* d'un port GPIO. En mode entrée ce registre active ou désactive le pull-up. En mode sortie il configure le mode push-pull ou open-drain. 
 
+### DATA {P}
+Cette directive permet de définir des données dans un programme. L'interpréteur ignore les lignes qui débute par **DATA**.  Ces lignes ne sont utilisées que par la commande **READ**.
+```
+>list
+    5 ' joue 4 mesures de l'hymne a la joie
+   10 RESTORE 
+   20 DATA 440,250,440,250,466,250,523,250,523,250,466,250,440,250
+   30 DATA 392,250,349,250,349,250,392,250,440,250,440,375,392,125
+   40 DATA 392,500
+   50 FOR I =1TO 15:TONE READ ,READ :NEXT I 
+```
+
+### DATALN *expr* {P}
+Cette commande initialise le pointeur de données au début de la ligne **DATA** correspondant 
+au numéro de ligne fourni par *expr*. 
+```
+>list
+    5 ' joue 4 mesures de l'hymne a la joie
+   10 DATALN 20  ' initialise le pointeur a la ligne 20 
+   20 DATA 440,250,440,250,466,250,523,250,523,250,466,250,440,250
+   30 DATA 392,250,349,250,349,250,392,250,440,250,440,375,392,125
+   40 DATA 392,500
+   50 FOR I =1TO 15:TONE READ ,READ :NEXT I 
+```
+Si le numéro de ligne fourni n'existe pas ou n'est pas une ligne de data l'exécution du programme s'arrête avec un message d'erreur. 
+```
+>dataln 20
+invalid line number.
+    0 DATALN 20
+
+>
+```
+
 ### DDR {C,P}
 Cette fonction retourne l'index du registre **DDR** *(Data Direction Register)* d'un périphérique GPIO. Ce registre permet de configurer les bits du port en entrée ou en sortie. Par défaut ils sont tous en entrée. 
 ```
@@ -503,7 +536,7 @@ vrai   1
 >
 ```
 
-### INPUT [*string*]*var* [,[*string*]*var*]+  {P}
+### INPUT [*string*]*var* [,[*string*]*var*]+  {C,P}
 Cette commande permet de saisir un entier fourni par l'utilisateur. Cet entier est déposé dans la variable donnée en argument. Plusieurs variables peuvent-être saisies en une seule commande en les séparant par la virgule. 
 Facultativement un message peut-être affiché à la place du nom de la variable. Cette chaîne précède le nom de la variable sans virgule de séparation entre les deux.
 
@@ -758,6 +791,22 @@ Cette commande vérifie s'il y a un caractère en attente dans le tampon de réc
 ```
 Pour créer une boucle infinie on utilise un FOR...NEXT avec la valeur de STEP à zéro. À l'intérieur de la boucle on appelle la fonction **QKEY** dont la valeur est affectée à la variable **A** qui est la variable de contrôle de la boucle. Sitôt qu'une touche est enfoncée sur la console la valeur de **A** passe à **1** et la boucle se termine. De retour sur la ligne de commande le caractère reçu  de la console est affiché après le **'&gt;'** puisqu'il est lu par la fonction *readln* de l'interpréteur de commande.
 
+### READ {P}
+Cette fonction retourne l'entier pointé par le pointeur de donné initialisé avec les commandes **RESTORE** ou **DATALN**. À chaque appel de **READ** le pointeur est avancé à l'item suivant et s'il y a plusieurs lignes **DATA** dans le programme et que la ligne courante est épuisée, le pointeur passe à la ligne suivante. C'est une erreur fatale d'invoquer **READ** lorsque toutes les données ont étées lues. Cependant le pointeur peut-être réinitialisé avec l'une des commandes **RESTORE** ou **DATALN**.  
+```
+>list
+   10 RESTORE 
+   20 DATA 100,200
+   30 DATA 300
+   40 PRINT READ ,READ ,READ ,READ 
+
+>run
+ 100 200 300
+No data line found.
+   40 PRINT READ ,READ ,READ ,READ 
+```
+Dans cet exemple il y a 3 données disponibles mais on essai dans lire 4. Donc à la quatrième invocation de **READ** le programme s'arrête et affiche l'erreur *No data line found.*
+
 ### REBOOT {C,P}
 Réinitialise le MCU 
 ```
@@ -777,6 +826,8 @@ La commande **REM**  sert à insérer des commentaires (*remark*) dans un progra
    10 REM ceci est un commentaire
    20 'ceci est aussi un commentaire
 ```
+### RESTORE {p}
+Cette commande initialise le pointeur de **DATA** au début de la première ligne de données. Il peut être invoqué à l'intérieur d'une boucle si on veut relire les même données plusieurs fois. Pour un exemple d'utilisation voir la fonction **READ**. 
 
 ### RETURN {P}
 La commande **RETURN**  indique la fin d'une sous-routine. Lorsque cette commande est rencontrée l'exécution se poursuit à la ligne qui suit le **GOSUB** qui a appellé cette sous-routine.

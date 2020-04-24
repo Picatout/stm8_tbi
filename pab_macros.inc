@@ -92,6 +92,7 @@
     ERR_NOT_FILE=9
     ERR_BAD_VALUE=10
     ERR_NO_ACCESS=11
+    ERR_NO_DATA=12 
     
 ;--------------------------------------
 ;   assembler flags 

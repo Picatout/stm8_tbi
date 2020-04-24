@@ -54,11 +54,16 @@ _dbg
 
 	AUTORUN_NAME=0x4000 ; address in EEPROM where auto run file name is saved 
 
+    FIRST_DATA_ITEM=6 ; first DATA item offset on line.
+
 in.w:  .blkb 1 ; parser position in text line
 in:    .blkb 1 ; low byte of in.w
 in.saved: .blkb 1 ; set by get_token before parsing next token, used by unget_token
 count: .blkb 1 ; current BASIC line length and tib text length  
 basicptr:  .blkb 2  ; point to current BASIC line address.
+data_ptr:  .blkw 1  ; point to DATA address
+data_ofs:  .blkb 1  ; index to next data item 
+data_len:  .blkb 1  ; length of data line 
 base:  .blkb 1 ; nemeric base used to print integer 
 acc24: .blkb 1 ; 24 bit accumulator
 acc16: .blkb 1 ; 16 bit accumulator, middle byte of acc24
@@ -290,7 +295,7 @@ timer4_init:
 	mov TIM4_PSCR,#7 ; prescale 128  
 	mov TIM4_ARR,#125 ; set for 1msec.
 	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
-	bset TIM4_IER,#TIM4_IER_UIE 
+	bset TIM4_IER,#TIM4_IER_UIE
 	ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1215,7 +1220,12 @@ cold_start:
 	ld PE_CR1,a 
 	ld PF_CR1,a 
 	ld PG_CR1,a 
-	ld PI_CR1,a 
+	ld PI_CR1,a
+; set LD2 pin as output and turn it on
+    bset PC_CR1,#LED2_BIT
+    bset PC_CR2,#LED2_BIT
+    bset PC_DDR,#LED2_BIT
+	bset PC_ODR,#LED2_BIT 
 ; disable schmitt triggers on Arduino CN4 analog inputs
 	mov ADC_TDRL,0x3f
 ; disable peripherals clocks
@@ -1253,10 +1263,6 @@ cold_start:
 	ld a,#CR 
 	call putc 
 	call seek_fdrive 
-; configure LD2 pin 
-    bset PC_CR1,#LED2_BIT
-    bset PC_CR2,#LED2_BIT
-    bset PC_DDR,#LED2_BIT
 	rim 
 	inc seedy+1 
 	inc seedx+1 
@@ -1264,6 +1270,13 @@ cold_start:
 	call ubound 
 	call dpop 
 	ldw array_size,x
+; 200 msec beep 
+	ldw x,#988 
+	call dpush 
+	ldw x,#150 
+	call dpush 
+	call beep 
+	bres PC_ODR,#LED2_BIT	
 	call warm_init
 	call load_autorun
     jp interp 
@@ -1319,7 +1332,7 @@ clear_basic:
 err_msg:
 	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
 	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
-	.word err_no_access 
+	.word err_no_access,err_no_data  
 
 err_mem_full: .asciz "\nMemory full\n" 
 err_syntax: .asciz "\nsyntax error\n" 
@@ -1332,6 +1345,7 @@ err_duplicate: .asciz "\nduplicate name.\n"
 err_not_file: .asciz "\nFile not found.\n"
 err_bad_value: .asciz "\nbad value.\n"
 err_no_access: .asciz "\nFile in extended memory, can't be run from there.\n" 
+err_no_data: .asciz "\nNo data line found.\n"
 
 ;rt_msg: .asciz "last token id: "
 
@@ -1722,13 +1736,14 @@ print_int:
 	subw x,#pad+PAD_SIZE-1 
 	negw x  
 10$:
+	ld a,xl 
+	cp a,tab_width
+	jruge 12$
 	decw y 
 	ld a,#SPACE 
 	ld (y),a
 	incw x 
-	ld a,xl 
-	cp a,tab_width
-	jrmi 10$ 
+	jra 10$ 
 12$:
     ldw x,y 
 	call puts  
@@ -3842,8 +3857,8 @@ prt_basic_line:
 	jrne 8$
 	ldw x,([ptr16],x)
 	call print_int
-	ld a,#SPACE 
-	call putc 
+;	ld a,#SPACE 
+;	call putc 
 	ldw x,(XSAVE,sp)
 	addw x,#2 
 	jp 1$
@@ -3998,7 +4013,7 @@ print_exit:
 ; entry point of both 
 ; routine. 
 ;---------------------
-	CTXT_SIZE=6 ; size of saved data 
+	CTXT_SIZE=4 ; size of saved data 
 ;--------------------
 ; save current BASIC
 ; interpreter context 
@@ -4006,9 +4021,8 @@ print_exit:
 ;--------------------
 	_argofs 0 
 	_arg BPTR 1
-	_arg LNO 3 
-	_arg IN 5
-	_arg CNT 6
+	_arg IN 3
+	_arg CNT 4
 save_context:
 	ldw x,basicptr 
 	ldw (BPTR,sp),x
@@ -4038,21 +4052,15 @@ rest_context:
 ; [string] optionally can be used as prompt 
 ;-----------------------------------------
 	CX_BPTR=1
-	CX_LNO=3
-	CX_IN=4
-	CX_CNT=5
-	SKIP=6
-	VSIZE=7
+	CX_IN=3
+	CX_CNT=4
+	SKIP=5
+	VSIZE=5
 input_var:
-	btjt flags,#FRUN,1$ 
-	ld a,#ERR_RUN_ONLY 
-	jp tb_error 
-1$:	_vars VSIZE 
+	_vars VSIZE 
 input_loop:
 	clr (SKIP,sp)
 	call next_token 
-	cp a,#TK_NONE 
-	jreq input_exit 
 	cp a,#TK_QSTR 
 	jrne 1$ 
 	call puts 
@@ -4064,30 +4072,32 @@ input_loop:
 2$:	call dpush 
 	tnz (SKIP,sp)
 	jrne 21$ 
-	ld a,#':
-	ld pad+1,a 
-	clr pad+2
+;	clr pad+2
 	ldw x,#pad 
 	call puts   
 21$:
+	ld a,#':
+	call putc 
 	call save_context 
-	ldw x,#tib 
-	ldw basicptr,x  
 	clr count  
 	call readln 
+	ldw x,#tib 
+	ldw basicptr,x  
 	clr in 
-	call relation 
+	call get_token
 	cp a,#TK_INTGR
 	jreq 3$ 
+	call rest_context 
 	jp syntax_error
 3$: call dpush 
 	call store 
 	call rest_context
 	call next_token 
 	cp a,#TK_COMMA 
-	jrne 4$
-	jra input_loop 
-4$:	call unget_token 
+	jreq input_loop 
+	cp a,#TK_COLON 
+    jrule input_exit 
+	jp syntax_error 
 input_exit:
 	_drop VSIZE 
 	ret 
@@ -4579,6 +4589,12 @@ run:
 run_it:	 
     call ubound 
 	_drop 2 ; drop return address 
+; clear data pointer 
+	clrw x 
+	ldw data_ptr,x 
+	clr data_ofs 
+	clr data_len 
+; initialize BASIC pointer 
 	ldw x,txtbgn 
 	ldw basicptr,x 
 	ld a,(2,x)
@@ -4615,6 +4631,7 @@ tone:
 	jreq 1$
 	jp syntax_error 
 1$: 
+beep:
 	call dpop ; duration
 	pushw x 
 	call dpop ; frequency
@@ -6262,6 +6279,122 @@ const_eeprom_base:
 	ldw x,#EEPROM_BASE 
 	ret 
 
+;---------------------------
+; BASIC: DATA 
+; when the interpreter find 
+; a DATA line it skip it.
+;---------------------------
+data:
+	mov in,count
+	ret 
+
+;---------------------------
+; BASIC: DATLN  *expr*
+; set DATA pointer at line# 
+; specified by *expr* 
+;---------------------------
+data_line:
+	call expression
+	cp a,#TK_INTGR
+	jreq 1$
+	jp syntax_error 
+1$: call search_lineno
+	tnzw x 
+	jrne 3$
+2$:	ld a,#ERR_NO_LINE 
+	jp tb_error
+3$: ; check if valid data line 
+    ldw y,x 
+	ldw x,(4,x)
+	cpw x,#data 
+	jrne 2$ 
+	ldw data_ptr,y
+	ld a,(2,y)
+	ld data_len,a 
+	mov data_ofs,#FIRST_DATA_ITEM 
+	ret
+
+;---------------------------------
+; BASIC: RESTORE 
+; set data_ptr to first data line
+; if not DATA found pointer set to
+; zero 
+;---------------------------------
+restore:
+	clr data_ptr 
+	clr data_ptr+1
+	clr data_ofs 
+	clr data_len
+	ldw x,txtbgn
+data_search_loop: 	
+	cpw x,txtend
+	jruge 9$
+	ldw y,x 
+	ldw x,(4,x)
+	cpw x,#data 
+	jrne try_next_line 
+	ldw data_ptr,y 
+	ld a,(2,y)
+	ld data_len,a 
+	mov data_ofs,#FIRST_DATA_ITEM
+9$:	tnz data_len 
+    jrne 10$
+	ld a,#ERR_NO_DATA 
+	jp tb_error 
+10$:ret
+try_next_line:
+	ldw x,y 
+	ld a,(2,x)
+	ld acc8,a 
+	clr acc16 
+	addw x,acc16 
+	jra data_search_loop
+
+
+;---------------------------------
+; BASIC: READ 
+; return next data item | 0 
+;---------------------------------
+	CTX_BPTR=1 
+	CTX_IN=3 
+	CTX_COUNT=4 
+	XSAVE=5
+	VSIZE=6
+read:
+	_vars  VSIZE 
+read01:	
+	ld a,data_ofs
+	cp a,data_len 
+	jreq 2$ ; end of line  
+	call save_context
+	ldw x,data_ptr 
+	ldw basicptr,x 
+	mov in,data_ofs 
+	mov count,data_len  
+	call expression 
+	cp a,#TK_INTGR 
+	jreq 1$ 
+	jp syntax_error 
+1$:
+	ldw (XSAVE,SP),x
+	call next_token ; skip comma
+	ldw x,basicptr 
+	ldw data_ptr,x 
+	mov data_ofs,in 
+	call rest_context
+	ldw x,(XSAVE,sp)
+	ld a,#TK_INTGR
+	_drop VSIZE 
+	ret 
+2$: ; end of line reached 
+	ldw y, data_ptr 
+	clr data_ptr
+	clr data_ptr+1   
+	clr data_ofs 
+	clr data_len 
+	call try_next_line 
+	jra read01
+
 
 ;------------------------------
 ;      dictionary 
@@ -6308,8 +6441,10 @@ kword_end:
 	_dict_entry,6+F_IFUNC,RSHIFT,rshift
 	_dict_entry,3+F_IFUNC,RND,random 
 	_dict_entry,6,RETURN,return 
+	_dict_entry,7,RESTORE,restore 
 	_dict_entry 6,REMARK,rem 
-	_dict_entry,6,REBOOT,cold_start 
+	_dict_entry,6,REBOOT,cold_start
+	_dict_entry,4+F_IFUNC,READ,read  
 	_dict_entry,4+F_IFUNC,QKEY,qkey  
 	_dict_entry,4+F_IFUNC,PRTI,const_porti 
 	_dict_entry,4+F_IFUNC,PRTH,const_porth 
@@ -6358,6 +6493,8 @@ kword_end:
 	_dict_entry,3,DIR,directory 
 	_dict_entry,3,DEC,dec_base
 	_dict_entry,3+F_IFUNC,DDR,const_ddr 
+	_dict_entry,6,DATALN,data_line  
+	_dict_entry,4,DATA,data  
 	_dict_entry,3+F_IFUNC,CRL,const_cr1 
 	_dict_entry,3+F_IFUNC,CRH,const_cr2 
 	_dict_entry,4+F_CFUNC,CHAR,char
