@@ -1,4 +1,54 @@
-### 2020-04-05 
+### 2020-04-26
+
+* Mise à jour du document [tbi_reference.md](tbi_refenrence.md) 
+
+* Renommé commande **STOP** -> **END** pour être conforme aux interpréteurs BASIC de l'époque. 
+
+* Renommé la commande **BREAK** -> **STOP**  pour être conforme aux interpréteurs BASIC de l'époque.
+
+* Modification de l'interface SPI. Maintenant la pin D10 est configurée en mode sortie automatiquement lors de l'activation du périphérique SPI par la commande **SPIEN** 
+
+* Ajout du mot **SPISEL** *0|1*  pour sélectionné ou désélectionné le SPI i.e. contrôle de la ligne **~CS**. 
+
+* Les commandes et fonctions pour l'interface SPI sont 
+    * **SPIEN** *0|1*   Pour l'activation/désactivation 
+    * **SPISEL** *0|1*  Pour la sélection/désélection 
+    * **SPIWR** *byte {,byte}*  Pour envoyer 1 ou plusieurs octets par SPI
+    * **SPIRD** Fonction qui retourne un octet lu par SPI.
+
+Programme de démonstration d'utilisation du SPI avec mémoire EEPROM externe 25LC640
+```
+>li 
+   10 SPIEN 2,1' spi clock 2Mhz
+   20 SPISEL 1:SPIWR 6:SPISEL 0
+   22 SPISEL 1:SPIWR 5:IF NOT (AND (SPIRD ,2)):GOTO 200
+   24 SPISEL 0
+   30 SPISEL 1:SPIWR 2,0,0
+   40 FOR I =0TO 31:SPIWR RND (256):NEXT I 
+   42 SPISEL 0
+   43 GOSUB 100' wait for write completed 
+   44 SPISEL 1:SPIWR 3,0,0
+   46 HEX :FOR I =0TO 31:PRINT SPIRD ,:NEXT I 
+   50 SPISEL 0
+   60 SPIEN 0,0
+   70 END  
+   90 ' wait for write completed 
+  100 SPISEL 1:SPIWR 5:S =SPIRD :SPISEL 0
+  110 IF AND (S ,1):GOTO 100
+  120 RETURN 
+  200 PRINT "Echec activation bit WEL dans l'EEPROM"
+  210 SPISEL 0
+  220 SPIEN 0,0
+
+>run
+ $3F $99 $19 $73 $4C $FE $B1 $66 $88 $7F $31 $FD $AD $BA $78 $1B $78 $2F $23 $59 $7D $C6 $2E $D0 $80 $7A $19 $E8 $53 $BC  $5 $AC
+>run
+ $A0 $AE $DD $32 $C5 $D6 $DB $43 $90 $CA $CF $60 $37 $B9 $D8 $C0  $7 $3B $AE $B2 $58 $5F $B5 $33 $8D $1D $7D $3F $94 $7D $FF $F3
+>
+
+```
+
+### 2020-04-25 
 
 *  Ajout de commandes et fonctions pour l'interface SPI. Test interface utilisant une mémoire EEPROM 25LC512 montée sur le connecteur CN8 de la carte NUCLEO.
     * D10   ~CS   sur pin 1 de l'EEPROM, sélectionne l'EEPROM lorsqu'à zéro.
@@ -10,7 +60,7 @@
 
     Je suis capable d'écrire et de lire dans l'EEPROM externe.
     ```
-    5 ' programme pour tester l'EEPROM 25LC512 
+    5 ' programme pour tester l'EEPROM 25LC640
    10 PMODE 10,POUT :DWRITE 10,1 ' D10 en sortie , mettre à 1.
    20 SPIEN 0,1 ' active le SPI 
    30 DWRITE 10,0:SPIWR 6:DWRITE 10,1  'active le bit WEL dans l'EEPROM

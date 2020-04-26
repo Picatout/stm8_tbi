@@ -219,30 +219,6 @@ Cette fonction retourne 2^*expr*  (2 à la puissance n). *expr* doit-être entre
 
 ```
 
-### BREAK {P}
-Outil d'aide au débogage. Cette commande interrompt l'exécution du programme au point où elle est insérée. L'utilisateur se retrouve donc sur la ligne de commande où il peut exécuter différentes commandes comme examiner le contenu des piles avec la commande **SHOW** ou imprimer la valeur d'une variable. Le programme est redémarré à son point d'arrêt avec la commande **RUN**.  La commande **STOP** interompt l'exécution.
-```
->li
-   10 for a=1to10:?a,:break:ne a
-
->run
-   1
-break point, RUN to resume.
-
->show
-dstack:   39  10   1
-ctack:  $5B $10 $191E  $A $5B
-
->ru
-   2
-break point, RUN to resume.
-
->stop
-
->
-```
-Dans cet exemple la commande **BREAK** a été insérée à l'intérieur d'une boucle **FOR...NEXT** donc le programme s'arrête à chaque itération.
-
 ### BRES addr,mask {C,P}
 La commande **bit reset** met à **0** les bits de l'octet situé à *addr*. Seul les bits à **1** dans l'argument *mask* sont affectés. 
 
@@ -363,6 +339,20 @@ Mot réservé qui débute une boucle **DO ... UNTIL** Les instructions entre  **
 >run
    1   2   3   4   5   6   7   8   9  10
 ``` 
+### DREAD *pin*
+Cette fonction permet de lire l'état d'une des broches **D0..D15** du connecteur **CN8** 
+Lorsqu'elle est configuré avec **PMODE** en mode entrée. Cette fonction retourne **0** si l'entrée est à zéro volt ou **1** si l'entrée est à Vdd. 
+```
+10 PMODE 5,PINP 
+20 ? DREAD 5
+```
+
+### DWRITE *pin*,*level* 
+Le connecteur **CN8**  de la carte **NUCLEO** indentifie les broches selon la convention *Arduino*. Ainsi les broches notées **D0...D15** peuvent-être utilisées en entrée ou sortie digitales, i.e. leur niveau est à 0 volt ou à Vdd.  **DWRITE** est une commande qui porte le même nom que la fonction Arduino et qui permet d'écrire **0|1** sur l'une de ces broche lorsqu'elle est configurée en mode sortie. *pin* est une numéro entre **0...15** et *level* est soit **PINP** ou **POUT**. Avant d'utiliser **DWRITE** sur une broche il faut utiliser **PMODE** pour configurée la broche en sortie. 
+```
+10 PMODE 10,POUT ' mettre D10 en sortie 
+20 DWRITE 10, 0  , Met la sortie D10 a zero.
+```
 
 ### EEPROM {C,P}
 Retourne l'adresse du début de la mémoire EEPROM.
@@ -381,6 +371,19 @@ Retourne l'adresse du début de la mémoire EEPROM.
 >?pe(ee+1) ' verifie 
   85
 
+>
+```
+### END {C,P}
+Cette commande arrête l'exécution d'un programme et retourne le contrôle à la ligne de commande. Cette commande peut-être placée à plusieurs endroits dans un programme. Elle peut aussi être utlisée sur la ligne de commande pour interrompre un programme après l'invocation d'une commande STOP.
+```
+>lis
+   10 a=1
+   20 a=a+1
+   30 ? a,: if a>100:end 'arrete lorsque A depasse 100
+   40 goto 20
+
+>run
+   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63  64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79  80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96  97  98  99 100 101
 >
 ```
 ### FCPU *integer*
@@ -737,9 +740,10 @@ Retourne la valeur de l'octet situé à l'adresse représentée par *expr*. Mêm
 >
 ```
 ### PMODE *pin*,*mode*
-Configure le mode entrée/sortie d'une des 15 broches nommées **D0..D15** sur les connecteurs **CN7** et **CN8**. *pin* est un entier dans l'intervalle {0..15} et mode est {PINP,POUT}. Cette commande est équivalente à la fonction Arduino *PinMode*. 
+Configure le mode entrée/sortie d'une des 15 broches nommées **D0..D15** sur l connecteur **CN8**. *pin* est un entier dans l'intervalle {0..15} et mode est {PINP,POUT}. Cette commande est équivalente à la fonction Arduino *PinMode*. 
 ```
-
+10 PMODE 10,POUT 
+20 DWRITE 10, 1#
 ```
 
 ### POKE *expr1*,*expr2*
@@ -954,22 +958,81 @@ Ce qui déclenche l'interruption externe **INT4** et redémarre le MCU qui exéc
 
 Si le bouton **RESET** avait été utilisé le MCU aurait été réinitialisé.
 
+### SPIEN *div*,*0|1*
+Commande pour activer le périphérique SPI l'interface matérielle du SPI est sur les broches **D10**, **D11**, **D12** et **D13** du connecteur **CN8**. L'argument *div* détermine la fréquence d'horloge du SPI. C'est une nombre entre **0** et **7**. La fréquence Fspi=Fsys/2^(div+1). Donc pour zéro Fspi=Fsys/2 et pour 7 Fspi=Fsys/256. Le deuxième argument détermine s'il s'agit d'une activation **1** ou d'une désactivation **0** du périphérique.   
+
+### SPISEL *1|0* 
+Comme il peut y avoir plusieurs dispositifs branchés sur un bus SPI il faut un mécanisme pour sélectionné celui avec lequel la communication doit s'établir. Les dispositifs SPI possèdent à cet effet une proche appellée **~CS** *chip select* Le **~** signifit que le dispositif est sélectionné lorsque le niveau est à zéro. Cependant Pour la commande **SPISEL** l'argument **1** signfit que la broche est mise à **0** i.e. dispositif sélectionné et **0** signifit l'inverse. 
+```
+10 SPIEN 0,1 'activation du périphérique SPI. 
+20 SPISEL 1  ' sélection du dispositif externe.  
+30 SPIWR 5   ' écriture de nombre 5.
+40 ? SPIRD   ' Lecture d'un octet de réponse.
+50 SPISEL 0  ' désélection du dispositif. 
+```
+
+### SPIRD 
+Cette fonction lit un octet à partir du périphérique SPI. Cet octet est retourné comme entier.
+
+### SPIWR *byte* [, byte] 
+Cette commande permet d'envoyer un ou plusieurs octets vers le périphérique SPI. Le programme suivant illustre l'utilisation de l'interface SPI avec une mémoire externe EEPROM 25LC640. Le programme active l'interface SPI à la fréquence de 2Mhz (16Mhz/2^(2+1)). Ensuite doit activé le bit **WEL** du **25LC640** pour authorizer l'écriture dans l'EEPROM. Cette EEPROM est configurée en page de 32 octets. On écris donc 32 octets au hazard à partir de l'adresse zéro. pour ensuite refaire la lecture de ces 32 octets et les affichés à l'écran. 
+```
+>li 
+   10 SPIEN 2,1' spi clock 2Mhz
+   20 SPISEL 1:SPIWR 6:SPISEL 0 'active bit WEL dans l'EEPROM 
+   22 SPISEL 1:SPIWR 5:IF NOT (AND (SPIRD ,2)):GOTO 200
+   24 SPISEL 0
+   30 SPISEL 1:SPIWR 2,0,0
+   40 FOR I =0TO 31:SPIWR RND (256):NEXT I 
+   42 SPISEL 0
+   43 GOSUB 100' wait for write completed 
+   44 SPISEL 1:SPIWR 3,0,0
+   46 HEX :FOR I =0TO 31:PRINT SPIRD ,:NEXT I 
+   50 SPISEL 0
+   60 SPIEN 0,0
+   70 END  
+   90 ' wait for write completed 
+  100 SPISEL 1:SPIWR 5:S =SPIRD :SPISEL 0
+  110 IF AND (S ,1):GOTO 100
+  120 RETURN 
+  200 PRINT "Echec activation bit WEL dans l'EEPROM"
+  210 SPISEL 0
+  220 SPIEN 0,0
+
+>run
+ $3F $99 $19 $73 $4C $FE $B1 $66 $88 $7F $31 $FD $AD $BA $78 $1B $78 $2F $23 $59 $7D $C6 $2E $D0 $80 $7A $19 $E8 $53 $BC  $5 $AC
+>run
+ $A0 $AE $DD $32 $C5 $D6 $DB $43 $90 $CA $CF $60 $37 $B9 $D8 $C0  $7 $3B $AE $B2 $58 $5F $B5 $33 $8D $1D $7D $3F $94 $7D $FF $F3
+>
+```
+
 ### STEP *expr* {C,P}
 Ce mot réservé fait partie de la commande **FOR** et indique l'incrément de la variable de contrôle de la boucle. Pour plus de détail voir la commande **FOR**. 
 
-### STOP {C,P}
-Cette commande arrête l'exécution d'un programme et retourne le contrôle à la ligne de commande. Cette commande peut-être placée à plusieurs endroits dans un programme. Elle peut aussi être utlisée sur la ligne de commande pour interrompre un programme après l'invocation d'une commande BREAK.
+### STOP {P}
+Outil d'aide au débogage. Cette commande interrompt l'exécution du programme au point où elle est insérée. L'utilisateur se retrouve donc sur la ligne de commande où il peut exécuter différentes commandes comme examiner le contenu des piles avec la commande **SHOW** ou imprimer la valeur d'une variable. Le programme est redémarré à son point d'arrêt avec la commande **RUN**.  La commande **END** interompt l'exécution.
 ```
->lis
-   10 a=1
-   20 a=a+1
-   30 ? a,: if a>100:stop 'arrete lorsque A depasse 100
-   40 goto 20
+>li
+   10 for a=1to10:?a,:STOP:ne a
 
 >run
-   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63  64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79  80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96  97  98  99 100 101
+   1
+break point, RUN to resume.
+
+>show
+dstack:   39  10   1
+ctack:  $5B $10 $191E  $A $5B
+
+>ru
+   2
+break point, RUN to resume.
+
+>END
+
 >
 ```
+Dans cet exemple la commande **STOP** a été insérée à l'intérieur d'une boucle **FOR...NEXT** donc le programme s'arrête à chaque itération.
+
 ### TICKS {C,P}
 Le systême entretien un compteur de millisecondes en utilisant le **TIMER4**.  Cette commande retourne la valeur de ce compteur. Le compteur est de 16 bits donc le *roll over* est de 65536 millisecondes. Ce compteur peut-être utilisé pour chronométrer la durée d'exécution d'une routine. Par exemple ça prend combien de temps pour exécuter 1000 boucles FOR vide.
 ```

@@ -4605,10 +4605,10 @@ run_it:
 
 
 ;----------------------
-; BASIC: STOP 
-; stop running program
+; BASIC: END
+; end running program
 ;---------------------- 
-stop: 
+cmd_end: 
 ; clean dstack and cstack 
 	ldw x,#STACK_EMPTY 
 	ldw sp,x 
@@ -4810,13 +4810,13 @@ digital_write:
 
 
 ;-----------------------
-; BASIC: BREAK 
-; insert a breakpoint 
-; in pogram. 
+; BASIC: STOP
+; stop progam execution  
+; without resetting pointers 
 ; the program is resumed
 ; with RUN 
 ;-------------------------
-break:
+stop:
 	btjt flags,#FRUN,2$
 	clr a
 	ret 
@@ -6397,11 +6397,12 @@ read01:
 
 
 ;---------------------------------
-; BASIC: SPIEN clkdiv, mode 
+; BASIC: SPIEN clkdiv, 0|1  
 ; clkdiv -> {0..7} Fspi=Fclk/2^(n+1)
 ; if clkdiv==-1 disable SPI
-; mode -> # master  | 0 slave 
+; 0|1 -> disable|enable  
 ;--------------------------------- 
+SPI_CS_BIT=5
 spi_enable:
 	call arg_list 
 	cp a,#2
@@ -6409,22 +6410,26 @@ spi_enable:
 	jp syntax_error 
 1$: 
 	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
-	call dswap
 	call dpop 
-	cpw x,#-1
-	jreq spi_disable
+	jreq spi_disable 
+	call dpop 
 	ld a,#(1<<SPI_CR1_BR)
 	mul x,a 
 	ld a,xl 
 	ld SPI_CR1,a 
-	call dpop 
-	jreq 2$
+; configure ~CS on PE5 (D10 on CN8) as output. 
+	bset PE_ODR,#SPI_CS_BIT	; set ~CS high  
+	bset PE_DDR,#SPI_CS_BIT  ; pin as output 
+; configure SPI as master mode 0.	
 	bset SPI_CR1,#SPI_CR1_MSTR
-2$: bset SPI_CR2,#SPI_CR2_SSM 
+; ~CS line controlled by sofware 	
+	bset SPI_CR2,#SPI_CR2_SSM 
     bset SPI_CR2,#SPI_CR2_SSI 
+; enable SPI
 	bset SPI_CR1,#SPI_CR1_SPE 	
 	ret 
 spi_disable:
+	call ddrop ; throw first argument.
 ; wait spi idle 
 1$:	ld a,#0x82 
 	and a,SPI_SR
@@ -6432,6 +6437,7 @@ spi_disable:
 	jrne 1$
 	bres SPI_CR1,#SPI_CR1_SPE
 	bres CLK_PCKENR1,#CLK_PCKENR1_SPI 
+	bres PE_DDR,#SPI_CS_BIT 
 	ret 
 
 spi_clear_error:
@@ -6491,17 +6497,22 @@ spi_read:
 	ret 
 
 ;------------------------------
-; BASIC: SPISTA 
-; return SPI_SR value
+; BASIC: SPISEL 0|1 
+; set state of ~CS line
+; 0|1 deselect|select  
 ;------------------------------
-spi_status:
-	ld a,SPI_SR 
-	clr SPI_SR 
-	clrw x 
-	ld xl,a 
-	ld a,#TK_INTGR 
+spi_select:
+	call next_token 
+	cp a,#TK_INTGR 
+	jreq 1$
+	jp syntax_error 
+1$: tnzw x  
+	jreq cs_high 
+	bres PE_ODR,#SPI_CS_BIT
 	ret 
-
+cs_high: 
+	bset PE_ODR,#SPI_CS_BIT
+	ret 
 
 ;------------------------------
 ;      dictionary 
@@ -6541,7 +6552,7 @@ kword_end:
 	_dict_entry,4,STOP,stop 
 	_dict_entry,4,STEP,step 
 	_dict_entry,5,SPIWR,spi_write
-	_dict_entry,6+F_IFUNC,SPISTA,spi_status
+	_dict_entry,6,SPISEL,spi_select
 	_dict_entry,5,SPIEN,spi_enable 
 	_dict_entry,5+F_IFUNC,SPIRD, spi_read 
 	_dict_entry,5,SLEEP,sleep 
@@ -6598,6 +6609,7 @@ kword_end:
 	_dict_entry,3,FOR,for 
 	_dict_entry,4,FCPU,fcpu 
 	_dict_entry,6+F_IFUNC,EEPROM,const_eeprom_base   
+	_dict_entry,3,END,cmd_end  
 	_dict_entry,6+F_CMD,DWRITE,digital_write
 	_dict_entry,5+F_IFUNC,DREAD,digital_read
 	_dict_entry,2,DO,do_loop
@@ -6614,7 +6626,6 @@ kword_end:
 	_dict_entry,5+F_IFUNC,BTEST,bit_test 
 	_dict_entry,4,BSET,bit_set 
 	_dict_entry,4,BRES,bit_reset
-	_dict_entry,5,BREAK,break 
 	_dict_entry,3+F_IFUNC,BIT,bitmask
 	_dict_entry,3,AWU,awu 
 	_dict_entry,7,AUTORUN,autorun
