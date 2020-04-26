@@ -33,7 +33,7 @@
 	.include "pab_macros.inc" 
     .list 
 
-_dbg 
+;_dbg 
 
 	
 ;--------------------------------------
@@ -1232,7 +1232,7 @@ cold_start:
 ;	clr CLK_PCKENR1 
 ;	clr CLK_PCKENR2
 	clr AWU_TBR 
-	bset CLK_PCKENR2,#2 ; enable LSI for beeper
+	bset CLK_PCKENR2,#CLK_PCKENR2_AWU ; enable LSI for beeper
 ; select internal clock no divisor: 16 Mhz 	
 	ld a,#CLK_SWR_HSI 
 	clrw x  
@@ -6396,6 +6396,113 @@ read01:
 	jra read01
 
 
+;---------------------------------
+; BASIC: SPIEN clkdiv, mode 
+; clkdiv -> {0..7} Fspi=Fclk/2^(n+1)
+; if clkdiv==-1 disable SPI
+; mode -> # master  | 0 slave 
+;--------------------------------- 
+spi_enable:
+	call arg_list 
+	cp a,#2
+	jreq 1$
+	jp syntax_error 
+1$: 
+	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
+	call dswap
+	call dpop 
+	cpw x,#-1
+	jreq spi_disable
+	ld a,#(1<<SPI_CR1_BR)
+	mul x,a 
+	ld a,xl 
+	ld SPI_CR1,a 
+	call dpop 
+	jreq 2$
+	bset SPI_CR1,#SPI_CR1_MSTR
+2$: bset SPI_CR2,#SPI_CR2_SSM 
+    bset SPI_CR2,#SPI_CR2_SSI 
+	bset SPI_CR1,#SPI_CR1_SPE 	
+	ret 
+spi_disable:
+; wait spi idle 
+1$:	ld a,#0x82 
+	and a,SPI_SR
+	cp a,#2 
+	jrne 1$
+	bres SPI_CR1,#SPI_CR1_SPE
+	bres CLK_PCKENR1,#CLK_PCKENR1_SPI 
+	ret 
+
+spi_clear_error:
+	ld a,#0x78 
+	bcp a,SPI_SR 
+	jreq 1$
+	clr SPI_SR 
+1$: ret 
+
+spi_send_byte:
+	push a 
+	call spi_clear_error
+	pop a 
+	btjf SPI_SR,#SPI_SR_TXE,.
+	ld SPI_DR,a
+	btjf SPI_SR,#SPI_SR_RXNE,.  
+	ld a,SPI_DR 
+	ret 
+
+spi_rcv_byte:
+	ld a,#255
+	btjf SPI_SR,#SPI_SR_RXNE,spi_send_byte 
+	ld a,SPI_DR 
+	ret
+
+;------------------------------
+; BASIC: SPIWR byte [,byte]
+; write 1 or more byte
+;------------------------------
+spi_write:
+	call expression
+	cp a,#TK_INTGR 
+	jreq 1$
+	jp syntax_error 
+1$:	
+	ld a,xl 
+	call spi_send_byte 
+	call next_token 
+	cp a,#TK_COMMA 
+	jrne 2$ 
+	jra spi_write 
+2$:	tnz a 
+	jreq 3$
+	mov in,in.saved 
+3$:	ret 
+
+
+;-------------------------------
+; BASIC: SPIRD 	
+; read one byte from SPI 
+;-------------------------------
+spi_read:
+	call spi_rcv_byte 
+	clrw x 
+	ld xl,a 
+	ld a,#TK_INTGR 
+	ret 
+
+;------------------------------
+; BASIC: SPISTA 
+; return SPI_SR value
+;------------------------------
+spi_status:
+	ld a,SPI_SR 
+	clr SPI_SR 
+	clrw x 
+	ld xl,a 
+	ld a,#TK_INTGR 
+	ret 
+
+
 ;------------------------------
 ;      dictionary 
 ; format:
@@ -6433,6 +6540,10 @@ kword_end:
 	_dict_entry,5+F_IFUNC,TICKS,get_ticks
 	_dict_entry,4,STOP,stop 
 	_dict_entry,4,STEP,step 
+	_dict_entry,5,SPIWR,spi_write
+	_dict_entry,6+F_IFUNC,SPISTA,spi_status
+	_dict_entry,5,SPIEN,spi_enable 
+	_dict_entry,5+F_IFUNC,SPIRD, spi_read 
 	_dict_entry,5,SLEEP,sleep 
 	_dict_entry,4+F_IFUNC,SIZE,size
     _dict_entry,4,SHOW,show 

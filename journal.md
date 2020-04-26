@@ -1,3 +1,31 @@
+### 2020-04-05 
+
+*  Ajout de commandes et fonctions pour l'interface SPI. Test interface utilisant une mémoire EEPROM 25LC512 montée sur le connecteur CN8 de la carte NUCLEO.
+    * D10   ~CS   sur pin 1 de l'EEPROM, sélectionne l'EEPROM lorsqu'à zéro.
+    * D11   MOSI  sur pin 5 de l'EEPROM, données envoyées à l'EEPROM 
+    * D12   MISO  sur pin 2 de l'EEPROM, données reçues de l'EEPROM
+    * D13   SCK   sur pin 6 de l'EEPROM, signal clock contrôlé par la carte. 
+    * GRD         sur pin 4 de l'EEPROM, 0 volt alimentation. 
+    * VDD         sur pins 3,7,8 de l'EEPROM, 3 volt alimentation. 
+
+    Je suis capable d'écrire et de lire dans l'EEPROM externe.
+    ```
+    5 ' programme pour tester l'EEPROM 25LC512 
+   10 PMODE 10,POUT :DWRITE 10,1 ' D10 en sortie , mettre à 1.
+   20 SPIEN 0,1 ' active le SPI 
+   30 DWRITE 10,0:SPIWR 6:DWRITE 10,1  'active le bit WEL dans l'EEPROM
+   31 ' on vérifie si la commande prédécente a fonctionnée.
+   32 DWRITE 10,0:SPIWR 5:IF SPIRD <>2:PRINT "failed":DWRITE 10,1:STOP 
+   40 DWRITE 10,0:SPIWR 2,0,0,1,2,3:PAUSE 5:DWRITE 10,1 : écris 1,2,3 dans L'EEPROM
+   50 DWRITE 10,0:SPIWR 3,0,0 ' commande de lecture 
+   60 PRINT SPIRD ,SPIRD ,SPIRD :DWRITE 10,1 ' lecture des 3 octets écris. 
+
+    run
+   1   2   3
+   
+    ```
+
+
 ### 2020-04-24
 
 * corrigé bogue dans **INPUT** 
