@@ -1,3 +1,46 @@
+### 2020-04-29
+
+* Éliminé la pile *dstack*. L'architecture du ST8 se prête mal à la réalisation d'une machine virtuelle à deux piles. Je pense améliorer la performance en éliminant cette pile pour n'utiliser que la pile définie par l'architectrue du MCU.
+
+Même tests pour voir gain de performances 
+```
+>t=ticks:for a=1 to 100:for b=1to10000:next b:next a:? ticks-t
+9763
+
+>t=ticks:for a=1to10000:b=rnd(50):next a:? ticks-t
+ 666
+
+>t=ticks:for a=1 to 10000:b=3*5+rnd(1000):next a:? ticks-t
+ 925
+
+>
+
+```
+C'est sur le test des boucles FOR...NEXT que le gain est le plus visible. Ce n'est pas surprenant puisque c'est boucles utilisait le *dstack*.
+
+
+* Réécriture la commande **SHOW**  pour un affichage plus pratique.
+
+* Élimination du code devenu inutile. 
+
+### 2020-04-28
+
+* Création d'une branche test. J'essaie d'améliorer la performance de l'interpréteur. Dans la version actuelle 1,000,000 de boucles FOR..NEXT vide s'exécutent en 11256msec. Je vais réécrire complètement la machine virtuelle en espérant un gain significatif.
+```
+> ' Quelque test de performances
+
+>t=ticks:for a=1 to 100:for b=1to10000:next b:next a:? ticks-t
+11256
+
+>t=ticks:for a=1to10000:b=rnd(50):next a:? ticks-t
+ 754
+
+>t=ticks:for a=1 to 10000:b=3*5+rnd(1000):next a:? ticks-t
+1017
+
+>
+```
+
 ### 2020-04-26
 
 * Mise à jour du document [tbi_reference.md](tbi_refenrence.md) 

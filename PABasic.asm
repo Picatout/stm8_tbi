@@ -42,8 +42,7 @@
 
 	TIB_SIZE=80
     PAD_SIZE=40
-	DSTACK_SIZE=32 
-	STACK_SIZE=128
+	STACK_SIZE=160
 	STACK_EMPTY=RAM_SIZE-1  
 	FRUN=0 ; flags run code in variable flags
 	FTRAP=1 ; inside trap handler 
@@ -55,6 +54,8 @@
 	AUTORUN_NAME=0x4000 ; address in EEPROM where auto run file name is saved 
 
     FIRST_DATA_ITEM=6 ; first DATA item offset on line.
+
+	MAX_LINENO=0x7fff; BASIC maximum line number 
 
 in.w:  .blkb 1 ; parser position in text line
 in:    .blkb 1 ; low byte of in.w
@@ -92,11 +93,9 @@ free_ram: ; from here RAM free for BASIC text
     .area SSEG (ABS)
 ;-----------------------------------
 ;;;; working buffers and stacks at end of RAM. 	
-    .org RAM_SIZE-STACK_SIZE-TIB_SIZE-PAD_SIZE-DSTACK_SIZE 
+    .org RAM_SIZE-STACK_SIZE-TIB_SIZE-PAD_SIZE 
 tib: .ds TIB_SIZE             ; transaction input buffer
 pad: .ds PAD_SIZE             ; working buffer
-dstack: .ds DSTACK_SIZE 	  ; data stack used by FOR...NEXT, and func/proc arguments  
-dstack_empty: ; dstack underflow ; data stack bottom 
 stack_full: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
 
@@ -1232,7 +1231,7 @@ cold_start:
 ;	clr CLK_PCKENR1 
 ;	clr CLK_PCKENR2
 	clr AWU_TBR 
-	bset CLK_PCKENR2,#CLK_PCKENR2_AWU ; enable LSI for beeper
+	bset CLK_PCKENR2,#CLK_PCKENR2_AWU ; enable LSI for AWU 
 ; select internal clock no divisor: 16 Mhz 	
 	ld a,#CLK_SWR_HSI 
 	clrw x  
@@ -1268,15 +1267,12 @@ cold_start:
 	inc seedx+1 
 	call clear_basic
 	call ubound 
-	call dpop 
-	ldw array_size,x
-; 200 msec beep 
-	ldw x,#988 
-	call dpush 
+;	jra 2$	
+; 150 msec beep 
 	ldw x,#150 
-	call dpush 
-	call beep 
-	bres PC_ODR,#LED2_BIT	
+	ldw y,#998 
+	call beep  
+2$:	bres PC_ODR,#LED2_BIT	
 	call warm_init
 	call load_autorun
     jp interp 
@@ -1284,8 +1280,6 @@ cold_start:
 warm_init:
 	clr flags 
 	clr loop_depth 
-	ldw x,#dstack_empty 
-	ldw dstkptr,x 
 	mov tab_width,#TAB_WIDTH 
 	mov base,#10 
 	ldw x,#tib 
@@ -1461,39 +1455,38 @@ interp_loop:
 next_token:
 	ld a,in 
 	sub a,count ; don't replace sub by cp.  
-	jreq 9$
+	jreq 10$
 	mov in.saved,in 
-	ldw x,basicptr 
-	ld a,([in.w],x)
-	inc in 
+	ldw y,basicptr 
+	addw y,in.w 
+	ld a,(y)
+	incw y  
 	cp a,#TK_ARRAY  
 	jrule 9$
 	cp a,#TK_CHAR
 	jrne 1$
-	ld a,([in.w],x)
-	inc in
+	ld a,(y)
+	incw y
 	clrw x 
 	ld xl,a 
 	ld a,#TK_CHAR
-	ret 
+	jra 9$ 
 1$:	cp a,#TK_QSTR 
 	jrult 4$
 	jrne 9$
-	addw x,in.w 
-	pushw x 
-2$:	tnz (x)
+	ldw x,y 
+2$:	tnz (y)
 	jreq 3$
-	incw x 
+	incw y
 	jra 2$ 
-3$:	incw x 
-    subw x,basicptr 
-	ldw in.w,x 
-	popw x 
-	ret 
-4$: ldw x,([in.w],x)
-	inc in 
-	inc in
-9$: 
+3$:	incw y 
+	jra 9$ 
+4$: ldw x,y 
+	ldw x,(x)
+	addw y,#2  
+9$: subw y,basicptr 
+    ldw in.w,y 
+10$:
 	ret	
 
 
@@ -2704,180 +2697,6 @@ skip:
 2$: _drop 1 
 	ret
 	
-;------------------------------
-; restore 'in.w' variable to 
-; its value before last call
-; to get_token.
-;------------------------------
-unget_token:
-	mov in,in.saved
-	ret 
-
-
-;******************************
-;  data stack manipulation
-;*****************************
-;----------------------	
-; push X on data stack 
-; input:
-;	X 
-; output:
-;	none 
-;----------------------	
-dpush:
-    _dp_down
-    ldw [dstkptr],x  
-	ret 
-
-
-;----------------------	
-; pop data stack in X 
-; input:
-;	none
-; output:
-;	X   
-;----------------------	
-dpop: 
-    ldw x, [dstkptr]
-	_dp_up
-	ret 
-
-;-----------------------------
-; swap top 2 elements of dstack
-;  {n1 n2 -- n2 n1 }
-;-----------------------------
-dswap:
-	ldw x,[dstkptr]
-	pushw x 
-	ldw x,#2 
-	ldw x,([dstkptr],x) 
-	ldw [dstkptr],x 
-	ldw x,#2
-	popw y 
-	ldw ([dstkptr],x),y 
-	ret
-
-;-----------------------------
-; drop TOS 
-;-----------------------------
-ddrop: ; { n -- }
-	_dp_up 
-	ret
-	
-;-----------------------------
-; duplicate TOS 
-;  dstack: { ix...n -- ix...n n }
-;-----------------------------
-ddup:
-;	ldw x,[dstkptr]
-;	_dp_down
-;   ldw [dstkptr],x  
-;	ret 
-
-
-;----------------------------------
-; pick value n from dstack 
-; put it on TOS
-; dstack: {ix,..,p -- ix,...,np }
-;-----------------------------------
-dpick:
-;	ldw x,[dstkptr]
-;	sllw x 
-;	addw x,dstkptr 
-;	ldw x,(x)
-;	ldw [dstkptr],x 
-;	ret
-
-;---------------------------
-;  fetch variable in X 
-;  dstack:{ addr -- value }
-;---------------------------
-fetch:
-	ldw x,[dstkptr]
-	ldw x,(x)
-	ldw [dstkptr],x
-	ret 
-
-;----------------------------
-; store variable 
-; dstack: {addr value -- }
-;----------------------------
-store:
-	call dpop 
-	ldw y,x   ; y=value 
-	call dpop 
-	ldw (x),y 
-	ret 
-
-;---------------------------------
-; drop n elements from data stack 
-; input: 
-;   X 		n 
-; output:
-;   none 
-;-------------------------------------
-ddrop_n:
-	sllw x
-	addw x,dstkptr 
-	ldw dstkptr,x  
-	ret 
-
-dstk_prompt: .asciz "\ndstack: " 
-;----------------------------
-; print dstack content 
-;---------------------------
-	XSAVE=1
-	VSIZE=2
-dots:
-	_vars VSIZE 
-	ldw x,#dstk_prompt 
-	call puts
-	ldw x,#dstack_empty-CELL_SIZE
-	mov base,#10 
-1$:	cpw x,dstkptr 
-	jrult 4$ 
-	ldw (XSAVE,sp),x
-	ldw  x,(x)
-	call print_int 
-	ldw x,(XSAVE,sp)
-	subw x,#CELL_SIZE 
-	jra 1$ 
-4$: ld a,#CR 
-	call putc 
-	_drop VSIZE
-	clr a 
-	ret
-
-cstk_prompt: .asciz "\ncstack: "
-;--------------------------------
-; print cstack content
-;--------------------------------
-	XSAVE=1
-	VSIZE=2 
-dotr:
-	_vars VSIZE 
-	ldw x,#cstk_prompt
-	call puts 
-	ldw x,sp 
-	addw x,#7 ; ignore XSAVE and 2 levels of return address.
-	ldw (XSAVE,sp),x  
-	ldw x,#RAM_SIZE-2
-	mov base,#16
-dotr_loop:
-	cpw x,(XSAVE,sp)
-	jrmi 9$
-	pushw x  
-	ldw x,(x)
-	call print_int 
-	popw x  
-	subw x,#CELL_SIZE
-	jra dotr_loop 
-9$:	ld a,#CR 
-	call putc 
-	_drop VSIZE 
-	clr a 
-	ret
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;   TINY BASIC  operators,
 ;;   commands and functions 
@@ -3222,13 +3041,13 @@ expect:
 ; arguments list.
 ; arg_list::=  rel[','rel]*
 ; all arguments are of integer type
-; and pushed on dstack 
+; and pushed on stack 
 ; input:
 ;   none
 ; output:
-;   A 	number of arguments pushed on dstack  
+;   stack{n}   arguments pushed on stack
+;   A 	number of arguments pushed on stack  
 ;--------------------------------
-	ARG_CNT=1 
 arg_list:
 	push #0  
 1$: call relation
@@ -3236,16 +3055,21 @@ arg_list:
 	jreq 5$
 	cp a,#TK_INTGR
 	jrne 4$
-3$: call dpush 
-    inc (ARG_CNT,sp)
+3$: 
+; swap return address with argument
+	pop a 
+	popw y 
+	pushw x 
+	pushw y 
+    inc a
+	push a 
 	call next_token 
+	cp a,#TK_COMMA 
+	jreq 1$ 
 	cp a,#TK_NONE 
 	jreq 5$ 
-	cp a,#TK_COMMA 
-	jrne 4$
-	jra 1$ 
-4$:	call unget_token 
-5$:	pop a 
+4$:	_unget_token 
+5$:	pop a  
 	ret 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3253,6 +3077,8 @@ arg_list:
 ; between ()
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 func_args:
+	popw x
+	ldw farptr+1,x  
 	ld a,#TK_LPAREN 
 	call expect 
 	call arg_list 
@@ -3260,8 +3086,7 @@ func_args:
 	ld a,#TK_RPAREN 
 	call expect 
 	pop a 
-	ret 
-
+	jp [farptr+1]
 
 ;--------------------------------
 ;   BASIC commnands 
@@ -3295,7 +3120,7 @@ get_array_element:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: call dpop  
+1$: popw x 
 	; check for bounds 
 	cpw x,array_size 
 	jrule 3$
@@ -3316,7 +3141,7 @@ get_array_element:
 ;   expression parse,execute 
 ;***********************************
 ;-----------------------------------
-; factor ::= ['+'|'-'|e] var | @ |
+; factor ::= ['+'|'-'|e]  var | @ |
 ;			 integer | function |
 ;			 '('relation')' 
 ; output:
@@ -3368,7 +3193,7 @@ factor:
 	popw x 
 	jra 18$	
 16$:
-	call unget_token
+	_unget_token
 	clr a 
 	jra 20$ 
 18$: 
@@ -3400,14 +3225,14 @@ term:
 term01:	 ; check for  operator 
 	ldw (N2,sp),x  ; save first factor 
 	call next_token
-	cp a,#2
+	cp a,#CMD_END
 	jrmi 9$
 0$:	ld (MULOP,sp),a
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_MULT
 	jreq 1$
 	ld a,(MULOP,sp) 
-	call unget_token 
+	_unget_token 
 	jra 9$
 1$:	; got *|/|%
 	call factor
@@ -3450,14 +3275,13 @@ expression:
 	jrmi expr_exit 
 0$:	ldw (N2,sp),x 
 	call next_token
-	cp a,#2
+	cp a,#CMD_END 
 	jrmi 9$ 
 1$:	ld (OP,sp),a  
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_ADD 
 	jreq 2$ 
-	ld a,(OP,sp)
-	call unget_token
+	_unget_token
 	jra 9$
 2$: 
 	call term
@@ -3498,15 +3322,14 @@ relation:
 	; expect rel_op or leave 
 	ldw (N2,sp),x 
 	call next_token 
-	cp a,#2
+	cp a,#CMD_END 
 	jrmi 9$
 1$:	
 	ld (RELOP,sp),a 
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_RELOP 
 	jreq 2$
-	ld a,(RELOP,sp)
-	call unget_token  
+	_unget_token  
 	jra 9$
 2$:	; expect another expression or error 
 	call expression
@@ -3542,17 +3365,89 @@ rel_exit:
 
 ;--------------------------------
 ; BASIC: SHOW 
-;  show content of dstack,cstack
+; print stack content in hexadecimal bytes 
+; 16 bytes per row 
 ;--------------------------------
+	TWSAVE=1
+	BSAVE=2
+	ADDR=3
+	VSIZE=4 
 show:
+	_vars VSIZE
 	ld a,base 
-	push a 
-	call dots
-	call dotr 
-	pop a 
+	ld (BSAVE,sp),a
+	ld a,tab_width
+	ld (TWSAVE,sp),a
+	mov base,#16   
+	ldw x,#cstk_prompt
+	call puts 
+	ldw x,sp 
+	addw x,#VSIZE+1 ; ignore local vars and return address
+	ldw (ADDR,sp),x 
+dotr_loop:
+	cpw x,#RAM_SIZE 
+	jruge 9$
+	ld a,#16 
+	ldw y,#RAM_SIZE  
+	subw y,(ADDR,sp)
+	cpw y,#16 
+	jruge 2$
+	ld a,yl  
+2$:  
+	call show_row 
+	ldw (ADDR,sp),x 
+	jra dotr_loop 
+9$:	ld a,#CR 
+	call putc 
+	ld a,(BSAVE,sp)
 	ld base,a 
+	ld a,(TWSAVE,sp)
+	ld tab_width,a 
+	_drop VSIZE 
 	clr a 
 	ret
+
+cstk_prompt: .asciz "\ncontent of stack from top to bottom:\n"
+
+;---------------------
+; display n bytes row 
+; from memory.
+; input:
+;   A   bytes to print 
+;	X   start address 
+; output:
+;   X   address after last shown  
+;---------------------
+	CNT=1 
+	ADR=2 
+	VSIZE=3 
+show_row:
+	tnz a 
+	jrne 1$
+	ret 
+1$:	
+	pushw x  
+	push a 
+	mov tab_width,#4 
+	call print_int 
+	ld a,#SPACE  
+	call putc
+row_loop:
+	ldw x,(ADR,sp)
+	ld a,(x)
+	clrw x 
+	ld xl,a 
+	call print_int 
+	ldw x,(ADR,sp)
+	incw x 
+	ldw (ADR,sp),x 
+	dec (CNT,sp)
+	jrne row_loop
+	_drop VSIZE  		
+	mov tab_width,#4
+	ld a,#CR 
+	call putc 
+	ret 
 
 ;--------------------------------------------
 ; BASIC: HEX 
@@ -3618,7 +3513,7 @@ let:
 	jreq let02
 	jp syntax_error
 let02:
-	call dpush 
+	pushw x  
 	call next_token 
 	cp a,#TK_EQUAL
 	jreq 1$
@@ -3630,7 +3525,7 @@ let02:
 	jp syntax_error
 2$:	
 	ldw y,x 
-	call dpop  
+	popw x   
 	ldw (x),y   
 	ret 
 
@@ -3654,7 +3549,7 @@ list:
 1$:	ldw (LN_PTR,sp),x 
 	ldw x,(x) 
 	ldw (FIRST,sp),x ; list from first line 
-	ldw x,#0x7fff ; biggest line number 
+	ldw x,#MAX_LINENO ; biggest line number 
 	ldw (LAST,sp),x 
 	call arg_list
 	tnz a
@@ -3664,15 +3559,11 @@ list:
 	cp a,#1 
 	jreq first_line 
 	jp syntax_error 
-4$:	call dswap
-first_line:
-	call dpop 
-	ldw (FIRST,sp),x 
-	cp a,#1 
-	jreq lines_skip 	
-last_line:
-	call dpop 
+4$:	popw x 
 	ldw (LAST,sp),x 
+first_line:
+	popw x 
+	ldw (FIRST,sp),x 
 lines_skip:
 	ldw x,txtbgn
 2$:	ldw (LN_PTR,sp),x 
@@ -3994,7 +3885,7 @@ prt_loop:
 	ld tab_width,a 
 	jp reset_comma 
 7$:	
-	call unget_token
+	_unget_token
 print_exit:
 	tnz (COMMA,sp)
 	jrne 9$
@@ -4017,7 +3908,7 @@ print_exit:
 ;--------------------
 ; save current BASIC
 ; interpreter context 
-; on cstack 
+; on stack 
 ;--------------------
 	_argofs 0 
 	_arg BPTR 1
@@ -4035,7 +3926,7 @@ save_context:
 ;-----------------------
 ; restore previously saved 
 ; BASIC interpreter context 
-; from cstack 
+; from stack 
 ;-------------------------
 rest_context:
 	ldw x,(BPTR,sp)
@@ -4055,7 +3946,8 @@ rest_context:
 	CX_IN=3
 	CX_CNT=4
 	SKIP=5
-	VSIZE=5
+	VAR_ADDR=6 
+	VSIZE=7
 input_var:
 	_vars VSIZE 
 input_loop:
@@ -4069,7 +3961,7 @@ input_loop:
 1$: cp a,#TK_VAR  
 	jreq 2$ 
 	jp syntax_error
-2$:	call dpush 
+2$:	ldw (VAR_ADDR,sp),x 
 	tnz (SKIP,sp)
 	jrne 21$ 
 ;	clr pad+2
@@ -4089,8 +3981,8 @@ input_loop:
 	jreq 3$ 
 	call rest_context 
 	jp syntax_error
-3$: call dpush 
-	call store 
+3$: popw y 
+	ldw (y),x 
 	call rest_context
 	call next_token 
 	cp a,#TK_COMMA 
@@ -4133,13 +4025,13 @@ wait:
 	jp syntax_error 
 0$:	cp a,#3
 	jrult 1$
-	call dpop 
+	popw x 
 	ld a,xl
 	ld (XMASK,sp),a 
-1$: call dpop ; mask 
+1$: popw x ; mask 
 	ld a,xl 
 	ld (MASK,sp),a 
-	call dpop ; address 
+	popw x ; address 
 2$:	ld a,(x)
 	and a,(MASK,sp)
 	xor a,(XMASK,sp)
@@ -4163,9 +4055,9 @@ bit_set:
 	jreq 1$ 
 	jp syntax_error
 1$: 
-	call dpop ; mask 
+	popw x ; mask 
 	ld a,xl 
-	call dpop ; addr  
+	popw x ; addr  
 	or a,(x)
 	ld (x),a
 	ret 
@@ -4186,10 +4078,10 @@ bit_reset:
 	jreq 1$ 
 	jp syntax_error
 1$: 
-	call dpop ; mask 
+	popw x ; mask 
 	ld a,xl 
 	cpl a 
-	call dpop ; addr  
+	popw x ; addr  
 	and a,(x)
 	ld (x),a 
 	ret 
@@ -4209,9 +4101,9 @@ bit_toggle:
 	cp a,#2 
 	jreq 1$ 
 	jp syntax_error
-1$: call dpop ; mask 
+1$: popw x ; mask 
 	ld a,xl 
-	call dpop ; addr  
+	popw x ; addr  
 	xor a,(x)
 	ld (x),a 
 	ret 
@@ -4233,24 +4125,24 @@ bit_test:
 	jreq 0$
 	jp syntax_error
 0$:	
-	call dpop 
+	popw x 
 	ld a,xl 
 	and a,#7
-	push a 
+	push a   
 	ld a,#1 
 1$: tnz (1,sp)
 	jreq 2$
 	sll a 
 	dec (1,sp)
 	jra 1$
-2$: call dpop 
+2$: _drop 1 
+	popw x 
 	and a,(x)
 	jreq 3$
 	ld a,#1 
 3$:	clrw x 
 	ld xl,a 
 	ld a,#TK_INTGR
-	_drop 1 
 	ret
 
 
@@ -4264,9 +4156,9 @@ poke:
 	jreq 1$
 	jp syntax_error
 1$:	
-	call dpop 
+	popw x  
     ld a,xl 
-	call dpop 
+	popw x 
 	ld (x),a 
 	ret 
 
@@ -4283,7 +4175,7 @@ peek:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$:	call dpop 
+1$:	popw x 
 	ld a,(x)
 	clrw x 
 	ld xl,a 
@@ -4301,9 +4193,9 @@ xpeek:
 	jreq 1$
 	jp syntax_error
 1$: 
-	call dpop 
+	popw x  
 	ldw farptr+1,x 
-	call dpop 
+	popw x 
 	ld a,xl 
 	ld farptr,a 
 	clrw x
@@ -4333,22 +4225,26 @@ if:
 ; BASIC: FOR var=expr 
 ; set variable to expression 
 ; leave variable address 
-; on dstack and set
+; on stack and set
 ; FLOOP bit in 'flags'
 ;-----------------
-	RETL1=1
-	INW=3
-	BPTR=5
+	RETL1=1 ; return address  
+	FSTEP=3  ; variable increment
+	LIMIT=5 ; loop limit 
+	CVAR=7   ; control variable 
+	INW=9   ;  in.w saved
+	BPTR=11 ; baseptr saved
+	VSIZE=10  
 for: ; { -- var_addr }
+	popw x ; call return address 
+	_vars VSIZE 
+	pushw x  ; RETL1 
 	ld a,#TK_VAR 
 	call expect
-	call dpush 
+	ldw (CVAR,sp),x  ; control variable 
 	call let02 
 	bset flags,#FLOOP 
-; open space on cstack for BPTR and INW 
-	popw x ; call return address 
-	_vars 4
-	pushw x  ; RETL1 
+; open space on stack for loop data 
 	clrw x 
 	ldw (BPTR,sp),x 
 	ldw (INW,sp),x 
@@ -4364,7 +4260,7 @@ for: ; { -- var_addr }
 ;-----------------------------------
 ; BASIC: TO expr 
 ; second part of FOR loop initilization
-; leave limit on dstack and set 
+; leave limit on stack and set 
 ; FTO bit in 'flags'
 ;-----------------------------------
 to: ; { var_addr -- var_addr limit step }
@@ -4374,9 +4270,8 @@ to: ; { var_addr -- var_addr limit step }
 	cp a,#TK_INTGR 
 	jreq 2$ 
 	jp syntax_error
-2$: 
-    call dpush ; limit
-	ldw x,in.w 
+2$: ldw (LIMIT,sp),x
+;	ldw x,in.w 
 	call next_token
 	cp a,#TK_NONE  
 	jreq 4$ 
@@ -4385,10 +4280,10 @@ to: ; { var_addr -- var_addr limit step }
 	cpw x,#step 
 	jreq step
 3$:	
-	call unget_token   	 
+	_unget_token   	 
 4$:	
 	ldw x,#1   ; default step  
-	call dpush
+	ldw (FSTEP,sp),x 
 	jra store_loop_addr 
 
 
@@ -4404,9 +4299,9 @@ step: ; {var limit -- var limit step}
 	cp a,#TK_INTGR
 	jreq 2$
 	jp syntax_error
-2$:	call dpush
+2$:	ldw (FSTEP,sp),x ; step
 ; leave loop back entry point on cstack 
-; cstack is 2 call deep from interp_loop
+; cstack is 1 call deep from interp_loop
 store_loop_addr:
 	ldw x,basicptr  
 	ldw (BPTR,sp),x 
@@ -4422,10 +4317,10 @@ store_loop_addr:
 ; increment variable with step 
 ; and compare with limit 
 ; loop if threshold not crossed.
-; else clean both stacks. 
+; else stack. 
 ; and decrement 'loop_depth' 
 ;--------------------------------
-next: ; {var limit step -- [var limit step ] }
+next: ; {var limit step retl1 -- [var limit step ] }
 	tnz loop_depth 
 	jrne 1$ 
 	jp syntax_error 
@@ -4433,31 +4328,24 @@ next: ; {var limit step -- [var limit step ] }
 	ld a,#TK_VAR 
 	call expect
 ; check for good variable after NEXT 	 
-	ldw y,x 
-	ldw x,#4  
-	cpw y,([dstkptr],x) ; compare variables address 
+	cpw x,(CVAR,sp)
 	jreq 2$  
 	jp syntax_error ; not the good one 
 2$: ; increment variable 
-	ldw x,y
 	ldw x,(x)  ; get var value 
-	ldw acc16,x 
-	ldw x,[dstkptr] ; step
-	addw x,acc16 ; var+step 
+	addw x,(FSTEP,sp) ; var+step 
+	ldw y,(CVAR,sp)
 	ldw (y),x ; save var new value 
-; compare with limit 
-	ldw y,x 
-	ldw x,[dstkptr] ; step in x 
-	tnzw x  
-	jrpl 4$ ; positive step 
+; check sign of STEP  
+	ld a,#0x80
+	bcp a,(FSTEP,sp)
+	jrpl 4$
 ;negative step 
-	ldw x,#2
-	cpw y,([dstkptr],x)
+	cpw x,(LIMIT,sp)
 	jrslt loop_done
 	jra loop_back 
 4$: ; positive step
-	ldw x,#2 
-	cpw y,([dstkptr],x)
+	cpw x,(LIMIT,sp)
 	jrsgt loop_done
 loop_back:
 	ldw x,(BPTR,sp)
@@ -4469,16 +4357,13 @@ loop_back:
 	ldw in.w,x 
 	ret 
 loop_done:
-	; remove var limit step on dstack 
-	ldw x,dstkptr 
-	addw x,#3*CELL_SIZE
-	ldw dstkptr,x 
-	; remove 2 return address on cstack 
+	; remove loop data from stack  
 	popw x
-	_drop 4
-	pushw x 
+	_drop VSIZE 
 	dec loop_depth 
-	ret 
+;	pushw x 
+;	ret 
+	jp (x)
 
 ;----------------------------
 ; called by goto/gosub
@@ -4609,7 +4494,7 @@ run_it:
 ; end running program
 ;---------------------- 
 cmd_end: 
-; clean dstack and cstack 
+; clean stack 
 	ldw x,#STACK_EMPTY 
 	ldw sp,x 
 	bres flags,#FRUN 
@@ -4631,11 +4516,10 @@ tone:
 	jreq 1$
 	jp syntax_error 
 1$: 
-beep:
-	call dpop ; duration
+	popw x ; duration
+	popw y ; frequency 
+beep:  
 	pushw x 
-	call dpop ; frequency
-	ldw y,x 
 	ldw x,#TIM2_CLK_FREQ
 	divw x,y 
 ; round to nearest integer 
@@ -4669,6 +4553,9 @@ beep:
 ; BASIC: ADCON 0|1 [,divisor]  
 ; disable/enanble ADC 
 ;-------------------------------
+	ONOFF=3 
+	DIVSOR=1
+	VSIZE=4 
 power_adc:
 	call arg_list 
 	cp a,#2	
@@ -4677,12 +4564,11 @@ power_adc:
 	jreq 0$ 
 	jp syntax_error 
 0$: ldw x,#0
-	call dpush 
-1$: ldw x,#2
-	ldw x,([dstkptr],x) ; on|off
+	pushw x  ; divisor 
+1$: ldw x,(ONOFF,sp)
 	tnzw x 
 	jreq 2$ 
-	ldw x,[dstkptr] ; divisor 
+	ldw x,(DIVSOR,sp) ; divisor 
 	ld a,xl
 	and a,#7
 	swap a 
@@ -4693,9 +4579,7 @@ power_adc:
 	jra 3$
 2$: bres ADC_CR1,#ADC_CR1_ADON
 	bres CLK_PCKENR2,#CLK_PCKENR2_ADC
-3$:	ldw x,#4 ; drop 2 elements on dstack 
-	addw x,dstkptr
-	ldw dstkptr,x 
+3$:	_drop VSIZE 
 	ret
 
 ;-----------------------------
@@ -4710,7 +4594,7 @@ analog_read:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error
-1$: call dpop 
+1$: popw x 
 	cpw x,#5 
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
@@ -4744,7 +4628,7 @@ digital_read:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: call dpop 
+1$: popw x 
 	cpw x,#15 
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
@@ -4782,10 +4666,10 @@ digital_write:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: call dpop 
+1$: popw x 
 	ld a,xl 
 	ld (PINVAL,sp),a
-	call dpop
+	popw x 
 	cpw x,#15 
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
@@ -5332,7 +5216,7 @@ char:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$:	call dpop 
+1$:	popw x 
 	ld a,xl 
 	and a,#0x7f 
 	ld xl,a
@@ -5409,27 +5293,27 @@ qkey:
 ; output:
 ;   X 		gpio register address
 ;----------------------------
+	PORT=3
+	REG=1 
+	VSIZE=4 
 gpio:
 	call func_args 
 	cp a,#2
 	jreq 1$
 	jp syntax_error  
 1$:	
-	ldw x,#2
-	ldw x,([dstkptr],x) ; port 
+	ldw x,(PORT,sp)
 	jrmi bad_port
 	cpw x,#9
 	jrpl bad_port
 	ld a,#5
 	mul x,a
 	addw x,#GPIO_BASE 
-	pushw x 
-	call dpop 
-	addw x,(1,sp)
-	ldw (1,sp),x  
-	call ddrop  
-	popw x 
+	ldw (PORT,sp),x  
+	ldw x,(REG,sp) 
+	addw x,(PORT,sp)
 	ld a,#TK_INTGR
+	_drop VSIZE 
 	ret
 bad_port:
 	ld a,#ERR_BAD_VALUE
@@ -5469,16 +5353,16 @@ usr:
 	pushw y 	
 	call func_args 
 	cp a,#1 
-	jrpl 2$ 
+	jreq 2$
+	cp a,#2
+	jreq 2$  
 	jp syntax_error 
-2$: 
-	call dpop 
-	cp a,#2 
-	jrmi 4$
-	ldw y,x ; y=arg 
-	call dpop ;x=addr 
-4$:	exgw y,x ; y=addr,x=arg 
-	call (y)
+2$: popw y  ; arg|addr 
+	cp a,#1
+	jreq 3$
+	popw x ; addr
+	exgw x,y 
+3$: call (y)
 	popw y 
 	ret 
 
@@ -5651,7 +5535,7 @@ abs:
 	jreq 0$ 
 	jp syntax_error
 0$:  
-    call dpop   
+    popw x   
 	ld a,xh 
 	bcp a,#0x80 
 	jreq 2$ 
@@ -5672,9 +5556,7 @@ bit_and:
 	cp a,#2
 	jreq 1$
 	jp syntax_error 
-1$:	call dpop 
-	pushw x 
-	call dpop 
+1$:	popw x 
 	ld a,xh 
 	and a,(1,sp)
 	ld xh,a 
@@ -5699,9 +5581,7 @@ bit_or:
 	jreq 1$
 	jp syntax_error 
 1$: 
-	call dpop 
-	pushw x 
-	call dpop 
+	popw x 
 	ld a,xh 
 	or a,(1,sp)
 	ld xh,a 
@@ -5726,9 +5606,7 @@ bit_xor:
 	jreq 1$
 	jp syntax_error 
 1$: 
-	call dpop 
-	pushw x 
-	call dpop 
+	popw x 
 	ld a,xh 
 	xor a,(1,sp)
 	ld xh,a 
@@ -5752,9 +5630,8 @@ lshift:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: call dpop  
-	exgw x,y 
-	call dpop
+1$: popw y   
+	popw x 
 	tnzw y 
 	jreq 4$
 2$:	sllw x 
@@ -5777,9 +5654,8 @@ rshift:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: call dpop  
-	exgw x,y 
-	call dpop
+1$: popw y  
+	popw x
 	tnzw y 
 	jreq 4$
 2$:	srlw x 
@@ -5817,9 +5693,8 @@ pin_mode:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error 
-1$: call dpop ; mode 
-	exgw x,y 
-	call dpop ; Dx pin 
+1$: popw y ; mode 
+	popw x ; Dx pin 
 	call select_pin 
 	ld (PINNO,sp),a  
 	ld a,#1 
@@ -5903,11 +5778,9 @@ random:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: 
-	call dpop 
-	pushw x 
-	ld a,xh 
-	bcp a,#0x80 
+1$:  
+	ld a,#0x80 
+	bcp a,(1,sp)
 	jreq 2$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error
@@ -5960,6 +5833,7 @@ random:
 	divw x,y 
 	ldw x,y 
 	incw x 
+10$:
 	ld a,#TK_INTGR
 	ret 
 
@@ -6012,7 +5886,7 @@ set_timer:
 	jreq 1$
 	jp syntax_error
 1$: 
-	call dpop 
+	popw x 
 	ldw timer,x 
 	ret 
 
@@ -6039,7 +5913,7 @@ func_not:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$:	call dpop 
+1$:	popw x 
 	jra logical_complement
 
 
@@ -6055,9 +5929,9 @@ enable_iwdg:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error 
-1$: push #0
+1$: popw x 
+	push #0
 	mov IWDG_KR,#IWDG_KEY_ENABLE
-	call dpop
 	ld a,xh 
 	and a,#0x3f
 	ld xh,a  
@@ -6103,7 +5977,7 @@ log2:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error 
-1$: call dpop
+1$: popw x 
 leading_one:
 	tnzw x 
 	jreq 4$
@@ -6129,7 +6003,7 @@ bitmask:
 	cp a,#1
 	jreq 1$
 	jp syntax_error 
-1$: call dpop 
+1$: popw x 
 	ld a,xl 
 	and a,#15
 	clrw x 
@@ -6151,7 +6025,7 @@ invert:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error
-1$: call dpop 
+1$: popw x  
 	cplw x 
 	ld a,#TK_INTGR 
 	ret 
@@ -6160,11 +6034,19 @@ invert:
 ; BASIC: DO 
 ; initiate a DO ... UNTIL loop 
 ;------------------------------
+	DOLP_ADR=3 
+	DOLP_INW=5
+	VSIZE=4 
 do_loop:
 	popw x 
-	_vars 4 
+	_vars VSIZE 
 	pushw x 
-	jp store_loop_addr
+	ldw y,basicptr 
+	ldw (DOLP_ADR,sp),y
+	ldw y,in.w 
+	ldw (DOLP_INW,sp),y
+	inc loop_depth 
+	ret 
 
 ;--------------------------------
 ; BASIC: UNTIL expr 
@@ -6183,13 +6065,18 @@ until:
 2$: 
 	tnzw x 
 	jrne 9$
-	jp loop_back 
-9$:	; remove loop info cstack  
-	popw x
-	_drop 4
-	pushw x 
-	dec loop_depth 
+	ldw x,(DOLP_ADR,sp)
+	ldw basicptr,x 
+	ld a,(2,x)
+	ld count,a 
+	ldw x,(DOLP_INW,sp)
+	ldw in.w,x 
 	ret 
+9$:	; remove loop data from stack  
+	popw x
+	_drop VSIZE
+	dec loop_depth 
+	jp (x)
 
 ;--------------------------
 ; BASIC: PRTA...PRTI  
@@ -6410,9 +6297,9 @@ spi_enable:
 	jp syntax_error 
 1$: 
 	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
-	call dpop 
+	popw x  
 	jreq spi_disable 
-	call dpop 
+	popw x 
 	ld a,#(1<<SPI_CR1_BR)
 	mul x,a 
 	ld a,xl 
@@ -6429,7 +6316,7 @@ spi_enable:
 	bset SPI_CR1,#SPI_CR1_SPE 	
 	ret 
 spi_disable:
-	call ddrop ; throw first argument.
+	_drop #2; throw first argument.
 ; wait spi idle 
 1$:	ld a,#0x82 
 	and a,SPI_SR
@@ -6481,7 +6368,7 @@ spi_write:
 	jra spi_write 
 2$:	tnz a 
 	jreq 3$
-	mov in,in.saved 
+	_unget_token  
 3$:	ret 
 
 

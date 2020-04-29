@@ -99,6 +99,7 @@
 ;-------------------------------------
     MATH_OVF=0 ; if 1 the stop on math overflow 
 
+    CELL_SIZE=2 
 
     .macro _usec_dly n 
     ldw x,#(16*n-2)/4
@@ -107,29 +108,19 @@
     jrne .-4
     .endm 
     
-;---------------------------------------
-;  data stack macros 
-;---------------------------------------
-    CELL_SIZE=2 
-
-    ; move dp up 1 element 
-    .macro _dp_up 
-    inc dstkptr+1
-    inc dstkptr+1
-    .endm
-
-    ;move dp down 1 element
-    .macro _dp_down 
-    dec dstkptr+1 
-    dec dstkptr+1
-    .endm 
-
     ; load X register with 
     ; entry point of dictionary
     ; before calling 'search_dict'
     .macro _ldx_dict dict_name
     ldw x,#dict_name+2
     .endm 
+
+    ; reset BASIC pointer
+    ; to beginning of last token
+    ; parsed 
+    .macro _unget_token 
+    mov in,in.saved
+    .endm
 
 ;-------------------------------
 ;  macros used to help debugging
