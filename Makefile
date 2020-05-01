@@ -1,7 +1,7 @@
 #############################
 # librairies make file
 #############################
-NAME=PABasic
+NAME=TinyBasic
 VM=vm1
 SDAS=sdasstm8
 SDCC=sdcc
@@ -27,10 +27,11 @@ $(NAME).rel:
 	@echo "**********************"
 	@echo "compiling $(NAME)       "
 	@echo "**********************"
+	$(SDAS) -g -l -o $(BUILD)xmodem.rel xmodem.asm 
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm
 
 $(NAME).ihx: $(NAME).rel 
-	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
+	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel $(BUILD)xmodem.rel 
 
 
 .PHONY: clean 

@@ -93,6 +93,8 @@
     ERR_BAD_VALUE=10
     ERR_NO_ACCESS=11
     ERR_NO_DATA=12 
+    ERR_NO_PROG=13
+    ERR_NO_FSPACE=14
     
 ;--------------------------------------
 ;   assembler flags 

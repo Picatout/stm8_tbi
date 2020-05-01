@@ -1,0 +1,24 @@
+XH3
+H 3 areas 4 global symbols
+M XMODEM
+S .__.ABS. Def000000
+S qkey Ref000000
+A _CODE size 0 flags 0 addr 0
+A DATA size 1 flags 0 addr 0
+A CODE size B flags 0 addr 0
+S xreceive Def00000A
+S xtransmit Def000000
+T 00 00 00
+R 00 00 00 01
+T 00 00 00
+R 00 00 00 02
+T 00 00 00 81
+R 00 00 00 02
+T 00 00 01
+R 00 00 00 02
+T 00 00 01 52 02 4F CD 00 00 5B 02 81
+R 00 00 00 02 02 07 00 01
+T 00 00 0A
+R 00 00 00 02
+T 00 00 0A 81
+R 00 00 00 02

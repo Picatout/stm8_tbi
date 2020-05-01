@@ -29,7 +29,7 @@
 	.include "inc/stm8s208.inc"
 	.include "inc/ascii.inc"
 	.include "inc/gen_macros.inc" 
-	.include "pab_macros.inc" 
+	.include "tbi_macros.inc" 
     .list 
     
     .area DATA
@@ -42,7 +42,7 @@ checksum:   .blkb 1 ; received block checksum
 ;-----------------------
 ; Transmit file in RAM 
 ;-----------------------
-transmit:
+xtransmit::
 
     ret 
 
@@ -72,8 +72,7 @@ wait_char:
 ;   X  data size received 
 ;      zero if failed 
 ;-----------------------
-receive:
-
+xreceive::
     ret 
 
 

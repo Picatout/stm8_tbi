@@ -19,49 +19,68 @@
 ;-------------------------------------------------------
 ;     ASCII control  values
 ;     CTRL_x   are VT100 keyboard values  
+; REF: https://en.wikipedia.org/wiki/ASCII    
 ;-------------------------------------------------------
 		CTRL_A = 1
+		SOH=CTRL_A  ; start of heading 
 		CTRL_B = 2
+		STX=CTRL_B  ; start of text 
 		CTRL_C = 3
+		ETX=CTRL_C  ; end of text 
 		CTRL_D = 4
+		EOT=CTRL_D  ; end of transmission 
 		CTRL_E = 5
+		ENQ=CTRL_E  ; enquery 
 		CTRL_F = 6
-
-        BELL = 7    ; vt100 terminal generate a sound.
+		ACK=CTRL_F  ; acknowledge
 		CTRL_G = 7
-
-		BSP = 8     ; back space 
+        BELL = 7    ; vt100 terminal generate a sound.
 		CTRL_H = 8  
-
-    	TAB = 9     ; horizontal tabulation
+		BS = 8     ; back space 
         CTRL_I = 9
-
-		NL = 10     ; new line 
+    	TAB = 9     ; horizontal tabulation
         CTRL_J = 10 
-
-        VT = 11     ; vertical tabulation 
+		LF = 10     ; line feed
 		CTRL_K = 11
-
-        FF = 12      ; new page
+        VT = 11     ; vertical tabulation 
 		CTRL_L = 12
-
-		CR = 13      ; carriage return 
+        FF = 12      ; new page
 		CTRL_M = 13
-
+		CR = 13      ; carriage return 
 		CTRL_N = 14
+		SO=CTRL_N    ; shift out 
 		CTRL_O = 15
+		SI=CTRL_O    ; shift ine 
 		CTRL_P = 16
+		DLE=CTRL_P   ; data link escape 
 		CTRL_Q = 17
+		DC1=CTRL_Q   ; device control 1 
+		XON=DC1 
 		CTRL_R = 18
+		DC2=CTRL_R   ; device control 2 
 		CTRL_S = 19
+		DC3=CTRL_S   ; device control 3
+		XOFF=DC3 
 		CTRL_T = 20
+		DC4=CTRL_T   ; device control 4 
 		CTRL_U = 21
+		NAK=CTRL_U   ; negative acknowledge
 		CTRL_V = 22
+		SYN=CTRL_V   ; synchronous idle 
 		CTRL_W = 23
+		ETB=CTRL_W   ; end of transmission block
 		CTRL_X = 24
+		CAN=CTRL_X   ; cancel 
 		CTRL_Y = 25
+		EM=CTRL_Y    ; end of medium
 		CTRL_Z = 26
-		ESC = 27
+		SUB=CTRL_Z   ; substitute 
+		EOF=SUB      ; end of text file in MSDOS 
+		ESC = 27     ; escape 
+		FS=28        ; file separator 
+		GS=29        ; group separator 
+		RS=30		 ; record separator 
+		US=31 		 ; unit separator 
 		SPACE = 32
 		COMMA = 44 
 		SHARP = 35

@@ -1,3 +1,21 @@
+### 2020-04-30
+
+* Ajout du fichier **xmodem.asm** pour permettre de le transfert de progammes BASIC entre le PC et la carte NUCLEO. XMODEM  est un protocole de transfert de fichiers datant des années 197x. Il y aura deux nouvelles commandes BASIC pour le transfert:  
+    * **FILERX**, servira à recevoir un fichier à partir du PC. 
+    * **FILETX** *nom_fichier*, servira à transmettre le programme en RAM dans un fichier sur le PC.
+
+* Renommé  **PABasic.asm** en **TinyBasic.asm**.
+
+* Renommé  **pab_macros.inc** en  **tbi_macros.inc**.
+
+* Corrigé bogue dans **SAVE**, **LOAD**, **FORGET** 
+
+* Mofifié **AUTORUN** maintenant une chaîne vide fournie en argument annulle un autorun existant. Et l'absence d'argument affiche le nom du fichier autorun. 
+
+* **CTRL-C** Réinitialize la carte. 
+
+* **CTRL-Z** Annule un autorun et réinitialize la carte.  
+
 ### 2020-04-29
 
 * Éliminé la pile *dstack*. L'architecture du ST8 se prête mal à la réalisation d'une machine virtuelle à deux piles. Je pense améliorer la performance en éliminant cette pile pour n'utiliser que la pile définie par l'architectrue du MCU.

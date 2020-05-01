@@ -23,19 +23,18 @@
 ;
 ;--------------------------------------------------
 
-    .module TBI_STM8
+    .module STM8_TBI
 
     .nlist
 	.include "inc/nucleo_8s208.inc"
 	.include "inc/stm8s208.inc"
 	.include "inc/ascii.inc"
 	.include "inc/gen_macros.inc" 
-	.include "pab_macros.inc" 
+	.include "tbi_macros.inc" 
     .list 
 
 ;_dbg 
 
-	
 ;--------------------------------------
     .area DATA 
 ;--------------------------------------	
@@ -50,6 +49,7 @@
 	FSLEEP=3 ; halt produit par la commande SLEEP 
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 
+	FAUTORUN=6; auto start program running 
 
 	AUTORUN_NAME=0x4000 ; address in EEPROM where auto run file name is saved 
 
@@ -57,8 +57,8 @@
 
 	MAX_LINENO=0x7fff; BASIC maximum line number 
 
-in.w:  .blkb 1 ; parser position in text line
-in:    .blkb 1 ; low byte of in.w
+in.w:  .blkb 1 ; parser position in text line high-byte 
+in:    .blkb 1 ; low byte of in.w 
 in.saved: .blkb 1 ; set by get_token before parsing next token, used by unget_token
 count: .blkb 1 ; current BASIC line length and tib text length  
 basicptr:  .blkb 2  ; point to current BASIC line address.
@@ -66,42 +66,44 @@ data_ptr:  .blkw 1  ; point to DATA address
 data_ofs:  .blkb 1  ; index to next data item 
 data_len:  .blkb 1  ; length of data line 
 base:  .blkb 1 ; nemeric base used to print integer 
-acc24: .blkb 1 ; 24 bit accumulator
-acc16: .blkb 1 ; 16 bit accumulator, middle byte of acc24
-acc8:  .blkb 1 ;  8 bit accumulator, least byte of acc24 
+acc24: .blkb 1 ; 24 bit accumulator upper-byte 
+acc16: .blkb 1 ; 16 bit accumulator, acc24 high-byte
+acc8:  .blkb 1 ;  8 bit accumulator, acc24 low-byte  
+tmp16: .blkb 1 ; 16 bit temporary storage high-byte 
+tmp8:  .blkb 1 ; 8 bit temporary storage, tmp16 low-byte 
 ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
 timer: .blkw 1 ;  milliseconds count down timer 
 seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
 seedy: .blkw 1  ; xorshift 16 seed y  used by RND() funcion
-farptr: .blkb 1 ; 24 bits pointer used by file system
-ptr16:  .blkb 1 ; 16 bits pointer ,  middle byte of farptr
-ptr8:   .blkb 1 ; 8 bits pointer, least byte of farptr 
+farptr: .blkb 1 ; 24 bits pointer used by file system, upper-byte
+ptr16:  .blkb 1 ; 16 bits pointer , farptr high-byte 
+ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
 ffree: .blkb 3 ; flash free address ; file system free space pointer
-dstkptr: .blkw 1  ; data stack pointer 
 txtbgn: .blkw 1 ; tokenized BASIC text beginning address 
 txtend: .blkw 1 ; tokenized BASIC text end address 
 loop_depth: .blkb 1 ; level of nested loop. Conformity check   
 array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
 flags: .blkb 1 ; various boolean flags
-tab_width: .blkb 1 ; print colon width (4)
-rx_char: .blkb 1 ; last received character 
+tab_width: .blkb 1 ; print colon width (default 4)
+rx_char: .blkb 1 ; last received character from UART1 
 vars: .blkw 26 ; BASIC variables A-Z, keep it as but last .
-; keep as last variable 
+; keep 'free_ram' as last variable 
 free_ram: ; from here RAM free for BASIC text 
 
-;-----------------------------------
+;;-----------------------------------
     .area SSEG (ABS)
-;-----------------------------------
-;;;; working buffers and stacks at end of RAM. 	
+;; working buffers and stack at end of RAM. 	
+;;-----------------------------------
     .org RAM_SIZE-STACK_SIZE-TIB_SIZE-PAD_SIZE 
 tib: .ds TIB_SIZE             ; transaction input buffer
 pad: .ds PAD_SIZE             ; working buffer
 stack_full: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
 
-;--------------------------------------
+;;--------------------------------------
     .area HOME 
-;--------------------------------------
+;; interrupt vector table at 0x8000
+;;--------------------------------------
     int cold_start			; RESET vector 
 .if DEBUG
 	int TrapHandler 		;TRAP  software interrupt
@@ -178,7 +180,15 @@ Uart1RxHandler:
 	clr rx_char 
 	jp user_interrupted
 1$:
-	ld rx_char,a 	
+	cp a,#CAN 
+	jrne 2$
+	jp cold_start 	
+2$: 
+	cp a,#CTRL_Z
+	jrne 3$
+	call cancel_autorun 
+	jp cold_start 
+3$:	ld rx_char,a 	
 	iret 
 
 ;------------------------------------
@@ -602,11 +612,11 @@ puts:
 ;	none 
 ;---------------------------
 bksp:
-	ld a,#BSP 
+	ld a,#BS 
 	call putc 
 	ld a,#SPACE 
 	call putc 
-	ld a,#BSP 
+	ld a,#BS 
 	call putc 
 	ret 
 ;---------------------------
@@ -644,6 +654,7 @@ spaces:
 9$: 
 	ret 
 
+;;;;;;;;;;;;;
 .if DEBUG 
 ;---------------------------------
 ;; print actual registers states 
@@ -717,6 +728,7 @@ prt_peek:
 	call prti24
 	ret 
 .endif ; DEBUG  
+;;;;;;;;;;;;;;;;;;;;	
 
 ;-------------------------------------
 ; retrun string length
@@ -829,8 +841,7 @@ move_exit:
 	ret 	
 
 ;-------------------------------------
-; search text area for a line with 
-; same number as line#  
+; search text area for a line#
 ; input:
 ;	X 			line# 
 ; output:
@@ -1160,7 +1171,6 @@ compile:
 	bres flags,#FCOMP 
 	ret 
 
-
 ;------------------------------------
 ;  set all variables to zero 
 ; input:
@@ -1195,6 +1205,21 @@ is_alpha:
 	jrnc 9$
 	cp a,#'z+1   
 9$: ret 	
+
+;------------------------------------
+; check if character in {'0'..'9'}
+; input:
+;    A  character to test
+; output:
+;    Carry  0 not digit | 1 digit
+;------------------------------------
+is_digit:
+	cp a,#'0
+	jrc 1$
+    cp a,#'9+1
+	ccf 
+1$:	ccf 
+    ret
 
 ;-------------------------------------
 ;  program initialization entry point 
@@ -1287,23 +1312,41 @@ warm_init:
 	ret 
 
 ;--------------------------
+; called by tb_error when
+; flag FAUTORUN is set.
+; There is a bug in autorun 
+; program so cancel it.
+;---------------------------
+cancel_autorun:
+	ldw x,#AUTORUN_NAME 
+	ldw farptr+1,x 
+	clr a
+	clrw x  
+	ld farptr,a 
+	call write_byte 
+	ret 
+
+
+;--------------------------
 ; if autorun file defined 
 ; in eeprom address AUTORUN_NAME 
 ; load and run it.
 ;-------------------------
 load_autorun:
-	ldw x,#AUTORUN_NAME
-	ld a,(x)
-	jreq 9$
 	ldw y,#AUTORUN_NAME
+	ld a,(y)
+	jreq 9$
 	call search_file
 	jrc 2$ 
+; if file doesn't exit
+	call cancel_autorun
 	jra 9$ 
 2$:	call load_file
 	ldw x,#AUTORUN_NAME 
 	call puts
 	ldw x,#autorun_msg 
 	call puts 
+	bset flags,#FAUTORUN 
 	jp run_it    
 9$: ret 	
 
@@ -1326,7 +1369,7 @@ clear_basic:
 err_msg:
 	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
 	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
-	.word err_no_access,err_no_data  
+	.word err_no_access,err_no_data,err_no_prog,err_no_fspace    
 
 err_mem_full: .asciz "\nMemory full\n" 
 err_syntax: .asciz "\nsyntax error\n" 
@@ -1340,6 +1383,8 @@ err_not_file: .asciz "\nFile not found.\n"
 err_bad_value: .asciz "\nbad value.\n"
 err_no_access: .asciz "\nFile in extended memory, can't be run from there.\n" 
 err_no_data: .asciz "\nNo data line found.\n"
+err_no_prog: .asciz "\nNo program in RAM!\n"
+err_no_fspace: .asciz "\nFile system full.\n" 
 
 ;rt_msg: .asciz "last token id: "
 
@@ -1368,6 +1413,9 @@ tb_error:
 1$:	ldw x,basicptr
 	ld a,in 
 	call prt_basic_line
+	btjf flags,#FAUTORUN ,2$
+	call cancel_autorun  
+2$:
 ;	ldw x,#rt_msg 
 ;	call puts 
 ;	clrw x 
@@ -1838,6 +1886,61 @@ divu24_8:
 	popw x
 	ret
 
+;--------------------------------------
+; unsigned multiply uint24_t by uint8_t
+; use to convert numerical string to uint24_t
+; input:
+;	acc24	uint24_t 
+;   A		uint8_t
+; output:
+;   acc24   A*acc24
+;-------------------------------------
+; local variables offset  on sp
+	U8   = 3   ; A pushed on stack
+	OVFL = 2  ; multiplicaton overflow low byte
+	OVFH = 1  ; multiplication overflow high byte
+	VSIZE = 3
+mulu24_8:
+	pushw x    ; save X
+	; local variables
+	push a     ; U8
+	clrw x     ; initialize overflow to 0
+	pushw x    ; multiplication overflow
+; multiply low byte.
+	ld a,acc24+2
+	ld xl,a
+	ld a,(U8,sp)
+	mul x,a
+	ld a,xl
+	ld acc24+2,a
+	ld a, xh
+	ld (OVFL,sp),a
+; multipy middle byte
+	ld a,acc24+1
+	ld xl,a
+	ld a, (U8,sp)
+	mul x,a
+; add overflow to this partial product
+	addw x,(OVFH,sp)
+	ld a,xl
+	ld acc24+1,a
+	clr a
+	adc a,#0
+	ld (OVFH,sp),a
+	ld a,xh
+	ld (OVFL,sp),a
+; multiply most signficant byte	
+	ld a, acc24
+	ld xl, a
+	ld a, (U8,sp)
+	mul x,a
+	addw x, (OVFH,sp)
+	ld a, xl
+	ld acc24,a
+    addw sp,#VSIZE
+	popw x
+	ret
+
 ;------------------------------------
 ;  two's complement acc24
 ;  input:
@@ -1886,9 +1989,9 @@ readln_loop:
 	cp a,#CR
 	jrne 1$
 	jp readln_quit
-1$:	cp a,#NL
+1$:	cp a,#LF 
 	jreq readln_quit
-	cp a,#BSP
+	cp a,#BS
 	jreq del_back
 	cp a,#CTRL_D
 	jreq del_ln
@@ -1912,7 +2015,6 @@ right_arrow:
 ;	call putc 
 ;	jra realn_loop 
 left_arrow:
-
 ;	jra readln_loop
 reprint: 
 	tnz (LL,sp)
@@ -1963,6 +2065,7 @@ readln_quit:
 	call putc
 	ret
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 .if DEBUG 	
 ;----------------------------
 ; command interface
@@ -2521,20 +2624,6 @@ token_exit:
 	_drop VSIZE 
 	ret
 
-;------------------------------------
-; check if character in {'0'..'9'}
-; input:
-;    A  character to test
-; output:
-;    Carry  0 not digit | 1 digit
-;------------------------------------
-is_digit:
-	cp a,#'0
-	jrc 1$
-    cp a,#'9+1
-	ccf 
-1$:	ccf 
-    ret
 
 ;------------------------------------
 ; convert alpha to uppercase
@@ -2622,60 +2711,6 @@ atoi_exit:
 	popw x ; restore x
 	ret
 
-;--------------------------------------
-; unsigned multiply uint24_t by uint8_t
-; use to convert numerical string to uint24_t
-; input:
-;	acc24	uint24_t 
-;   A		uint8_t
-; output:
-;   acc24   A*acc24
-;-------------------------------------
-; local variables offset  on sp
-	U8   = 3   ; A pushed on stack
-	OVFL = 2  ; multiplicaton overflow low byte
-	OVFH = 1  ; multiplication overflow high byte
-	VSIZE = 3
-mulu24_8:
-	pushw x    ; save X
-	; local variables
-	push a     ; U8
-	clrw x     ; initialize overflow to 0
-	pushw x    ; multiplication overflow
-; multiply low byte.
-	ld a,acc24+2
-	ld xl,a
-	ld a,(U8,sp)
-	mul x,a
-	ld a,xl
-	ld acc24+2,a
-	ld a, xh
-	ld (OVFL,sp),a
-; multipy middle byte
-	ld a,acc24+1
-	ld xl,a
-	ld a, (U8,sp)
-	mul x,a
-; add overflow to this partial product
-	addw x,(OVFH,sp)
-	ld a,xl
-	ld acc24+1,a
-	clr a
-	adc a,#0
-	ld (OVFH,sp),a
-	ld a,xh
-	ld (OVFL,sp),a
-; multiply most signficant byte	
-	ld a, acc24
-	ld xl, a
-	ld a, (U8,sp)
-	mul x,a
-	addw x, (OVFH,sp)
-	ld a, xl
-	ld acc24,a
-    addw sp,#VSIZE
-	popw x
-	ret
 
 ;------------------------------------
 ; skip character c in text starting from 'in'
@@ -3078,7 +3113,7 @@ arg_list:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 func_args:
 	popw x
-	ldw farptr+1,x  
+	ldw tmp16,x  
 	ld a,#TK_LPAREN 
 	call expect 
 	call arg_list 
@@ -3086,7 +3121,7 @@ func_args:
 	ld a,#TK_RPAREN 
 	call expect 
 	pop a 
-	jp [farptr+1]
+	jp [tmp16]
 
 ;--------------------------------
 ;   BASIC commnands 
@@ -3545,7 +3580,8 @@ list:
 	ldw x,txtbgn 
 	cpw x,txtend 
 	jrmi 1$
-	jp list_exit ; nothing to list 
+	ld a,#ERR_NO_PROG 
+	jp tb_error ; nothing to list 
 1$:	ldw (LN_PTR,sp),x 
 	ldw x,(x) 
 	ldw (FIRST,sp),x ; list from first line 
@@ -4468,8 +4504,8 @@ run:
 1$:	ldw x,txtbgn
 	cpw x,txtend 
 	jrmi run_it 
-	clr a 
-	ret
+	ld a,#ERR_NO_PROG
+	jp tb_error
 
 run_it:	 
     call ubound 
@@ -4882,6 +4918,7 @@ search_file:
 	scf 	
 	ret
 
+
 ;--------------------------------
 ; BASIC: SAVE "name" 
 ; save text program in 
@@ -4899,7 +4936,8 @@ save:
 	subw x,txtbgn
 	jrne 1$
 ; nothing to save 
-	ret 
+	ld a,#ERR_NO_PROG
+	jp tb_error 	
 1$:	
 	_vars VSIZE 
 	ldw (BSIZE,sp),x 
@@ -4908,12 +4946,9 @@ save:
 	jreq 2$
 	jp syntax_error
 2$: 
-	ldw y,basicptr 
-	addw y,in.w
-	ldw (NAMEPTR,sp),y  
+	ldw (NAMEPTR,sp),x  
 	mov in,count 
 ; check if enough free space 
-	ldw x,y 
 	call strlen 
 	addw x,#3 
 	addw x,(BSIZE,sp)
@@ -4921,7 +4956,7 @@ save:
 	jrne 21$
 	subw x,ffree+1 
 	jrule 21$
-	ld a,#ERR_MEM_FULL 
+	ld a,#ERR_NO_FSPACE  
 	jp tb_error
 21$: 
 ; check for existing file of that name 
@@ -4947,22 +4982,22 @@ save:
 	subw x,txtbgn
 	ldw (BSIZE,sp),x 
 	clrw x 
-	ld a,(1,sp)
+	ld a,(BSIZE,sp)
 	call write_byte 
 	incw x 
-	ld a,(2,sp)
+	ld a,(BSIZE+1,sp)
 	call write_byte
 	incw x  
 	call incr_farptr ; move farptr after SIZE field 
 ;** write BASIC text **
-; copy BSIZE, cstack:{... bsize -- ... bsize bsize }	
+; copy BSIZE, stack:{... bsize -- ... bsize bsize }	
 	ldw x,(BSIZE,sp)
 	pushw x ; write_block argument 
 	clrw x 
 	ldw y,txtbgn  ; BASIC text to save 
 	call write_block 
 	_drop 2 ;  drop write_block argument  
-; write en end of file marker 
+; write end of file marker 
 	ldw x,#1
 	ld a,#EOF  
 	call write_byte 
@@ -5032,9 +5067,7 @@ load:
 	cp a,#TK_QSTR
 	jreq 1$
 	jp syntax_error 
-1$:	
-	ldw y,basicptr
-	addw y,in.w 
+1$:	ldw y,x 
 	mov in,count 
 	call search_file 
 	jrc 2$ 
@@ -5061,8 +5094,7 @@ forget:
 	cp a,#TK_QSTR
 	jreq 1$
 	jp syntax_error
-1$: ldw y,basicptr
-	addw y,in.w
+1$: ldw y,x 
 	mov in,count 
 	call search_file
 	jrc 2$
@@ -5276,7 +5308,7 @@ key:
 ; output:
 ;   X 		0|-1 
 ;-----------------------
-qkey: 
+qkey:: 
 	clrw x 
 	tnz rx_char
 	jreq 9$ 
@@ -5378,10 +5410,12 @@ bye:
 	jp cold_start  
 
 ;----------------------------------
-; BASIC: AUTORUN "file_name" 
+; BASIC: AUTORUN ["file_name"] 
 ; record in eeprom at adrress AUTORUN_NAME
 ; the name of file to load and execute
-; at startup 
+; at startup. 
+; empty string delete autorun name 
+; no argument display autorun name  
 ; input:
 ;   file_name   file to execute 
 ; output:
@@ -5393,24 +5427,37 @@ autorun:
 	ld a,#ERR_CMD_ONLY 
 	jp tb_error 
 0$:	
-	call next_token 
+	call next_token
+	jrne 1$
+	ldw x,#AUTORUN_NAME
+	call puts 
+	clr a 
+	ret 
+1$:
 	cp a,#TK_QSTR
-	jreq 1$
+	jreq 2$
 	jp syntax_error 
-1$:	
-	pushw x ; file name char*
+2$:	
+	tnz (x) 
+	jrne 3$
+; empty string, delete autorun 	
+	call cancel_autorun
+	clr count 
+	ret 
+3$:	pushw x 
 	ldw y,x  
 	call search_file 
-	jrc 2$ 
+	jrc 4$ 
 	ld a,#ERR_NOT_FILE
 	jp tb_error  
-2$: 
+4$: 
 	mov in,count 
 	clr farptr 
 	ldw x,#AUTORUN_NAME
 	ldw farptr+1,x 
 	ldw x,(1,sp)  
 	call strlen  ; return length in X 
+	incw x 
 	popw y 
 	pushw x 
 	clrw x 
@@ -6401,6 +6448,46 @@ cs_high:
 	bset PE_ODR,#SPI_CS_BIT
 	ret 
 
+
+;------------------------------
+; BASIC: FILERX
+; Use to receive a BASIC program
+; from the PC using XMODEM 
+; protocol. The file is store in
+; Each line received is compiled
+; then stored in RAM. When reception 
+; is completed with success  the 
+; program is ready to be executed 
+; or save as local file.
+;--------------------------------
+file_receive:
+	btjf flags,#FRUN,1$
+	ld a,#ERR_CMD_ONLY
+	jp tb_error 
+1$:	
+	call clear_basic
+	ldw x, txtbgn
+	call xreceive 
+	addw x,txtbgn 
+	ldw txtend,x 
+	call print_int 
+	ldw x,#fsize_msg 
+	call puts 
+	ret 
+fsize_msg: .asciz " bytes received\n"
+
+;------------------------------
+; BASIC: FILETX "file_name" 
+; Transmit the program in RAM 
+; To the PC using XMODEM protocol.
+; The file transmitted as source 
+; file not tokenized. 
+;-------------------------------
+file_transmit:
+
+	ret 
+
+
 ;------------------------------
 ;      dictionary 
 ; format:
@@ -6494,6 +6581,8 @@ kword_end:
 	_dict_entry,5,GOSUB,gosub 
 	_dict_entry,6,FORGET,forget 
 	_dict_entry,3,FOR,for 
+	_dict_entry,6,FILETX,file_transmit
+	_dict_entry,6,FILERX,file_receive 
 	_dict_entry,4,FCPU,fcpu 
 	_dict_entry,6+F_IFUNC,EEPROM,const_eeprom_base   
 	_dict_entry,3,END,cmd_end  

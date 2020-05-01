@@ -7,7 +7,7 @@ Area                                    Addr        Size        Decimal Bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00000000  .__.ABS.                           TBI_STM8
+     00000000  .__.ABS.                           XMODEM
      00000000  l_FLASH_DRIVE                   
      00000000  l_FLASH_DRIVE1                  
      00000000  l_SSEG                          
@@ -18,10 +18,10 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
-     0000005C  l_DATA                          
+     0000005D  l_DATA                          
      00000080  l_HOME                          
      00000118  l_SSEG0                         
-     0000250E  l_CODE                          
+     00002599  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -30,7 +30,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-DATA                                00000001    0000005C =          92. bytes (REL,CON)
+DATA                                00000001    0000005D =          93. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -57,17 +57,21 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    0000250E =        9486. bytes (REL,CON)
+CODE                                00008080    00002599 =        9625. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008CFA  to_upper                           TBI_STM8
+     00008D8E  to_upper                           STM8_TBI
+     00009C32  qkey                               STM8_TBI
+     0000A60E  xtransmit                          XMODEM
+     0000A618  xreceive                           XMODEM
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
 Files Linked                              [ module(s) ]
 
-build/PABasic.rel                         [ TBI_STM8 ]
+build/TinyBasic.rel                       [ STM8_TBI ]
+build/xmodem.rel                          [ XMODEM ]
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 7.
 
