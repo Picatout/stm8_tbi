@@ -201,7 +201,7 @@ Cette commande arrête le MCU pour une durée déterminée. Son nom vient du pé
 ```
 >awu 1  ' sommeil d'une milliseconde
 
->awu 30720 ' sommeil maximal de 3.07 secondes
+>awu 30720 ' sommeil maximal de 30.7 secondes
 
 >
 ```

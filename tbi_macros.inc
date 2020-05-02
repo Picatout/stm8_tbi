@@ -39,16 +39,16 @@
         ; 0x1n -> +|- operators 
         ; 0x2n -> *|/|% operators
         ; 0x3n -> relational operators 
-        TK_NONE=0       ; undefined
-        TK_COLON=1      ; command end marker ':' 
-        TK_ARRAY=2      ; array variable '@' 
+        TK_NONE=0       ; not a token 
+        TK_COLON=1      ; command separator ':' 
+        TK_QSTR=0x2     ; quoted string  
         TK_CHAR=3       ; ASCII character 
         TK_INTGR=4      ; integer 
         TK_VAR=5        ; variable letters {A..Z}
         TK_CMD=6        ; BASIC command   
         TK_IFUNC=7      ; BASIC integer function
         TK_CFUNC=8      ; BASIC character function
-        TK_QSTR=0xa      ; quoted string  
+        TK_ARRAY=0xa      ; array variable '@' 
         TK_LPAREN=0xb     ; left parenthesis '('
         TK_RPAREN=0xc     ; right parenthesis ')'
         TK_COMMA=0xd     ; item separator ',' 
@@ -70,12 +70,13 @@
         TK_LT=0x34      ; relation operator '<'
         TK_LE=0x36      ; relation operator '<='
         TK_NE=0x35      ; relation operator '<>' not equal 
-        TK_GRP_MASK=0x30 ; token groups: additive group 0x08, mult. group 0x10, rel_op group 0x11 
-        TK_GRP_MISC=0x00 
-        TK_GRP_ADD=0x10 
-        TK_GRP_MULT=0x20 
-        TK_GRP_RELOP=0x30
-        CMD_END=2
+        ; token groups 
+        TK_GRP_MASK=0x30 ; groups bits selector 
+        TK_GRP_MISC=0x00 ; miscelinous group 
+        TK_GRP_ADD=0x10  ; additive operators
+        TK_GRP_MULT=0x20 ; multiplicative operators
+        TK_GRP_RELOP=0x30 ;relational operators. 
+        CMD_END=2 
 
 ;--------------------------------------
 ;   error codes 

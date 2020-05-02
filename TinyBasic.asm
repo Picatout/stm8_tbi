@@ -1040,20 +1040,20 @@ check_full:
 	jp tb_error 
 1$: ret 
 
-
 ;-----------------------------------
-; create token list form text line 
+; create token list fromm text line 
 ; save this list in text area
 ;  compiled line format: 
 ;    line_no  2 bytes {0...32767}
-;    count    1 byte 
-;    tokens   variable 
+;    count    1 byte  
+;    tokens   variable length 
 ;   
 ; input:
 ;   none
-; output:
+; modified variables:
 ;   basicptr     token list buffer address 
-;   in.w  		 cleared, index in buffer 
+;   in.w  		 3|count, i.e. index in buffer
+;   count        length of line | 0  
 ;-----------------------------------
 	XSAVE=1
 	BUFIDX=3
@@ -1063,7 +1063,6 @@ compile:
 	bset flags,#FCOMP 
 	ldw x,txtend
 	ldw ptr16,x ; code buffer start address 
-	clrw x 
 	ldw x,#3
 	ldw (BUFIDX,sp),X  
 	call check_full
@@ -1105,11 +1104,11 @@ compile:
 	jra 2$ 
 32$:
 	cp a,#TK_ARRAY 
-; this token have not attribute. 
+; this token have no attribute. 
 	jreq 2$ 
 	cp a,#TK_QSTR 
 	jrne 4$
-; copy string as C string.	
+; copy string as .asciz 	
 	ldw x,#pad 
 	call strlen
 	incw x  
@@ -1131,7 +1130,7 @@ compile:
 	ldw x,(XSAVE,sp) 
 	ldw y,(BUFIDX,sp)
 	ldw ([ptr16],y),x ; the attribute is an address or integer. 
-	cpw x,#rem ; is this a comment? 
+	cpw x,#remark ; is this a comment? 
 	jreq 5$	
 	addw y,#2 
 	ldw (BUFIDX,sp),y 
@@ -1154,7 +1153,7 @@ compile:
 	ldw x,#2
 	ldw y,(BUFIDX,sp)
 	ld a,yl 
-	ld ([ptr16],x),a ; code byte count   	
+	ld ([ptr16],x),a ; bytes count   	
 	ldw x,[ptr16]
 	jreq 10$
 	call insert_line
@@ -1300,15 +1299,17 @@ cold_start:
 2$:	bres PC_ODR,#LED2_BIT	
 	call warm_init
 	call load_autorun
-    jp interp 
+    jp cmd_line  
 
 warm_init:
 	clr flags 
 	clr loop_depth 
 	mov tab_width,#TAB_WIDTH 
 	mov base,#10 
-	ldw x,#tib 
+	ldw x,#0 
 	ldw basicptr,x 
+	ldw in.w,x 
+	clr count 
 	ret 
 
 ;--------------------------
@@ -1432,12 +1433,31 @@ warm_start:
 ;----------------------------
 ;   BASIC interpreter
 ;----------------------------
-interp:
-	clr in.w
-	btjf flags,#FRUN,cmd_line
-; flag FRUN is set 
-; running program
-; goto next basic line 
+cmd_line: ; user interface 
+	clr in 
+	ld a,#CR 
+	call putc 
+	ld a,#'> 
+	call putc
+	call readln
+	call compile
+; if text begin with a line number
+; the compiler set count to zero    
+; so code is not interpreted
+	tnz count 
+	jreq cmd_line
+; if direct command 
+; it's ready to interpret 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; This is the interpreter loop
+;; for each BASIC code line. 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
+interpreter: 
+	ld a,in 
+	cp a,count 
+	jrmi 0$
+	btjf flags, #FRUN, cmd_line
+;next BASIC line
 	ldw x,basicptr
 	ld a,(2,x) ; line length 
 	ld acc8,a 
@@ -1449,48 +1469,31 @@ interp:
 	ld a,(2,x)
 	ld count,a 
 	mov in,#3 ; skip first 3 bytes of line 
-	jra interp_loop 
-cmd_line: ; commande line interface  	
-	clr in
-	ld a,#CR 
-	call putc 
-	ld a,#'> 
-	call putc 
-	call readln
-	call compile
-; if text begin with a line number
-; the compile set count=0   
-; so code is not interpreted
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; This is the interpreter loop
-;; for each BASIC code line. 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
-interp_loop:  
-	ld a,in 
-	cp a,count  
-	jrpl interp
+0$: 
 	call next_token
+	tnzw x 
+	jrmi 4$ 
 	cp a,#TK_COLON 
-	jreq interp_loop 
-1$:
+	jreq interpreter 
 	cp a,#TK_VAR
 	jrne 2$
 	call let02  
-	jra interp_loop 
+	jra interpreter 
 2$:	
 	cp a,#TK_ARRAY 
 	jrne 3$
 	call get_array_element
 	call let02 
-	jra interp_loop 
-3$:
-	cp a,#TK_CMD
-	jrne 4$
-	call (x) 
-	jra interp_loop 
-4$:	
+	jra interpreter 
+3$:	
 	jp syntax_error 
+4$:
+	cp a,#TK_CMD
+	jrne 3$
+	call (x) 
+	jra interpreter 
 
+		
 ;--------------------------
 ; extract next token from
 ; token list 
@@ -1501,40 +1504,46 @@ interp_loop:
 ;   X 		token value if there is one
 ;----------------------------------------
 next_token:
+	clrw x 
 	ld a,in 
 	sub a,count ; don't replace sub by cp.  
-	jreq 10$
+	jrmi 0$
+	ret  ; end of BASIC line 
+0$: 
 	mov in.saved,in 
 	ldw y,basicptr 
 	addw y,in.w 
 	ld a,(y)
 	incw y  
-	cp a,#TK_ARRAY  
-	jrule 9$
+	cp a,#TK_ARRAY
+	jrpl 9$  ; no attribute for these
+	cp a,#TK_INTGR
+	jrmi 1$
+; attribute type WORD 	
+	ldw x,y 
+	ldw x,(x)
+	addw y,#2  
+	jra 9$
+1$: ; 
 	cp a,#TK_CHAR
-	jrne 1$
+	jrne 2$
 	ld a,(y)
 	incw y
 	clrw x 
 	ld xl,a 
 	ld a,#TK_CHAR
 	jra 9$ 
-1$:	cp a,#TK_QSTR 
-	jrult 4$
+2$:	cp a,#TK_QSTR 
 	jrne 9$
 	ldw x,y 
-2$:	tnz (y)
-	jreq 3$
+; move pointer after string 
+3$:	tnz (y)
+	jreq 4$
 	incw y
-	jra 2$ 
-3$:	incw y 
-	jra 9$ 
-4$: ldw x,y 
-	ldw x,(x)
-	addw y,#2  
+	jra 3$ 
+4$:	incw y 
 9$: subw y,basicptr 
     ldw in.w,y 
-10$:
 	ret	
 
 
@@ -2527,7 +2536,7 @@ tick_tst: ; ignore comment
 	_case TICK plus_tst 
 	inc in 
 	ld a,#TK_CMD 
-	ldw x,#rem 
+	ldw x,#remark  
 	jp token_exit 
 plus_tst:
 	_case '+' star_tst 
@@ -3734,12 +3743,12 @@ prt_basic_line:
 	incw x 
 	ldw (XSAVE,sp),x 
 	cp a,#TK_CMD 
-	jrult 5$
+	jrmi 4$
 	cp a,#TK_CFUNC 
 	jrugt 4$
 2$:	
 	ldw x,([ptr16],x)
-	cpw x,#rem 
+	cpw x,#remark 
 	jrne 3$
 	ld a,#''
 	call putc 
@@ -3748,7 +3757,8 @@ prt_basic_line:
 	addw x,ptr16  
 	call puts 
 	jp 90$ 
-3$:	call cmd_name
+3$:	
+	call cmd_name
 	call prt_cmd_name
 	ld a,#SPACE 
 	call putc 
@@ -3758,10 +3768,19 @@ prt_basic_line:
 4$: cp a,#TK_QSTR 
 	jrne 5$
 	addw x,ptr16
-	call prt_quote 
+	call prt_quote  
 	subw x,ptr16  
 	jra 1$
-5$:	cp a,#TK_VAR
+5$:	cp a,#TK_CHAR 
+	jrne 51$
+	ld a,#'\ 
+	call putc 
+	ld a,([ptr16],x)
+	incw x 
+	call putc 
+	jra 1$ 
+51$:	
+	cp a,#TK_VAR
 	jrne 6$ 
 	ldw x,([ptr16],x)
 	subw x,#vars 
@@ -3773,7 +3792,7 @@ prt_basic_line:
 	call putc 
 	ldw x,(XSAVE,sp)
 	addw x,#2 
-	jra 1$ 
+	jp  1$ 
 6$: cp a,#TK_ARRAY 
 	jrne 7$
 	ld a,#'@ 
@@ -3876,52 +3895,54 @@ push #0 ; local variable COMMA
 reset_comma:
 	clr (COMMA,sp)
 prt_loop:
-	call relation 
-	cp a,#TK_COLON 
-	jreq print_exit   
-	cp a,#TK_INTGR 
-	jrne 0$ 
-	call print_int 
-	jra reset_comma
-0$: 	
 	call next_token
-	cp a,#TK_NONE 
-	jreq print_exit 
-1$:	cp a,#TK_QSTR
-	jrne 2$   
+	cp a,#CMD_END 
+	jrmi print_exit ; colon or end of line 
+	cp a,#TK_QSTR
+	jreq 1$
+	cp a,#TK_CHAR 
+	jreq 2$ 
+	cp a,#TK_CFUNC 
+	jreq 3$
+	cp a,#TK_COMMA 
+	jreq 4$
+	cp a,#TK_SHARP 
+	jreq 5$
+	jra 7$ 
+1$:	; print string 
 	call puts
 	jra reset_comma
-2$: cp a,#TK_CHAR 
-	jrne 3$
+2$:	; print character 
 	ld a,xl 
 	call putc 
 	jra reset_comma 
-3$: 	
-	cp a,#TK_CFUNC 
-	jrne 4$ 
+3$: ; print character function value  	
 	call (x)
 	ld a,xl 
 	call putc
 	jra reset_comma 
-4$: 
-	cp a,#TK_COMMA 
-	jrne 5$
-	cpl (COMMA,sp) 
+4$: ; set comma state 
+	ld a,#255 
+	ld (COMMA,sp),a  
 	jp prt_loop   
-5$: 
-	cp a,#TK_SHARP
-	jrne 7$
+5$: ; # character must be followed by an integer   
 	call next_token
 	cp a,#TK_INTGR 
 	jreq 6$
 	jp syntax_error 
-6$:
+6$: ; set tab width
 	ld a,xl 
 	and a,#15 
 	ld tab_width,a 
-	jp reset_comma 
+	jra reset_comma 
 7$:	
 	_unget_token
+	call relation 
+	cp a,#TK_INTGR
+	jreq 8$
+	jp print_exit 
+8$: call print_int 
+	jra reset_comma 
 print_exit:
 	tnz (COMMA,sp)
 	jrne 9$
@@ -3929,6 +3950,8 @@ print_exit:
     call putc 
 9$:	_drop VSIZE 
 	ret 
+
+print_type: 
 
 ;----------------------
 ; 'save_context' and
@@ -3991,7 +4014,7 @@ input_loop:
 	call next_token 
 	cp a,#TK_QSTR 
 	jrne 1$ 
-	call puts 
+	call prt_quote 
 	cpl (SKIP,sp)
 	call next_token 
 1$: cp a,#TK_VAR  
@@ -4035,9 +4058,10 @@ input_exit:
 ; BASIC: REMARK | ' 
 ; skip comment to end of line 
 ;---------------------- 
-rem:
- 	mov count,in 
-	ret 
+remark:
+	mov in,count 
+ 	ret 
+
 
 ;---------------------
 ; BASIC: WAIT addr,mask[,xor_mask] 
@@ -4337,7 +4361,7 @@ step: ; {var limit -- var limit step}
 	jp syntax_error
 2$:	ldw (FSTEP,sp),x ; step
 ; leave loop back entry point on cstack 
-; cstack is 1 call deep from interp_loop
+; cstack is 1 call deep from interpreter
 store_loop_addr:
 	ldw x,basicptr  
 	ldw (BPTR,sp),x 
@@ -4420,7 +4444,7 @@ get_target_line:
 ;------------------------
 ; BASIC: GOTO line# 
 ; jump to line# 
-; here cstack is 2 call deep from interp_loop 
+; here cstack is 2 call deep from interpreter 
 ;------------------------
 goto:
 	btjt flags,#FRUN,0$ 
@@ -4441,7 +4465,7 @@ jp_to_target:
 ; basic subroutine call
 ; actual line# and basicptr 
 ; are saved on cstack
-; here cstack is 2 call deep from interp_loop 
+; here cstack is 2 call deep from interpreter 
 ;--------------------
 	RET_ADDR=3
 	RET_INW=5
@@ -4500,7 +4524,7 @@ run:
 	_drop CTXT_SIZE 
 	bres flags,#FBREAK 
 	bset flags,#FRUN 
-	jp interp_loop 
+	jp interpreter 
 1$:	ldw x,txtbgn
 	cpw x,txtend 
 	jrmi run_it 
@@ -4522,7 +4546,7 @@ run_it:
 	ld count,a
 	mov in,#3	
 	bset flags,#FRUN 
-	jp interp_loop 
+	jp interpreter 
 
 
 ;----------------------
@@ -4531,10 +4555,6 @@ run_it:
 ;---------------------- 
 cmd_end: 
 ; clean stack 
-	ldw x,#STACK_EMPTY 
-	ldw sp,x 
-	bres flags,#FRUN 
-	bres flags,#FBREAK
 	jp warm_start
 
 
@@ -4755,7 +4775,7 @@ stop:
 	ldw in.w,x
 	bres flags,#FRUN 
 	bset flags,#FBREAK
-	jp interp_loop 
+	jp interpreter 
 break_point: .asciz "\nbreak point, RUN to resume.\n"
 
 ;-----------------------
@@ -5887,19 +5907,23 @@ random:
 ;---------------------------------
 ; BASIC: WORDS 
 ; affiche la listes des mots du
-; dictionnaire.
+; dictionnaire ainsi que le nombre
+; de mots.
 ;---------------------------------
-	WLEN=1
-	LLEN=2  
-	VSIZE=2 
+	WLEN=1 ; word length
+	LLEN=2 ; character sent to console
+	WCNT=3 ; count words printed 
+	VSIZE=3 
 words:
 	_vars VSIZE
 	clr (LLEN,sp)
+	clr (WCNT,sp)
 	ldw y,#kword_dict+2
 0$:	ldw x,y
 	ld a,(x)
 	and a,#15 
 	ld (WLEN,sp),a 
+	inc (WCNT,sp)
 1$:	incw x 
 	ld a,(x)
 	call putc 
@@ -5918,9 +5942,18 @@ words:
 	clr (LLEN,sp)
 3$:	subw y,#2 
 	ldw y,(y)
-	jrne 0$  
+	jrne 0$ 
+	ld a,#CR 
+	call putc  
+	clrw x 
+	ld a,(WCNT,sp)
+	ld xl,a 
+	call print_int 
+	ldw x,#words_count_msg
+	call puts 
 	_drop VSIZE 
 	ret 
+words_count_msg: .asciz " words in dictionary\n"
 
 
 ;-----------------------------
@@ -6219,7 +6252,7 @@ const_eeprom_base:
 ; a DATA line it skip it.
 ;---------------------------
 data:
-	mov in,count
+	mov in,count 
 	ret 
 
 ;---------------------------
@@ -6538,7 +6571,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,RND,random 
 	_dict_entry,6,RETURN,return 
 	_dict_entry,7,RESTORE,restore 
-	_dict_entry 6,REMARK,rem 
+	_dict_entry 6,REMARK,remark 
 	_dict_entry,6,REBOOT,cold_start
 	_dict_entry,4+F_IFUNC,READ,read  
 	_dict_entry,4+F_IFUNC,QKEY,qkey  

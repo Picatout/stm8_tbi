@@ -1414,6 +1414,7 @@ Hexadecimal [24-Bits]
                                  
                                  
                                  
+                                                ; token groups 
                                  
                                  
                                  
@@ -1873,7 +1874,7 @@ Symbol Table
     TIM4_PSC=  000002     |     TIM4_SR =  005342     |     TIM4_SR_=  000000 
     TIM_CR1_=  000007     |     TIM_CR1_=  000000     |     TIM_CR1_=  000006 
     TIM_CR1_=  000005     |     TIM_CR1_=  000004     |     TIM_CR1_=  000003 
-    TIM_CR1_=  000001     |     TIM_CR1_=  000002     |     TK_ARRAY=  000002 
+    TIM_CR1_=  000001     |     TIM_CR1_=  000002     |     TK_ARRAY=  00000A 
     TK_CFUNC=  000008     |     TK_CHAR =  000003     |     TK_CMD  =  000006 
     TK_COLON=  000001     |     TK_COMMA=  00000D     |     TK_DIV  =  000021 
     TK_EQUAL=  000032     |     TK_GE   =  000033     |     TK_GRP_A=  000010 
@@ -1882,7 +1883,7 @@ Symbol Table
     TK_INTGR=  000004     |     TK_LE   =  000036     |     TK_LPARE=  00000B 
     TK_LT   =  000034     |     TK_MINUS=  000011     |     TK_MOD  =  000022 
     TK_MULT =  000020     |     TK_NE   =  000035     |     TK_NONE =  000000 
-    TK_PLUS =  000010     |     TK_QSTR =  00000A     |     TK_RPARE=  00000C 
+    TK_PLUS =  000010     |     TK_QSTR =  000002     |     TK_RPARE=  00000C 
     TK_SHARP=  00000E     |     TK_VAR  =  000005     |     TMR     =  000002 
     UART1   =  000000     |     UART1_BA=  005230     |     UART1_BR=  005232 
     UART1_BR=  005233     |     UART1_CR=  005234     |     UART1_CR=  005235 

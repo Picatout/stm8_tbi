@@ -1414,6 +1414,7 @@ Hexadecimal [24-Bits]
                                  
                                  
                                  
+                                                ; token groups 
                                  
                                  
                                  
@@ -1519,9 +1520,9 @@ Hexadecimal [24-Bits]
                                      42 ;-----------------------
                                      43 ; Transmit file in RAM 
                                      44 ;-----------------------
-      00A60E                         45 xtransmit::
+      00A68E                         45 xtransmit::
                                      46 
-      00A60E 81               [ 4]   47     ret 
+      00A68E 81               [ 4]   47     ret 
                                      48 
                                      49 ;------------------------------
                                      50 ; wait character with timeout
@@ -1532,16 +1533,16 @@ Hexadecimal [24-Bits]
                                      55 ;------------------------------
                            000002    56     TMR=2
                            000002    57     VSIZE=2
-      00A60F                         58 wait_char:
+      00A68F                         58 wait_char:
       000001                         59     _vars VSIZE 
-      00A60F 52 02            [ 2]    1     sub sp,#VSIZE 
-      00A611 4F               [ 1]   60     clr a 
+      00A68F 52 02            [ 2]    1     sub sp,#VSIZE 
+      00A691 4F               [ 1]   60     clr a 
                                      61     
-      00A612 CD 9C 32         [ 4]   62     call qkey 
+      00A692 CD 9C 49         [ 4]   62     call qkey 
                                      63 
       000007                         64     _drop VSIZE 
-      00A615 5B 02            [ 2]    1     addw sp,#VSIZE 
-      00A617 81               [ 4]   65     ret 
+      00A695 5B 02            [ 2]    1     addw sp,#VSIZE 
+      00A697 81               [ 4]   65     ret 
                                      66 
                                      67 ;-----------------------
                                      68 ; receive a file in RAM 
@@ -1551,8 +1552,8 @@ Hexadecimal [24-Bits]
                                      72 ;   X  data size received 
                                      73 ;      zero if failed 
                                      74 ;-----------------------
-      00A618                         75 xreceive::
-      00A618 81               [ 4]   76     ret 
+      00A698                         75 xreceive::
+      00A698 81               [ 4]   76     ret 
                                      77 
                                      78 
                                      79 
@@ -1873,7 +1874,7 @@ Symbol Table
     TIM4_PSC=  000002     |     TIM4_SR =  005342     |     TIM4_SR_=  000000 
     TIM_CR1_=  000007     |     TIM_CR1_=  000000     |     TIM_CR1_=  000006 
     TIM_CR1_=  000005     |     TIM_CR1_=  000004     |     TIM_CR1_=  000003 
-    TIM_CR1_=  000001     |     TIM_CR1_=  000002     |     TK_ARRAY=  000002 
+    TIM_CR1_=  000001     |     TIM_CR1_=  000002     |     TK_ARRAY=  00000A 
     TK_CFUNC=  000008     |     TK_CHAR =  000003     |     TK_CMD  =  000006 
     TK_COLON=  000001     |     TK_COMMA=  00000D     |     TK_DIV  =  000021 
     TK_EQUAL=  000032     |     TK_GE   =  000033     |     TK_GRP_A=  000010 
@@ -1882,7 +1883,7 @@ Symbol Table
     TK_INTGR=  000004     |     TK_LE   =  000036     |     TK_LPARE=  00000B 
     TK_LT   =  000034     |     TK_MINUS=  000011     |     TK_MOD  =  000022 
     TK_MULT =  000020     |     TK_NE   =  000035     |     TK_NONE =  000000 
-    TK_PLUS =  000010     |     TK_QSTR =  00000A     |     TK_RPARE=  00000C 
+    TK_PLUS =  000010     |     TK_QSTR =  000002     |     TK_RPARE=  00000C 
     TK_SHARP=  00000E     |     TK_VAR  =  000005     |     TMR     =  000002 
     UART1   =  000000     |     UART1_BA=  005230     |     UART1_BR=  005232 
     UART1_BR=  005233     |     UART1_CR=  005234     |     UART1_CR=  005235 

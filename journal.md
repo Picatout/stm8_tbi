@@ -1,3 +1,28 @@
+### 2020-05-01
+
+* Rework of code to improve performance of interpreter. 
+
+* Modified **WORDS** command to print number of words in dictionary.
+
+* Réécrit commande "PRINT" 
+
+* Réoganisation des valeurs des constantes __TK__ pour optimiser le sélecteur de token dans next_token.
+
+Derniers test de vitesse
+```
+>t=ticks:for a=1 to 100:for b=1to10000:next b:next a:? ticks-t
+9639
+
+>t=ticks:for a=1to10000:b=rnd(50):next a:? ticks-t
+ 658
+
+>t=ticks:for a=1 to 10000:b=3*5+rnd(1000):next a:? ticks-t
+ 909
+
+>
+
+```
+
 ### 2020-04-30
 
 * Ajout du fichier **xmodem.asm** pour permettre de le transfert de progammes BASIC entre le PC et la carte NUCLEO. XMODEM  est un protocole de transfert de fichiers datant des années 197x. Il y aura deux nouvelles commandes BASIC pour le transfert:  
