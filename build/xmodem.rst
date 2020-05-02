@@ -1520,9 +1520,9 @@ Hexadecimal [24-Bits]
                                      42 ;-----------------------
                                      43 ; Transmit file in RAM 
                                      44 ;-----------------------
-      00A68E                         45 xtransmit::
+      00A60E                         45 xtransmit::
                                      46 
-      00A68E 81               [ 4]   47     ret 
+      00A60E 81               [ 4]   47     ret 
                                      48 
                                      49 ;------------------------------
                                      50 ; wait character with timeout
@@ -1533,16 +1533,16 @@ Hexadecimal [24-Bits]
                                      55 ;------------------------------
                            000002    56     TMR=2
                            000002    57     VSIZE=2
-      00A68F                         58 wait_char:
+      00A60F                         58 wait_char:
       000001                         59     _vars VSIZE 
-      00A68F 52 02            [ 2]    1     sub sp,#VSIZE 
-      00A691 4F               [ 1]   60     clr a 
+      00A60F 52 02            [ 2]    1     sub sp,#VSIZE 
+      00A611 4F               [ 1]   60     clr a 
                                      61     
-      00A692 CD 9C 49         [ 4]   62     call qkey 
+      00A612 CD 9C 3D         [ 4]   62     call qkey 
                                      63 
       000007                         64     _drop VSIZE 
-      00A695 5B 02            [ 2]    1     addw sp,#VSIZE 
-      00A697 81               [ 4]   65     ret 
+      00A615 5B 02            [ 2]    1     addw sp,#VSIZE 
+      00A617 81               [ 4]   65     ret 
                                      66 
                                      67 ;-----------------------
                                      68 ; receive a file in RAM 
@@ -1552,8 +1552,8 @@ Hexadecimal [24-Bits]
                                      72 ;   X  data size received 
                                      73 ;      zero if failed 
                                      74 ;-----------------------
-      00A698                         75 xreceive::
-      00A698 81               [ 4]   76     ret 
+      00A618                         75 xreceive::
+      00A618 81               [ 4]   76     ret 
                                      77 
                                      78 
                                      79 

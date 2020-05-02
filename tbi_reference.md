@@ -387,7 +387,7 @@ Cette commande arrête l'exécution d'un programme et retourne le contrôle à l
 >
 ```
 ### FCPU *integer*
-Cette commande sert à contrôler la fréquence d'horloge du CPU. Au démarrage le CPU fonctionne à la fréquence de l'oscillateur interner **HSI** qui est de 16 Mhz. Cette commande permet de réduire de fréquence par puissance de 2 à dans l'intervalle **0..7**. Fcpu=16Mhz/2^7.
+Cette commande sert à contrôler la fréquence d'horloge du CPU. Au démarrage le CPU fonctionne à la fréquence de l'oscillateur interner **HSI** qui est de 16 Mhz. Cette commande permet de réduire la fréquence par puissance de 2 à dans l'intervalle **0..7**. Fcpu=16Mhz/2^7.
 ```
 >fcpu 7 ' Fcpu=125 Khz
 
@@ -472,7 +472,7 @@ Appel de sous-routine. *expr* doit résulté en un numéro de ligne existant sin
 >li
    10 a=0
    20 gosub 1000
-   30 if a>20 : stop 
+   30 if a>20 : end 
    40 goto 20
  1000 ? a,
  1010 a=a+1
@@ -488,7 +488,7 @@ Passe le contrôle à la ligne dont le numéro est déterminé par *expr*. *expr
 >li
    10 a=0
    20 goto 1000
-   30 if a>20 : stop 
+   30 if a>20 : end 
    40 goto 20
  1000 ? a,
  1010 a=a+1
@@ -570,12 +570,12 @@ Active l'*Independant WatchDog timer*. *expr* représente le délais de la minut
 16383 représente un délais d'une seconde.
 
 ```
- 10 IWDG 16383 ' activation avec expiration a 1 seconde.
- 20 IWDGREF   ' rafraissement du compteur avant qu'il n'expire
- 30 ...  'code programme qui tourne en boucle
- 40 ...
- ...
- 1000 goto 20  ' doit retourné à la ligne 20 en moins d'une seconde, sinon réinitialisation
+   10 IWDGEN 16383 ' activation de **IWDG** délais ~ 1 seconde 
+   20 IF QKEY :GOTO 40
+   30 IWDGREF ' réinitialise le compteur du **IWDG**
+   34 GOTO 20  
+   40 GOTO 40 ' la cart var réinitialiser après 1 seconde.
+
 
 ```
 
@@ -615,19 +615,16 @@ Affecte une valeur à une variable. En Tiny BASIC il n'y a que 26 variables repr
 Affiche le programme contenu dans la mémoire RAM à l'écran. Sans arguments toutes les lignes sont affichées. Avec un argument la liste débute à la ligne dont le numéro est **&gt;=expr1**. Avec 2 arguments la liste se termine au numéro **&lt;=expr2**. 
 ```
 >list
-   10 'fibonacci 
-   20 a=1:b=1 
-   30 if b>100 : stop 
-   40 ? b,
-   50 c=a+b: a=b:b=c
-   60 goto 30
+   10 'Fibonacci
+   20 A =1:B =1
+   30 IF B >100:END 
+   40 PRINT B ,
+   50 C =A +B :A =B :B =C 
+   60 GOTO 30
 
 >run
    1   2   3   5   8  13  21  34  55  89
 >list 20,40
-   20 a=1:b1
-   30 if b>100 : stop 
-   40 ? b,
 
 >
 
@@ -644,19 +641,18 @@ Charge un fichier sauvegardé dans la mémoire flash vers la mémoire RAM dans l
 
 >load "fibonacci"
   86
+>load "fibo"
+ 100
 >li
-   10 'Suite de Fibonacci
-   20 a=1:b=1:f=1
-   30 ?#6,f,
-   40 gosub 100
-   50 if f<0:stop
-   60 goto 40
-  100 ?f,
-  110 a=b:b=f:f=a+b
-  120 ret
+   10 'Fibonacci
+   20 A =1:B =1
+   30 IF B >100:END 
+   40 PRINT B ,
+   50 C =A +B :A =B :B =C 
+   60 GOTO 30
 
 >run
-     1     1     2     3     5     8    13    21    34    55    89   144   233   377   610   987  1597  2584  4181  6765 10946 17711 28657
+   1   2   3   5   8  13  21  34  55  89
 >
 ```
 ### LOG(*expr*) {C,P}
@@ -806,10 +802,10 @@ Cette fonction retourne l'entier pointé par le pointeur de donné initialisé a
 
 >run
  100 200 300
-No data line found.
+No data found.
    40 PRINT READ ,READ ,READ ,READ 
 ```
-Dans cet exemple il y a 3 données disponibles mais on essai dans lire 4. Donc à la quatrième invocation de **READ** le programme s'arrête et affiche l'erreur *No data line found.*
+Dans cet exemple il y a 3 données disponibles mais on essai dans lire 4. Donc à la quatrième invocation de **READ** le programme s'arrête et affiche l'erreur *No data found.*
 
 ### REBOOT {C,P}
 Réinitialise le MCU 
@@ -887,7 +883,7 @@ Sauvegarde le programme qui est en mémoire RAM dans un fichier. La mémoire FLA
    10 a=1:b=1:f=1
    12 ? f,
    20 gosub 100
-   30 r=key:if r=asc("q"):stop
+   30 r=key:if r=asc("q"):end 
    40 goto 20
   100 'imprime terme, calcule suivant
   110 ?f,
@@ -901,10 +897,10 @@ save "fibo"
 >
 ```
 ### SHOW {C,P}
- Outil d'aide au débogage d'un programme. Cette commande affiche le contenu des 2 piles *cstack* et *dstack*. Peut-être insérée à l'intérieur d'un programme ou sur la ligne de commande en conjonction avec la commande **BREAK**.
+ Outil d'aide au débogage d'un programme. Cette commande affiche le contenu de la  pile. Peut-être insérée à l'intérieur d'un programme ou sur la ligne de commande en conjonction avec la commande **STOP**.
 ```
 >li
-   10 for a=1to10:?a,:break:ne a
+   10 for a=1to10:?a,:stop:ne a
 
 >run
    1
@@ -918,13 +914,13 @@ ctack:  $5B $10 $191E  $A $5B
    2
 break point, RUN to resume.
 
->stop
+>end
 
 >
 ```
-Dans cet exemple la commande **BREAK** a été insérée au milieu d'une boucle **FOR...NEXT**. Donc à chaque itération de la boucle on retombe sur la ligne de commande où la commande **SHOW** est utilisée pour afficher le contenu des piles. Sur *dstack* on aperçoit les paramètres de la boucle **FOR...NEXT**. **39** est l'adresse de la variable de contrôle **A**, **10** est la limite de la boucle et **1** l'incrément.  
+Dans cet exemple la commande **STOP** a été insérée au milieu d'une boucle **FOR...NEXT**. Donc à chaque itération de la boucle on retombe sur la ligne de commande où la commande **SHOW** est utilisée pour afficher le contenu des piles. Sur *dstack* on aperçoit les paramètres de la boucle **FOR...NEXT**. **39** est l'adresse de la variable de contrôle **A**, **10** est la limite de la boucle et **1** l'incrément.  
 
-À la deuxième itération la commande **STOP** est utilisée pour arrêter l'exécution. 
+À la deuxième itération la commande **END** est utilisée pour arrêter l'exécution. 
 
 ### SIZE {C,P}
 Cette commande retourne le nombre d'octets libre dans la mémoire RAM
@@ -1141,42 +1137,44 @@ Dans cet exemple le programme par défaut est appelé avec l'argument *200*. Ce 
 
 ### WAIT *expr1*,*expr2*[,*expr3] {C,P}
 Cette commande sert à attendre un changement d'état sur un périphérique.
-*expr1* indique l'adresse du registre de périphérique susceptible de changer d'état. *expr2* est un masque de bits appliqué à l'octet lu dans le registre avec la fonction logique AND.  Si cette valeur est différente de zéro l'attente se termine. *expr3* peut-être utilisé pour attendre qu'un ou des bits passent à zéro. Il est appliqué après la fonction AND avec une fonction logique XOR.  Si Byte&E1^E2<>0 alors l'attente prend fin. 
+*expr1* indique l'adresse du registre de périphérique susceptible de changer d'état. *expr2*.
+L'attente se poursuit tant que (*expr1* & *expr2*)^*epxr3* n'est pas nul. Si *eprx3* n'est pas fournie l'attente se poursuit tant que (*expr1* & *expr2*) est nul. 
 ```
->wait $5240,&100000 ' attend reception caractere
-
->z
+>poke $5231,65:wait $5230,bit(6)
+A
+>
 ```
-Dans cet exemple l'adresse $5240 correspond au registre UART3_SR. Lorsque le bit 5 de ce registre passe à **1** ça signifit qu'un caractère a été reçu.
-L'exécution est suspendu jusqu'à la réception d'un caractère sur UART3.
+Dans cet exemple l'adresse $5131 correspond au registre UART1_DR et $5231 au UART1_SR. Lorsque la transmission du caractère est complétée le bit 6 de ce registre passe à **1** et l'attente se termine.
 
 ### WORDS {C,P}
 Affiche la liste de tous les mots qui sont dans le dictionnaire. Le dictionnaire est une liste chaînée des noms des commandes et fonctions de Tiny Basic en relation avec l'adresse d'exécution. 
 ```
 >words
-ABS ASC BEEP BREAK BRES BSET BTEST BTOGL BYE CHAR CRH CRL DDR DEC DIR EEPROM
-FOR FORGET GOSUB GOTO GPIO HEX IDR IF INPUT KEY LET LIST LOAD NEXT NEW ODR
-PAUSE PEEK POKE PRINT PWRADC QKEY RDADC REMARK RETURN RND RUN SAVE SHOW
-SIZE SLEEP STEP STOP TICKS TO UBOUND UFLASH USR WAIT WORDS WRITE 
+ABS ADCON ADCREAD AND ASC AUTORUN AWU BIT BRES BSET BTEST BTOGL BYE CHAR
+CRH CRL DATA DATALN DDR DEC DIR DO DREAD DWRITE END EEPROM FCPU FILERX FILETX
+FOR FORGET GOSUB GOTO GPIO HEX IDR IF INPUT INVERT IWDGEN IWDGREF KEY LET
+LIST LOAD LOG LSHIFT NEXT NEW NOT ODR OR PAUSE PMODE PEEK PINP POKE POUT
+PRINT PRTA PRTB PRTC PRTD PRTE PRTF PRTG PRTH PRTI QKEY READ REBOOT REMARK
+RESTORE RETURN RND RSHIFT RUN SAVE SHOW SIZE SLEEP SPIRD SPIEN SPISEL SPIWR
+STEP STOP TICKS TIMER TIMEOUT TO TONE UBOUND UFLASH UNTIL USR WAIT WORDS
+WRITE XOR XPEEK 
+ 101 words in dictionary
+
 >
+
 ```
 
 ### WRITE *expr1*,*expr2*[,*expr*]* 
 Cette commande permet d'écrire un octet ou plusieurs dans la mémoire EEPROM ou dans la mémoire FLASH. *expr1* la liste d'expressions qui suivent  donne les valeurs à écrire aux adresses successives. le **STM8S208RB** possède 2Ko de mémoire EEPROM 128Ko de mémoire FLASH. Pour la mémoire flash seul la plage d'adresse à partir de **UFLASH** jusqu'à 65535 peuvent-être écritre. Cette commande est utile pour injecter du code machine dans la mémoire flash pour exécution avec la fonction **USR()**. 
 
 ```
->write eeprom,1,2,3,4,5 'ecris dans memoire eeprom
+>write eeprom+100,1,2,3,4,5
 
->for a=eeprom to eeprom+5:?pe(a),:ne a ' verifie 
-   1   2   3   4   5   0
-
->write uflash+15,1,2,3,4,5 'ecris dans user flash 
-
->for a=uf+14to uf+20:?pe(a),:ne a  ' verifie 
-   0   1   2   3   4   5   0
+>for a=0to4:?peek(eeprom+100+a),:next a
+   1   2   3   4   5
 >
 ```
-**AVERTISSEMENT: Écrire dans la mémoire FLASH peut endommagé le système Tiny BASIC** 
+**AVERTISSEMENT: Écrire dans la mémoire FLASH en base de l'adresse _UFLASH_ va endommagé le système Tiny BASIC** 
 
 ### XOR(*expr1*,*expr2*) {C,P}
 Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxressions.

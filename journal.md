@@ -1,8 +1,24 @@
+### 2020-05-02
+
+* tests des commandes et mise à jour du manuel [tbi_reference.md](tbi_reference.md)
+
+* Corrigé bogue dans commande BASIC **INPUT**. La pile n'était pas balancée ce qui conduisait à un crash.  
+
+* Corrigé bogue dans commande BASIC **LET**. N'acceptait pas la variable tableau **@**.
+
+* Corrigé bogue dans commande BASIC **LIST**. La commande ne gérait pas les arguments correctement.
+
+* Corrigé bogue dans commande **CMD** qui ne réinitalisait pas la pile. 
+
+* A FAIRE:
+    * Vérifier commandes SPI ne fonctionnent plus 
+
+
 ### 2020-05-01
 
-* Rework of code to improve performance of interpreter. 
+* Retravaillé le code pour améliorer la performance de l'interpréteur. 
 
-* Modified **WORDS** command to print number of words in dictionary.
+* Modifié commande **WORDS**, mainteant imprime le nombre de mots dans le dictionnaire.
 
 * Réécrit commande "PRINT" 
 

@@ -1383,7 +1383,7 @@ err_duplicate: .asciz "\nduplicate name.\n"
 err_not_file: .asciz "\nFile not found.\n"
 err_bad_value: .asciz "\nbad value.\n"
 err_no_access: .asciz "\nFile in extended memory, can't be run from there.\n" 
-err_no_data: .asciz "\nNo data line found.\n"
+err_no_data: .asciz "\nNo data found.\n"
 err_no_prog: .asciz "\nNo program in RAM!\n"
 err_no_fspace: .asciz "\nFile system full.\n" 
 
@@ -1459,10 +1459,7 @@ interpreter:
 	btjf flags, #FRUN, cmd_line
 ;next BASIC line
 	ldw x,basicptr
-	ld a,(2,x) ; line length 
-	ld acc8,a 
-	clr acc16 
-	addw x,acc16
+	addw x,in.w 
 	cpw x,txtend 
 	jrpl warm_start
 	ldw basicptr,x ; start of next line  
@@ -1477,13 +1474,12 @@ interpreter:
 	jreq interpreter 
 	cp a,#TK_VAR
 	jrne 2$
-	call let02  
+	call let_var  
 	jra interpreter 
 2$:	
 	cp a,#TK_ARRAY 
 	jrne 3$
-	call get_array_element
-	call let02 
+	call let_array 
 	jra interpreter 
 3$:	
 	jp syntax_error 
@@ -3554,9 +3550,13 @@ ubound:
 let:
 	call next_token 
 	cp a,#TK_VAR 
-	jreq let02
+	jreq let_var
+	cp a,#TK_ARRAY 
+	jreq  let_array
 	jp syntax_error
-let02:
+let_array:
+	call get_array_element
+let_var:
 	pushw x  
 	call next_token 
 	cp a,#TK_EQUAL
@@ -3605,9 +3605,9 @@ list:
 	jreq first_line 
 	jp syntax_error 
 4$:	popw x 
-	ldw (LAST,sp),x 
+	ldw (LAST+2,sp),x 
 first_line:
-	popw x 
+	popw x
 	ldw (FIRST,sp),x 
 lines_skip:
 	ldw x,txtbgn
@@ -3618,9 +3618,7 @@ lines_skip:
 	cpw x,(FIRST,sp)
 	jrpl list_start 
 	ldw x,(LN_PTR,sp) 
-	addw x,#2 
-	ld a,(x)
-	incw x 
+	ld a,(2,x)
 	ld acc8,a 
 	clr acc16 
 	addw x,acc16
@@ -3997,7 +3995,7 @@ rest_context:
 	ret
 
 ;------------------------------------------
-; BASIC: INPUT [string],var[,[string],var]
+; BASIC: INPUT [string]var[,[string]var]
 ; input value in variables 
 ; [string] optionally can be used as prompt 
 ;-----------------------------------------
@@ -4014,7 +4012,7 @@ input_loop:
 	call next_token 
 	cp a,#TK_QSTR 
 	jrne 1$ 
-	call prt_quote 
+	call puts 
 	cpl (SKIP,sp)
 	call next_token 
 1$: cp a,#TK_VAR  
@@ -4023,7 +4021,6 @@ input_loop:
 2$:	ldw (VAR_ADDR,sp),x 
 	tnz (SKIP,sp)
 	jrne 21$ 
-;	clr pad+2
 	ldw x,#pad 
 	call puts   
 21$:
@@ -4033,14 +4030,13 @@ input_loop:
 	clr count  
 	call readln 
 	ldw x,#tib 
-	ldw basicptr,x  
 	clr in 
 	call get_token
 	cp a,#TK_INTGR
 	jreq 3$ 
 	call rest_context 
 	jp syntax_error
-3$: popw y 
+3$: ldw y,(VAR_ADDR,sp) 
 	ldw (y),x 
 	call rest_context
 	call next_token 
@@ -4068,9 +4064,9 @@ remark:
 ; read in loop 'addr'  
 ; apply & 'mask' to value 
 ; loop while result==0.  
-; if 'xor_mask' given 
-; apply ^ in second  
-; loop while result==0 
+; 'xor_mask' is used to 
+; invert the wait logic.
+. i.e. loop while not 0.
 ;---------------------
 	XMASK=1 
 	MASK=2
@@ -4302,7 +4298,7 @@ for: ; { -- var_addr }
 	ld a,#TK_VAR 
 	call expect
 	ldw (CVAR,sp),x  ; control variable 
-	call let02 
+	call let_var 
 	bset flags,#FLOOP 
 ; open space on stack for loop data 
 	clrw x 
@@ -4555,6 +4551,8 @@ run_it:
 ;---------------------- 
 cmd_end: 
 ; clean stack 
+	ldw x,#STACK_EMPTY
+	ldw sp,x 
 	jp warm_start
 
 
