@@ -1,3 +1,29 @@
+#### 2020-05-05
+
+* merge branche test dans master. 
+
+* Corrigé bogue dans *insert_line*.
+
+* Corrigé bogue dans **INPUT**.
+
+* Modifié boucle de l'interpréteur. 
+
+* Corrigé bogue dans **NEW**.
+
+* Corrigé bogue dans *spi_enable*
+
+* Corrigé bogue dans appel de fonctions imbriquées qui retournait une erreur de syntaxe injustifiée. Cause du problème: adresse de retour dans la fonctions *func_args* était sauvegardée dans une variable. Cette valeur était écrasée par l'imbrication de fonctions.
+
+#### 2020-05-03,04
+
+* Réécriture de code compilateur. Le *pad* a été agrandi à 128 octets et sert de tampon pour la compilation. La ligne compilée est copié à partir du *pad* vers la zone texte.
+
+#### A faire
+
+* Corrigé bogue dans insert_line. Insertion supprime les lignes suivantes.
+
+* Corrigé bogue dans INPUT
+
 ### 2020-05-02
 
 * tests des commandes et mise à jour du manuel [tbi_reference.md](tbi_reference.md)
@@ -8,10 +34,11 @@
 
 * Corrigé bogue dans commande BASIC **LIST**. La commande ne gérait pas les arguments correctement.
 
-* Corrigé bogue dans commande **CMD** qui ne réinitalisait pas la pile. 
+* Corrigé bogue dans commande **END** qui ne réinitalisait pas la pile. 
 
-* A FAIRE:
-    * Vérifier commandes SPI ne fonctionnent plus 
+#### A FAIRE:
+   
+* Vérifier commandes SPI ne fonctionnent plus 
 
 
 ### 2020-05-01

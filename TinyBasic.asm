@@ -40,7 +40,7 @@
 ;--------------------------------------	
 
 	TIB_SIZE=80
-    PAD_SIZE=40
+    PAD_SIZE=128
 	STACK_SIZE=160
 	STACK_EMPTY=RAM_SIZE-1  
 	FRUN=0 ; flags run code in variable flags
@@ -69,8 +69,6 @@ base:  .blkb 1 ; nemeric base used to print integer
 acc24: .blkb 1 ; 24 bit accumulator upper-byte 
 acc16: .blkb 1 ; 16 bit accumulator, acc24 high-byte
 acc8:  .blkb 1 ;  8 bit accumulator, acc24 low-byte  
-tmp16: .blkb 1 ; 16 bit temporary storage high-byte 
-tmp8:  .blkb 1 ; 8 bit temporary storage, tmp16 low-byte 
 ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
 timer: .blkw 1 ;  milliseconds count down timer 
 seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
@@ -180,7 +178,7 @@ Uart1RxHandler:
 	clr rx_char 
 	jp user_interrupted
 1$:
-	cp a,#CAN 
+	cp a,#CAN ; CTRL_X 
 	jrne 2$
 	jp cold_start 	
 2$: 
@@ -699,6 +697,7 @@ prt_regs:
 	call putc   
 	ret 
 
+
 regs_state: .asciz "\nregisters state\n--------------------\n"
 
 
@@ -729,6 +728,122 @@ prt_peek:
 	ret 
 .endif ; DEBUG  
 ;;;;;;;;;;;;;;;;;;;;	
+
+;----------------------
+; print token id && value
+; input:
+;   A     token id 
+;   X     token value 
+;---------------------
+	BSAVE=1
+	AREG=2
+	XREG=3
+	VSIZE=4
+prt_tok:
+	_vars VSIZE 
+	ld (AREG,sp),a 
+	ldw (XREG,sp),x 
+	ld a, base
+	ld (BSAVE,sp),a 
+	mov base,#16  
+	ldw x,#token_msg
+	call puts 
+	clrw x 
+	ld a,(AREG,sp)
+	ld xl,a 
+	call print_int 
+	ld a,#SPACE
+	call putc 
+	ldw x,(XREG,sp)
+	call print_int 
+	ld a,#CR 
+	call putc 
+	ld a,(BSAVE,sp)
+	ld base,a 
+	ld a,(AREG,sp)
+	ldw x,(XREG,sp)
+	_drop VSIZE 
+	ret 
+token_msg: .asciz "token: "
+
+
+;---------------------
+; display n bytes row 
+; from memory.
+; input:
+;   A   bytes to print 
+;	X   start address 
+; output:
+;   X   address after last shown  
+;---------------------
+	CNT=1 
+	ADR=2 
+	VSIZE=3 
+show_row:
+	tnz a 
+	jrne 1$
+	ret 
+1$:	
+	pushw x  
+	push a 
+	mov tab_width,#4 
+	call print_int 
+	ld a,#SPACE  
+	call putc
+row_loop:
+	ldw x,(ADR,sp)
+	ld a,(x)
+	clrw x 
+	ld xl,a 
+	call print_int 
+	ldw x,(ADR,sp)
+	incw x 
+	ldw (ADR,sp),x 
+	dec (CNT,sp)
+	jrne row_loop
+	_drop VSIZE  		
+	mov tab_width,#4
+	ld a,#CR 
+	call putc 
+	ret 
+
+;--------------------------
+; print memory content 
+; in hexadecimal format
+;  input:
+;    X    start address 
+;    Y    count 
+;--------------------------
+	BCNT=1
+	BASE=3
+	TABW=4
+	VSIZE=4   
+hex_dump:
+	_vars VSIZE
+	ld a,base
+	ld (BASE,sp),a 
+	mov base,#16
+	ld a,tab_width 
+	ld (TABW,sp),a
+	ld a,#CR 
+	call putc 
+1$: ldw (BCNT,sp),y
+	ld a,#16
+	cpw y,#16
+	jrpl 2$
+	ld a,yl
+2$: 	
+	call show_row 
+	ldw y,(BCNT,sp) 
+	subw y,#16 
+	cpw y,#1
+	jrpl 1$
+	ld a,(BASE,sp)
+	ld base,a
+	ld a,(TABW,sp)
+	ld tab_width,a 
+	_drop VSIZE
+	ret 
 
 ;-------------------------------------
 ; retrun string length
@@ -874,8 +989,6 @@ search_ln_loop:
 
 ;-------------------------------------
 ; delete line at addr
-; move new line to insert with end of text 
-; otherwise it would be overwritten.
 ; input:
 ;   X 		addr of line i.e DEST for move 
 ;-------------------------------------
@@ -891,10 +1004,6 @@ del_line:
 	addw y,(LLEN,sp) ;SRC  
 	ldw (SRC,sp),y  ;save source 
 	ldw y,txtend 
-	ld a,(2,y)
-	clrw y 
-	ld yl,a  
-	addw y,txtend
 	subw y,(SRC,sp) ; y=count 
 	ldw acc16,y 
 	ldw y,(SRC,sp)    ; source
@@ -906,9 +1015,8 @@ del_line:
 	ret 
 
 ;---------------------------------------------
-; create a gap in text area 
-; move new line to insert in gap with end of text
-; otherwise it would be overwritten.
+; create a gap in text area to 
+; move new line in this gap
 ; input:
 ;    X 			addr gap start 
 ;    Y 			gap length 
@@ -929,10 +1037,6 @@ create_gap:
 	ldw (DEST,sp),x 
 ;compute size to move 	
 	ldw x,txtend 
-	ld a,(2,x) ; pending line length 
-	ld acc8,a 
-	clr acc16 
-	addw x,acc16 
 	subw x,(SRC,sp)
 	ldw acc16,x ; size to move
 	ldw x,(DEST,sp) 
@@ -943,14 +1047,13 @@ create_gap:
 9$:	_drop VSIZE 
 	ret 
 
-
 ;--------------------------------------------
-; insert line in tib into text area 
+; insert line in pad into text area 
 ; first search for already existing 
 ; replace existing 
-; if strlen(tib)==0 delete existing line
+; if new line empty delete existing one. 
 ; input:
-;   ptr16 				pointer to tokenized line  
+;   ptr16		pointer to tokenized line  
 ; output:
 ;   none
 ;---------------------------------------------
@@ -961,7 +1064,7 @@ create_gap:
 	VSIZE=8  
 insert_line:
 	_vars VSIZE 
-	ldw x,ptr16  
+	ldw x,txtend  
 	cpw x,txtbgn 
 	jrne 0$
 ;first text line 
@@ -969,15 +1072,18 @@ insert_line:
 	ld a,([ptr16],x)
 	clrw x 
 	ld xl,a
-	ldw (LLEN,sp),x  
-	jra 5$
+	ldw (LLEN,sp),x 
+	ldw x,txtbgn
+	ldw (DEST,sp),x 
+	ldw x,txtend 
+	jra 4$
 0$:	ldw x,[ptr16]
-; new line number
+; line number
 	ldw (LINENO,sp),x 
 	ldw x,#2 
 	ld a,([ptr16],x)
 	ld xl,a
-; new line length
+; line length
 	ldw (LLEN,sp),x
 ; check if that line number already exit 	
 	ldw x,(LINENO,sp)
@@ -999,50 +1105,32 @@ insert_line:
 	cp a,(LLEN+1,sp)
 	jreq insert_ln_exit ; empty line exit.
 ; if insertion point at txtend 
-; no move required 
+; move no need to create a gap 
 	ldw x,(DEST,sp)
 	cpw x,txtend 
-	jrpl 5$ 
+	jreq 4$ 
 ; must create a gap
 ; at insertion point  
 	ldw x,(DEST,sp)
 	ldw y,(LLEN,sp)
-	call create_gap 
+	call create_gap
+	jra 5$
+4$: 
+	addw x,(LLEN,sp)
+	ldw txtend,x 	 
 ; move new line in gap 
-	ldw x,(LLEN,sp)
+5$:	ldw x,(LLEN,sp)
 	ldw acc16,x 
-	ldw y,txtend ;SRC 
+	ldw y,#pad ;SRC 
 	ldw x,(DEST,sp) ; dest address 
 	call move 
-	jra insert_ln_exit  
-5$: ; no move required 
-	ldw x,(LLEN,sp) 
-	addw x,txtend 
-	ldw txtend,x 
 insert_ln_exit:	
 	_drop VSIZE
 	ret
 
-
-;-----------------------------
-; check if text buffer full
-; input:
-;   ptr16     addr start tokenize line 
-;   X         buffer index 
-; output:
-;   none 
-;-----------------------------------
-check_full:
-	addw x,ptr16 
-	cpw x,#tib 
-	jrult 1$
-	ld a,#ERR_MEM_FULL
-	jp tb_error 
-1$: ret 
-
 ;-----------------------------------
 ; create token list fromm text line 
-; save this list in text area
+; save this list in pad buffer 
 ;  compiled line format: 
 ;    line_no  2 bytes {0...32767}
 ;    count    1 byte  
@@ -1056,111 +1144,47 @@ check_full:
 ;   count        length of line | 0  
 ;-----------------------------------
 	XSAVE=1
-	BUFIDX=3
-	VSIZE=4
+	VSIZE=2
 compile:
 	_vars VSIZE 
 	bset flags,#FCOMP 
-	ldw x,txtend
-	ldw ptr16,x ; code buffer start address 
-	ldw x,#3
-	ldw (BUFIDX,sp),X  
-	call check_full
-	clrw x 
-	ldw [ptr16],x ; initialize line# to zero 
+	ld a,#0
+	ldw x,#0
+	ldw pad,x ; destination buffer 
+	ld pad+2,a ; count 
+	ldw x,#pad+3
+	clr in 
 	call get_token
-	ldw (XSAVE,sp),x 
-	cp a,#TK_INTGR 
-	jrne 3$
-	cpw x,#0 
-	jrsgt 1$
-	ld a,#ERR_BAD_VALUE 
-	jp tb_error ; line number must be in range {1..32767}
-1$:	ldw [ptr16],x; line number
-2$:	call get_token
-	ldw (XSAVE,sp),x 
-3$:	cp a,#TK_NONE 
-	jrne 30$
-	jp 9$ ; end of line. 
-30$: 	 
-	ldw x,(BUFIDX,sp)
-	call check_full 
-	ldw y,(BUFIDX,sp) 
-	ld ([ptr16],y),a ; token attribute 
-	incw y
-	ldw (BUFIDX,sp),y
-	cp a,#TK_COLON 
-	jrne 31$
-	jra 2$ ; loop for next token 
-31$: ; check for token type 
-; character token have 1 byte attribute, i.e. ASCII character 
-	cp a,#TK_CHAR
-	jrne 32$ 
-	ldw x,(XSAVE,sp)
-	ld a,xl 
-	ld ([ptr16],y),a
-	incw y 
-	ldw (BUFIDX,sp),y 
-	jra 2$ 
-32$:
-	cp a,#TK_ARRAY 
-; this token have no attribute. 
-	jreq 2$ 
-	cp a,#TK_QSTR 
-	jrne 4$
-; copy string as .asciz 	
+	cp a,#TK_INTGR
+	jrne 2$
+	cpw x,#1 
+	jrpl 1$
+	ld a,#ERR_BAD_VALUE
+	jp tb_error
+1$:	ldw pad,x 
+	ldw y,#pad+3 
+2$:	cpw y,#stack_full 
+	jrult 3$
+	ld a,#ERR_BUF_FULL 
+	jp tb_error 
+3$:	
+	ldw x,y 
+	call get_token 
+	cp a,#TK_NONE 
+	jrne 2$ 
+; compilation completed  
+	subw y,#pad
+    ld a,yl
 	ldw x,#pad 
-	call strlen
-	incw x  
-	call check_full 
-	ldw y,#pad 
-	ldw x,ptr16
-	addw x,(BUFIDX,sp)	
-	call strcpy 
-	ldw x,#pad 
-	call strlen 
-	incw x
-	addw x,(BUFIDX,sp) 
-	ldw (BUFIDX,sp),x
-	jra 2$  
-4$: cp a,#TK_INTGR
-	jrult 2$ ; 
-	cp a,#TK_CFUNC 
-	Jrugt 2$ ; those tokens have no attributes 
-	ldw x,(XSAVE,sp) 
-	ldw y,(BUFIDX,sp)
-	ldw ([ptr16],y),x ; the attribute is an address or integer. 
-	cpw x,#remark ; is this a comment? 
-	jreq 5$	
-	addw y,#2 
-	ldw (BUFIDX,sp),y 
-	jp 2$
-5$:
-; copy commment in code buffer and
-; skip to end of line.  
-	addw y,#2 ; skip exec address 
-	ldw (BUFIDX,sp),y 
-	ldw x,ptr16 
-	addw x,(BUFIDX,sp)
-	ldw y,in.w 
-	addw y,#tib 
-	call strcpy 	
-	call strlen 
-	incw x ; skip string 0. 
-	addw x,(BUFIDX,sp)
-	ldw (BUFIDX,sp),x 
-9$: 
-	ldw x,#2
-	ldw y,(BUFIDX,sp)
-	ld a,yl 
-	ld ([ptr16],x),a ; bytes count   	
-	ldw x,[ptr16]
+	ldw ptr16,x 
+	ld (2,x),a 
+	ldw x,(x)
 	jreq 10$
 	call insert_line
 	clr  count 
 	jra  11$ 
 10$: ; line# is zero 
-	ldw x,ptr16 
+	ldw x,ptr16  
 	ldw basicptr,x 
 	ld a,(2,x)
 	ld count,a 
@@ -1309,7 +1333,7 @@ warm_init:
 	ldw x,#0 
 	ldw basicptr,x 
 	ldw in.w,x 
-	clr count 
+	clr count
 	ret 
 
 ;--------------------------
@@ -1357,7 +1381,8 @@ autorun_msg: .asciz " loaded and running\n"
 ; and clear variables 
 ;---------------------------
 clear_basic:
-	clr count 
+	clr count
+	clr in  
 	ldw x,#free_ram 
 	ldw txtbgn,x 
 	ldw txtend,x 
@@ -1370,29 +1395,37 @@ clear_basic:
 err_msg:
 	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
 	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
-	.word err_no_access,err_no_data,err_no_prog,err_no_fspace    
+	.word err_no_access,err_no_data,err_no_prog,err_no_fspace,err_buf_full    
 
-err_mem_full: .asciz "\nMemory full\n" 
-err_syntax: .asciz "\nsyntax error\n" 
-err_math_ovf: .asciz "\nmath operation overflow\n"
-err_div0: .asciz "\ndivision by 0\n" 
-err_no_line: .asciz "\ninvalid line number.\n"
-err_run_only: .asciz "\nrun time only usage.\n" 
-err_cmd_only: .asciz "\ncommand line only usage.\n"
-err_duplicate: .asciz "\nduplicate name.\n"
-err_not_file: .asciz "\nFile not found.\n"
-err_bad_value: .asciz "\nbad value.\n"
-err_no_access: .asciz "\nFile in extended memory, can't be run from there.\n" 
-err_no_data: .asciz "\nNo data found.\n"
-err_no_prog: .asciz "\nNo program in RAM!\n"
-err_no_fspace: .asciz "\nFile system full.\n" 
+err_mem_full: .asciz "Memory full\n" 
+err_syntax: .asciz "syntax error\n" 
+err_math_ovf: .asciz "math operation overflow\n"
+err_div0: .asciz "division by 0\n" 
+err_no_line: .asciz "invalid line number.\n"
+err_run_only: .asciz "run time only usage.\n" 
+err_cmd_only: .asciz "command line only usage.\n"
+err_duplicate: .asciz "duplicate name.\n"
+err_not_file: .asciz "File not found.\n"
+err_bad_value: .asciz "bad value.\n"
+err_no_access: .asciz "File in extended memory, can't be run from there.\n" 
+err_no_data: .asciz "No data found.\n"
+err_no_prog: .asciz "No program in RAM!\n"
+err_no_fspace: .asciz "File system full.\n" 
+err_buf_full: .asciz "Buffer full\n"
 
-;rt_msg: .asciz "last token id: "
+rt_msg: .asciz "run time error, "
+comp_msg: .asciz "compile error, "
+tk_id: .asciz "last token id: "
 
 syntax_error:
 	ld a,#ERR_SYNTAX 
 
 tb_error:
+	btjt flags,#FCOMP,1$
+	push a 
+	ldw x, #rt_msg 
+	call puts 
+	pop a 
 	ldw x, #err_msg 
 	clr acc16 
 	sll a
@@ -1401,7 +1434,35 @@ tb_error:
 	addw x,acc16 
 	ldw x,(x)
 	call puts
-	btjf flags,#FCOMP, 1$
+	ldw x,basicptr
+	ld a,in 
+	call prt_basic_line
+	ldw x,#tk_id 
+	call puts 
+	ld a,in.saved 
+	clrw x 
+	ld xl,a 
+	addw x,basicptr 
+	ld a,(x)
+	clrw x 
+	ld xl,a 
+	call print_int
+	btjf flags,#FAUTORUN ,6$
+	call cancel_autorun  
+	jra 6$
+1$:	
+	push a 
+	ldw x,#comp_msg
+	call puts 
+	pop a 
+	ldw x, #err_msg 
+	clr acc16 
+	sll a
+	rlc acc16  
+	ld acc8, a 
+	addw x,acc16 
+	ldw x,(x)
+	call puts
 	ldw x,#tib
 	call puts 
 	ld a,#CR 
@@ -1410,22 +1471,6 @@ tb_error:
 	call spaces
 	ld a,#'^
 	call putc 
-	jra 6$
-1$:	ldw x,basicptr
-	ld a,in 
-	call prt_basic_line
-	btjf flags,#FAUTORUN ,2$
-	call cancel_autorun  
-2$:
-;	ldw x,#rt_msg 
-;	call puts 
-;	clrw x 
-;	ld a,in.saved 
-;	ld xl,a 
-;	ld a,([basicptr],x)
-;	clrw x 
-;	ld xl,a 
-;	call print_int 
 6$: ldw x,#STACK_EMPTY 
     ldw sp,x
 warm_start:
@@ -1434,18 +1479,32 @@ warm_start:
 ;   BASIC interpreter
 ;----------------------------
 cmd_line: ; user interface 
-	clr in 
 	ld a,#CR 
 	call putc 
 	ld a,#'> 
 	call putc
 	call readln
+	tnz count 
+	jreq cmd_line
 	call compile
 ; if text begin with a line number
 ; the compiler set count to zero    
 ; so code is not interpreted
 	tnz count 
+;;--------------------
+;  test code 
+;;--------------------
+TEST=0
+.if TEST 
+	ldw x, #pad 
+	clrw y 
+	ld a,(2,x) 
+	ld yl,a 
+	call hex_dump
+.endif 
+;;; end test ----------
 	jreq cmd_line
+
 ; if direct command 
 ; it's ready to interpret 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1455,9 +1514,9 @@ cmd_line: ; user interface
 interpreter: 
 	ld a,in 
 	cp a,count 
-	jrmi 0$
+	jrmi interp_loop
+next_line:
 	btjf flags, #FRUN, cmd_line
-;next BASIC line
 	ldw x,basicptr
 	addw x,in.w 
 	cpw x,txtend 
@@ -1466,28 +1525,37 @@ interpreter:
 	ld a,(2,x)
 	ld count,a 
 	mov in,#3 ; skip first 3 bytes of line 
-0$: 
+interp_loop: 
 	call next_token
-	tnzw x 
-	jrmi 4$ 
-	cp a,#TK_COLON 
-	jreq interpreter 
+	cp a,#TK_NONE 
+	jreq next_line 
+	cp a,#TK_CMD
+	jrne 1$
+	call (x) 
+	jra interp_loop 
+1$:	 
 	cp a,#TK_VAR
 	jrne 2$
 	call let_var  
-	jra interpreter 
+	jra interp_loop 
 2$:	
 	cp a,#TK_ARRAY 
 	jrne 3$
 	call let_array 
-	jra interpreter 
+	jra interp_loop
 3$:	
+	cp a,#TK_COLON 
+	jreq interp_loop 
+.if TEST
+	clrw x 
+	ld xl,a 
+	call print_int 
+	ld a,#'?
+	call putc
+	ld a,#CR 
+	call putc  
+.endif 
 	jp syntax_error 
-4$:
-	cp a,#TK_CMD
-	jrne 3$
-	call (x) 
-	jra interpreter 
 
 		
 ;--------------------------
@@ -1502,7 +1570,7 @@ interpreter:
 next_token:
 	clrw x 
 	ld a,in 
-	sub a,count ; don't replace sub by cp.  
+	sub a,count ; don't replace sub by cp!  
 	jrmi 0$
 	ret  ; end of BASIC line 
 0$: 
@@ -1510,9 +1578,14 @@ next_token:
 	ldw y,basicptr 
 	addw y,in.w 
 	ld a,(y)
-	incw y  
+	jreq 9$ 
+	incw y 
+	tnz a 
+	jrmi 6$
 	cp a,#TK_ARRAY
 	jrpl 9$  ; no attribute for these
+	cp a,#TK_COLON
+	jreq 9$ 
 	cp a,#TK_INTGR
 	jrmi 1$
 ; attribute type WORD 	
@@ -1534,10 +1607,14 @@ next_token:
 	ldw x,y 
 ; move pointer after string 
 3$:	tnz (y)
-	jreq 4$
+	jreq 8$
 	incw y
-	jra 3$ 
-4$:	incw y 
+	jra 3$
+6$: 
+	ldw x,y 
+	ldw x,(x)
+	incw y 	 
+8$:	incw y 
 9$: subw y,basicptr 
     ldw in.w,y 
 	ret	
@@ -1741,11 +1818,15 @@ prti24:
 ;   none 
 ;-----------------------------------
 	SIGN=1
-	VSIZE=1
+	STRING=2
+;; 9 char on stack for string buffer	
+	STREND=2+8 
+	VSIZE=10
 print_int: 
 	_vars VSIZE 
 	clr (SIGN,sp)
-	ldw y,#pad+PAD_SIZE-1 
+	ldw y,sp 
+	addw y,#STREND  
 	clr (y)
 	ld a,base  
 	cp a,#10 
@@ -1778,16 +1859,17 @@ print_int:
 	decw y  
 	ld (y),a
 9$:	
-	ldw x,y 
-	subw x,#pad+PAD_SIZE-1 
-	negw x  
+	ldw x,sp 
+	addw x,#STREND  
+	pushw y
+	subw x,(1,sp)
+	_drop 2 
 10$:
 	ld a,xl 
 	cp a,tab_width
 	jruge 12$
-	decw y 
 	ld a,#SPACE 
-	ld (y),a
+	call putc 
 	incw x 
 	jra 10$ 
 12$:
@@ -1975,9 +2057,10 @@ neg_acc24:
 ;	none
 ; local variable on stack:
 ;	LL  line length
-;   RXCHAR last received chaaracte 
+;   RXCHAR last received character 
 ; output:
 ;   text in tib  buffer
+;   count  line length 
 ;------------------------------------
 	; local variables
 	LL_HB=1
@@ -1985,8 +2068,8 @@ neg_acc24:
 	LL = 2  ; accepted line length
 	VSIZE=2 
 readln:
-	clrw x 
-	pushw x 
+	push #0
+	push #0  
  	ldw y,#tib ; input buffer
 readln_loop:
 	call getc
@@ -2065,9 +2148,9 @@ readln_quit:
 	clr (y)
 	ld a,(LL,sp)
 	ld count,a 
-	_drop VSIZE 
 	ld a,#CR
 	call putc
+	_drop VSIZE 
 	ret
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2129,6 +2212,7 @@ mem_peek:
 	addw y,in.w 
 	ldw x,#pad 
 	call strcpy
+	ldw x,#pad
 	call atoi24 	
 	ld a, acc24 
 	or a,acc16 
@@ -2206,10 +2290,13 @@ fetchc: ; @C
 ;  output:
 ;    acc24   int24_t 
 ;------------------------------------
-number::
+number:
 	call get_token
-	call atoi24
-	ret
+	cp a,#TK_INTGR
+	jreq 1$
+	jp syntax_error
+1$:	ret
+
 .endif ; DEBUG 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -2221,21 +2308,21 @@ number::
 ; parse quoted string 
 ; input:
 ;   Y 	pointer to tib 
-;   X   pointer to pad
+;   X   pointer to output buffer 
 ; output:
-;	pad   parsed string
-;   TOS  char* to pad  
+;	buffer   parsed string
 ;------------------------------------
 	PREV = 1
-	CURR =2 
-	VSIZE=2 
-parse_quote: ; { -- addr }
+	CURR =2
+	VSIZE=2
+parse_quote: 
 	_vars VSIZE 
 	clr a
 1$:	ld (PREV,sp),a 
-2$:	inc in
+2$:	
 	ld a,([in.w],y)
 	jreq 6$
+	inc in 
 	ld (CURR,sp),a 
 	ld a,#'\
 	cp a, (PREV,sp)
@@ -2251,15 +2338,17 @@ parse_quote: ; { -- addr }
 	cp a,#'\'
 	jreq 1$
 	cp a,#'"
-	jreq 5$ 
+	jreq 6$ 
 	ld (x),a 
 	incw x 
 	jra 2$
-5$:	inc in 
-6$: clr (x)
-	ldw x,#pad 
-	_drop VSIZE
+6$:
+	clr (x)
+	incw x 
+	ldw y,x 
+	clrw x 
 	ld a,#TK_QSTR  
+	_drop VSIZE
 	ret 
 
 ;---------------------------------------
@@ -2291,7 +2380,7 @@ escaped: .asciz "abtnvfr"
 ;-------------------------
 ; integer parser 
 ; input:
-;   X 		point to pad 
+;   X 		point to output buffer  
 ;   Y 		point to tib 
 ;   A 	    first digit|'$' 
 ; output:  
@@ -2301,18 +2390,20 @@ escaped: .asciz "abtnvfr"
 ;-------------------------
 	BASE=1
 	TCHAR=2 
-	VSIZE=2 
+	XSAVE=3
+	VSIZE=4 
 parse_integer: ; { -- n }
-	push #0 ; TCHAR 
+	pushw x 	
+	push #0 ; TCHAR
+	push #10 ; BASE=10
 	cp a,#'$
-	jreq 1$ 
-	push #10 ; BASE=10 
-	jra 2$ 
-1$: push #16  ; BASE=16
+	jrne 2$ 
+    _drop #1
+	push #16  ; BASE=16
 2$:	ld (x),a 
 	incw x 
-	inc in 
 	ld a,([in.w],y)
+	inc in 
 	call to_upper 
 	ld (TCHAR,sp),a 
 	call is_digit 
@@ -2325,47 +2416,60 @@ parse_integer: ; { -- n }
 	jrmi 3$ 
 	cp a,#'G 
 	jrmi 2$ 
-3$:	clr (x)
+3$: dec in 	
+    clr (x)
+	ldw x,(XSAVE,sp)
 	call atoi24
+	ldw y,x 
 	ldw x,acc16 
 	ld a,#TK_INTGR
+	ldw (y),x 
+	addw y,#2
 	_drop VSIZE  
 	ret 	
 
 ;-------------------------
-; binary integer parser 
+; binary integer parser
+; build integer in acc24  
 ; input:
-;   X 		point to pad 
+;   X 		point to output buffer  
 ;   Y 		point to tib 
-;   A 	    '%' 
+;   A 	    '&' 
 ; output:  
-;   pad     number string 
-;   X 		integer 
+;   buffer  TK_INTGR integer  
+;   X 		int16 
 ;   A 		TK_INTGR
-;   TOS     integer 
+;   acc24    int24 
 ;-------------------------
-	BINARY=1
-	VSIZE=2
+	BINARY=1 ; 24 bits integer 
+	VSIZE=3
 parse_binary: ; { -- n }
 	push #0
 	push #0
-1$: ld (x),a 
-	incw x 
-	inc in 
+	push #0
+2$:	
 	ld a,([in.w],y)
+	inc in 
 	cp a,#'0 
-	jreq 2$
+	jreq 3$
 	cp a,#'1 
-	jreq 2$ 
+	jreq 3$ 
 	jra bin_exit 
-2$: sub a,#'0	
-	rrc a 
+3$: sub a,#'0 
+	rrc a
+	rlc (BINARY+2,sp) 
 	rlc (BINARY+1,sp)
-	rlc (BINARY,sp)
-	jra 1$  
+	rlc (BINARY,sp) 
+	jra 2$  
 bin_exit:
-	clr (x)
-	ldw x,(BINARY,sp)
+	dec in 
+	ldw y,x
+	ld a,(BINARY,sp)
+	ld acc24,a 
+	ldw x,(BINARY+1,sp)
+	ldw acc16,x
+	ldw (y),x 
+	addw y,#2  
 	ld a,#TK_INTGR 	
 	_drop VSIZE 
 	ret
@@ -2379,23 +2483,28 @@ bin_exit:
 ;   A 	    first letter  
 ; output:
 ;   X		exec_addr|var_addr 
-;   A 		TK_CMD 
+;   A 		TK_CMD|TK_IFUNC|TK_CFUNC  
 ;   pad 	keyword|var_name  
-;   TOS     exec_addr|var_addr 
 ;--------------------------  
-parse_keyword: ; { -- exec_addr|var_addr}
+	XFIRST=1
+	VSIZE=2
+parse_keyword: 
+	pushw x 
+kw_loop:	
 	call to_upper 
 	ld (x),a 
 	incw x 
-	inc in 
 	ld a,([in.w],y)
+	inc in 
 	call is_alpha 
-	jrc parse_keyword 
+	jrc kw_loop
+	dec in   
 1$: clr (x)
-	tnz pad+1 
+	ldw x,(XFIRST,sp) 
+	ld a,(1,x)
 	jrne 2$
 ; one letter variable name 
-	ld a,pad 
+	ld a,(x) 
 	sub a,#'A 
 	sll a 
 	push a 
@@ -2406,27 +2515,33 @@ parse_keyword: ; { -- exec_addr|var_addr}
 	ld a,#TK_VAR 
 	jra 4$ 
 2$: ; check for keyword, otherwise syntax error.
-	_ldx_dict kword_dict
+	_ldx_dict kword_dict ; dictionary entry point
+	ldw y,(XFIRST,sp) ; name to search for
 	call search_dict
 	tnz a
 	jrne 4$ 
 	jp syntax_error
-4$:	ret  	
+4$:	
+	ldw y,(XFIRST,sp)
+	ld (y),a 
+	incw y 
+	ldw (y),x
+	addw y,#2  
+	_drop VSIZE 
+	ret  	
 
 
 ;------------------------------------
 ; scan text for next token
-; move token in 'pad'
 ; input: 
-	none: 
+;	X 		pointer to buffer where 
+;	        token id and value are copied 
 ; use:
-;	Y   pointer to text
-;   X	pointer to pad 
-;   in.w   index in text buffer
+;	Y   pointer to text in tib 
 ; output:
 ;   A       token attribute 
-;   pad 	token as .asciz
-;   X 		token value   
+;   X 		token value
+;   Y       updated position in output buffer   
 ;------------------------------------
 	; use to check special character 
 	.macro _case c t  
@@ -2436,45 +2551,58 @@ parse_keyword: ; { -- exec_addr|var_addr}
 	.endm 
 
 	TCHAR=1
-	ATTRIB=2 
+	ATTRIB=2
 	VSIZE=2
 get_token: 
-	ldw y,#tib    	
-	ld a,in 
-	cp a,count 
-	jrmi 1$
-	ld a,#TK_NONE 
-	ret 
-1$:	
 	_vars VSIZE
-	ldw x, #pad
+;	ld a,in 
+;	sub a,count
+;   jrmi 0$
+;	clr a 
+;	ret 
+0$: 
+	ldw y,#tib    	
 	ld a,#SPACE
 	call skip
 	mov in.saved,in 
 	ld a,([in.w],y)
-	jrne str_tst
-	clr pad 
+	jrne 1$
+	ldw y,x 
 	jp token_exit ; end of line 
-
-str_tst: ; check for quoted string  	
+1$:	inc in 
 	call to_upper 
 	ld (TCHAR,sp),a 
+; check for quoted string
+str_tst:  	
 	_case '"' nbr_tst
+	ld a,#TK_QSTR
+	ld (x),a 
+	incw x 
 	call parse_quote
 	jp token_exit
-nbr_tst: ; check for number 
+nbr_tst:
+; check for hexadecimal number 
 	ld a,#'$'
 	cp a,(TCHAR,sp) 
 	jreq 1$
+;check for binary number 
 	ld a,#'&
 	cp a,(TCHAR,sp)
 	jrne 0$
+	ld a,#TK_INTGR
+	ld (x),a 
+	incw x 
 	call parse_binary ; expect binary integer 
 	jp token_exit 
+; check for decimal number 	
 0$:	ld a,(TCHAR,sp)
 	call is_digit
 	jrnc 3$
-1$:	call parse_integer 
+1$:	ld a,#TK_INTGR 
+	ld (x),a 
+	incw x 
+	ld a,(TCHAR,sp)
+	call parse_integer 
 	jp token_exit 
 3$: 
 	_case '(' bkslsh_tst 
@@ -2482,26 +2610,26 @@ nbr_tst: ; check for number
 	jp token_char   	
 bkslsh_tst: ; character token 
 	_case '\',rparnt_tst
-	ld a,(TCHAR,sp)
+	ld a,#TK_CHAR 
 	ld (x),a 
 	incw x 
-	inc in 
 	ld a,([in.w],y)
 	ld (x),a 
-	incw x 
+	incw x
+	ldw y,x 	 
 	inc in  
-	clr (x) 
+	clrw x 
 	ld xl,a 
 	ld a,#TK_CHAR 
 	jp token_exit 
 rparnt_tst:		
 	_case ')' colon_tst 
 	ld a,#TK_RPAREN 
-	jp token_char 
+	jp token_char
 colon_tst:
 	_case ':' comma_tst 
 	ld a,#TK_COLON 
-	jp token_char 
+	jp token_char  
 comma_tst:
 	_case COMMA sharp_tst 
 	ld a,#TK_COMMA
@@ -2520,19 +2648,37 @@ at_tst:
 	jp token_char
 qmark_tst:
 	_case '?' tick_tst 
-	ld a,(TCHAR,sp)
+	ld a,#TK_CMD  
 	ld (x),a 
 	incw x 
-	clr (x)
-	inc in 
-	ld a,#TK_CMD 
+	ldw y,x 
 	ldw x,#print 
+	ldw (y),x 
+	addw y,#2
 	jp token_exit
-tick_tst: ; ignore comment 
+tick_tst: ; comment 
 	_case TICK plus_tst 
-	inc in 
+	ld a,#TK_CMD
+	ld (x),a 
+	incw x
+	ldw y,#remark
+	ldw (x),y 
+	addw x,#2  
+copy_comment:
+	ldw y,#tib 
+	addw y,in.w
+	pushw y
+	call strcpy
+    subw y,(1,sp)
+	ld a,yl 
+	add a,in
+	ld in,a 
+	ldw (1,sp),x
+	addw y,(1,sp)
+	incw y 
+	_drop 2 
+	ldw x,#remark 
 	ld a,#TK_CMD 
-	ldw x,#remark  
 	jp token_exit 
 plus_tst:
 	_case '+' star_tst 
@@ -2563,25 +2709,15 @@ gt_tst:
 	ld a,([in.w],y)
 	cp a,#'=
 	jrne 1$
-	ld a,(TCHAR,sp)
-	ld (x),a
-	incw x 
-	ld a,#'=
-	ld (TCHAR,sp),a 
 	ld a,#TK_GE 
 	jra token_char  
 1$: cp a,#'<
 	jrne 2$
-	ld a,(TCHAR,sp)
-	ld (x),a
-	incw x 
-	ld a,#'<	
-	ld (TCHAR,sp),a 
 	ld a,#TK_NE 
 	jra token_char 
 2$: dec in
 	ld a,(ATTRIB,sp)
-	jra token_char 
+	jra token_char 	 
 lt_tst:
 	_case '<' other
 	ld a,#TK_LT 
@@ -2590,19 +2726,10 @@ lt_tst:
 	ld a,([in.w],y)
 	cp a,#'=
 	jrne 1$
-	ld a,(TCHAR,sp)
-	ld (x),a 
-	ld a,#'=
-	ld (TCHAR,sp),a 
 	ld a,#TK_LE 
 	jra token_char 
 1$: cp a,#'>
 	jrne 2$
-	ld a,(TCHAR,sp)
-	ld (x),a 
-	incw x 
-	ld a,#'>
-	ld (TCHAR,sp),a 
 	ld a,#TK_NE 
 	jra token_char 
 2$: dec in 
@@ -2615,16 +2742,14 @@ other: ; not a special character
 	jp syntax_error 
 30$: 
 	call parse_keyword
-	jra token_exit 
+	cpw x,#remark 
+	jrne token_exit 
+	ldw y,x 
+	jp copy_comment 
 token_char:
-	ld (ATTRIB,sp),a 
-	ld a,(TCHAR,sp)
 	ld (x),a 
-	incw x 
-	clr(x)
-	inc in 
-	ld a,(ATTRIB,sp)
-	ldw x,#pad 
+	incw x
+	ldw y,x 
 token_exit:
 	_drop VSIZE 
 	ret
@@ -2649,7 +2774,7 @@ to_upper::
 ;------------------------------------
 ; convert pad content in integer
 ; input:
-;    pad		.asciz to convert
+;    x		.asciz to convert
 ; output:
 ;    acc24      int24_t
 ;------------------------------------
@@ -2659,18 +2784,15 @@ to_upper::
 	TEMP=3 ; 1 byte, temporary storage
 	VSIZE=3 ; 3 bytes reserved for local storage
 atoi24:
-	pushw x ;save x
-	sub sp,#VSIZE
+	pushw x 
+	_vars VSIZE
 	; acc24=0 
 	clr acc24    
 	clr acc16
 	clr acc8 
-	ld a, pad 
-	jreq atoi_exit
 	clr (SIGN,sp)
 	ld a,#10
 	ld (BASE,sp),a ; default base decimal
-	ldw x,#pad ; pointer to string to convert
 	ld a,(x)
 	jreq 9$  ; completed if 0
 	cp a,#'-
@@ -2712,7 +2834,7 @@ atoi24:
     jreq atoi_exit
     call neg_acc24
 atoi_exit: 
-	addw sp,#VSIZE
+	_drop VSIZE
 	popw x ; restore x
 	ret
 
@@ -2996,65 +3118,67 @@ cmd_name:
 ;---------------------------------
 ; dictionary search 
 ; input:
-;	X 		dictionary entry point 
-;  pad		.asciz name to search 
+;	X 		dictionary entry point, name field  
+;   y		.asciz name to search 
 ; output:
 ;  A 		TK_CMD|TK_IFUNC|TK_NONE 
 ;  X		execution address | 0 
 ;---------------------------------
 	NLEN=1 ; cmd length 
-	YSAVE=2
-	VSIZE=3 
+	XSAVE=2
+	YSAVE=4
+	VSIZE=5 
 search_dict:
 	_vars VSIZE 
-	ldw y,x 
-search_next:	
-	ld a,(y)
+
+	ldw (YSAVE,sp),y 
+search_next:
+	ldw (XSAVE,sp),x 
+; get name length in dictionary	
+	ld a,(x)
 	and a,#0xf 
 	ld (NLEN,sp),a  
-	ldw x,#pad 
-	ldw (YSAVE,sp),y
-	incw y  
+	ldw y,(YSAVE,sp) ; name pointer 
+	incw x 
 cp_loop:
-	ld a,(x)
+	ld a,(y)
 	jreq str_match 
 	tnz (NLEN,sp)
 	jreq no_match  
-	cp a,(y)
+	cp a,(x)
 	jrne no_match 
 	incw y 
 	incw x
 	dec (NLEN,sp)
 	jra cp_loop 
 no_match:
-	ldw y,(YSAVE,sp) 
-	subw y,#2 ; move Y to link field
+	ldw x,(XSAVE,sp) 
+	subw x,#2 ; move X to link field
 	push #TK_NONE 
-	ldw y,(y) ; next word link 
+	ldw x,(x) ; next word link 
 	pop a ; TK_NONE 
 	jreq search_exit  ; not found  
 ;try next 
 	jra search_next
 str_match:
-	ldw y,(YSAVE,sp)
-	ld a,(y)
+	ldw x,(XSAVE,sp)
+	ld a,(X)
 	ld (NLEN,sp),a ; needed to test keyword type  
 	and a,#0xf 
-; move y to procedure address field 	
+; move x to procedure address field 	
 	inc a 
 	ld acc8,a 
 	clr acc16 
-	addw y,acc16 
-	ldw y,(y) ; routine entry point 
+	addw x,acc16 
+	ldw x,(x) ; routine entry point 
 ;determine keyword type bits 7:6 
 	ld a,(NLEN,sp)
 	swap a 
 	and a,#0xc
 	srl a
 	srl a 
-	add a,#6
+	add a,#128
 search_exit: 
-	ldw x,y ; x=routine address 
 	_drop VSIZE 	 
 	ret 
 
@@ -3075,6 +3199,15 @@ expect:
 1$: pop a 
 	ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+; parse arguments list 
+; between ()
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+func_args:
+	ld a,#TK_LPAREN 
+	call expect 
+; expected to continue in arg_list 
+; caller must check for TK_RPAREN 
 
 ;-------------------------------
 ; parse embedded BASIC routines 
@@ -3097,9 +3230,9 @@ arg_list:
 	jrne 4$
 3$: 
 ; swap return address with argument
-	pop a 
-	popw y 
-	pushw x 
+	pop a ; arg_count
+	popw y ; return address 
+	pushw x ; new argument 
 	pushw y 
     inc a
 	push a 
@@ -3108,25 +3241,11 @@ arg_list:
 	jreq 1$ 
 	cp a,#TK_NONE 
 	jreq 5$ 
-4$:	_unget_token 
+4$:	cp a,#TK_RPAREN 
+	jreq 5$
+	_unget_token 
 5$:	pop a  
 	ret 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-; parse arguments list 
-; between ()
-;;;;;;;;;;;;;;;;;;;;;;;;;;
-func_args:
-	popw x
-	ldw tmp16,x  
-	ld a,#TK_LPAREN 
-	call expect 
-	call arg_list 
-	push a 
-	ld a,#TK_RPAREN 
-	call expect 
-	pop a 
-	jp [tmp16]
 
 ;--------------------------------
 ;   BASIC commnands 
@@ -3194,7 +3313,7 @@ factor:
 	_vars VSIZE 
 	call next_token
 	cp a,#CMD_END 
-	jrmi 20$
+	jrult 20$
 1$:	ld (NEG,sp),a 
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_ADD 
@@ -3261,12 +3380,12 @@ term:
 	_vars VSIZE
 	call factor
 	cp a,#CMD_END
-	jrmi term_exit
+	jrult term_exit
 term01:	 ; check for  operator 
 	ldw (N2,sp),x  ; save first factor 
 	call next_token
 	cp a,#CMD_END
-	jrmi 9$
+	jrult 9$
 0$:	ld (MULOP,sp),a
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_MULT
@@ -3312,11 +3431,11 @@ expression:
 	_vars VSIZE 
 	call term
 	cp a,#CMD_END 
-	jrmi expr_exit 
+	jrult expr_exit 
 0$:	ldw (N2,sp),x 
 	call next_token
 	cp a,#CMD_END 
-	jrmi 9$ 
+	jrult 9$ 
 1$:	ld (OP,sp),a  
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_ADD 
@@ -3358,12 +3477,12 @@ relation:
 	_vars VSIZE
 	call expression
 	cp a,#CMD_END  
-	jrmi rel_exit 
+	jrult rel_exit 
 	; expect rel_op or leave 
 	ldw (N2,sp),x 
 	call next_token 
 	cp a,#CMD_END 
-	jrmi 9$
+	jrult 9$
 1$:	
 	ld (RELOP,sp),a 
 	and a,#TK_GRP_MASK
@@ -3408,86 +3527,20 @@ rel_exit:
 ; print stack content in hexadecimal bytes 
 ; 16 bytes per row 
 ;--------------------------------
-	TWSAVE=1
-	BSAVE=2
-	ADDR=3
-	VSIZE=4 
 show:
-	_vars VSIZE
-	ld a,base 
-	ld (BSAVE,sp),a
-	ld a,tab_width
-	ld (TWSAVE,sp),a
-	mov base,#16   
 	ldw x,#cstk_prompt
 	call puts 
 	ldw x,sp 
-	addw x,#VSIZE+1 ; ignore local vars and return address
-	ldw (ADDR,sp),x 
-dotr_loop:
-	cpw x,#RAM_SIZE 
-	jruge 9$
-	ld a,#16 
+	addw x,#3 ; ignore return address
 	ldw y,#RAM_SIZE  
-	subw y,(ADDR,sp)
-	cpw y,#16 
-	jruge 2$
-	ld a,yl  
-2$:  
-	call show_row 
-	ldw (ADDR,sp),x 
-	jra dotr_loop 
-9$:	ld a,#CR 
-	call putc 
-	ld a,(BSAVE,sp)
-	ld base,a 
-	ld a,(TWSAVE,sp)
-	ld tab_width,a 
-	_drop VSIZE 
+	ldw acc16,x 
+	subw y,acc16
+	call hex_dump
 	clr a 
 	ret
 
 cstk_prompt: .asciz "\ncontent of stack from top to bottom:\n"
 
-;---------------------
-; display n bytes row 
-; from memory.
-; input:
-;   A   bytes to print 
-;	X   start address 
-; output:
-;   X   address after last shown  
-;---------------------
-	CNT=1 
-	ADR=2 
-	VSIZE=3 
-show_row:
-	tnz a 
-	jrne 1$
-	ret 
-1$:	
-	pushw x  
-	push a 
-	mov tab_width,#4 
-	call print_int 
-	ld a,#SPACE  
-	call putc
-row_loop:
-	ldw x,(ADR,sp)
-	ld a,(x)
-	clrw x 
-	ld xl,a 
-	call print_int 
-	ldw x,(ADR,sp)
-	incw x 
-	ldw (ADR,sp),x 
-	dec (CNT,sp)
-	jrne row_loop
-	_drop VSIZE  		
-	mov tab_width,#4
-	ld a,#CR 
-	call putc 
-	ret 
 
 ;--------------------------------------------
 ; BASIC: HEX 
@@ -3585,13 +3638,13 @@ let_var:
 	LN_PTR=5
 	VSIZE=6 
 list:
-	_vars VSIZE
 	ldw x,txtbgn 
 	cpw x,txtend 
 	jrmi 1$
-	ld a,#ERR_NO_PROG 
-	jp tb_error ; nothing to list 
-1$:	ldw (LN_PTR,sp),x 
+	ret 
+1$:	
+	_vars VSIZE
+	ldw (LN_PTR,sp),x 
 	ldw x,(x) 
 	ldw (FIRST,sp),x ; list from first line 
 	ldw x,#MAX_LINENO ; biggest line number 
@@ -3702,6 +3755,21 @@ prt_quote:
 	incw x 
 	ret
 
+;--------------------------
+; return variable name 
+; from its address.
+; input:
+;   X    variable address
+; output:
+;   A     variable letter
+;--------------------------
+var_name:
+		subw x,#vars 
+		ld a,xl 
+		srl a 
+		add a,#'A 
+		ret 
+
 
 ;--------------------------
 ; decompile line from token list 
@@ -3734,135 +3802,120 @@ prt_basic_line:
 	ldw x,#3
 1$:	ld a,xl 
 	cp a,(LLEN,sp)
-	jrmi 20$
-	jp 90$
-20$:	 
+	jrmi 2$
+	jp 20$
+2$:	 
 	ld a,([ptr16],x)
 	incw x 
 	ldw (XSAVE,sp),x 
-	cp a,#TK_CMD 
-	jrmi 4$
-	cp a,#TK_CFUNC 
-	jrugt 4$
-2$:	
 	ldw x,([ptr16],x)
+	tnz a 
+	jrmi 3$
+	cp a,#TK_VAR 
+	jreq 4$
+	cp a,#TK_INTGR
+	jreq 5$
+	cp a,#TK_QSTR 
+	jreq 6$
+	cp a,#TK_CHAR 
+	jreq 7$
+	jra 8$
+;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST
+3$:	
 	cpw x,#remark 
-	jrne 3$
+	jrne 30$
 	ld a,#''
 	call putc 
 	ldw x,(XSAVE,sp)
 	addw x,#2
 	addw x,ptr16  
 	call puts 
-	jp 90$ 
-3$:	
+	jp 20$ 
+30$:
+	ld a,#SPACE 
+	call putc 
 	call cmd_name
 	call prt_cmd_name
 	ld a,#SPACE 
 	call putc 
+31$:
 	ldw x,(XSAVE,sp)
 	addw x,#2
 	jra 1$
-4$: cp a,#TK_QSTR 
-	jrne 5$
-	addw x,ptr16
-	call prt_quote  
-	subw x,ptr16  
-	jra 1$
-5$:	cp a,#TK_CHAR 
-	jrne 51$
-	ld a,#'\ 
-	call putc 
-	ld a,([ptr16],x)
-	incw x 
-	call putc 
-	jra 1$ 
-51$:	
-	cp a,#TK_VAR
-	jrne 6$ 
-	ldw x,([ptr16],x)
-	subw x,#vars 
-	ld a,xl
-	srl a 
-	add a,#'A 
-	call putc 
-	ld a,#SPACE 
-	call putc 
-	ldw x,(XSAVE,sp)
-	addw x,#2 
-	jp  1$ 
-6$: cp a,#TK_ARRAY 
-	jrne 7$
-	ld a,#'@ 
-	call putc 
-	ldw x,(XSAVE,sp)
-	jp 1$ 
-7$: cp a,#TK_INTGR 
-	jrne 8$
-	ldw x,([ptr16],x)
-	call print_int
+;; TK_VAR 
+4$:
 ;	ld a,#SPACE 
 ;	call putc 
+	call var_name
+	call putc 
+	jra 31$
+;; TK_INTGR
+5$:
+;	ld a,#SPACE 
+;	call putc
+	call print_int 
+	jra 31$
+;; TK_QSTR
+6$:
 	ldw x,(XSAVE,sp)
-	addw x,#2 
+	addw x,ptr16 
+	call prt_quote  
+	subw x,ptr16  
 	jp 1$
-8$: cp a,#TK_GT 
-	jrmi 9$
-	cp a,#TK_NE 
-	jrugt 9$
-	sub a,#TK_GT  
-	sll a 
+;; TK_CHAR 
+7$:
+	ld a,#'\ 
+	call putc 
+	ld a,xh 
+	call putc 
+	ldw x,(XSAVE,sp)
+	incw x 
+	jp 1$ 
+8$: cp a,#TK_COLON 
+	jrne 9$
+	ld a,#':
+81$:
+	call putc
+82$:
+	ldw x,(XSAVE,sp)
+	jp 1$ 
+9$: 
+	cp a,#TK_SHARP
+	jrugt 10$ 
+	sub a,#TK_ARRAY 
+	clrw y 
+	ld yl,a
+	addw y,#single_char 
+	ld a,(y)
+	jra 81$ 
+10$: 
+	cp a,#TK_MINUS 
+	jrugt 11$
+	sub a,#TK_PLUS 
 	clrw y 
 	ld yl,a 
-	addw y,#relop_str 
-	ldw y,(y)
-	ldw x,y 
-	call puts 
-	ldw x,(XSAVE,sp)
-	jp 1$
-9$: cp a,#TK_PLUS 
-	jrne 10$
-	ld a,#'+
-	jra 80$ 
-10$: cp a,#TK_MINUS
-	jrne 11$
-	ld a,#'-
-	jra 80$
-11$: cp a,#TK_MULT 
-	jrmi 12$
-	cp a,#TK_MOD 
+	addw y,#add_char 
+	ld a,(y)
+	jra 81$
+11$:
+    cp a,#TK_MOD 
 	jrugt 12$
-	sub a,#0x20
+	sub a,#TK_MULT
+	clrw y 
+	ld yl,a 
+	addw y,#mul_char
+	ld a,(y)
+	jra 81$
+12$:
+	sub a,#TK_GT  
+	sll a 
 	clrw x 
 	ld xl,a 
-	addw x,#mul_char 
-	ld a,(x)
-	jra 80$ 
-12$: cp a,#TK_LPAREN 
-	jrmi 13$
-	cp a,#TK_SHARP 
-	jrugt 13$
-	sub a,#TK_LPAREN
-	clrw x 
-	ld xl,a 
-	addw x,#single_char 
-	ld a,(x)
-	jra 80$
-13$: cp a,#TK_CHAR 
-	jrne 14$
-	ld a,#'\
-	call putc 
-	ldw x,(XSAVE,sp)
-	ld a,([ptr16],x)
-	incw x 
-	ldw (XSAVE,sp),x 
-	call putc 
-	jp 1$ 
-14$: ld a,#':
-80$: call putc 
-	ldw x,(XSAVE,sp)
-	jp 1$ 
-90$: 
+	addw x,#relop_str 
+	ldw x,(x)
+	call puts 
+	jra 82$
+20$: 
 	ld a,#CR 
 	call putc
 	ld a,(WIDTH_SAV,sp) 
@@ -3870,8 +3923,10 @@ prt_basic_line:
 	ld a,(BASE_SAV,sp) 
 	ld base,a
 	_drop VSIZE 
-	ret 	
-single_char: .byte '(',')',',','#'
+	ret 
+
+single_char: .byte '@','(',')',',','#'
+add_char: .byte '+','-'
 mul_char: .byte '*','/','%'
 relop_str: .word gt,equal,ge,lt,le,ne 
 gt: .asciz ">"
@@ -3895,7 +3950,7 @@ reset_comma:
 prt_loop:
 	call next_token
 	cp a,#CMD_END 
-	jrmi print_exit ; colon or end of line 
+	jrult print_exit ; colon or end of line 
 	cp a,#TK_QSTR
 	jreq 1$
 	cp a,#TK_CHAR 
@@ -3938,6 +3993,7 @@ prt_loop:
 	call relation 
 	cp a,#TK_INTGR
 	jreq 8$
+	_unget_token
 	jp print_exit 
 8$: call print_int 
 	jra reset_comma 
@@ -3994,6 +4050,8 @@ rest_context:
 	ld count,a  
 	ret
 
+
+
 ;------------------------------------------
 ; BASIC: INPUT [string]var[,[string]var]
 ; input value in variables 
@@ -4003,7 +4061,7 @@ rest_context:
 	CX_IN=3
 	CX_CNT=4
 	SKIP=5
-	VAR_ADDR=6 
+	VAR_ADDR=6
 	VSIZE=7
 input_var:
 	_vars VSIZE 
@@ -4021,8 +4079,8 @@ input_loop:
 2$:	ldw (VAR_ADDR,sp),x 
 	tnz (SKIP,sp)
 	jrne 21$ 
-	ldw x,#pad 
-	call puts   
+	call var_name 
+	call putc   
 21$:
 	ld a,#':
 	call putc 
@@ -4030,6 +4088,11 @@ input_loop:
 	clr count  
 	call readln 
 	ldw x,#tib 
+	push count
+	push #0 
+	addw x,(1,sp)
+	incw x 
+	_drop 2 
 	clr in 
 	call get_token
 	cp a,#TK_INTGR
@@ -4066,7 +4129,7 @@ remark:
 ; loop while result==0.  
 ; 'xor_mask' is used to 
 ; invert the wait logic.
-. i.e. loop while not 0.
+; i.e. loop while not 0.
 ;---------------------
 	XMASK=1 
 	MASK=2
@@ -4784,7 +4847,6 @@ break_point: .asciz "\nbreak point, RUN to resume.\n"
 ;------------------------
 new: 
 	btjf flags,#FRUN,0$ 
-	clr a 
 	ret 
 0$:	
 	call clear_basic 
@@ -5086,7 +5148,6 @@ load:
 	jreq 1$
 	jp syntax_error 
 1$:	ldw y,x 
-	mov in,count 
 	call search_file 
 	jrc 2$ 
 	ld a,#ERR_NOT_FILE
@@ -6376,6 +6437,7 @@ spi_enable:
 1$: 
 	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
 	popw x  
+	tnzw x 
 	jreq spi_disable 
 	popw x 
 	ld a,#(1<<SPI_CR1_BR)

@@ -18,10 +18,10 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
-     0000005D  l_DATA                          
+     0000005C  l_DATA                          
      00000080  l_HOME                          
-     00000118  l_SSEG0                         
-     00002599  l_CODE                          
+     00000170  l_SSEG0                         
+     00002619  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -30,7 +30,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-DATA                                00000001    0000005D =          93. bytes (REL,CON)
+DATA                                00000001    0000005C =          92. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -39,7 +39,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-SSEG0                               00000000    00000118 =         280. bytes (ABS,CON)
+SSEG0                               00000000    00000170 =         368. bytes (ABS,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -57,14 +57,14 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00002599 =        9625. bytes (REL,CON)
+CODE                                00008080    00002619 =        9753. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008D8A  to_upper                           STM8_TBI
-     00009C3D  qkey                               STM8_TBI
-     0000A60E  xtransmit                          XMODEM
-     0000A618  xreceive                           XMODEM
+     00008E52  to_upper                           STM8_TBI
+     00009C4F  qkey                               STM8_TBI
+     0000A68E  xtransmit                          XMODEM
+     0000A698  xreceive                           XMODEM
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 

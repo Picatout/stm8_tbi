@@ -39,20 +39,21 @@
         ; 0x1n -> +|- operators 
         ; 0x2n -> *|/|% operators
         ; 0x3n -> relational operators 
+        TK_CMD=128      ; BASIC command   
+        TK_IFUNC=129    ; BASIC integer function
+        TK_CFUNC=130    ; BASIC character function
+        TK_CONST=131    ; BASIC constant 
         TK_NONE=0       ; not a token 
         TK_COLON=1      ; command separator ':' 
-        TK_QSTR=0x2     ; quoted string  
+        TK_QSTR=2     ; quoted string  
         TK_CHAR=3       ; ASCII character 
         TK_INTGR=4      ; integer 
         TK_VAR=5        ; variable letters {A..Z}
-        TK_CMD=6        ; BASIC command   
-        TK_IFUNC=7      ; BASIC integer function
-        TK_CFUNC=8      ; BASIC character function
-        TK_ARRAY=0xa      ; array variable '@' 
-        TK_LPAREN=0xb     ; left parenthesis '('
-        TK_RPAREN=0xc     ; right parenthesis ')'
-        TK_COMMA=0xd     ; item separator ',' 
-        TK_SHARP=0xe     ; print colon width '#' 
+        TK_ARRAY=6     ; array variable '@' 
+        TK_LPAREN=7     ; left parenthesis '('
+        TK_RPAREN=8     ; right parenthesis ')'
+        TK_COMMA=9     ; item separator ',' 
+        TK_SHARP=0xa     ; print colon width '#' 
         TK_PLUS=0x10    ; addition operator '+'
         TK_MINUS=0x11   ; subtraction operator '-'
         TK_MULT=0x20    ; multiplication operator '*'
@@ -61,7 +62,8 @@
 
         ; don't change these token values 
         ; values chosen to be used as a mask.
-        ; bits 7:6  always 0 
+        ; bit 7   1 for dictionary words else 0 
+        ; bits 6  always 0 
         ; bits 5:4 identify group 
         ; bits 3:0 token identifier inside group  
         TK_GT=0x31      ; relation operator '>'
@@ -96,7 +98,8 @@
     ERR_NO_DATA=12 
     ERR_NO_PROG=13
     ERR_NO_FSPACE=14
-    
+    ERR_BUF_FULL=15
+
 ;--------------------------------------
 ;   assembler flags 
 ;-------------------------------------
