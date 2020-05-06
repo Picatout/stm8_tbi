@@ -18,7 +18,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
-     0000005C  l_DATA                          
+     0000005B  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
      00002619  l_CODE                          
@@ -30,7 +30,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-DATA                                00000001    0000005C =          92. bytes (REL,CON)
+DATA                                00000001    0000005B =          91. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -61,8 +61,8 @@ CODE                                00008080    00002619 =        9753. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008E52  to_upper                           STM8_TBI
-     00009C4F  qkey                               STM8_TBI
+     00008E49  to_upper                           STM8_TBI
+     00009C46  qkey                               STM8_TBI
      0000A68E  xtransmit                          XMODEM
      0000A698  xreceive                           XMODEM
 

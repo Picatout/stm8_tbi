@@ -43,12 +43,12 @@
         TK_IFUNC=129    ; BASIC integer function
         TK_CFUNC=130    ; BASIC character function
         TK_CONST=131    ; BASIC constant 
+        TK_INTGR=132
+        TK_VAR=133
         TK_NONE=0       ; not a token 
         TK_COLON=1      ; command separator ':' 
         TK_QSTR=2     ; quoted string  
         TK_CHAR=3       ; ASCII character 
-        TK_INTGR=4      ; integer 
-        TK_VAR=5        ; variable letters {A..Z}
         TK_ARRAY=6     ; array variable '@' 
         TK_LPAREN=7     ; left parenthesis '('
         TK_RPAREN=8     ; right parenthesis ')'

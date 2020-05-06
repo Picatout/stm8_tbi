@@ -1,4 +1,38 @@
+#### 2020-05-06
+
+* Modifié *next_token* pour améliorer la performance. 
+```
+>t=ticks:for a=1 to 100:for b=1to10000:next b:next a:? ticks-t
+8831
+
+>t=ticks:for a=1to10000:b=rnd(50):next a:? ticks-t
+ 587
+
+>t=ticks:for a=1 to 10000:b=3*5+rnd(1000):next a:? ticks-t
+ 831
+```
+
 #### 2020-05-05
+
+**session 2**
+
+* modifier *next_token* pour améliorer la performance. Modifié valeur de **TK_VAR** et **TK_INTGR.**
+
+* Corrigé bogue dans AUTORUN, Affiachait une erreur de syntaxe sur argument chaîne vide.
+
+```
+>t=ticks:for a=1 to 100:for b=1to10000:next b:next a:? ticks-t
+8955
+
+>t=ticks:for a=1to10000:b=rnd(50):next a:? ticks-t
+ 613
+
+>t=ticks:for a=1 to 10000:b=3*5+rnd(1000):next a:? ticks-t
+ 868
+
+```
+
+**session 1**
 
 * merge branche test dans master. 
 

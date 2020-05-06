@@ -1515,7 +1515,7 @@ Hexadecimal [24-Bits]
                                      34     
                                      35     .area DATA
                                      36 
-      00005C                         37 checksum:   .blkb 1 ; received block checksum 
+      00005B                         37 checksum:   .blkb 1 ; received block checksum 
                                      38 
                                      39     .area CODE 
                                      40 
@@ -1541,7 +1541,7 @@ Hexadecimal [24-Bits]
       00A68F 52 02            [ 2]    1     sub sp,#VSIZE 
       00A691 4F               [ 1]   60     clr a 
                                      61     
-      00A692 CD 9C 4F         [ 4]   62     call qkey 
+      00A692 CD 9C 46         [ 4]   62     call qkey 
                                      63 
       000007                         64     _drop VSIZE 
       00A695 5B 02            [ 2]    1     addw sp,#VSIZE 
@@ -1888,12 +1888,12 @@ Symbol Table
     TK_CONST=  000083     |     TK_DIV  =  000021     |     TK_EQUAL=  000032 
     TK_GE   =  000033     |     TK_GRP_A=  000010     |     TK_GRP_M=  000030 
     TK_GRP_M=  000000     |     TK_GRP_M=  000020     |     TK_GRP_R=  000030 
-    TK_GT   =  000031     |     TK_IFUNC=  000081     |     TK_INTGR=  000004 
+    TK_GT   =  000031     |     TK_IFUNC=  000081     |     TK_INTGR=  000084 
     TK_LE   =  000036     |     TK_LPARE=  000007     |     TK_LT   =  000034 
     TK_MINUS=  000011     |     TK_MOD  =  000022     |     TK_MULT =  000020 
     TK_NE   =  000035     |     TK_NONE =  000000     |     TK_PLUS =  000010 
     TK_QSTR =  000002     |     TK_RPARE=  000008     |     TK_SHARP=  00000A 
-    TK_VAR  =  000005     |     TMR     =  000002     |     UART1   =  000000 
+    TK_VAR  =  000085     |     TMR     =  000002     |     UART1   =  000000 
     UART1_BA=  005230     |     UART1_BR=  005232     |     UART1_BR=  005233 
     UART1_CR=  005234     |     UART1_CR=  005235     |     UART1_CR=  005236 
     UART1_CR=  005237     |     UART1_CR=  005238     |     UART1_DR=  005231 
