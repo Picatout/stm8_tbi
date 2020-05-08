@@ -4620,19 +4620,31 @@ seek_fdrive:
 	jra 4$ 
 3$:	ldw x,#BLOCK_SIZE 
 	call incr_farptr
-	ldw x,#0x27f  
+	ldw x,#0x280  
 	cpw x,farptr
-	jrpl 1$
-; drive full 
-	clr ffree 
-	clr ffree+1 
-	clr ffree+2 
-	ret
+	jrmi 1$
 4$: ; copy farptr to ffree	 
 	ldw x,farptr 
 	ld a,farptr+2 
 	ldw ffree,x 
 	ld ffree+2,a  
+	ret 
+
+;-----------------------
+; return amount of free 
+; space on flash drive
+; input:
+;   none
+; output:
+;   acc24   free space 
+;-----------------------
+disk_free:
+	ldw x,#0x8000
+	subw x,ffree+1
+	ld a,#2
+	sbc a,ffree 
+	ld acc24,a 
+	ldw acc16,x 
 	ret 
 
 ;-----------------------
@@ -4759,10 +4771,13 @@ save:
 	call strlen 
 	addw x,#3 
 	addw x,(BSIZE,sp)
-	tnz ffree 
-	jrne 21$
-	subw x,ffree+1 
-	jrule 21$
+	clr a 
+	addw x,ffree+1 
+	adc a,ffree 
+	cp a,#2
+	jrmi 21$
+	cpw x,#0x8000
+	jrmi 21$
 	ld a,#ERR_NO_FSPACE  
 	jp tb_error
 21$: 
@@ -4781,7 +4796,6 @@ save:
 	ldw y,(NAMEPTR,sp)  
 	ldw x,#pad 
 	call strcpy
-	ldw x,#pad  
 	call strlen 
 	incw  x
 	addw x,#pad 
@@ -4792,11 +4806,11 @@ save:
 ; ** write file data to row buffer 
 	ldw y,txtbgn 
 6$:	ld a,(y)
-	ld (x),a 
 	incw y
+	ld (x),a 
+	incw x
 	cpw y,txtend 
 	jreq 12$
-	incw x 
 	cpw x,#stack_full 
 	jrmi 6$
 12$:
@@ -4990,15 +5004,7 @@ dir_loop:
 	ldw x,#file_count 
 	call puts  
 ; print drive free space 	
-	ld a,#0xff 
-	sub a,ffree+2 
-	ld acc8,a 
-	ld a,#0x7f 
-	sbc a,ffree+1 
-	ld acc16,a 
-	ld a,#2 
-	sbc a,ffree 
-	ld acc24,a 
+	call disk_free
 	clrw x  
 	ld a,#6 
 	ld xl,a 

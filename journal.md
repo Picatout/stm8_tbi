@@ -1,3 +1,10 @@
+#### 2020-05-08
+
+* Corrigé bogue dans commande **DIR** qui affichait la mauvaise valeur d'espace libre sur le disque flash. 
+
+* Corrigé bogue dans commande **SAVE**. 
+
+
 #### 2020-05-07
 
 * Réécriture du système de fichier pour utiliser la programmation et l'effacement par bloc plus rapide que les opérations octet par octet. 
