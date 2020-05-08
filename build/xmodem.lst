@@ -348,6 +348,7 @@ Hexadecimal [24-Bits]
                                  
                                  
                                  
+                                 
                                         ; data memory unlock keys
                                  
                                  
@@ -1557,12 +1558,12 @@ Hexadecimal [24-Bits]
                                      74 ;-----------------------
       00000A                         75 xreceive::
       00000A 81               [ 4]   76     ret 
-                                     77 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 2.
 Hexadecimal [24-Bits]
 
 
 
+                                     77 
                                      78 
                                      79 
                                      80 

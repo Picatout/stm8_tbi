@@ -348,6 +348,7 @@ Hexadecimal [24-Bits]
                                  
                                  
                                  
+                                 
                                         ; data memory unlock keys
                                  
                                  
@@ -1523,9 +1524,9 @@ Hexadecimal [24-Bits]
                                      42 ;-----------------------
                                      43 ; Transmit file in RAM 
                                      44 ;-----------------------
-      00A68E                         45 xtransmit::
+      00A78E                         45 xtransmit::
                                      46 
-      00A68E 81               [ 4]   47     ret 
+      00A78E 81               [ 4]   47     ret 
                                      48 
                                      49 ;------------------------------
                                      50 ; wait character with timeout
@@ -1536,16 +1537,16 @@ Hexadecimal [24-Bits]
                                      55 ;------------------------------
                            000002    56     TMR=2
                            000002    57     VSIZE=2
-      00A68F                         58 wait_char:
+      00A78F                         58 wait_char:
       000001                         59     _vars VSIZE 
-      00A68F 52 02            [ 2]    1     sub sp,#VSIZE 
-      00A691 4F               [ 1]   60     clr a 
+      00A78F 52 02            [ 2]    1     sub sp,#VSIZE 
+      00A791 4F               [ 1]   60     clr a 
                                      61     
-      00A692 CD 9C 46         [ 4]   62     call qkey 
+      00A792 CD 9D 7F         [ 4]   62     call qkey 
                                      63 
       000007                         64     _drop VSIZE 
-      00A695 5B 02            [ 2]    1     addw sp,#VSIZE 
-      00A697 81               [ 4]   65     ret 
+      00A795 5B 02            [ 2]    1     addw sp,#VSIZE 
+      00A797 81               [ 4]   65     ret 
                                      66 
                                      67 ;-----------------------
                                      68 ; receive a file in RAM 
@@ -1555,14 +1556,14 @@ Hexadecimal [24-Bits]
                                      72 ;   X  data size received 
                                      73 ;      zero if failed 
                                      74 ;-----------------------
-      00A698                         75 xreceive::
-      00A698 81               [ 4]   76     ret 
-                                     77 
+      00A798                         75 xreceive::
+      00A798 81               [ 4]   76     ret 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 2.
 Hexadecimal [24-Bits]
 
 
 
+                                     77 
                                      78 
                                      79 
                                      80 

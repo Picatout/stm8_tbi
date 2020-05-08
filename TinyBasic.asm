@@ -319,6 +319,8 @@ timer4_init:
 ;  none 
 ;----------------------------------
 unlock_eeprom:
+	mov FLASH_CR2,#0 
+	mov FLASH_NCR2,#0xFF 
 	mov FLASH_DUKR,#FLASH_DUKR_KEY1
     mov FLASH_DUKR,#FLASH_DUKR_KEY2
 	btjf FLASH_IAPSR,#FLASH_IAPSR_DUL,.
@@ -333,82 +335,152 @@ unlock_eeprom:
 ;  none
 ;----------------------------------
 unlock_flash:
+	mov FLASH_CR2,#0 
+	mov FLASH_NCR2,#0xFF 
 	mov FLASH_PUKR,#FLASH_PUKR_KEY1
 	mov FLASH_PUKR,#FLASH_PUKR_KEY2
 	btjf FLASH_IAPSR,#FLASH_IAPSR_PUL,.
 	ret
 
-USE_BLOCK_ERASE=0 
-.if USE_BLOCK_ERASE 
-; this code is copied to RAM 
-
 ;----------------------------
 ; erase block code must be 
 ; executed from RAM
+; input:
 ;-----------------------------
-erase_start:
+row_erase:
+	mov FLASH_CR2,#(1<<FLASH_CR2_ERASE) 
+	mov FLASH_NCR2,#~(1<<FLASH_CR2_ERASE)
 	clr a 
-    bset FLASH_CR2,#FLASH_CR2_ERASE
-    bres FLASH_NCR2,#FLASH_CR2_ERASE
-	ldf [farptr],a
-    inc farptr+2 
-    ldf [farptr],a
-    inc farptr+2 
-    ldf [farptr],a
-    inc farptr+2 
-    ldf [farptr],a
+	clrw y 
+	ldf ([farptr],y),a
+    incw y
+	ldf ([farptr],y),a
+    incw y
+	ldf ([farptr],y),a
+    incw y
+	ldf ([farptr],y),a
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
 	ret
-erase_end:
+row_erase_end:
 
 ; copy erase_start in RAM 
-move_code_in_ram:
-	ldw x,#erase_end 
-	subw x,#erase_start
+move_erase_to_ram:
+	ldw x,#row_erase_end 
+	subw x,#row_erase
 	ldw acc16,x 
-	ldw x,#pad 
-	ldw y,#erase_start 
+	ldw x,#tib 
+	ldw y,#row_erase 
 	call move 
 	ret 
 
 ;-----------------------------------
-; erase flash or EEPROM block 
-; a block is 128 bytes 
+; block programming must be 
+; executed from RAM 
+; initial contidions: 
+; 	memory unlocked
+;   bit PRG set in 
 ; input:
-;   farptr  address block begin
+;   x        128 bytes row to program 
+;   farptr   row address 
+; output:
+;   none 
+;----------------------------------
+	BCNT=1 
+program_row:
+	push #BLOCK_SIZE  
+;enable block programming 
+	bset FLASH_CR2,#FLASH_CR2_PRG 
+	bres FLASH_NCR2,#FLASH_CR2_PRG
+	clrw y 
+1$:	ld a,(x)
+	ldf ([farptr],y),a
+	incw x 
+	incw y 
+	dec (BCNT,sp)
+	jrne 1$
+; wait EOP bit 
+	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,. 
+	_drop 1 
+	ret 
+program_row_end:
+
+;-------------------------
+; move program_row to RAM 
+; at txtubound address 
+;------------------------
+move_prg_to_ram:
+	ldw x,#program_row_end 
+	subw x,#program_row 
+	ldw acc16,x 
+	ldw x,#tib 
+	ldw y,#program_row 
+	call move 
+	ret 
+
+
+;-----------------------------
+; write a row in FLASH/EEPROM 
+; input:
+;    farptr   destination address 
+;    x        source address 
+;-----------------------------
+write_row:
+	pushw x 
+	tnz farptr 
+	jrne to_flash 
+	ldw x,#FLASH_BASE 
+	cpw x,farptr+1 
+	jruge to_flash 
+to_eeprom:
+	ldw x,#EEPROM_BASE 
+	cpw x,farptr+1 
+	jruge 1$
+	ret ; bad address 
+1$: ldw x,#EEPROM_END 
+	jrule 2$ 
+	ret ; bad address 
+2$:	call unlock_eeprom
+	jra do_programming
+to_flash:
+	call unlock_flash 
+do_programming:
+	popw x 
+	call tib
+	bres FLASH_IAPSR,#FLASH_IAPSR_PUL 
+	bres FLASH_IAPSR,#FLASH_IAPSR_DUL  
+	ret 
+
+
+;-----------------------------------
+; erase flash or EEPROM block
+; a blow is 128 bytes 
+; input:
+;   farptr  address row begin
 ; output:
 ;   none
 ;--------------------------------------
-erase_block:
-	ldw x,farptr+1 
-	pushw x 
-	call move_code_in_ram 
-	popw x 
-	ldw farptr+1,x 
-	tnz farptr
-	jrne erase_flash 
-	ldw x,#FLASH_BASE 
-	cpw x,farptr+1 
+block_erase:
+	ldw x,farptr+1
+	cpw x,#user_space 
 	jrpl erase_flash 
 ; erase eeprom block
-	call unlock_eeprom 
-	sim 
-	call pad   
+	cpw x,#EEPROM_BASE 
+	jruge 1$
+	ret ; bad address 
+1$: ldw x,#EEPROM_END 
+	jrule 2$ 
+	ret ; bad address 
+2$:	call unlock_eeprom 
+	call tib 
 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
-	rim 
 	ret 
 ; erase flash block:
 erase_flash:
 	call unlock_flash 
-	bset FLASH_CR2,#FLASH_CR2_ERASE
-	bres FLASH_NCR2,#FLASH_CR2_ERASE
-	clr a 
-	sim 
-	call pad 
+	call tib 
     bres FLASH_IAPSR,#FLASH_IAPSR_PUL
-	rim 
 	ret 
-.endif ;;;; USE_BLOCK_ERASE ;;;;
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
 ; write a byte to FLASH or EEPROM/OPTION  
@@ -1231,7 +1303,7 @@ cold_start:
 	ld a,#10 
 	call prti24 
 	ld a,#CR 
-	call putc 
+	call putc
 	call seek_fdrive 
 	rim 
 	inc seedy+1 
@@ -1479,7 +1551,6 @@ next_token:
 	mov in.saved,in 
 	ldw y,basicptr 
 	ld a,([in.w],y)
-;	jreq 9$ 
 	inc in  
 	tnz a 
 	jrmi 6$
@@ -4201,9 +4272,10 @@ run:
 1$:	ldw x,txtbgn
 	cpw x,txtend 
 	jrmi run_it 
-	ld a,#ERR_NO_PROG
-	jp tb_error
-
+	ldw x,#err_no_prog
+	call puts 
+	mov in,count
+	ret 
 run_it:	 
     call ubound 
 	_drop 2 ; drop return address 
@@ -4472,7 +4544,43 @@ new:
 ;  0x10000-0x27fff is 
 ;  used to store BASIC 
 ;  program files. 
+;  use 128 bytes sectors
+;  because this is the MCU 
+;  row size.
+;  file entry aligned to row
+;  	name  variable length
+;  	size  2 bytes  
+; 	data  variable length 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;---------------------------
+; fill pad with zeros 
+;--------------------------
+zero_pad:
+	ldw x,#pad 
+	ld a,#PAD_SIZE 
+1$:	clr (x)
+	incw x 
+	dec a 
+	jrne 1$
+	ret 
+
+;--------------------------
+; align farptr to BLOCK_SIZE 
+;---------------------------
+row_align:
+	ld a,#0x7f 
+	and a,farptr+2 
+	jreq 1$ 
+	ldw x,farptr+1 
+	addw x,#BLOCK_SIZE 
+	jrnc 0$
+	inc farptr 
+0$: ld a,xl 
+	and a,#0x80
+	ld xl,a
+	ldw farptr+1,x  	
+1$:	ret
 
 ;--------------------
 ; input:
@@ -4510,9 +4618,9 @@ seek_fdrive:
 	decw x
 	jrpl 2$
 	jra 4$ 
-3$:	incw x 
+3$:	ldw x,#BLOCK_SIZE 
 	call incr_farptr
-	ldw x,#0x27f 
+	ldw x,#0x27f  
 	cpw x,farptr
 	jrpl 1$
 ; drive full 
@@ -4569,6 +4677,7 @@ cmp_name:
 ;   Y       file name  
 ; output:
 ;   farptr  addr at name|0
+;   X       offset to size field
 ;-----------------------
 	FSIZE=1
 	YSAVE=3
@@ -4594,9 +4703,9 @@ search_file:
 	ldf a,([farptr],x)
 	ld (FSIZE+1,sp),a 
 	incw x 
-	addw x,(FSIZE,sp) ; count to skip 
-	incw x ; skip over EOF marker 
-	call incr_farptr ; now at next file 'name_field'
+	addw x,(FSIZE,sp) ; skip over file data
+	call incr_farptr
+	call row_align  
 	ldw x,#0x280
 	cpw x,farptr 
 	jrpl 1$
@@ -4612,15 +4721,17 @@ search_file:
 	scf 	
 	ret
 
-
 ;--------------------------------
 ; BASIC: SAVE "name" 
 ; save text program in 
-; flash memory used as 
+; flash memory used as permanent
+; storage from address 0x10000-0x27fff 
 ;--------------------------------
 	BSIZE=1
 	NAMEPTR=3
-	VSIZE=4
+	XSAVE=5
+	YSAVE=7
+	VSIZE=8 
 save:
 	btjf flags,#FRUN,0$ 
 	ld a,#ERR_CMD_ONLY 
@@ -4630,8 +4741,10 @@ save:
 	subw x,txtbgn
 	jrne 1$
 ; nothing to save 
-	ld a,#ERR_NO_PROG
-	jp tb_error 	
+	ldw x,#err_no_prog 
+	call puts 
+	mov in,count 
+	ret  	
 1$:	
 	_vars VSIZE 
 	ldw (BSIZE,sp),x 
@@ -4641,7 +4754,7 @@ save:
 	jp syntax_error
 2$: 
 	ldw (NAMEPTR,sp),x  
-	mov in,count 
+	call move_prg_to_ram ; move flashing program to 'tib' buffer 
 ; check if enough free space 
 	call strlen 
 	addw x,#3 
@@ -4659,59 +4772,56 @@ save:
 	jrnc 3$ 
 	ld a,#ERR_DUPLICATE 
 	jp tb_error 
-3$:	;** write file name to flash **
+3$:	; initialize farptr 
 	ldw x,ffree 
 	ld a,ffree+2 
 	ldw farptr,x 
 	ld farptr+2,a 
-	ldw x,(NAMEPTR,sp)  
+;** write file name to row buffer **	
+	ldw y,(NAMEPTR,sp)  
+	ldw x,#pad 
+	call strcpy
+	ldw x,#pad  
 	call strlen 
 	incw  x
-	ldw (BSIZE,sp),x  
-	clrw x   
-	ldw y,(NAMEPTR,sp)
-	call write_block  
-;** write file length after name **
-	ldw x,txtend 
-	subw x,txtbgn
-	ldw (BSIZE,sp),x 
-	clrw x 
-	ld a,(BSIZE,sp)
-	call write_byte 
+	addw x,#pad 
+; ** write file size to row buffer 
+	ldw y,(BSIZE,sp)
+	ldw (x),y 
+	addw x,#2 
+; ** write file data to row buffer 
+	ldw y,txtbgn 
+6$:	ld a,(y)
+	ld (x),a 
+	incw y
+	cpw y,txtend 
+	jreq 12$
 	incw x 
-	ld a,(BSIZE+1,sp)
-	call write_byte
-	incw x  
-	call incr_farptr ; move farptr after SIZE field 
-;** write BASIC text **
-; copy BSIZE, stack:{... bsize -- ... bsize bsize }	
-	ldw x,(BSIZE,sp)
-	pushw x ; write_block argument 
-	clrw x 
-	ldw y,txtbgn  ; BASIC text to save 
-	call write_block 
-	_drop 2 ;  drop write_block argument  
-; write end of file marker 
-	ldw x,#1
-	ld a,#EOF  
-	call write_byte 
+	cpw x,#stack_full 
+	jrmi 6$
+12$:
+	ldw (YSAVE,sp),y 
+14$: ; zero buffer end 
+	cpw x,#stack_full
+	jreq 16$
+	clr (x)
+	incw x 
+	jra 14$
+16$:
+	ldw x,#pad 
+	call write_row 
+	ldw x,#BLOCK_SIZE 
 	call incr_farptr
+	ldw x,#pad 
+	ldw y,(YSAVE,sp)
+	cpw y,txtend 
+	jrmi 6$
 ; save farptr in ffree
 	ldw x,farptr 
 	ld a,farptr+2 
 	ldw ffree,x 
 	ld ffree+2,a
-;write 4 zero bytes as an end of all files marker 
-    clrw x 
-	push #4 
-4$:
-	clr a 
-	call write_byte 
-	incw x 
-	dec (1,sp)
-	jrne 4$
-5$: pop a 
-; display saved size  
+; print file size 	
 	ldw x,(BSIZE,sp) 
 	call print_int 
 	_drop VSIZE 
@@ -4780,7 +4890,10 @@ load:
 ; after it. 
 ; without argument erase all files 
 ;-----------------------------------
+	NEW_FREE=1 
+	VSIZE=3 
 forget:
+	_vars VSIZE 
 	call next_token 
 	cp a,#TK_NONE 
 	jreq 3$ 
@@ -4802,18 +4915,27 @@ forget:
 	clr a 
 	ldw farptr,x 
 	ld farptr+2,a 
-4$:
-	ldw ffree,x 
+4$:	; save new free address 
+	ldw (NEW_FREE,sp),x
+	ld (NEW_FREE+2,sp),a 
+	call move_erase_to_ram
+5$: call block_erase 
+	ldw x,#BLOCK_SIZE 
+	call incr_farptr 
+	call row_align 
+; check if all blocks erased
+	ld a,farptr+2  
+	sub a,ffree+2
+	ld a,farptr+1 
+	sbc a,ffree+1 
+	ld a,farptr 
+	sbc a,ffree 
+	jrmi 5$ 
+	ld a,(NEW_FREE+2,sp)
+	ldw x,(NEW_FREE,sp)
 	ld ffree+2,a 
-	push #4
-	clrw x 
-5$: 
-	clr a  
-	call write_byte 
-	incw x 
-	dec (1,sp)
-	jrne 5$	
-6$: pop a 
+	ldw ffree,x 
+	_drop VSIZE 
 	ret 
 
 ;----------------------
@@ -4850,9 +4972,9 @@ dir_loop:
 	ld yl,a 
 	pushw y 
 	addw x,(1,sp)
-	incw x ; skip EOF marker 
 ; skip to next file 
-	call incr_farptr 
+	call incr_farptr
+	call row_align
 ; print file size 
 	popw x ; file size 
 	call print_int 
@@ -4861,7 +4983,7 @@ dir_loop:
 	ldw x,(COUNT,sp)
 	incw x
 	ldw (COUNT,sp),x  
-	jra dir_loop 
+	jra dir_loop
 8$: ; print number of files 
 	ldw x,(COUNT,sp)
 	call print_int 
@@ -6334,4 +6456,4 @@ user_space:
 	.area FLASH_DRIVE (ABS)
 	.org 0x10000
 fdrive:
-;.byte 0,0,0,0
+; .byte 0,0,0,0

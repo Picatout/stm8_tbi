@@ -1,15 +1,25 @@
+#### 2020-05-07
+
+* Réécriture du système de fichier pour utiliser la programmation et l'effacement par bloc plus rapide que les opérations octet par octet. 
+
 #### 2020-05-06
+
+**session 2** 
+
+* Débuté modification au système d'écriture dans la mémoire FLASH/EEPROM pour utliser le mode par bloc plus rapide. 
+
+**session 1**
 
 * Modifié *next_token* pour améliorer la performance. 
 ```
 >t=ticks:for a=1 to 100:for b=1to10000:next b:next a:? ticks-t
-8831
+8955
 
 >t=ticks:for a=1to10000:b=rnd(50):next a:? ticks-t
- 587
+ 584
 
 >t=ticks:for a=1 to 10000:b=3*5+rnd(1000):next a:? ticks-t
- 831
+ 827
 ```
 
 #### 2020-05-05

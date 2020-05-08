@@ -264,6 +264,7 @@ PI = 40
 
 
 ; Flash memory
+ BLOCK_SIZE=128 
  FLASH_CR1  = (0x505A)
  FLASH_CR2  = (0x505B)
  FLASH_NCR2  = (0x505C)
