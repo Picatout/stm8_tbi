@@ -2578,7 +2578,8 @@ multiply:
 	cpl (SIGN,sp)
 	negw x 
 1$:	
-	ld a,yh 
+	ld a,yh
+	and a,#0x80  
 	jrpl 2$ 
 	cpl (SIGN,sp)
 	negw y 

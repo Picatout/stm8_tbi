@@ -1542,7 +1542,7 @@ Hexadecimal [24-Bits]
       00A78F 52 02            [ 2]    1     sub sp,#VSIZE 
       00A791 4F               [ 1]   60     clr a 
                                      61     
-      00A792 CD 9D 6C         [ 4]   62     call qkey 
+      00A792 CD 9D 6E         [ 4]   62     call qkey 
                                      63 
       000007                         64     _drop VSIZE 
       00A795 5B 02            [ 2]    1     addw sp,#VSIZE 
