@@ -1188,16 +1188,6 @@ Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxre
 >
 ```
 
-### XPEEK(*expr1*,*expr2*)  {C,P}
-Cette fonction sert à lire la mémoire au delà de l'adresse 65535. Comme ce BASIC fonctionne avec des entiers de 16 bits on ne peut adresser la mémoire étendue. **XPEEK** divise donc l'adresse en partie haute et basse. *expr1* est la partie haute de l'adresse et *expr2* est la partie basse. 
-```
-> ? xpeek($1,$a) ' adresse $1000a
- 39
-
-> 
-```
-
-
 ## Installation de Tiny BASIC sur la carte NUCLEO-8S208RB 
 À la ligne 36 du fichier [PABasic.asm](PABasic.asm) il y a une macro nommée **_dbg**. Cette macro ajoute du code supplémentaire lors du développement du système et doit-être mise en commentaire pour construire la version finale. construire Tiny BASIC et programmer la carte NUCLEO est très simple grâce la l'utilitaire **make**. Lorsque la carte est branchée et prête à être programmée faites la commande suivante:
 ```

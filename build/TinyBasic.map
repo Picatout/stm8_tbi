@@ -61,8 +61,8 @@ CODE                                00008080    00002719 =       10009. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008F25  to_upper                           STM8_TBI
-     00009D72  qkey                               STM8_TBI
+     00008EBD  to_upper                           STM8_TBI
+     00009D57  qkey                               STM8_TBI
      0000A78E  xtransmit                          XMODEM
      0000A798  xreceive                           XMODEM
 

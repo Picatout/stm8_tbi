@@ -1291,8 +1291,9 @@ cold_start:
 	ld a,#MAJOR 
 	ld acc8,a 
 	clrw x 
-	ldw acc24,x 
-	ld a,#10 
+	ldw acc24,x
+	clr tab_width  
+	mov base, #10 
 	call prti24 
 	ld a,#'.
 	call putc 
@@ -1300,8 +1301,7 @@ cold_start:
 	ld acc8,a 
 	clrw x 
 	ldw acc24,x 
-	ld a,#10 
-	call prti24 
+	call prti24
 	ld a,#CR 
 	call putc
 	call seek_fdrive 
@@ -1583,148 +1583,75 @@ next_token:
 9$: 
 	ret	
 
-
-
-
-;------------------------------------
-; print integer in acc24 
-; input:
-;	acc24 		integer to print 
-;	A 			numerical base for conversion 
-;               if bit 7 is set add a space at print end.
-;   XL 			field width, 0 -> no fill.
-;  output:
-;    none 
-;------------------------------------
-	WIDTH = 1
-	BASE = 2
-	ADD_SPACE=3 ; add a space after number 
-	VSIZE = 3
-prti24:
-	_vars VSIZE 
-	clr (ADD_SPACE,sp)
-	bcp a,#0x80 
-	jreq 0$ 
-	cpl (ADD_SPACE,sp)
-0$:	and a,#31 
-	ld (BASE,sp),a
-	ld a,xl
-	ld (WIDTH,sp),a 
-	ld a, (BASE,sp)  
-    call itoa  ; conversion entier en  .asciz
-1$: ld a,(WIDTH,sp)
-	jreq 4$
-	ld acc8,a 
-	pushw x 
-	call strlen 
-	ld a,xl 
-	popw x 
-	exg a,acc8 
-	sub a,acc8 
-	jrmi 4$
-	ld (WIDTH,sp),a 
-	ld  a,#SPACE
-3$: tnz (WIDTH,sp)
-	jreq 4$
-	decw x 
-	ld (x),a 
-	dec (WIDTH,sp) 
-	jra 3$
-4$: 
-	call puts 
-	tnz (ADD_SPACE,sp)
-	jreq 5$
-    ld a,#SPACE 
-	call putc 
-5$: _drop VSIZE 
-    ret	
-
 ;-----------------------------------
 ; print a 16 bit integer 
 ; using variable 'base' as conversion
 ; format.
 ; input:
 ;   X       integer to print 
-;   base    conversion base 
+;   'base'    conversion base 
 ; output:
 ;   none 
 ;-----------------------------------
-	SIGN=1
-	STRING=2
-;; 9 char on stack for string buffer	
-	STREND=2+8 
-	VSIZE=10
-print_int: 
-	_vars VSIZE 
-	clr (SIGN,sp)
-	ldw y,sp 
-	addw y,#STREND  
-	clr (y)
-	ld a,base  
-	cp a,#10 
-	jrne 1$ 
-	tnzw x 
-	jrpl 1$ 
-	cpl (SIGN,sp)
-	negw x 	 
-1$:	
-	ld a,base 
-	div x,a 
-	add a,#'0 
-	cp a,#'9+1 
-	jrmi 2$ 
-	add a,#7 
-2$: decw y 
-	ld (y),a 
-	tnzw x 
-	jrne 1$ 
-	ld a,#16 
-	cp a,base 
-	jrne 3$
-	ld a,#'$
-	decw y  
-	ld (y),a
-	jra 9$ 
-3$: tnz (SIGN,sp)
-	jreq 9$ 
-	ld a,#'-
-	decw y  
-	ld (y),a
-9$:	
+print_int:
+	clr acc24 
+	ldw acc16,x 
+	btjf acc16,#7,prti24
+	cpl acc24 
+
+;------------------------------------
+; print integer in acc24 
+; input:
+;	acc24 		integer to print 
+;	'base' 		numerical base for conversion 
+;   'tab_width' field width 
+;  output:
+;    none 
+;------------------------------------
+	BUFF_LEN=16
+	SPCNT=1
+	BUFFER=2
+	VSIZE=17 
+prti24:
 	ldw x,sp 
-	addw x,#STREND  
-	pushw y
-	subw x,(1,sp)
-	_drop 2 
-10$:
-	ld a,xl 
+	_vars VSIZE 
+    call itoa  ; conversion entier en  .asciz
+	ld (SPCNT,sp),a 
+	ld a,#15 
+	and a,tab_width 
+	ld tab_width,a 
+1$: ld a,(SPCNT,sp)
 	cp a,tab_width
-	jruge 12$
-	ld a,#SPACE 
-	call putc 
-	incw x 
-	jra 10$ 
-12$:
-    ldw x,y 
-	call puts  
-	_drop VSIZE 
-	ret 
+	jruge 4$
+	ld  a,#SPACE
+	decw x
+    ld (x),a 
+	inc (SPCNT,sp)
+	jra 1$ 
+4$: 
+	call puts 
+5$: _drop VSIZE 
+    ret	
 
 ;------------------------------------
 ; convert integer in acc24 to string
 ; input:
-;   A	  	base
+;   'base'	conversion base 
 ;	acc24	integer to convert
+;   X       pointer to end of convertion buffer 
 ; output:
-;   X  		pointer to string
+;   X  		pointer to first char of string
+;   A       string length
 ;------------------------------------
 	SIGN=1  ; integer sign 
-	BASE=2  ; numeric base 
-	VSIZE=2  ;locals size
+	LEN=2 
+	XSAVE=3
+	VSIZE=4 ;locals size
 itoa:
-	sub sp,#VSIZE
-	ld (BASE,sp), a  ; base
+	_vars VSIZE
+	clr (LEN,sp) ; string length  
 	clr (SIGN,sp)    ; sign
+	ld a,base 
 	cp a,#10
 	jrne 1$
 	; base 10 string display with negative sign if bit 23==1
@@ -1733,24 +1660,27 @@ itoa:
 	call neg_acc24
 1$:
 ; initialize string pointer 
-	ldw x,#pad+PAD_SIZE-1
 	clr (x)
 itoa_loop:
-    ld a,(BASE,sp)
+    ld a,base
+	ldw (XSAVE,sp),x 
     call divu24_8 ; acc24/A 
+	ldw x,(XSAVE,sp)
     add a,#'0  ; remainder of division
     cp a,#'9+1
     jrmi 2$
     add a,#7 
-2$: decw x
+2$:	
+	decw x
     ld (x),a
+	inc (LEN,sp)
 	; if acc24==0 conversion done
 	ld a,acc24
 	or a,acc16
 	or a,acc8
     jrne itoa_loop
 	;conversion done, next add '$' or '-' as required
-	ld a,(BASE,sp)
+	ld a,base 
 	cp a,#16
 	jreq 8$
 	ld a,(SIGN,sp)
@@ -1760,8 +1690,10 @@ itoa_loop:
 8$: ld a,#'$ 
 9$: decw x
     ld (x),a
+	inc (LEN,sp)
 10$:
-	addw sp,#VSIZE
+	ld a,(LEN,sp)
+	_drop VSIZE
 	ret
 
 ;-------------------------------------
@@ -2069,9 +2001,9 @@ escaped: .asciz "abtnvfr"
 ;   Y 		point to tib 
 ;   A 	    first digit|'$' 
 ; output:  
-;   pad     number string 
 ;   X 		integer 
 ;   A 		TK_INTGR
+;   acc24   24 bits integer 
 ;-------------------------
 	BASE=1
 	TCHAR=2 
@@ -2553,214 +2485,289 @@ skip:
 ;;  Arithmetic operators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;--------------------------------
-;  add 2 integers
-;  input:
-;    N1     on cstack 
-;    N2     on cstack 
-;  output:
-;    X 		n2+n1 
-;--------------------------------
-	;arugments on cstack 
-	_argofs 0 
-	_arg N1 1 
-	_arg N2 3 
-add:
-	ldw x ,(N2,sp)
-	addw x,(N1,sp)
-	ldw (N1,sp),x 
-	ret 
 
-;--------------------------------
-;  substract 2 ntegers
+;--------------------------------------
+;  multiply 2 uint16_t return uint32_t
 ;  input:
-;    N1     on cstack 
-;    N2     on cstack 
+;     x       uint16_t 
+;     y       uint16_t 
 ;  output:
-;    X 		n2+n1 
-;--------------------------------
-	_argofs 0 
-	_arg N1 1 
-	_arg N2 3 
-substract:
-	ldw x,(N2,sp)
-	subw x,(N1,sp)
-	ret 
-
-;-------------------------------------
-; multiply 2 integers
-; product overflow is ignored unless
-; MATH_OVF assembler flag is set to 1
-; input:
-;  	N1      on cstack
-;   N2 		on cstack 
-; output:
-;	X        N1*N2 
-;-------------------------------------
-	;arguments 
-	_argofs 3
-	_arg N1_HB 1
-	_arg N1_LB 2
-	_arg N2_HB 3
-	_arg N2_LB 4 
-   ; local variables 
-	SIGN=1
-	PROD=2
-	VSIZE=3
-multiply:
+;     x       product bits 15..0
+;     y       product bits 31..16 
+;---------------------------------------
+		U1=1  ; uint16_t 
+		DBL=3 ; uint32_t
+		VSIZE=6
+umstar:
 	_vars VSIZE 
-	clr (SIGN,sp)
-	ldw x,(N1_HB,sp)
-	ld a,xh  
-	bcp a,#0x80 
-	jreq 2$
-	cpl (SIGN,sp)
-	negw x 
-	ldw (N1_HB,sp),x 
-2$: ldw x,(N2_HB,sp)
-	ld a,xh  
-	bcp a,#0x80 
-	jreq 3$
-	cpl (SIGN,sp)
-	negw x 
-	ldw (N2_HB,sp),x 
-; N1_LB * N2_LB 	
-3$:	ld a,(N1_LB,sp)
-	ld xl,a 
-	ld a,(N2_LB,sp) 
+	ldw (U1,sp),x 
+;initialize bits 31..16 of 
+;product to zero 
+	clr (DBL,sp)
+	clr (DBL+1,sp)
+; produc U1L*U2L 
+	ld a,yl 
 	mul x,a 
-.if MATH_OVF 	
-	ld a,xh 
-	bcp a,#0x80 
-	jreq 4$ 
-	ld a,#ERR_MATH_OVF 
-	jp tb_error
-.endif 	 
-4$:	ldw (PROD,sp),x
-; N1_LB * N2_HB	 
-	ld a,(N1_LB,sp) 
-	ld xl,a 
-	ld a,(N2_HB,sp)
+	ldw (DBL+2,sp),x
+; product U1H*U2L 
+	ld a,(U1,sp) ; xh 
+	ldw x,y
+	mul x,a 
+	clr a 
+	addw x,(DBL+1,sp) 
+	clr a 
+	adc a,(DBL,sp) 
+	ld (DBL,sp),a ; bits 23..17 
+	ldw (DBL+1,sp),x ; bits 15..0 
+; product U1L*U2H
+	swapw y 
+	ldw x,y
+	ld a,(U1+1,sp)
 	mul x,a
-	ld a,xl 
-	add a,(PROD,sp)
-.if MATH_OVF 	
-	bcp a,#0x80 
-	jreq 5$ 
-	ld a,#ERR_MATH_OVF 
-	jp tb_error
-.endif 	 
-5$:	ld (PROD,sp),a 
-; N1_HB * N2_LB 
-	ld a,(N1_HB,sp)
-	ld xl,a 
-	ld a,(N2_LB,sp)
+	addw x,(DBL+1,sp)
+	clr a 
+	adc a,(DBL,sp)
+	ld (DBL,sp),a 
+	ldw (DBL+1,sp),x 
+; product U1H*U2H 	
+	ld a,(U1,sp)
+	ldw x,y  
 	mul x,a 
-	ld a,xl 
-	add a,(PROD,sp)
-.if MATH_OVF 	
-	bcp a,#0x80 
-	jreq 6$ 
-	ld a,#ERR_MATH_OVF 
-	jp tb_error
-.endif 	 
-6$:	ld (PROD,sp),a 
-; N1_HB * N2_HB 	
-; it is pointless to multiply N1_HB*N2_HB 
-; as this product is over 65535 or 0 
-;
-; sign adjust product
-	tnz (SIGN,sp)
-	jreq 7$
-	ldw x, (PROD,sp)
-	negw x
-	ldw (PROD,sp),x  
-7$: 
-	ldw x,(PROD,sp) 
+	addw x,(DBL,sp)
+	ldw y,x 
+	ldw x,(DBL+2,sp)
 	_drop VSIZE 
 	ret
 
-;----------------------------------
-;  euclidian divide n2/n1 
+
+;-------------------------------------
+; multiply 2 integers
 ; input:
-;    N2 	on cstack
-;    N1 	on cstack
+;  	x       n1 
+;   y 		n2 
 ; output:
-;    X      n2/n1 
-;    Y      remainder 
-;----------------------------------
-	_argofs 2
-	_arg DIVISR 1
-	_arg DIVIDND 3
-	; local variables
-	SQUOT=1 ; sign quotient
-	SDIVD=2 ; sign dividend  
-	VSIZE=2
-divide:
+;	X        N1*N2 bits 15..0
+;   Y        N1*N2 bits 31..16 
+;-------------------------------------
+	SIGN=1
+	VSIZE=1
+multiply:
 	_vars VSIZE 
+	clr (SIGN,sp)
+	ld a,xh 
+	jrpl 1$
+	cpl (SIGN,sp)
+	negw x 
+1$:	
+	ld a,yh 
+	jrpl 2$ 
+	cpl (SIGN,sp)
+	negw y 
+2$:	
+	call umstar
+	ld a,(SIGN,sp)
+	jreq 3$
+	cplw x 
+	cplw y 
+	addw x,#1
+	jrnc 3$
+	incw y
+3$:	
+	_drop VSIZE 
+	ret
+
+;--------------------------------------
+; divide uint32_t/uint16_t
+; return:  quotient and remainder 
+; quotient expected to be uint16_t 
+; input:
+;   DBLDIVDND    on stack 
+;   X            divisor 
+; output:
+;   X            quotient 
+;   Y            remainder 
+;---------------------------------------
+	VSIZE=3
+	_argofs VSIZE 
+	_arg DBLDIVDND 1
+	; local variables 
+	DIVISOR=1 
+	CNTR=3 
+udiv32_16:
+	_vars VSIZE 
+	ldw (DIVISOR,sp),x	; save divisor 
+	ldw x,(DBLDIVDND+2,sp)  ; bits 15..0
+	ldw y,(DBLDIVDND,sp) ; bits 31..16
+	tnzw y
+	jrne long_division 
+	ldw y,(DIVISOR,sp)
+	divw x,y
+	_drop VSIZE 
+	ret
+long_division:
+	exgw x,y ; hi in x, lo in y 
+	ld a,#17 
+	ld (CNTR,sp),a
+1$:
+	cpw x,(DIVISOR,sp)
+	jrmi 2$
+	subw x,(DIVISOR,sp)
+2$:	ccf 
+	rlcw y 
+	rlcw x 
+	dec (CNTR,sp)
+	jrne 1$
+	exgw x,y 
+	_drop VSIZE 
+	ret
+
+;-----------------------------
+; negate double int.
+; input:
+;   x     bits 15..0
+;   y     bits 31..16
+; output: 
+;   x     bits 15..0
+;   y     bits 31..16
+;-----------------------------
+dneg:
+	cplw x 
+	cplw y 
+	addw x,#1 
+	jrnc 1$
+	incw y 
+1$: ret 
+
+
+;--------------------------------
+; sign extend single to double
+; input:
+;   x    int16_t
+; output:
+;   x    int32_t bits 15..0
+;   y    int32_t bits 31..16
+;--------------------------------
+dbl_sign_extend:
+	clrw y
+	ld a,xh 
+	and a,#0x80 
+	jreq 1$
+	cplw y
+1$: ret 	
+
+
+;----------------------------------
+;  euclidian divide dbl/n1 
+;  ref: https://en.wikipedia.org/wiki/Euclidean_division
+; input:
+;    dbl    int32_t on stack 
+;    x 		n1   int16_t  disivor  
+; output:
+;    X      dbl/n2  int16_t 
+;    Y      remainder int16_t 
+;----------------------------------
+	VSIZE=8
+	_argofs VSIZE 
+	_arg DIVDNDHI 1 
+	_arg DIVDNDLO 3
+	; local variables
+	DBLHI=1
+	DBLLO=3 
+	SDIVSR=5 ; sign divisor
+	SQUOT=6 ; sign dividend 
+	DIVISR=7 ; divisor 
+div32_16:
+	_vars VSIZE 
+	clr (SDIVSR,sp)
 	clr (SQUOT,sp)
-	clr (SDIVD,sp)
+; copy arguments 
+	ldw y,(DIVDNDHI,sp)
+	ldw (DBLHI,sp),y
+	ldw y,(DIVDNDLO,sp)
+	ldw (DBLLO,sp),y 
 ; check for 0 divisor
-	ldw x,(DIVISR,sp)
 	tnzw x 
     jrne 0$
 	ld a,#ERR_DIV0 
 	jp tb_error 
 ; check divisor sign 	
 0$:	ld a,xh 
-	bcp a,#0x80 
+	and a,#0x80 
 	jreq 1$
+	cpl (SDIVSR,sp)
 	cpl (SQUOT,sp)
-	negw x 
+	negw x
 1$:	ldw (DIVISR,sp),x
 ; check dividend sign 	 
-    ldw x,(DIVIDND,sp)
-	ld a,xh 
-	bcp a,#0x80 
+ 	ld a,(DBLHI,sp) 
+	and a,#0x80 
 	jreq 2$ 
 	cpl (SQUOT,sp)
-	cpl (SDIVD,sp)
-	negw x 
-2$:	ldw y,(DIVISR,sp)
-	divw x,y
-	ldw acc16,y 
-; if sign dividend is negative and remainder!=0 inc divisor 	 
-	tnz (SDIVD,sp)
-	jreq 7$
+	ldw x,(DBLLO,sp)
+	ldw y,(DBLHI,sp)
+	call dneg 
+	ldw (DBLLO,sp),x 
+	ldw (DBLHI,sp),y 
+2$:	ldw x,(DIVISR,sp)
+	call udiv32_16
 	tnzw y 
-	jreq 7$
-	incw x
+	jreq 3$ 
+; x=quotient 
+; y=remainder 
+; if SDIVSR XOR SQUOT increment quotient and remainder.
+	ld a,(SQUOT,sp)
+	xor a,(SDIVSR,sp)
+	jreq 3$
+	incw x 
+	ldw acc16,y 
 	ldw y,(DIVISR,sp)
 	subw y,acc16
-7$: tnz (SQUOT,sp)
-	jreq 9$ 	 
-8$:	negw x 
-9$: 
+; sign quotient
+3$:	ld a,(SQUOT,sp)
+	jreq 4$
+	negw x 
+4$:	
 	_drop VSIZE 
 	ret 
 
 
+
+;----------------------------------
+; division x/y 
+; input:
+;    X       dividend
+;    Y       divisor 
+; output:
+;    X       quotient
+;    Y       remainder 
+;-----------------------------------
+	VSIZE=4 
+	; local variables 
+	DBLHI=1
+	DBLLO=3
+divide: 
+	_vars VSIZE 
+	ldw acc16,y
+	call dbl_sign_extend
+	ldw (DBLLO,sp),x 
+	ldw (DBLHI,sp),y 
+	ldw x,acc16 
+	call div32_16 
+	_drop VSIZE 
+	ret
+
 ;----------------------------------
 ;  remainder resulting from euclidian 
-;  division of n2/n1 
+;  division of x/y 
 ; input:
-;   N1 		cstack 
-;   N2      cstack
+;   x   	dividend int16_t 
+;   y 		divisor int16_t
 ; output:
-;   X       N2%N1 
+;   X       n1%n2 
 ;----------------------------------
-	N1=3
-	N2=5
-	VSIZE=4
 modulo:
-	Ldw x,(N1,sp)
-	ldw y,(N2,sp)
-	_vars VSIZE 
-	ldw (1,sp),x 
-	ldw (3,sp),y 
-	call divide 
-	ldw x,y
-	_drop VSIZE 
+	call divide
+	ldw x,y 
 	ret 
 
 
@@ -2981,6 +2988,7 @@ get_array_element:
 	ld a,#TK_INTGR
 	ret 
 
+
 ;***********************************
 ;   expression parse,execute 
 ;***********************************
@@ -3057,17 +3065,16 @@ factor:
 ;   A    	token attribute 
 ;	X		integer
 ;-----------------------------------
-	N1=1
-	N2=3
-	MULOP=5
-	VSIZE=5
+	N1=1   ; int16_t
+	MULOP=3
+	VSIZE=3
 term:
 	_vars VSIZE
 	call factor
 	cp a,#CMD_END
 	jrult term_exit
 term01:	 ; check for  operator 
-	ldw (N2,sp),x  ; save first factor 
+	ldw (N1,sp),x  ; save first factor 
 	call next_token
 	cp a,#CMD_END
 	jrult 9$
@@ -3075,7 +3082,6 @@ term01:	 ; check for  operator
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_MULT
 	jreq 1$
-	ld a,(MULOP,sp) 
 	_unget_token 
 	jra 9$
 1$:	; got *|/|%
@@ -3083,7 +3089,8 @@ term01:	 ; check for  operator
 	cp a,#TK_INTGR
 	jreq 2$ 
 	jp syntax_error
-2$:	ldw (N1,sp),x  
+2$:	ldw y,x 
+	ldw x,(N1,sp)
 	ld a,(MULOP,sp) 
 	cp a,#TK_MULT 
 	jrne 3$
@@ -3095,7 +3102,7 @@ term01:	 ; check for  operator
 	jra term01 
 4$: call modulo
 	jra term01 
-9$: ldw x,(N2,sp)  
+9$: ldw x,(N1,sp)
 	ld a,#TK_INTGR 	
 term_exit:
 	_drop VSIZE 
@@ -3109,15 +3116,14 @@ term_exit:
 ;   X	 integer   
 ;-------------------------------
 	N1=1 
-	N2=3
-	OP=5 
-	VSIZE=5 
+	OP=3 
+	VSIZE=3 
 expression:
 	_vars VSIZE 
 	call term
 	cp a,#CMD_END 
 	jrult expr_exit 
-0$:	ldw (N2,sp),x 
+0$:	ldw (N1,sp),x 
 	call next_token
 	cp a,#CMD_END 
 	jrult 9$ 
@@ -3132,15 +3138,16 @@ expression:
 	cp a,#TK_INTGR 
 	jreq 3$
 	jp syntax_error
-3$:	ldw (N1,sp),x 
+3$:	ldw acc16,x 
+	ldw x,(N1,sp)
 	ld a,(OP,sp)
 	cp a,#TK_PLUS 
 	jrne 4$
-	call add 
+	addw x,acc16
 	jra 0$ 
-4$:	call substract
+4$:	subw x,acc16
 	jra 0$
-9$: ldw x,(N2,sp)
+9$: ldw x,(N1,sp)
 	ld a,#TK_INTGR	
 expr_exit:
 	_drop VSIZE 
@@ -3149,22 +3156,21 @@ expr_exit:
 ;---------------------------------------------
 ; rel ::= expr rel_op expr
 ; rel_op ::=  '=','<','>','>=','<=','<>','><'
-;  relation return 1 | 0  for true | false 
+;  relation return  integer , zero is false 
 ;  output:
 ;    A 		token attribute  
-;	 X		1|0
+;	 X		integer 
 ;---------------------------------------------
 	N1=1
-	N2=3
-	RELOP=5
-	VSIZE=5 
+	RELOP=3
+	VSIZE=3 
 relation: 
 	_vars VSIZE
 	call expression
 	cp a,#CMD_END  
 	jrult rel_exit 
 	; expect rel_op or leave 
-	ldw (N2,sp),x 
+	ldw (N1,sp),x 
 	call next_token 
 	cp a,#CMD_END 
 	jrult 9$
@@ -3180,8 +3186,9 @@ relation:
 	cp a,#TK_INTGR 
 	jreq 3$
 	jp syntax_error 
-3$:	ldw (N1,sp),x 
-	call substract
+3$:	ldw acc16,x 
+	ldw x,(N1,sp) 
+	subw x,acc16
 	jrne 4$
 	mov acc8,#2 ; n1==n2
 	jra 6$ 
@@ -3200,7 +3207,7 @@ relation:
 	incw x 
 7$:	 
 	jra 10$  	
-9$: ldw x,(N2,sp)
+9$: ldw x,(N1,sp)
 10$:
 	ld a,#TK_INTGR
 rel_exit: 	 
@@ -3976,36 +3983,14 @@ poke:
 ;-----------------------
 peek:
 	call func_args
-	cp a,#1
+	cp a,#1 
 	jreq 1$
 	jp syntax_error
-1$:	popw x 
+1$: popw x 
 	ld a,(x)
 	clrw x 
 	ld xl,a 
 	ld a,#TK_INTGR
-	ret 
-
-;----------------------------
-; BASIC: XPEEK(page,addr)
-; read extended memory byte
-; page in range {0,1,2}
-;----------------------------
-xpeek:
-	call func_args 
-	cp a,#2 
-	jreq 1$
-	jp syntax_error
-1$: 
-	popw x  
-	ldw farptr+1,x 
-	popw x 
-	ld a,xl 
-	ld farptr,a 
-	clrw x
-	ldf a,[farptr]
-	ld xl,a 
-	ld a,#TK_INTGR 
 	ret 
 
 ;---------------------------
@@ -4345,9 +4330,7 @@ beep:
 	bset TIM2_CR1,#TIM2_CR1_CEN
 	bset TIM2_EGR,#TIM2_EGR_UG
 	popw x 
-	ldw timer,x 
-3$: ldw x,timer 	
-	jrne 3$ 
+	call pause02
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
 	ret 
@@ -5006,9 +4989,7 @@ dir_loop:
 ; print drive free space 	
 	call disk_free
 	clrw x  
-	ld a,#6 
-	ld xl,a 
-	ld a,#10 
+	mov base,#10 
 	call prti24 
 	ldw x,#drive_free
 	call puts 
@@ -6322,6 +6303,14 @@ file_transmit:
 
 	ret 
 
+;-------------------------------
+; BASIC: PAD 
+; Return pad buffer address.
+;------------------------------
+pad_ref:
+	ldw x,#pad 
+	ld a,TK_INTGR
+	ret 
 
 ;------------------------------
 ;      dictionary 
@@ -6344,7 +6333,6 @@ name:
 ; respect alphabetic order for BASIC names from Z-A
 ; this sort order is for a cleaner WORDS cmd output. 	
 kword_end:
-	_dict_entry,5+F_IFUNC,XPEEK,xpeek 
 	_dict_entry,3+F_IFUNC,XOR,bit_xor
 	_dict_entry,5,WRITE,write  
 	_dict_entry,5,WORDS,words 
@@ -6393,6 +6381,7 @@ kword_end:
 	_dict_entry,4+F_IFUNC,PEEK,peek 
 	_dict_entry,5,PMODE,pin_mode 
 	_dict_entry,5,PAUSE,pause 
+	_dict_entry,3+F_IFUNC,PAD,pad_ref 
 	_dict_entry,2+F_IFUNC,OR,bit_or
 	_dict_entry,3+F_IFUNC,ODR,const_odr 
 	_dict_entry,3+F_IFUNC,NOT,func_not 

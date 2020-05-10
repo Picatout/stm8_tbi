@@ -1,8 +1,28 @@
+#### 2020-05-09
+
+* Éliminer la commande **XPEEK** qui permettait de lire la mémoire FLASH au delà de 0xffff. Cette mémoire est réservée au système de fichier.
+
+* Il y avait 2 routines d'impression des entiers, *print_int* et *prti24* pour imprimer les adresse 24 bits.  Remplacer par une seule routine qui imprime des entiers de 24 bits.
+
+* Modifié  commande **TONE** pour utiliser *pause* au lieu du timer pour la durée ce qui permet de faire:
+```
+>timer 10000: do tone 440,250:pause 250 until timeout
+```
+
+* Ajout la fonction **PAD** qui retourne l'adresse du tampon de travail de 128 octets.
+
+
+Example:
+```
+> a=23: ? a !a, 
+23   
+```
+
 #### 2020-05-08
 
 * Corrigé bogue dans commande **DIR** qui affichait la mauvaise valeur d'espace libre sur le disque flash. 
 
-* Corrigé bogue dans commande **SAVE**. 
+* Corrigé bogue dans commande **SAVE**. Le dernier octet du fichier était écrasé par un zéro.
 
 
 #### 2020-05-07
