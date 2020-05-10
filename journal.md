@@ -1,5 +1,7 @@
 #### 2020-05-10
 
+* Corrigé bogue dans routine *multipy*, signe opérante X n'était pas inversé. 
+
 * Ajouter la fonction **MULDIV**. Cette fonction permet de faire un multiplication suivie d'une division en conservant le produit sur 32 bits et éviter une erreur de débordement sur la multiplication. Voici un exemple.
 
 ```

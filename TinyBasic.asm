@@ -1606,20 +1606,15 @@ print_int:
 ;	'base' 		numerical base for conversion 
 ;   'tab_width' field width 
 ;  output:
-;    none 
+;   A          string length
+;    X          pointer to string  
 ;------------------------------------
-	BUFF_LEN=16
 	SPCNT=1
-	BUFFER=2
 	VSIZE=17 
 prti24:
-	ldw x,sp 
 	_vars VSIZE 
     call itoa  ; conversion entier en  .asciz
 	ld (SPCNT,sp),a 
-	ld a,#15 
-	and a,tab_width 
-	ld tab_width,a 
 1$: ld a,(SPCNT,sp)
 	cp a,tab_width
 	jruge 4$
@@ -1638,14 +1633,13 @@ prti24:
 ; input:
 ;   'base'	conversion base 
 ;	acc24	integer to convert
-;   X       pointer to end of convertion buffer 
 ; output:
 ;   X  		pointer to first char of string
 ;   A       string length
 ;------------------------------------
 	SIGN=1  ; integer sign 
 	LEN=2 
-	XSAVE=3
+	PSTR=3
 	VSIZE=4 ;locals size
 itoa:
 	_vars VSIZE
@@ -1660,12 +1654,15 @@ itoa:
 	call neg_acc24
 1$:
 ; initialize string pointer 
+	ldw x,#tib 
+	addw x,#TIB_SIZE
+	decw x 
 	clr (x)
 itoa_loop:
     ld a,base
-	ldw (XSAVE,sp),x 
+	ldw (PSTR,sp),x 
     call divu24_8 ; acc24/A 
-	ldw x,(XSAVE,sp)
+	ldw x,(PSTR,sp)
     add a,#'0  ; remainder of division
     cp a,#'9+1
     jrmi 2$
@@ -2485,6 +2482,27 @@ skip:
 ;;  Arithmetic operators
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;debug support
+DEBUG_PRT=0
+.if DEBUG_PRT 
+printxy:
+	ld a,base 
+	push a 
+	pushw x 
+	pushw y
+	mov base,#16 
+	call print_int 
+	ldw x,(1,sp)
+	call print_int 
+	ld a,#CR 
+	call putc 
+	popw y 
+	popw x 
+	pop a 
+	ld base,a 
+	ret 
+.endif 
+
 
 ;--------------------------------------
 ;  multiply 2 uint16_t return uint32_t
@@ -2555,6 +2573,7 @@ multiply:
 	_vars VSIZE 
 	clr (SIGN,sp)
 	ld a,xh 
+	and a,#0x80
 	jrpl 1$
 	cpl (SIGN,sp)
 	negw x 
@@ -2567,11 +2586,7 @@ multiply:
 	call umstar
 	ld a,(SIGN,sp)
 	jreq 3$
-	cplw x 
-	cplw y 
-	addw x,#1
-	jrnc 3$
-	incw y
+	call dneg 
 3$:	
 	_drop VSIZE 
 	ret
@@ -2663,7 +2678,7 @@ dbl_sign_extend:
 ;    dbl    int32_t on stack 
 ;    x 		n1   int16_t  disivor  
 ; output:
-;    X      dbl/n2  int16_t 
+;    X      dbl/x  int16_t 
 ;    Y      remainder int16_t 
 ;----------------------------------
 	VSIZE=8
