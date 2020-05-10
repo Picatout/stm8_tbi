@@ -1,4 +1,33 @@
+#### 2020-05-10
+
+* Ajouter la fonction **MULDIV**. Cette fonction permet de faire un multiplication suivie d'une division en conservant le produit sur 32 bits et éviter une erreur de débordement sur la multiplication. Voici un exemple.
+
+```
+>? 5000*10/10 ' erreur débordement sur la multiplication 
+-1554  ' mauvaise réponse.
+
+>? muldiv(5000,10,10)
+5000  ' bonne réponse 
+
+>? -5000*10/10 ' erreur débordement sur la multiplication 
+1553 ' mauvaise réponse
+
+>? muldiv(-5000,10,10)
+-5000  ' bonne réponse 
+
+>? muldiv(32000,25,10)
+14464 ' mauvaise réponse car le quotient > INT16_MAX 
+
+>? muldiv(32000,25,30)
+26666  ' bonne réponse car le quotient est < INT16_MAX 
+
+>
+```
+Pour que le résultat soit valide il faut quand même que le quotient soit dans l'intervalle des entiers 16 bits {-32768..32767}.
+
 #### 2020-05-09
+
+* Retravailler les opérations arithmétiques et ajout de la fonction **MULDIV**.
 
 * Éliminer la commande **XPEEK** qui permettait de lire la mémoire FLASH au delà de 0xffff. Cette mémoire est réservée au système de fichier.
 
@@ -11,12 +40,6 @@
 
 * Ajout la fonction **PAD** qui retourne l'adresse du tampon de travail de 128 octets.
 
-
-Example:
-```
-> a=23: ? a !a, 
-23   
-```
 
 #### 2020-05-08
 

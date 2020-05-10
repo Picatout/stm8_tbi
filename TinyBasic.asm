@@ -2756,6 +2756,7 @@ divide:
 	_drop VSIZE 
 	ret
 
+
 ;----------------------------------
 ;  remainder resulting from euclidian 
 ;  division of x/y 
@@ -2768,6 +2769,29 @@ divide:
 modulo:
 	call divide
 	ldw x,y 
+	ret 
+
+;----------------------------------
+; BASIC: MULDIV(expr1,expr2,expr3)
+; return expr1*expr2/expr3 
+; product result is int32_t and 
+; divisiont is int32_t/int16_t
+;----------------------------------
+	DBL_SIZE=4 
+muldiv:
+	call func_args 
+	cp a,#3 
+	jreq 1$
+	jp syntax_error
+1$: 
+	ldw x,(5,sp) ; expr1
+	ldw y,(3,sp) ; expr2
+	call multiply 
+	ldw (5,sp),x  ;int32_t 15..0
+	ldw (3,sp),y  ;int32_t 31..16
+	popw x        ; expr3 
+	call div32_16 ; int32_t/expr3 
+	_drop DBL_SIZE
 	ret 
 
 
@@ -6387,6 +6411,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,NOT,func_not 
 	_dict_entry,3,NEW,new
 	_dict_entry,4,NEXT,next 
+	_dict_entry,6+F_IFUNC,MULDIV,muldiv 
 	_dict_entry,6+F_IFUNC,LSHIFT,lshift
 	_dict_entry,3+F_IFUNC,LOG,log2 
 	_dict_entry,4,LOAD,load 
