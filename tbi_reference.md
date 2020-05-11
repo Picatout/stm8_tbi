@@ -674,7 +674,33 @@ Cette fonction décale vers la gauche *expr1* par *expr2* bits. Le bit le plus f
    1
 
 ```
-#### NOT(*expr*) {C,P}
+
+### MULDIV(*expr1*,*expr2*,*expr3*) {C,P}
+Cette fonction effectue une multiplication suive d'une division. Le résultat de la multiplication est conservé dans un entier de 32 bits pour éviter les erreurs de débordement possible lors de la multiplication. Le résultat est *expr1* * *expr2* / *expr3* 
+```
+>? 5000*10/10 ' erreur débordement sur la multiplication 
+-1554  ' mauvaise réponse.
+
+>? muldiv(5000,10,10)
+5000  ' bonne réponse 
+
+>? -5000*10/10 ' erreur débordement sur la multiplication 
+1553 ' mauvaise réponse
+
+>? muldiv(-5000,10,10)
+-5000  ' bonne réponse 
+
+>? muldiv(32000,25,10)
+14464 ' mauvaise réponse car le quotient > INT16_MAX 
+
+>? muldiv(32000,25,30)
+26666  ' bonne réponse car le quotient est < INT16_MAX 
+
+>t=ticks:for a=1to10000:i=muldiv(5000,25,30):next a:? ticks-t
+1161 
+```
+
+### NOT(*expr*) {C,P}
 Cette fonction retourne le complément logique de la valeur de l'expression passée en argument. 
 Autrement dit, si *expr*=0 la fonction retourne **-1** et pour toute autre valeur retourne **0**.
 ```
@@ -708,6 +734,16 @@ Dans cette exemple la LED2 est allumée puis éteinte. La LED est branchée sur 
 
 >
 ```
+### PAD {C,P}
+Retourne l'adresse du tampon de 128 octets utilisé pour la compilation et d'autres fonctions.
+```
+>? pad
+5856
+
+>
+
+```
+Ce tampon se trouve juste sous la pile et après le *tib* qui est un tampon de 80 octets utilisé entre autre par la lecture des commandes. 
 
 ### PAUSE *expr* {C,P}
 Cette commande suspend l'exécution pour un nombre de millisecondes équivalent à la valeur d'*epxr*. pendant la pause le CPU est en mode suspendu c'est à dire qu'aucune instruction n'est exécutée jusqu'à la prochaine interruption. La commande **PAUSE** utilise l'instruction machine *wfi* pour suspendre le processeur. Le TIMER4 génère une interruption à chaque milliseconde. Le compteur de **PAUSE** est alors décrémenté et lorsqu'il arrive à zéro l'exécution du programme reprend.

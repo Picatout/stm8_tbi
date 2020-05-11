@@ -1,6 +1,22 @@
+#### 2020-05-11
+
+**À FAIRE**
+
+* modifier *prt_basic_line* pour imprimer dans le tib plutôt que directement vers UART1 
+
+* améliorer *readln* pour plus de facilité d'édition. 
+    * utilisation flèches pour déplacer le curseur au milieu de la ligne 
+    * HOME début de la ligne 
+    * END  fin de la ligne 
+    * modes édition|overwrite 
+    * Recherche d'une ligne BASIC dans le texte et la copie dans le TIB pour édition.
+
+
 #### 2020-05-10
 
-* Corrigé bogue dans routine *multipy*, signe opérante X n'était pas inversé. 
+* Mise à jour de [tbi_reference.md](tbi_reference.md) 
+
+* Corrigé bogue dans routine *multipy*, signe opérandes X et Y  n'était pas inversé. 
 
 * Ajouter la fonction **MULDIV**. Cette fonction permet de faire un multiplication suivie d'une division en conservant le produit sur 32 bits et éviter une erreur de débordement sur la multiplication. Voici un exemple.
 
@@ -23,8 +39,11 @@
 >? muldiv(32000,25,30)
 26666  ' bonne réponse car le quotient est < INT16_MAX 
 
->
+>t=ticks:for a=1to10000:i=muldiv(5000,25,30):next a:? ticks-t
+1161 ' temps requis en msec pour exécuter 10 000 opérations MULDIV()
+
 ```
+
 Pour que le résultat soit valide il faut quand même que le quotient soit dans l'intervalle des entiers 16 bits {-32768..32767}.
 
 #### 2020-05-09

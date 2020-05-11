@@ -50,7 +50,7 @@
 		CTRL_N = 14
 		SO=CTRL_N    ; shift out 
 		CTRL_O = 15
-		SI=CTRL_O    ; shift ine 
+		SI=CTRL_O    ; shift in 
 		CTRL_P = 16
 		DLE=CTRL_P   ; data link escape 
 		CTRL_Q = 17
