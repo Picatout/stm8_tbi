@@ -1214,14 +1214,14 @@ clear_vars:
 ;-------------------------------------
 is_alpha:
 	cp a,#'A 
-	ccf
+	ccf 
 	jrnc 9$ 
 	cp a,#'Z+1 
 	jrc 9$ 
 	cp a,#'a 
 	ccf 
 	jrnc 9$
-	cp a,#'z+1   
+	cp a,#'z+1
 9$: ret 	
 
 ;------------------------------------
@@ -1238,6 +1238,22 @@ is_digit:
 	ccf 
 1$:	ccf 
     ret
+
+;-------------------------------------
+; return true if character in  A 
+; is letter or digit.
+; input:
+;   A     ASCII character 
+; output:
+;   A     no change 
+;   Carry    0 false| 1 true 
+;--------------------------------------
+is_alnum:
+	call is_digit
+	jrc 1$ 
+	call is_alpha
+1$:	ret 
+
 
 ;-------------------------------------
 ;  program initialization entry point 
@@ -1606,26 +1622,14 @@ print_int:
 ;	'base' 		numerical base for conversion 
 ;   'tab_width' field width 
 ;  output:
-;   A          string length
-;    X          pointer to string  
+;    A          string length
 ;------------------------------------
-	SPCNT=1
-	VSIZE=17 
 prti24:
-	_vars VSIZE 
     call itoa  ; conversion entier en  .asciz
-	ld (SPCNT,sp),a 
-1$: ld a,(SPCNT,sp)
-	cp a,tab_width
-	jruge 4$
-	ld  a,#SPACE
-	decw x
-    ld (x),a 
-	inc (SPCNT,sp)
-	jra 1$ 
-4$: 
-	call puts 
-5$: _drop VSIZE 
+	call right_align  
+	push a 
+	call puts
+	pop a 
     ret	
 
 ;------------------------------------
@@ -1839,33 +1843,33 @@ readln_loop:
 	jrne 1$
 	jp readln_quit
 1$:	cp a,#LF 
-	jreq readln_quit
+	jrne 2$ 
+	jp readln_quit
+2$:
 	cp a,#BS
-	jreq del_back
+	jrne 3$
+; delete left 
+    tnz (LL,sp)
+    jreq readln_loop
+    dec (LL,sp)
+    decw y
+    clr  (y)
+    call bksp 
+    jra readln_loop
+3$:
 	cp a,#CTRL_D
-	jreq del_ln
-	cp a,#CTRL_R 
-	jreq reprint 
-;	cp a,#'[
-;	jreq ansi_seq
-final_test:
-	cp a,#SPACE
-	jrpl accept_char
+	jrne 4$
+;delete line 
+	ld a,(LL,sp)
+	call delete
+	ldw y,#tib
+	clr (y)
+	clr (LL,sp)
 	jra readln_loop
-ansi_seq:
-;	call getc
-;	cp a,#'C 
-;	jreq rigth_arrow
-;	cp a,#'D 
-;	jreq left_arrow 
-;	jra final_test
-right_arrow:
-;	ld a,#BSP 
-;	call putc 
-;	jra realn_loop 
-left_arrow:
-;	jra readln_loop
-reprint: 
+4$:
+	cp a,#CTRL_R 
+	jrne 5$
+;reprint 
 	tnz (LL,sp)
 	jrne readln_loop
 	ldw x,#tib 
@@ -1879,32 +1883,66 @@ reprint:
 	clr (LL_HB,sp)
 	addw y,(LL_HB,sp)
 	jra readln_loop 
-del_ln:
-	ld a,(LL,sp)
-	call delete
-	ldw y,#tib
-	clr (y)
+5$:
+	cp a,#CTRL_E 
+	jrne 6$
+;edit line number 
+	ldw x,#tib 
+	call atoi24
+	ldw x,acc16
+	call search_lineno
+	tnzw x 
+	jrne 51$
 	clr (LL,sp)
-	jra readln_loop
-del_back:
-    tnz (LL,sp)
-    jreq readln_loop
-    dec (LL,sp)
-    decw y
-    clr  (y)
-    call bksp 
-    jra readln_loop	
+	ldw y,#tib 	
+	jra readln_quit  
+51$:
+	ldw basicptr,x
+	ld a,(2,x)
+	ld count,a 
+	ldw y,#tib 
+	call decompile 
+	ld (LL,sp),a 
+	clr (LL_HB,sp)
+	ld a,#CR 
+	call putc 
+	ld a,#'>
+	call putc 
+	call puts 
+	ldw y,x 
+	jp readln_loop
+6$:
+;	cp a,#'[
+;	jreq ansi_seq
+final_test:
+	cp a,#SPACE
+	jrpl accept_char
+	jp readln_loop
+ansi_seq:
+;	call getc
+;	cp a,#'C 
+;	jreq rigth_arrow
+;	cp a,#'D 
+;	jreq left_arrow 
+;	jra final_test
+right_arrow:
+;	ld a,#BSP 
+;	call putc 
+;	jra realn_loop 
+left_arrow:
+;	jra readln_loop
 accept_char:
 	ld a,#TIB_SIZE-1
 	cp a, (LL,sp)
-	jreq readln_loop
-	ld a,(RXCHAR,sp)
+	jrpl 1$
+	jp readln_loop
+1$:	ld a,(RXCHAR,sp)
 	ld (y),a
 	inc (LL,sp)
 	incw y
 	clr (y)
 	call putc 
-	jra readln_loop
+	jp readln_loop
 readln_quit:
 	clr (y)
 	ld a,(LL,sp)
@@ -2483,7 +2521,7 @@ skip:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;debug support
-DEBUG_PRT=0
+DEBUG_PRT=1
 .if DEBUG_PRT 
 printxy:
 	ld a,base 
@@ -2491,7 +2529,9 @@ printxy:
 	pushw x 
 	pushw y
 	mov base,#16 
-	call print_int 
+	call print_int
+	ld a,#SPACE 
+	call putc  
 	ldw x,(1,sp)
 	call print_int 
 	ld a,#CR 
@@ -3383,7 +3423,7 @@ list:
 	ldw (LAST,sp),x 
 	call arg_list
 	tnz a
-	jreq list_start 
+	jreq list_loop 
 	cp a,#2 
 	jreq 4$
 	cp a,#1 
@@ -3401,7 +3441,7 @@ lines_skip:
 	jrpl list_exit 
 	ldw x,(x) ;line# 
 	cpw x,(FIRST,sp)
-	jrpl list_start 
+	jrpl list_loop 
 	ldw x,(LN_PTR,sp) 
 	ld a,(2,x)
 	ld acc8,a 
@@ -3409,9 +3449,9 @@ lines_skip:
 	addw x,acc16
 	jra 2$ 
 ; print loop
-list_start:
+list_loop:
 	ldw x,(LN_PTR,sp)
-3$:	ld a,(2,x) 
+	ld a,(2,x) 
 	call prt_basic_line
 	ldw x,(LN_PTR,sp)
 	ld a,(2,x)
@@ -3423,32 +3463,79 @@ list_start:
 	ldw (LN_PTR,sp),x
 	ldw x,(x)
 	cpw x,(LAST,sp)  
-	jrsgt list_exit 
-	ldw x,(LN_PTR,sp)
-	jra 3$
+	jrslt list_loop
 list_exit:
+	mov in,count 
+	ldw x,#pad 
+	ldw basicptr,x 
 	_drop VSIZE 
 	ret
 
 ;-------------------------
-; print counted string 
+; copy command name to buffer  
 ; input:
-;   X 	address of string
+;   X 	name address 
+;   Y   destination buffer 
+; output:
+;   Y   point after name  
 ;--------------------------
-prt_cmd_name:
+cpy_cmd_name:
 	ld a,(x)
 	incw x
 	and a,#15  
 	push a 
-1$: tnz (1,sp) 
+    tnz (1,sp) 
 	jreq 9$
-	ld a,(x)
-	call putc 
+1$:	ld a,(x)
+	ld (y),a  
 	incw x
+	incw y 
 	dec (1,sp)	 
-	jra 1$
+	jrne 1$
 9$: pop a 
 	ret	
+
+;--------------------------
+; add a space after letter or 
+; digit.
+; input:
+;   Y     pointer to buffer 
+; output:
+;   Y    moved to end 
+;--------------------------
+add_space:
+	decw y 
+	ld a,(y)
+	incw y
+	call is_alnum 
+	jrnc 1$
+	ld a,#SPACE 
+	ld (y),a 
+	incw y 
+1$: ret 
+
+;--------------------------
+;  align text in buffer 
+;  to tab_width padding 
+;  left with  SPACE 
+; input:
+;   X      str*
+;   A      str_length 
+; output:
+;   X      ajusted
+;--------------------------
+right_align:
+	push a 
+0$: ld a,(1,sp)
+	cp a,tab_width 
+	jrpl 1$
+	ld a,#SPACE 
+	decw x
+	ld (x),a  
+	inc (1,sp)
+	jra 0$ 
+1$: pop a 	
+	ret 
 
 ;--------------------------
 ; print TK_QSTR
@@ -3456,34 +3543,45 @@ prt_cmd_name:
 ; to backslash sequence
 ; input:
 ;   X        char *
+;   Y        dest. buffer 
+; output:
+;   X        moved forward 
+;   Y        moved forward 
 ;-----------------------------
-prt_quote:
+cpy_quote:
 	ld a,#'"
-	call putc 
+	ld (y),a 
+	incw y 
 1$:	ld a,(x)
 	jreq 9$
 	incw x 
 	cp a,#SPACE 
 	jrult 3$
-	call putc
+	ld (y),a
+	incw y 
 	cp a,#'\ 
 	jrne 1$ 
 2$:
-	call putc 
+	ld (y),a
+	incw y  
 	jra 1$
 3$: push a 
 	ld a,#'\
-	call putc 
+	ld (y),a 
+	incw y  
 	pop a 
 	sub a,#7
 	ld acc8,a 
 	clr acc16
-	ldw y,#escaped 
-	addw y,acc16 
-	ld a,(y)
+	pushw x
+	ldw x,#escaped 
+	addw x,acc16 
+	ld a,(x)
+	popw x
 	jra 2$
 9$: ld a,#'"
-	call putc 
+	ld (y),a 
+	incw y  
 	incw x 
 	ret
 
@@ -3503,140 +3601,162 @@ var_name:
 		ret 
 
 
-;--------------------------
-; decompile line from token list 
+;-------------------------------------
+; decompile tokens list 
+; to original text line 
 ; input:
-;   A       stop at this position 
-;   X 		pointer at line
+;   [basicptr]  pointer at line 
+;   Y           destination buffer
 ; output:
-;   none 
-;--------------------------	
+;   A           length 
+;   Y           after string  
+;------------------------------------
 	BASE_SAV=1
 	WIDTH_SAV=2
-	XSAVE=3
-	LLEN=5
-	VSIZE=5 
-prt_basic_line:
+	STR=3
+	VSIZE=4 
+decompile:
 	_vars VSIZE
-	ld (LLEN,sp),a  
 	ld a,base
 	ld (BASE_SAV,sp),a  
 	ld a,tab_width 
 	ld (WIDTH_SAV,sp),a 
-	ldw ptr16,x
-	ldw x,(x)
+	ldw (STR,sp),y   
+	ldw x,[basicptr] ; line number 
 	mov base,#10
 	mov tab_width,#5
-	call print_int ; print line number 
+	clr acc24 
+	ldw acc16,x
+	call itoa  
+	call right_align 
+	push a 
+1$:	ldw y,x ; source
+	ldw x,(STR+1,sp) ; destination
+	call strcpy 
+	clrw y 
+	pop a 
+	ld yl,a 
+	addw y,(STR,sp)
 	ld a,#SPACE 
-	call putc 
+	ld (y),a 
+	incw y 
 	clr tab_width
 	ldw x,#3
-1$:	ld a,xl 
-	cp a,(LLEN,sp)
-	jrmi 2$
+	ldw in.w,x 
+decomp_loop:
+	pushw y
+	call next_token 
+	popw y 
+	tnz a  
+	jrne 1$
 	jp 20$
-2$:	 
-	ld a,([ptr16],x)
-	incw x 
-	ldw (XSAVE,sp),x 
-	ldw x,([ptr16],x)
-	tnz a 
-	jrmi 3$
-	cp a,#TK_QSTR 
-	jreq 6$
-	cp a,#TK_CHAR 
-	jreq 7$
-	jra 8$
-;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST
-3$:	
+1$:	jrpl 6$
+;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR
 	cp a,#TK_VAR 
-	jreq 4$
-	cp a,#TK_INTGR
-	jreq 5$
-	cpw x,#remark 
-	jrne 30$
-	ld a,#''
-	call putc 
-	ldw x,(XSAVE,sp)
-	addw x,#2
-	addw x,ptr16  
-	call puts 
-	jp 20$ 
-30$:
-	ld a,#SPACE 
-	call putc 
-	call cmd_name
-	call prt_cmd_name
-	ld a,#SPACE 
-	call putc 
-31$:
-	ldw x,(XSAVE,sp)
-	addw x,#2
-	jra 1$
+	jrne 3$
 ;; TK_VAR 
-4$:
-;	ld a,#SPACE 
-;	call putc 
+	call add_space  
 	call var_name
-	call putc 
-	jra 31$
+	ld (y),a 
+	incw y  
+	jra decomp_loop
+3$:
+	cp a,#TK_INTGR
+	jrne 4$
 ;; TK_INTGR
-5$:
-;	ld a,#SPACE 
-;	call putc
-	call print_int 
-	jra 31$
-;; TK_QSTR
-6$:
-	ldw x,(XSAVE,sp)
-	addw x,ptr16 
-	call prt_quote  
-	subw x,ptr16  
-	jp 1$
-;; TK_CHAR 
-7$:
-	ld a,#'\ 
-	call putc 
-	ld a,xh 
-	call putc 
-	ldw x,(XSAVE,sp)
+	call add_space
+	clr acc24 
+	ldw acc16,x 
+	pushw y 
+	call itoa  
+	ldw y,(1,sp) 
+	push a 
+	exgw x,y 
+	call strcpy 
+	clrw y
+	pop a  
+	ld yl,a 
+	addw y,(1,sp)
+	_drop 2 
+	jra decomp_loop
+;; dictionary keyword 
+4$:	
+	cpw x,#remark 
+	jrne 5$
+	ldw x,basicptr 
+	addw x,in.w 
+; copy comment to buffer 
+	call add_space
+	ld a,#''
+	ld (y),a 
+	incw y 
+41$:
+	ld a,(x)
 	incw x 
-	jp 1$ 
+	ld (y),a 
+	incw y 
+	tnz a 
+	jrne 41$
+	jra 20$  
+; insert command name 
+5$:
+	call add_space  
+	pushw y
+	call cmd_name
+	popw y 
+	call cpy_cmd_name
+	jra decomp_loop 
+6$:
+	cp a,#TK_QSTR 
+	jrne 7$
+;; TK_QSTR
+	call cpy_quote  
+	jp decomp_loop
+7$:
+	cp a,#TK_CHAR 
+	jrne 8$
+;; TK_CHAR 
+	ld a,#'\ 
+	ld (y),a 
+	incw y 
+	ld a,xl 
+	ld (y),a 
+	incw y 
+	jp decomp_loop
 8$: cp a,#TK_COLON 
 	jrne 9$
 	ld a,#':
 81$:
-	call putc
+	ld (y),a 
+	incw y 
 82$:
-	ldw x,(XSAVE,sp)
-	jp 1$ 
+	jp decomp_loop
 9$: 
 	cp a,#TK_SHARP
 	jrugt 10$ 
 	sub a,#TK_ARRAY 
-	clrw y 
-	ld yl,a
-	addw y,#single_char 
-	ld a,(y)
+	clrw x 
+	ld xl,a
+	addw x,#single_char 
+	ld a,(x)
 	jra 81$ 
 10$: 
 	cp a,#TK_MINUS 
 	jrugt 11$
 	sub a,#TK_PLUS 
-	clrw y 
-	ld yl,a 
-	addw y,#add_char 
-	ld a,(y)
+	clrw x 
+	ld xl,a 
+	addw x,#add_char 
+	ld a,(x)
 	jra 81$
 11$:
     cp a,#TK_MOD 
 	jrugt 12$
 	sub a,#TK_MULT
-	clrw y 
-	ld yl,a 
-	addw y,#mul_char
-	ld a,(y)
+	clrw x 
+	ld xl,a 
+	addw x,#mul_char
+	ld a,(x)
 	jra 81$
 12$:
 	sub a,#TK_GT  
@@ -3645,15 +3765,22 @@ prt_basic_line:
 	ld xl,a 
 	addw x,#relop_str 
 	ldw x,(x)
-	call puts 
-	jra 82$
+	ld a,(x)
+	incw x 
+	ld (y),a
+	incw y 
+	ld a,(x)
+	jrne 81$
+	jp decomp_loop 
 20$: 
-	ld a,#CR 
-	call putc
-	ld a,(WIDTH_SAV,sp) 
-	ld tab_width,a 
-	ld a,(BASE_SAV,sp) 
-	ld base,a
+	clr (y)
+	ldw x,(STR,sp)
+	ld a,(BASE_SAV,sp)
+	ld base,a 
+	ld a,(WIDTH_SAV,sp)
+	ld tab_width,a
+	subw y,(STR,sp) 
+	ld a,yl 
 	_drop VSIZE 
 	ret 
 
@@ -3667,6 +3794,31 @@ ge: .asciz ">="
 lt: .asciz "<"
 le: .asciz "<="
 ne:  .asciz "<>"
+
+
+;--------------------------
+; decompile line from token list
+; and print it. 
+; input:
+;   A       stop at this position 
+;   X 		pointer at line
+; output:
+;   none 
+;--------------------------	
+prt_basic_line:
+	ld count,a 
+	ld a,(2,x)
+	cp a,count 
+	jrpl 1$ 
+	ld count,a 
+1$:	ldw basicptr,x 
+	ldw y,#tib  
+	call decompile 
+	call puts 
+	ld a,#CR 
+	call putc 
+	ret 
+
 
 
 ;---------------------------------
@@ -6305,44 +6457,6 @@ cs_high:
 	ret 
 
 
-;------------------------------
-; BASIC: FILERX
-; Use to receive a BASIC program
-; from the PC using XMODEM 
-; protocol. The file is store in
-; Each line received is compiled
-; then stored in RAM. When reception 
-; is completed with success  the 
-; program is ready to be executed 
-; or save as local file.
-;--------------------------------
-file_receive:
-	btjf flags,#FRUN,1$
-	ld a,#ERR_CMD_ONLY
-	jp tb_error 
-1$:	
-	call clear_basic
-	ldw x, txtbgn
-	call xreceive 
-	addw x,txtbgn 
-	ldw txtend,x 
-	call print_int 
-	ldw x,#fsize_msg 
-	call puts 
-	ret 
-fsize_msg: .asciz " bytes received\n"
-
-;------------------------------
-; BASIC: FILETX "file_name" 
-; Transmit the program in RAM 
-; To the PC using XMODEM protocol.
-; The file transmitted as source 
-; file not tokenized. 
-;-------------------------------
-file_transmit:
-
-	ret 
-
 ;-------------------------------
 ; BASIC: PAD 
 ; Return pad buffer address.
@@ -6446,8 +6560,6 @@ kword_end:
 	_dict_entry,5,GOSUB,gosub 
 	_dict_entry,6,FORGET,forget 
 	_dict_entry,3,FOR,for 
-	_dict_entry,6,FILETX,file_transmit
-	_dict_entry,6,FILERX,file_receive 
 	_dict_entry,4,FCPU,fcpu 
 	_dict_entry,6+F_IFUNC,EEPROM,const_eeprom_base   
 	_dict_entry,3,END,cmd_end  

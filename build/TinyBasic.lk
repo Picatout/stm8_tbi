@@ -10,6 +10,5 @@
 -l stm8
 -l stm8
 build/TinyBasic.rel
-build/xmodem.rel
 
 -e

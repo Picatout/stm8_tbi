@@ -1,10 +1,10 @@
 #### 2020-05-11
 
-**À FAIRE**
+ 
 
-* modifier *prt_basic_line* pour imprimer dans le tib plutôt que directement vers UART1 
+* modifier *prt_basic_line* pour imprimer dans un tampon plutôt que directement vers UART1 
 
-* améliorer *readln* pour plus de facilité d'édition. 
+* Travail débuté: améliorer *readln* pour plus de facilité d'édition. 
     * utilisation flèches pour déplacer le curseur au milieu de la ligne 
     * HOME début de la ligne 
     * END  fin de la ligne 
