@@ -2,6 +2,19 @@
 
 * Continuation du travail sur l'éditeur de texte. Étant que cette partie du progamme sera plus complexe j'ai décidé de transférer ces fonctions dans un fichier séparé. le fichier [terminal.asm](termina.asm). Seul les fonctions de bas niveau *getc* et *putc* demeurent dans le fichier principal du projet. 
 
+#### Nouveaux mode d'édition de ligne:
+
+* **HOME** amène curseur en début de ligne 
+* **END** amène le curseur en fin de ligne 
+* **FLÈCHE GAUCHE** déplace le curseur d'un caractère vers la gauche 
+* **FLÈCHE DROITE** déplace le curseur d'un caractère vers la droite
+* **SUP**  efface le caractère sous le curseur 
+* **CTRL_O** commute en alternance entre les modes *insertion/écrasement*
+* **nnCTRL_E** permet d'afficher la ligne *nn* dans l'éditeur pour modification
+* **BACKSPACE**  efface le caractère à gauche du curseur
+* **CTRL_D**  supprime la ligne au complet
+* **CTRL_R** réaffiche la dernière ligne qui a été éditée.
+
 #### 2020-05-11
 
 * modifier *prt_basic_line* pour imprimer dans un tampon plutôt que directement vers UART1 
