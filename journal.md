@@ -1,15 +1,18 @@
+#### 2020-05-12
+
+* Continuation du travail sur l'éditeur de texte. Étant que cette partie du progamme sera plus complexe j'ai décidé de transférer ces fonctions dans un fichier séparé. le fichier [terminal.asm](termina.asm). Seul les fonctions de bas niveau *getc* et *putc* demeurent dans le fichier principal du projet. 
+
 #### 2020-05-11
 
- 
-
 * modifier *prt_basic_line* pour imprimer dans un tampon plutôt que directement vers UART1 
+
+* **CTRL_E** Permet la recherche d'une ligne BASIC dans le texte et la copie dans le TIB pour édition.
 
 * Travail débuté: améliorer *readln* pour plus de facilité d'édition. 
     * utilisation flèches pour déplacer le curseur au milieu de la ligne 
     * HOME début de la ligne 
     * END  fin de la ligne 
-    * modes édition|overwrite 
-    * Recherche d'une ligne BASIC dans le texte et la copie dans le TIB pour édition.
+    * modes insertion|overwrite 
 
 
 #### 2020-05-10

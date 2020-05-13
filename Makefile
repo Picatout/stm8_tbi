@@ -28,10 +28,10 @@ $(NAME).rel:
 	@echo "compiling $(NAME)       "
 	@echo "**********************"
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm
+	$(SDAS) -g -l -o $(BUILD)terminal.rel terminal.asm	
 
 $(NAME).ihx: $(NAME).rel 
-	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel
-
+	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel $(BUILD)terminal.rel
 
 .PHONY: clean 
 clean: build

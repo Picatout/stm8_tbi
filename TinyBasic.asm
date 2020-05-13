@@ -39,8 +39,6 @@
     .area DATA 
 ;--------------------------------------	
 
-	TIB_SIZE=80
-    PAD_SIZE=128
 	STACK_SIZE=160
 	STACK_EMPTY=RAM_SIZE-1  
 	FRUN=0 ; flags run code in variable flags
@@ -57,18 +55,20 @@
 
 	MAX_LINENO=0x7fff; BASIC maximum line number 
 
+	RX_QUEUE_SIZE=8 
+
 in.w:  .blkb 1 ; parser position in text line high-byte 
 in:    .blkb 1 ; low byte of in.w 
 in.saved: .blkb 1 ; set by get_token before parsing next token, used by unget_token
-count: .blkb 1 ; current BASIC line length and tib text length  
-basicptr:  .blkb 2  ; point to current BASIC line address.
+count:: .blkb 1 ; current BASIC line length and tib text length  
+basicptr::  .blkb 2  ; point to current BASIC line address.
 data_ptr:  .blkw 1  ; point to DATA address
 data_ofs:  .blkb 1  ; index to next data item 
 data_len:  .blkb 1  ; length of data line 
 base:  .blkb 1 ; nemeric base used to print integer 
-acc24: .blkb 1 ; 24 bit accumulator upper-byte 
-acc16: .blkb 1 ; 16 bit accumulator, acc24 high-byte
-acc8:  .blkb 1 ;  8 bit accumulator, acc24 low-byte  
+acc24:: .blkb 1 ; 24 bit accumulator upper-byte 
+acc16:: .blkb 1 ; 16 bit accumulator, acc24 high-byte
+acc8::  .blkb 1 ;  8 bit accumulator, acc24 low-byte  
 ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
 timer: .blkw 1 ;  milliseconds count down timer 
 seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
@@ -83,7 +83,9 @@ loop_depth: .blkb 1 ; level of nested loop. Conformity check
 array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
 flags: .blkb 1 ; various boolean flags
 tab_width: .blkb 1 ; print colon width (default 4)
-rx_char: .blkb 1 ; last received character from UART1 
+rx_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
+rx_head:  .blkb 1 ; rx_queue head pointer
+rx_tail:   .blkb 1 ; rx_queue tail pointer  
 vars: .blkw 26 ; BASIC variables A-Z, keep it as but last .
 ; keep 'free_ram' as last variable 
 free_ram: ; from here RAM free for BASIC text 
@@ -93,7 +95,7 @@ free_ram: ; from here RAM free for BASIC text
 ;; working buffers and stack at end of RAM. 	
 ;;-----------------------------------
     .org RAM_SIZE-STACK_SIZE-TIB_SIZE-PAD_SIZE 
-tib: .ds TIB_SIZE             ; transaction input buffer
+tib:: .ds TIB_SIZE             ; transaction input buffer
 pad: .ds PAD_SIZE             ; working buffer
 stack_full: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
@@ -175,7 +177,8 @@ Uart1RxHandler:
 	ld a,UART1_DR 
 	cp a,#CTRL_C 
 	jrne 1$
-	clr rx_char 
+	clr rx_head 
+	clr rx_tail 
 	jp user_interrupted
 1$:
 	cp a,#CAN ; CTRL_X 
@@ -186,7 +189,17 @@ Uart1RxHandler:
 	jrne 3$
 	call cancel_autorun 
 	jp cold_start 
-3$:	ld rx_char,a 	
+3$:	ldw x,#rx_queue  
+	push a 
+	ld a,xl 
+	add a,rx_tail 
+	ld xl,a
+	pop a  
+	ld (x),a
+	inc rx_tail 
+	ld a,#RX_QUEUE_SIZE-1
+	and a,rx_tail 
+	ld rx_tail,a  	
 	iret 
 
 ;------------------------------------
@@ -630,7 +643,9 @@ uart1_set_baud:
 	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
 	bset UART1_CR2,#UART_CR2_SBK
     btjf UART1_SR,#UART_SR_TC,.
-    ret
+    clr rx_head 
+	clr rx_tail 
+	ret
 
 ;---------------------------------
 ; send character to UART1 
@@ -639,7 +654,7 @@ uart1_set_baud:
 ; output:
 ;   none 
 ;--------------------------------	
-putc:
+putc::
 	btjf UART1_SR,#UART_SR_TXE,.
 	ld UART1_DR,a 
 	ret 
@@ -651,77 +666,23 @@ putc:
 ; output:
 ;   A 			char  
 ;--------------------------------	
-getc:
-	ld a,rx_char 
-	jreq getc 
-	clr rx_char 
-	ret 
-
-;-----------------------------
-; send an ASCIZ string to UART1 
-; input: 
-;   x 		char * 
-; output:
-;   none 
-;-------------------------------
-puts:
-    ld a,(x)
+getc::
+	ld a,rx_head 
+1$:	cp a,rx_tail 
 	jreq 1$
-	call putc 
-	incw x 
-	jra puts 
-1$:	ret 
-
-
-;---------------------------
-; delete character at left 
-; of cursor on terminal 
-; input:
-;   none 
-; output:
-;	none 
-;---------------------------
-bksp:
-	ld a,#BS 
-	call putc 
-	ld a,#SPACE 
-	call putc 
-	ld a,#BS 
-	call putc 
-	ret 
-;---------------------------
-; delete n character left of cursor 
-; at terminal.
-; input: 
-;   A   number of characters to delete.
-; output:
-;    none 
-;--------------------------	
-delete:
-	push a 
-0$:	tnz (1,sp)
-	jreq 1$
-	call bksp 
-	dec (1,sp)
-	jra 0$
-1$:	pop a 
-	ret
-
-;--------------------------
-; print n spaces on terminal
-; input:
-;  X 		number of spaces 
-; output:
-;	none 
-;---------------------------
-spaces:
-	ld a,#SPACE 
-1$:	tnzw x
-	jreq 9$
-	call putc 
-	decw x
-	jra 1$
-9$: 
+	pushw x 
+	ldw x,#rx_queue
+	ld a,xl 
+	add a,rx_head 
+	ld xl,a 
+	ld a,(x)
+	popw x
+	push a
+	inc rx_head 
+	ld a,#RX_QUEUE_SIZE-1 
+	and a,rx_head 
+	ld rx_head,a 
+	pop a  
 	ret 
 
 ;----------------------
@@ -847,7 +808,7 @@ hex_dump:
 ; output:
 ;   X         length 
 ;-------------------------------------
-strlen:
+strlen::
 	ldw y,x 
 	clrw x 
 1$:	tnz (y) 
@@ -913,7 +874,7 @@ strcpy:
 	INCR=1 ; increament high byte 
 	LB=2 ; increament low byte 
 	VSIZE=2
-move:
+move::
 	_vars VSIZE 
 	clr (INCR,sp)
 	clr (LB,sp)
@@ -961,7 +922,7 @@ move_exit:
 	LL=1 ; line length 
 	LB=2 ; line length low byte 
 	VSIZE=2 
-search_lineno:
+search_lineno::
 	_vars VSIZE
 	clr (LL,sp)
 	ldw y,txtbgn
@@ -1327,10 +1288,7 @@ cold_start:
 	call clear_basic
 	call ubound 
 ;	jra 2$	
-; 150 msec beep 
-	ldw x,#150 
-	ldw y,#998 
-	call beep  
+	call beep_1khz  
 2$:	bres PC_ODR,#LED2_BIT	
 	call warm_init
 	call load_autorun
@@ -1816,142 +1774,6 @@ neg_acc24:
 	ret
 
 
-;------------------------------------
-; read a line of text from terminal
-; input:
-;	none
-; local variable on stack:
-;	LL  line length
-;   RXCHAR last received character 
-; output:
-;   text in tib  buffer
-;   count  line length 
-;------------------------------------
-	; local variables
-	LL_HB=1
-	RXCHAR = 1 ; last char received
-	LL = 2  ; accepted line length
-	VSIZE=2 
-readln:
-	push #0
-	push #0  
- 	ldw y,#tib ; input buffer
-readln_loop:
-	call getc
-	ld (RXCHAR,sp),a
-	cp a,#CR
-	jrne 1$
-	jp readln_quit
-1$:	cp a,#LF 
-	jrne 2$ 
-	jp readln_quit
-2$:
-	cp a,#BS
-	jrne 3$
-; delete left 
-    tnz (LL,sp)
-    jreq readln_loop
-    dec (LL,sp)
-    decw y
-    clr  (y)
-    call bksp 
-    jra readln_loop
-3$:
-	cp a,#CTRL_D
-	jrne 4$
-;delete line 
-	ld a,(LL,sp)
-	call delete
-	ldw y,#tib
-	clr (y)
-	clr (LL,sp)
-	jra readln_loop
-4$:
-	cp a,#CTRL_R 
-	jrne 5$
-;reprint 
-	tnz (LL,sp)
-	jrne readln_loop
-	ldw x,#tib 
-	call strlen 
-	ldw y,#tib 
-	ld a,xl
-	jreq readln_loop
-	ld (LL,sp),a 
-	ldw x,#tib 
-	call puts
-	clr (LL_HB,sp)
-	addw y,(LL_HB,sp)
-	jra readln_loop 
-5$:
-	cp a,#CTRL_E 
-	jrne 6$
-;edit line number 
-	ldw x,#tib 
-	call atoi24
-	ldw x,acc16
-	call search_lineno
-	tnzw x 
-	jrne 51$
-	clr (LL,sp)
-	ldw y,#tib 	
-	jra readln_quit  
-51$:
-	ldw basicptr,x
-	ld a,(2,x)
-	ld count,a 
-	ldw y,#tib 
-	call decompile 
-	ld (LL,sp),a 
-	clr (LL_HB,sp)
-	ld a,#CR 
-	call putc 
-	ld a,#'>
-	call putc 
-	call puts 
-	ldw y,x 
-	jp readln_loop
-6$:
-;	cp a,#'[
-;	jreq ansi_seq
-final_test:
-	cp a,#SPACE
-	jrpl accept_char
-	jp readln_loop
-ansi_seq:
-;	call getc
-;	cp a,#'C 
-;	jreq rigth_arrow
-;	cp a,#'D 
-;	jreq left_arrow 
-;	jra final_test
-right_arrow:
-;	ld a,#BSP 
-;	call putc 
-;	jra realn_loop 
-left_arrow:
-;	jra readln_loop
-accept_char:
-	ld a,#TIB_SIZE-1
-	cp a, (LL,sp)
-	jrpl 1$
-	jp readln_loop
-1$:	ld a,(RXCHAR,sp)
-	ld (y),a
-	inc (LL,sp)
-	incw y
-	clr (y)
-	call putc 
-	jp readln_loop
-readln_quit:
-	clr (y)
-	ld a,(LL,sp)
-	ld count,a 
-	ld a,#CR
-	call putc
-	_drop VSIZE 
-	ret
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; compiler routines        ;;
@@ -2435,7 +2257,7 @@ to_upper::
 	BASE=2 ; 1 byte, numeric base used in conversion
 	TEMP=3 ; 1 byte, temporary storage
 	VSIZE=3 ; 3 bytes reserved for local storage
-atoi24:
+atoi24::
 	pushw x 
 	_vars VSIZE
 	; acc24=0 
@@ -3615,7 +3437,7 @@ var_name:
 	WIDTH_SAV=2
 	STR=3
 	VSIZE=4 
-decompile:
+decompile::
 	_vars VSIZE
 	ld a,base
 	ld (BASE_SAV,sp),a  
@@ -4481,6 +4303,13 @@ cmd_end:
 	ldw sp,x 
 	jp warm_start
 
+;-----------------
+; 1 Khz beep 
+;-----------------
+beep_1khz:: 
+	ldw x,#100
+	ldw y,#1000
+	jra beep
 
 ;-----------------------
 ; BASIC: TONE expr1,expr2
@@ -5304,7 +5133,8 @@ key:
 ;-----------------------
 qkey:: 
 	clrw x 
-	tnz rx_char
+	ld a,rx_head
+	cp a,rx_tail 
 	jreq 9$ 
 	cplw x 
 9$: ld a,#TK_INTGR

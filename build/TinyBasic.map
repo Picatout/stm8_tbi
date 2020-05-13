@@ -7,7 +7,7 @@ Area                                    Addr        Size        Decimal Bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00000000  .__.ABS.                           STM8_TBI
+     00000000  .__.ABS.                           TERMINAL
      00000000  l_FLASH_DRIVE                   
      00000000  l_FLASH_DRIVE1                  
      00000000  l_SSEG                          
@@ -18,10 +18,10 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
-     0000005A  l_DATA                          
+     00000063  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
-     0000278E  l_CODE                          
+     00002A04  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -30,10 +30,16 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-DATA                                00000001    0000005A =          90. bytes (REL,CON)
+DATA                                00000001    00000063 =          99. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
+     00000004  count                              STM8_TBI
+     00000005  basicptr                           STM8_TBI
+     0000000C  acc24                              STM8_TBI
+     0000000D  acc16                              STM8_TBI
+     0000000E  acc8                               STM8_TBI
+
 ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
 Hexadecimal  [32-Bits]
 
@@ -43,6 +49,8 @@ SSEG0                               00000000    00000170 =         368. bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
+     00001690  tib                                STM8_TBI
+
 ASxxxx Linker V03.00 + NoICE + sdld,  page 4.
 Hexadecimal  [32-Bits]
 
@@ -57,18 +65,30 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    0000278E =       10126. bytes (REL,CON)
+CODE                                00008080    00002A04 =       10756. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008EFC  to_upper                           STM8_TBI
-     00009E4D  qkey                               STM8_TBI
+     00008340  putc                               STM8_TBI
+     00008349  getc                               STM8_TBI
+     00008416  strlen                             STM8_TBI
+     00008442  move                               STM8_TBI
+     00008484  search_lineno                      STM8_TBI
+     00008E25  to_upper                           STM8_TBI
+     00008E31  atoi24                             STM8_TBI
+     000093CB  decompile                          STM8_TBI
+     00009896  beep_1khz                          STM8_TBI
+     00009D7F  qkey                               STM8_TBI
+     0000A7C0  puts                               TERMINAL
+     0000A82D  spaces                             TERMINAL
+     0000A8C5  readln                             TERMINAL
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
 Files Linked                              [ module(s) ]
 
 build/TinyBasic.rel                       [ STM8_TBI ]
+build/terminal.rel                        [ TERMINAL ]
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 7.
 

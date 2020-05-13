@@ -24,6 +24,9 @@
         F_CFUNC=0x80 ; character function keyword
         F_CONST=0xC0 ; function keyword that return a constant
 
+	TIB_SIZE=80
+        PAD_SIZE=128
+
 ;--------------------------------------
 ;   constantes related to Arduino 
 ;   API mapping 
