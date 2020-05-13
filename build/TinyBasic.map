@@ -21,7 +21,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000063  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
-     00002A04  l_CODE                          
+     00002B04  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -65,7 +65,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00002A04 =       10756. bytes (REL,CON)
+CODE                                00008080    00002B04 =       11012. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -74,14 +74,14 @@ CODE                                00008080    00002A04 =       10756. bytes (R
      00008416  strlen                             STM8_TBI
      00008442  move                               STM8_TBI
      00008484  search_lineno                      STM8_TBI
-     00008E25  to_upper                           STM8_TBI
-     00008E31  atoi24                             STM8_TBI
-     000093CB  decompile                          STM8_TBI
-     00009896  beep_1khz                          STM8_TBI
-     00009D7F  qkey                               STM8_TBI
-     0000A7C0  puts                               TERMINAL
-     0000A82D  spaces                             TERMINAL
-     0000A8C5  readln                             TERMINAL
+     00008E2D  to_upper                           STM8_TBI
+     00008E39  atoi24                             STM8_TBI
+     000093F4  decompile                          STM8_TBI
+     000098C9  beep_1khz                          STM8_TBI
+     00009DB2  qkey                               STM8_TBI
+     0000A8C0  puts                               TERMINAL
+     0000A92D  spaces                             TERMINAL
+     0000A9C5  readln                             TERMINAL
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
