@@ -1,3 +1,9 @@
+#### 2020-05-13
+
+ Si vous avez utilisé stm8_tbi et que vous avez sauvegarder des programmes sur le *flash drive* vous avez constater qu'à chaque mise à jour du *firmware* vous perdiez vos programmes. Vous pensiez peut-être que le système de fichiers était bogué mais ce n'est pas le problème. 
+
+  Le problème est le suivant; les fichiers sont sauvegardés sous forme *tokenizé* et non sous forme texte source. En fait le programme n'existe pas en tant que texte source sur la carte **NUCLEO**, il n'y a pas suffisamment de mémoire RAM pour ça. Chaque ligne saisie est compilée avant d'être rangée dans la mémoire RAM réservée au programme BASIC. Le texte source n'existe qu'une seule ligne à la fois dans le *tib* (le tampon mémoire qui reçoit le texte tapé par l'utilisateur) au moment de sa saisie. Donc chaque fois que le software *TinyBasic* est modifié les adresses des fonctions et commandes changent et par conséquent un programme sauvergardé dans une version précédente du système *TinyBasic* n'est plus valide. Une façon de régler ce problème et c'est de sauvegarder le programme sous sa forme texte source. Donc la commande **SAVE** doit appellé le *décompilateur* pour chaque ligne du programme avant de sauvegarder celle-ci dans le fichier sur le *flash drive*. La commande **LOAD** devra faire l'opposée, c'est à dire *recompiler* chaque ligne avant de la déposer dans la RAM réservée au programme BASIC. La tâche que j'entreprend maintenant est de modifier **SAVE** et **LOAD** dans ce but.  
+
 #### 2020-05-12
 
 * Continuation du travail sur l'éditeur de texte. Étant que cette partie du progamme sera plus complexe j'ai décidé de transférer ces fonctions dans un fichier séparé. le fichier [terminal.asm](termina.asm). Seul les fonctions de bas niveau *getc* et *putc* demeurent dans le fichier principal du projet. 

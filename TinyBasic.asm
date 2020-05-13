@@ -6418,7 +6418,12 @@ kword_end:
 	_dict_entry,5,ADCON,power_adc 
 kword_dict:
 	_dict_entry,3+F_IFUNC,ABS,abs
-	
+
+;comands and fonctions address table 	
+code_filed_addr:
+	.word power_adc,analog_read,bit_and,ascii,autorun,
+
+
 
 	.bndry 128 ; align on FLASH block.
 ; free space for user application  
