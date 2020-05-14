@@ -1894,10 +1894,10 @@ Hexadecimal [24-Bits]
       000150 6B 01            [ 1]  373     ld (RXCHAR,sp),a 
       000152 A1 0D            [ 1]  374 0$:	cp a,#CR
       000154 26 03            [ 1]  375 	jrne 1$
-      000156 CC 02 DE         [ 2]  376 	jp readln_quit
+      000156 CC 02 E0         [ 2]  376 	jp readln_quit
       000159 A1 0A            [ 1]  377 1$:	cp a,#LF 
       00015B 26 03            [ 1]  378 	jrne 2$ 
-      00015D CC 02 DE         [ 2]  379 	jp readln_quit
+      00015D CC 02 E0         [ 2]  379 	jp readln_quit
       000160                        380 2$:
       000160 A1 08            [ 1]  381 	cp a,#BS
       000162 26 12            [ 1]  382 	jrne 3$
@@ -1909,7 +1909,7 @@ Hexadecimal [24-Bits]
       00016D 0A 03            [ 1]  388     dec (CPOS,sp)
       00016F 90 5A            [ 2]  389     decw y 
       000171 7B 03            [ 1]  390     ld a,(CPOS,sp) 
-      000173 CC 02 8A         [ 2]  391     jp 12$
+      000173 CC 02 8C         [ 2]  391     jp 12$
       000176                        392 3$:
       000176 A1 04            [ 1]  393 	cp a,#CTRL_D
       000178 26 1A            [ 1]  394 	jrne 4$
@@ -1932,193 +1932,193 @@ Hexadecimal [24-Bits]
       000192 20 B0            [ 2]  406 	jra readln_loop
       000194                        407 4$:
       000194 A1 12            [ 1]  408 	cp a,#CTRL_R 
-      000196 26 22            [ 1]  409 	jrne 5$
+      000196 26 21            [ 1]  409 	jrne 5$
                                     410 ;reprint 
       000198 0D 02            [ 1]  411 	tnz (LL,sp)
       00019A 26 A8            [ 1]  412 	jrne readln_loop
       00019C AE 00 00         [ 2]  413 	ldw x,#tib 
       00019F CD 00 00         [ 4]  414 	call strlen 
       0001A2 90 AE 00 00      [ 2]  415 	ldw y,#tib 
-      0001A6 9F               [ 1]  416 	ld a,xl
-      0001A7 27 9B            [ 1]  417 	jreq readln_loop
-      0001A9 6B 02            [ 1]  418 	ld (LL,sp),a 
-      0001AB 6B 03            [ 1]  419     ld (CPOS,sp),a
-      0001AD AE 00 00         [ 2]  420 	ldw x,#tib 
-      0001B0 CD 00 32         [ 4]  421 	call puts
-      0001B3 0F 01            [ 1]  422 	clr (LL_HB,sp)
-      0001B5 72 F9 01         [ 2]  423 	addw y,(LL_HB,sp)
-      0001B8 20 8A            [ 2]  424 	jra readln_loop 
-      0001BA                        425 5$:
-      0001BA A1 05            [ 1]  426 	cp a,#CTRL_E 
-      0001BC 26 46            [ 1]  427 	jrne 6$
-                                    428 ;edit line number 
-      0001BE AE 00 00         [ 2]  429 	ldw x,#tib 
-      0001C1 CD 00 00         [ 4]  430 	call atoi24
-      0001C4 CE 00 00         [ 2]  431 	ldw x,acc16
-      0001C7 CD 00 00         [ 4]  432 	call search_lineno
-      0001CA 5D               [ 2]  433 	tnzw x 
-      0001CB 26 0B            [ 1]  434 	jrne 51$
-      0001CD 0F 02            [ 1]  435 	clr (LL,sp)
-      0001CF 90 AE 00 00      [ 2]  436 	ldw y,#tib
-      0001D3 90 7F            [ 1]  437     clr (y) 	
-      0001D5 CC 02 DE         [ 2]  438 	jp readln_quit  
-      0001D8                        439 51$:
-      0001D8 CF 00 00         [ 2]  440 	ldw basicptr,x
-      0001DB E6 02            [ 1]  441 	ld a,(2,x)
-      0001DD C7 00 00         [ 1]  442 	ld count,a 
-      0001E0 90 AE 00 00      [ 2]  443 	ldw y,#tib 
-      0001E4 CD 00 00         [ 4]  444 	call decompile 
-      0001E7 6B 02            [ 1]  445 	ld (LL,sp),a 
-      0001E9 0F 01            [ 1]  446 	clr (LL_HB,sp)
-      0001EB A6 0D            [ 1]  447 	ld a,#CR 
-      0001ED CD 00 00         [ 4]  448 	call putc 
-      0001F0 A6 3E            [ 1]  449 	ld a,#'>
-      0001F2 CD 00 00         [ 4]  450 	call putc
-      0001F5 AE 00 00         [ 2]  451     ldw x,#tib  
-      0001F8 CD 00 32         [ 4]  452 	call puts 
-      0001FB 90 93            [ 1]  453 	ldw y,x
-      0001FD 7B 02            [ 1]  454     ld a,(LL,sp)
+      0001A6 27 9C            [ 1]  416 	jreq readln_loop
+      0001A8 6B 02            [ 1]  417 	ld (LL,sp),a 
+      0001AA 6B 03            [ 1]  418     ld (CPOS,sp),a
+      0001AC AE 00 00         [ 2]  419 	ldw x,#tib 
+      0001AF CD 00 32         [ 4]  420 	call puts
+      0001B2 0F 01            [ 1]  421 	clr (LL_HB,sp)
+      0001B4 72 F9 01         [ 2]  422 	addw y,(LL_HB,sp)
+      0001B7 20 8B            [ 2]  423 	jra readln_loop 
+      0001B9                        424 5$:
+      0001B9 A1 05            [ 1]  425 	cp a,#CTRL_E 
+      0001BB 26 49            [ 1]  426 	jrne 6$
+                                    427 ;edit line number 
+      0001BD AE 00 00         [ 2]  428 	ldw x,#tib 
+      0001C0 CD 00 00         [ 4]  429 	call atoi24
+      0001C3 CE 00 00         [ 2]  430 	ldw x,acc16
+      0001C6 CD 00 00         [ 4]  431 	call search_lineno
+      0001C9 5D               [ 2]  432 	tnzw x 
+      0001CA 26 0B            [ 1]  433 	jrne 51$
+      0001CC 0F 02            [ 1]  434 	clr (LL,sp)
+      0001CE 90 AE 00 00      [ 2]  435 	ldw y,#tib
+      0001D2 90 7F            [ 1]  436     clr (y) 	
+      0001D4 CC 02 E0         [ 2]  437 	jp readln_quit  
+      0001D7                        438 51$:
+      0001D7 CF 00 00         [ 2]  439 	ldw basicptr,x
+      0001DA E6 02            [ 1]  440 	ld a,(2,x)
+      0001DC C7 00 00         [ 1]  441 	ld count,a 
+      0001DF 90 AE 00 00      [ 2]  442 	ldw y,#tib 
+      0001E3 CD 00 00         [ 4]  443 	call decompile 
+      0001E6 0F 01            [ 1]  444 	clr (LL_HB,sp)
+      0001E8 A6 0D            [ 1]  445 	ld a,#CR 
+      0001EA CD 00 00         [ 4]  446 	call putc 
+      0001ED A6 3E            [ 1]  447 	ld a,#'>
+      0001EF CD 00 00         [ 4]  448 	call putc
+      0001F2 AE 00 00         [ 2]  449     ldw x,#tib  
+      0001F5 CD 00 00         [ 4]  450 	call strlen 
+      0001F8 6B 02            [ 1]  451 	ld (LL,sp),a 
+      0001FA CD 00 32         [ 4]  452 	call puts 
+      0001FD 90 93            [ 1]  453 	ldw y,x
+      0001FF 7B 02            [ 1]  454     ld a,(LL,sp)
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 9.
 Hexadecimal [24-Bits]
 
 
 
-      0001FF 6B 03            [ 1]  455     ld (CPOS,sp),a  
-      000201 CC 01 44         [ 2]  456 	jp readln_loop
-      000204                        457 6$:
-      000204 A1 81            [ 1]  458 	cp a,#ARROW_RIGHT
-      000206 26 15            [ 1]  459    	jrne 7$ 
+      000201 6B 03            [ 1]  455     ld (CPOS,sp),a  
+      000203 CC 01 44         [ 2]  456 	jp readln_loop
+      000206                        457 6$:
+      000206 A1 81            [ 1]  458 	cp a,#ARROW_RIGHT
+      000208 26 15            [ 1]  459    	jrne 7$ 
                                     460 ; right arrow
-      000208 7B 03            [ 1]  461 	ld a,(CPOS,sp)
-      00020A 11 02            [ 1]  462     cp a,(LL,sp)
-      00020C 2B 03            [ 1]  463     jrmi 61$
-      00020E CC 01 44         [ 2]  464     jp readln_loop 
-      000211                        465 61$:
-      000211 A6 01            [ 1]  466     ld a,#1 
-      000213 CD 00 91         [ 4]  467 	call move_right 
-      000216 0C 03            [ 1]  468 	inc (CPOS,sp)
-      000218 90 5C            [ 2]  469     incw y 
-      00021A CC 01 44         [ 2]  470     jp readln_loop 
-      00021D A1 80            [ 1]  471 7$: cp a,#ARROW_LEFT  
-      00021F 26 13            [ 1]  472 	jrne 8$
+      00020A 7B 03            [ 1]  461 	ld a,(CPOS,sp)
+      00020C 11 02            [ 1]  462     cp a,(LL,sp)
+      00020E 2B 03            [ 1]  463     jrmi 61$
+      000210 CC 01 44         [ 2]  464     jp readln_loop 
+      000213                        465 61$:
+      000213 A6 01            [ 1]  466     ld a,#1 
+      000215 CD 00 91         [ 4]  467 	call move_right 
+      000218 0C 03            [ 1]  468 	inc (CPOS,sp)
+      00021A 90 5C            [ 2]  469     incw y 
+      00021C CC 01 44         [ 2]  470     jp readln_loop 
+      00021F A1 80            [ 1]  471 7$: cp a,#ARROW_LEFT  
+      000221 26 13            [ 1]  472 	jrne 8$
                                     473 ; left arrow 
-      000221 0D 03            [ 1]  474 	tnz (CPOS,sp)
-      000223 26 03            [ 1]  475 	jrne 71$
-      000225 CC 01 44         [ 2]  476 	jp readln_loop
-      000228                        477 71$:
-      000228 A6 01            [ 1]  478     ld a,#1 
-      00022A CD 00 83         [ 4]  479 	call move_left 
-      00022D 0A 03            [ 1]  480 	dec (CPOS,sp)
-      00022F 90 5A            [ 2]  481     decw y 
-      000231 CC 01 44         [ 2]  482 	jp readln_loop 
-      000234 A1 82            [ 1]  483 8$: cp a,#HOME  
-      000236 26 0E            [ 1]  484 	jrne 9$
+      000223 0D 03            [ 1]  474 	tnz (CPOS,sp)
+      000225 26 03            [ 1]  475 	jrne 71$
+      000227 CC 01 44         [ 2]  476 	jp readln_loop
+      00022A                        477 71$:
+      00022A A6 01            [ 1]  478     ld a,#1 
+      00022C CD 00 83         [ 4]  479 	call move_left 
+      00022F 0A 03            [ 1]  480 	dec (CPOS,sp)
+      000231 90 5A            [ 2]  481     decw y 
+      000233 CC 01 44         [ 2]  482 	jp readln_loop 
+      000236 A1 82            [ 1]  483 8$: cp a,#HOME  
+      000238 26 0E            [ 1]  484 	jrne 9$
                                     485 ; HOME 
-      000238 7B 03            [ 1]  486     ld a,(CPOS,sp)
-      00023A CD 00 83         [ 4]  487     call move_left 
-      00023D 0F 03            [ 1]  488 	clr (CPOS,sp)
-      00023F 90 AE 00 00      [ 2]  489     ldw y,#tib 
-      000243 CC 01 44         [ 2]  490 	jp readln_loop  
-      000246 A1 83            [ 1]  491 9$: cp a,#END  
-      000248 26 26            [ 1]  492 	jrne 10$
+      00023A 7B 03            [ 1]  486     ld a,(CPOS,sp)
+      00023C CD 00 83         [ 4]  487     call move_left 
+      00023F 0F 03            [ 1]  488 	clr (CPOS,sp)
+      000241 90 AE 00 00      [ 2]  489     ldw y,#tib 
+      000245 CC 01 44         [ 2]  490 	jp readln_loop  
+      000248 A1 83            [ 1]  491 9$: cp a,#END  
+      00024A 26 26            [ 1]  492 	jrne 10$
                                     493 ; END 
-      00024A 7B 03            [ 1]  494 	ld a,(CPOS,sp)
-      00024C 11 02            [ 1]  495 	cp a,(LL,sp)
-      00024E 26 03            [ 1]  496 	jrne 91$
-      000250 CC 01 44         [ 2]  497 	jp readln_loop 
-      000253                        498 91$:
-      000253 7B 02            [ 1]  499 	ld a,(LL,sp)
-      000255 10 03            [ 1]  500 	sub a,(CPOS,sp)
-      000257 CD 00 91         [ 4]  501 	call move_right 
-      00025A 7B 02            [ 1]  502 	ld a,(LL,sp)
-      00025C 6B 03            [ 1]  503 	ld (CPOS,sp),a
-      00025E 90 AE 00 00      [ 2]  504     ldw y,#tib
-      000262 72 5F 00 00      [ 1]  505     clr acc16 
-      000266 C7 00 00         [ 1]  506     ld acc8,a 
-      000269 72 B9 00 00      [ 2]  507     addw y,acc16  
-      00026D CC 01 44         [ 2]  508 	jp readln_loop 
-      000270 A1 0F            [ 1]  509 10$: cp a,#CTRL_O
+      00024C 7B 03            [ 1]  494 	ld a,(CPOS,sp)
+      00024E 11 02            [ 1]  495 	cp a,(LL,sp)
+      000250 26 03            [ 1]  496 	jrne 91$
+      000252 CC 01 44         [ 2]  497 	jp readln_loop 
+      000255                        498 91$:
+      000255 7B 02            [ 1]  499 	ld a,(LL,sp)
+      000257 10 03            [ 1]  500 	sub a,(CPOS,sp)
+      000259 CD 00 91         [ 4]  501 	call move_right 
+      00025C 7B 02            [ 1]  502 	ld a,(LL,sp)
+      00025E 6B 03            [ 1]  503 	ld (CPOS,sp),a
+      000260 90 AE 00 00      [ 2]  504     ldw y,#tib
+      000264 72 5F 00 00      [ 1]  505     clr acc16 
+      000268 C7 00 00         [ 1]  506     ld acc8,a 
+      00026B 72 B9 00 00      [ 2]  507     addw y,acc16  
+      00026F CC 01 44         [ 2]  508 	jp readln_loop 
+      000272 A1 0F            [ 1]  509 10$: cp a,#CTRL_O
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 10.
 Hexadecimal [24-Bits]
 
 
 
-      000272 26 0C            [ 1]  510 	jrne 11$ 
+      000274 26 0C            [ 1]  510 	jrne 11$ 
                                     511 ; toggle between insert/overwrite
-      000274 03 04            [ 1]  512 	cpl (OVRWR,sp)
-      000276 90 89            [ 2]  513 	pushw y 
-      000278 CD 00 00         [ 4]  514 	call beep_1khz
-      00027B 90 85            [ 2]  515 	popw y 
-      00027D CC 01 44         [ 2]  516 	jp readln_loop 
-      000280 A1 84            [ 1]  517 11$: cp a,#SUP 
-      000282 26 11            [ 1]  518     jrne final_test 
+      000276 03 04            [ 1]  512 	cpl (OVRWR,sp)
+      000278 90 89            [ 2]  513 	pushw y 
+      00027A CD 00 00         [ 4]  514 	call beep_1khz
+      00027D 90 85            [ 2]  515 	popw y 
+      00027F CC 01 44         [ 2]  516 	jp readln_loop 
+      000282 A1 84            [ 1]  517 11$: cp a,#SUP 
+      000284 26 11            [ 1]  518     jrne final_test 
                                     519 ; del character under cursor 
-      000284 7B 03            [ 1]  520     ld a,(CPOS,sp)
-      000286 11 02            [ 1]  521     cp a,(LL,sp)
-      000288 2A 08            [ 1]  522     jrpl 13$
-      00028A                        523 12$:
-      00028A 97               [ 1]  524     ld xl,a    ; cursor position 
-      00028B 7B 02            [ 1]  525     ld a,(LL,sp)  ; line length
-      00028D CD 00 EE         [ 4]  526     call delete_under
-      000290 0A 02            [ 1]  527     dec (LLEN,sp)
-      000292                        528 13$:
-      000292 CC 01 44         [ 2]  529     jp readln_loop 
-      000295                        530 final_test:
-      000295 A1 20            [ 1]  531 	cp a,#SPACE
-      000297 2A 03            [ 1]  532 	jrpl accept_char
-      000299 CC 01 44         [ 2]  533 	jp readln_loop
-      00029C                        534 accept_char:
-      00029C A6 4F            [ 1]  535 	ld a,#TIB_SIZE-1
-      00029E 11 02            [ 1]  536 	cp a, (LL,sp)
-      0002A0 2A 03            [ 1]  537 	jrpl 1$
-      0002A2 CC 01 44         [ 2]  538 	jp readln_loop
-      0002A5 0D 04            [ 1]  539 1$:	tnz (OVRWR,sp)
-      0002A7 26 18            [ 1]  540 	jrne overwrite
+      000286 7B 03            [ 1]  520     ld a,(CPOS,sp)
+      000288 11 02            [ 1]  521     cp a,(LL,sp)
+      00028A 2A 08            [ 1]  522     jrpl 13$
+      00028C                        523 12$:
+      00028C 97               [ 1]  524     ld xl,a    ; cursor position 
+      00028D 7B 02            [ 1]  525     ld a,(LL,sp)  ; line length
+      00028F CD 00 EE         [ 4]  526     call delete_under
+      000292 0A 02            [ 1]  527     dec (LLEN,sp)
+      000294                        528 13$:
+      000294 CC 01 44         [ 2]  529     jp readln_loop 
+      000297                        530 final_test:
+      000297 A1 20            [ 1]  531 	cp a,#SPACE
+      000299 2A 03            [ 1]  532 	jrpl accept_char
+      00029B CC 01 44         [ 2]  533 	jp readln_loop
+      00029E                        534 accept_char:
+      00029E A6 4F            [ 1]  535 	ld a,#TIB_SIZE-1
+      0002A0 11 02            [ 1]  536 	cp a, (LL,sp)
+      0002A2 2A 03            [ 1]  537 	jrpl 1$
+      0002A4 CC 01 44         [ 2]  538 	jp readln_loop
+      0002A7 0D 04            [ 1]  539 1$:	tnz (OVRWR,sp)
+      0002A9 26 18            [ 1]  540 	jrne overwrite
                                     541 ; insert mode 
-      0002A9 7B 03            [ 1]  542     ld a,(CPOS,sp)
-      0002AB 11 02            [ 1]  543     cp a,(LL,sp)
-      0002AD 27 12            [ 1]  544     jreq overwrite
-      0002AF 7B 02            [ 1]  545     ld a,(LL,sp)
-      0002B1 97               [ 1]  546     ld xl,a 
-      0002B2 7B 03            [ 1]  547     ld a,(CPOS,sp)
-      0002B4 95               [ 1]  548     ld xh,a
-      0002B5 7B 01            [ 1]  549     ld a,(RXCHAR,sp)
-      0002B7 CD 00 AB         [ 4]  550     call insert_char
-      0002BA 0C 02            [ 1]  551     inc (LLEN,sp)
-      0002BC 0C 03            [ 1]  552     inc (CPOS,sp)
-      0002BE CC 01 44         [ 2]  553     jp readln_loop 
-      0002C1                        554 overwrite:
-      0002C1 7B 01            [ 1]  555 	ld a,(RXCHAR,sp)
-      0002C3 90 F7            [ 1]  556 	ld (y),a
-      0002C5 90 5C            [ 2]  557     incw y
-      0002C7 CD 00 00         [ 4]  558     call putc 
-      0002CA 7B 03            [ 1]  559 	ld a,(CPOS,sp)
-      0002CC 11 02            [ 1]  560 	cp a,(LL,sp)
-      0002CE 2B 09            [ 1]  561 	jrmi 1$
-      0002D0 90 7F            [ 1]  562 	clr (y)
-      0002D2 0C 02            [ 1]  563 	inc (LL,sp)
-      0002D4 0C 03            [ 1]  564     inc (CPOS,sp)
+      0002AB 7B 03            [ 1]  542     ld a,(CPOS,sp)
+      0002AD 11 02            [ 1]  543     cp a,(LL,sp)
+      0002AF 27 12            [ 1]  544     jreq overwrite
+      0002B1 7B 02            [ 1]  545     ld a,(LL,sp)
+      0002B3 97               [ 1]  546     ld xl,a 
+      0002B4 7B 03            [ 1]  547     ld a,(CPOS,sp)
+      0002B6 95               [ 1]  548     ld xh,a
+      0002B7 7B 01            [ 1]  549     ld a,(RXCHAR,sp)
+      0002B9 CD 00 AB         [ 4]  550     call insert_char
+      0002BC 0C 02            [ 1]  551     inc (LLEN,sp)
+      0002BE 0C 03            [ 1]  552     inc (CPOS,sp)
+      0002C0 CC 01 44         [ 2]  553     jp readln_loop 
+      0002C3                        554 overwrite:
+      0002C3 7B 01            [ 1]  555 	ld a,(RXCHAR,sp)
+      0002C5 90 F7            [ 1]  556 	ld (y),a
+      0002C7 90 5C            [ 2]  557     incw y
+      0002C9 CD 00 00         [ 4]  558     call putc 
+      0002CC 7B 03            [ 1]  559 	ld a,(CPOS,sp)
+      0002CE 11 02            [ 1]  560 	cp a,(LL,sp)
+      0002D0 2B 09            [ 1]  561 	jrmi 1$
+      0002D2 90 7F            [ 1]  562 	clr (y)
+      0002D4 0C 02            [ 1]  563 	inc (LL,sp)
+      0002D6 0C 03            [ 1]  564     inc (CPOS,sp)
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 11.
 Hexadecimal [24-Bits]
 
 
 
-      0002D6 CC 01 44         [ 2]  565 	jp readln_loop 
-      0002D9                        566 1$:	
-      0002D9 0C 03            [ 1]  567 	inc (CPOS,sp)
-      0002DB CC 01 44         [ 2]  568 	jp readln_loop 
-      0002DE                        569 readln_quit:
-      0002DE 90 AE 00 00      [ 2]  570 	ldw y,#tib
-      0002E2 0F 01            [ 1]  571     clr (LL_HB,sp) 
-      0002E4 72 F9 01         [ 2]  572     addw y,(LL_HB,sp)
-      0002E7 90 7F            [ 1]  573     clr (y)
-      0002E9 7B 02            [ 1]  574 	ld a,(LL,sp)
-      0002EB C7 00 00         [ 1]  575 	ld count,a 
-      0002EE A6 0D            [ 1]  576 	ld a,#CR
-      0002F0 CD 00 00         [ 4]  577 	call putc
-      0002F3                        578 	_drop VSIZE 
-      0002F3 5B 04            [ 2]    1     addw sp,#VSIZE 
-      0002F5 81               [ 4]  579 	ret
+      0002D8 CC 01 44         [ 2]  565 	jp readln_loop 
+      0002DB                        566 1$:	
+      0002DB 0C 03            [ 1]  567 	inc (CPOS,sp)
+      0002DD CC 01 44         [ 2]  568 	jp readln_loop 
+      0002E0                        569 readln_quit:
+      0002E0 90 AE 00 00      [ 2]  570 	ldw y,#tib
+      0002E4 0F 01            [ 1]  571     clr (LL_HB,sp) 
+      0002E6 72 F9 01         [ 2]  572     addw y,(LL_HB,sp)
+      0002E9 90 7F            [ 1]  573     clr (y)
+      0002EB 7B 02            [ 1]  574 	ld a,(LL,sp)
+      0002ED C7 00 00         [ 1]  575 	ld count,a 
+      0002F0 A6 0D            [ 1]  576 	ld a,#CR
+      0002F2 CD 00 00         [ 4]  577 	call putc
+      0002F5                        578 	_drop VSIZE 
+      0002F5 5B 04            [ 2]    1     addw sp,#VSIZE 
+      0002F7 81               [ 4]  579 	ret
                                     580 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 12.
 Hexadecimal [24-Bits]
@@ -2494,14 +2494,14 @@ Symbol Table
     WDGOPT_L=  000003     |     WDGOPT_W=  000000     |     WDGOPT_W=  000001 
     WWDG_CR =  0050D1     |     WWDG_WR =  0050D2     |     XOFF    =  000013 
     XON     =  000011     |     acc16      ****** GX  |     acc8       ****** GX
-  1 accept_c   00029C R   |     atoi24     ****** GX  |     basicptr   ****** GX
+  1 accept_c   00029E R   |     atoi24     ****** GX  |     basicptr   ****** GX
     beep_1kh   ****** GX  |   1 bksp       00003C R   |   1 convert_   000000 R
     count      ****** GX  |     decompil   ****** GX  |   1 delete_e   00004C R
-  1 delete_l   000129 R   |   1 delete_u   0000EE R   |   1 final_te   000295 R
+  1 delete_l   000129 R   |   1 delete_u   0000EE R   |   1 final_te   000297 R
   1 get_esca   00000C R   |     getc       ****** GX  |   1 insert_c   0000AB R
     move       ****** GX  |   1 move_lef   000083 R   |   1 move_rig   000091 R
-  1 overwrit   0002C1 R   |     putc       ****** GX  |   1 puts       000032 GR
-  1 readln     000137 GR  |   1 readln_l   000144 R   |   1 readln_q   0002DE R
+  1 overwrit   0002C3 R   |     putc       ****** GX  |   1 puts       000032 GR
+  1 readln     000137 GR  |   1 readln_l   000144 R   |   1 readln_q   0002E0 R
     search_l   ****** GX  |   1 send_esc   00005A R   |   1 send_par   000065 R
   1 spaces     00009F GR  |     strlen     ****** GX  |     tib        ****** GX
 
@@ -2511,5 +2511,5 @@ Hexadecimal [24-Bits]
 Area Table
 
    0 _CODE      size      0   flags    0
-   1 CODE       size    2F6   flags    0
+   1 CODE       size    2F8   flags    0
 

@@ -808,17 +808,19 @@ hex_dump:
 ; input:
 ;   X         .asciz  pointer 
 ; output:
-;   X         length 
+;   X         not affected 
+;   A         length 
 ;-------------------------------------
 strlen::
-	ldw y,x 
-	clrw x 
-1$:	tnz (y) 
+	pushw x 
+	clr a
+1$:	tnz (x) 
 	jreq 9$ 
-	incw x
-	incw y 
+	inc a 
+	incw x 
 	jra 1$ 
-9$: ret 
+9$:	popw x 
+	ret 
 
 ;------------------------------------
 ; compare 2 strings
@@ -4801,7 +4803,9 @@ save:
 	call move_prg_to_ram ; move flashing program to 'tib' buffer 
 ; check if enough free space 
 	call strlen 
-	addw x,#3 
+	add a,#3
+	clrw x 
+	ld xl,a 
 	addw x,(BSIZE,sp)
 	clr a 
 	addw x,ffree+1 
@@ -4829,6 +4833,8 @@ save:
 	ldw x,#pad 
 	call strcpy
 	call strlen 
+	clrw x 
+	ld xl,a 
 	incw  x
 	addw x,#pad 
 ; ** write file size to row buffer 
@@ -5280,6 +5286,7 @@ autorun:
 	jp tb_error 
 0$:	
 	call next_token
+	tnz a 
 	jrne 1$
 	ldw x,#AUTORUN_NAME
 	call puts 
@@ -5308,7 +5315,9 @@ autorun:
 	ldw x,#AUTORUN_NAME
 	ldw farptr+1,x 
 	ldw x,(1,sp)  
-	call strlen  ; return length in X 
+	call strlen  ; return length in A 
+	clrw x 
+	ld xl,a 
 	incw x 
 	popw y 
 	pushw x 

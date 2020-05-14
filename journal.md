@@ -1,5 +1,15 @@
 #### 2020-05-13
 
+**session 2**
+
+* Corrigé bogue dans *autorun:* il n'y avait pas de test sur 'A' avant le *jrne 1$*.
+
+* Modifié *strlen* retourne la longueur de la chaîne dans 'A' plutôt que 'X'. Les chaînes n'auront jamais plus de 80 caractères. 
+
+* Corrigé bogue dans *readln* fonction **CTRL_E** n'enregistrait pas la bonne longueur de ligne.
+
+**session 1**
+
  Si vous avez utilisé stm8_tbi et que vous avez sauvegarder des programmes sur le *flash drive* vous avez constater qu'à chaque mise à jour du *firmware* vous perdiez vos programmes. Vous pensiez peut-être que le système de fichiers était bogué mais ce n'est pas le problème. 
 
   Le problème est le suivant; les fichiers sont sauvegardés sous forme *tokenizé* et non sous forme texte source. En fait le programme n'existe pas en tant que texte source sur la carte **NUCLEO**, il n'y a pas suffisamment de mémoire RAM pour ça. Chaque ligne saisie est compilée avant d'être rangée dans la mémoire RAM réservée au programme BASIC. Le texte source n'existe qu'une seule ligne à la fois dans le *tib* (le tampon mémoire qui reçoit le texte tapé par l'utilisateur) au moment de sa saisie. Donc chaque fois que le software *TinyBasic* est modifié les adresses des fonctions et commandes changent et par conséquent un programme sauvergardé dans une version précédente du système *TinyBasic* n'est plus valide. Une façon de régler ce problème est d'utiliser des valeurs d'index pour les commandes/fonctions au lieu de l'adresse du code. À l'exécution l'adresse du code est localisé grâce à l'index qui réfère à une table de correspondance. Si les index des commandes reste constants entre les différentes versions de TinyBasic il est possible de retrouver l'adresse d'exécution à partir de la table. Le seul inconvénient est que l'interpréteur est un peu plus lent à cause du degré d'indirection supplémentaire. 

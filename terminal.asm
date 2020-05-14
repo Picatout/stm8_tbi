@@ -413,7 +413,6 @@ readln_loop:
 	ldw x,#tib 
 	call strlen 
 	ldw y,#tib 
-	ld a,xl
 	jreq readln_loop
 	ld (LL,sp),a 
     ld (CPOS,sp),a
@@ -442,13 +441,14 @@ readln_loop:
 	ld count,a 
 	ldw y,#tib 
 	call decompile 
-	ld (LL,sp),a 
 	clr (LL_HB,sp)
 	ld a,#CR 
 	call putc 
 	ld a,#'>
 	call putc
     ldw x,#tib  
+	call strlen 
+	ld (LL,sp),a 
 	call puts 
 	ldw y,x
     ld a,(LL,sp)

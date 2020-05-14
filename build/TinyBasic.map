@@ -21,7 +21,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000063  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
-     00002B04  l_CODE                          
+     00002B06  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -65,20 +65,20 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00002B04 =       11012. bytes (REL,CON)
+CODE                                00008080    00002B06 =       11014. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
      00008340  putc                               STM8_TBI
      00008349  getc                               STM8_TBI
      00008416  strlen                             STM8_TBI
-     00008442  move                               STM8_TBI
-     00008484  search_lineno                      STM8_TBI
-     00008E2D  to_upper                           STM8_TBI
-     00008E39  atoi24                             STM8_TBI
-     000093F4  decompile                          STM8_TBI
-     000098C9  beep_1khz                          STM8_TBI
-     00009DB2  qkey                               STM8_TBI
+     00008440  move                               STM8_TBI
+     00008482  search_lineno                      STM8_TBI
+     00008E2B  to_upper                           STM8_TBI
+     00008E37  atoi24                             STM8_TBI
+     000093F2  decompile                          STM8_TBI
+     000098C7  beep_1khz                          STM8_TBI
+     00009DB3  qkey                               STM8_TBI
      0000A8C0  puts                               TERMINAL
      0000A92D  spaces                             TERMINAL
      0000A9C5  readln                             TERMINAL
