@@ -1539,10 +1539,10 @@ next_token:
 1$: ; 
 	cp a,#TK_CHAR
 	jrne 2$
+	exg a,xl
 	ld a,([in.w],y)
 	inc in 
 	exg a,xl  
-	ld a,#TK_CHAR
 	ret
 2$:	cp a,#TK_QSTR 
 	jrne 9$
@@ -1554,13 +1554,14 @@ next_token:
 	inc in 
 	jra 3$
 6$: 
-	ldw y,([in.w],y)
-	exgw x,y
+	addw y,in.w 
+	ldw y,(y)
 	cp a,#TK_INTGR
 	jrpl 7$
-	addw x,#code_addr
-	ldw x,(x) 
-7$:	inc in
+	addw y,#code_addr
+	ldw y,(y) 
+7$:	exgw x,y 
+	inc in
 8$:	inc in 
 9$: 
 	ret	

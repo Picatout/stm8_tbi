@@ -1,8 +1,8 @@
 #### 2020-05-14
 
-* In [terminal.inc](terminal.inc) renamed *delete_end* to *delete_nchar*.
+* Dans [terminal.inc](terminal.inc) renommé *delete_end* en *delete_nchar*.
 
-* In [terminal.inc](terminal.inc) improved comments.
+* Dans [terminal.inc](terminal.inc) amélioration des commentaires.
 
 #### 2020-05-13
 
