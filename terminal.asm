@@ -134,7 +134,7 @@ bksp:
 ; output:
 ;    none 
 ;--------------------------	
-delete_end:
+delete_nchar:
 	push a 
 0$:	tnz (1,sp)
 	jreq 1$
@@ -146,6 +146,9 @@ delete_end:
 
 ;--------------------------
 ; send ANSI escape sequence
+; ANSI: ESC[
+; note: ESC is ASCII 27
+;       [   is ASCII 91  
 ;-------------------------- 
 send_escape:
 	ld a,#ESC 
@@ -155,9 +158,18 @@ send_escape:
 	ret 
 
 ;---------------------
-;send ANSI parameter 
+;send ANSI parameter value
+; ANSI parameter values are 
+; sent as ASCII charater 
+; not as binary number.
+; this routine 
+; convert binary number to 
+; ASCII string and send it.
+; expected range {0..99}
 ; input: 
 ; 	A {0..99} 
+; output:
+;   none 
 ;---------------------
 send_parameter:
 	pushw x 
@@ -183,6 +195,10 @@ send_parameter:
 
 ;--------------------------
 ; move cursor left n character
+; ANSI: ESC[PnD 
+; 'Pn' est a numerical parameter
+; specifying number of characters 
+; displacement.
 ; input:
 ;   A     character count
 ; output:
@@ -200,6 +216,7 @@ move_left:
 
 ;--------------------------
 ; move cursor right n character 
+; ANSI: ESC[PnC 
 ; input:
 ;   A     character count
 ; output:
@@ -318,7 +335,16 @@ delete_under:
 	_drop VSIZE 
 	ret 
 
-
+;-----------------------------
+; send ANSI sequence to delete
+; whole line. Cursor position
+; is not updated.
+; ANSI: ESC[2K
+; input:
+;   none
+; output:
+;   none 
+;-----------------------------
 delete_line:
     call send_escape
 	ld a,#'2

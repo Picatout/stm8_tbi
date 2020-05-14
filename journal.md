@@ -1,3 +1,9 @@
+#### 2020-05-14
+
+* In [terminal.inc](terminal.inc) renamed *delete_end* to *delete_nchar*.
+
+* In [terminal.inc](terminal.inc) improved comments.
+
 #### 2020-05-13
 
 **session 2**
