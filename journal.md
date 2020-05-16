@@ -1,3 +1,10 @@
+#### 2020-05-16
+
+* Continuer test et débogage. Pas trouvé d'autres bogues aujourd'hui.
+
+* Modifié le comportement de *itoa*. En hexadécimal n'imprime que les 4 derniers digits pour éviter que les nombres négatifs s'affichent avec 6 digits, i.e. $FFED au lieu de $FFFFED 
+
+
 #### 2020-05-15 
 
 *  Corrigé bogue dans le traitement des relations. 

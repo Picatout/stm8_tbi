@@ -1657,7 +1657,17 @@ itoa_loop:
     jreq 10$
     ld a,#'-
 	jra 9$ 
-8$: ld a,#'$ 
+; don't print more than 4 digits
+; in hexadecimal to avoid '-' sign 
+; extend display 	
+8$: ld a,(LEN,sp) 
+	cp a,#5 
+	jrmi 81$
+	incw x
+	dec (LEN,sp)
+	jra 8$
+81$:	
+	ld a,#'$ 
 9$: decw x
     ld (x),a
 	inc (LEN,sp)
