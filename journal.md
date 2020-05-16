@@ -1,4 +1,25 @@
+#### 2020-05-15 
+
+*  Corrigé bogue dans le traitement des relations. 
+
+* Corrigé bogue dans commande **RESTORE**. N'avait pas été mis à jour lors du passage en mode indirect. 
+
+* Corrigé bogue dans commande **PMODE**. Plantait lorsqu'un broche en mode sortie était réinitialisée en mode entrée. Causé par le bit *External interrupt enabled* dans CR2 qui était à 1 mode sortie. L'orde de configuration a été changé le bit *External interrupt enabled* dans CR2 est mis à zéro avant de mettre le bit à 0 dans **DDR**.  
+
+
 #### 2020-05-14
+
+**session 2**
+
+* Corrigé bogue, le compilateur acceptait une ligne BASIC vide si l'espace texte était vide.
+
+* Corrigé bogue dans fonction **ASC()** qui n'acceptait le type TK_CFUNC comme argument ce qui doit-être le cas. 
+
+* Corrigé bogue dans *get_token* les opérateurs relationnels à 2 caractères n'étaient pas analysée correctement.
+
+* Corrigé bogue dans l'exécution des expressions qui ne rendait pas toujours le terminateur de commande **':'**.
+
+**session 1**
 
 * Dans [terminal.inc](terminal.inc) renommé *delete_end* en *delete_nchar*.
 

@@ -1469,7 +1469,7 @@ Hexadecimal [24-Bits]
                                         
                                             ; reset BASIC pointer
                                             ; to beginning of last token
-                                            ; parsed 
+                                            ; extracted except if it was end of line 
                                             .macro _unget_token 
                                         
                                         ;-------------------------------
@@ -1983,7 +1983,7 @@ Hexadecimal [24-Bits]
 
 
 
-      00AA4E CD 8E 3B         [ 4]  455 	call atoi24
+      00AA4E CD 8E 3F         [ 4]  455 	call atoi24
       00AA51 CE 00 0D         [ 2]  456 	ldw x,acc16
       00AA54 CD 84 82         [ 4]  457 	call search_lineno
       00AA57 5D               [ 2]  458 	tnzw x 
@@ -1997,7 +1997,7 @@ Hexadecimal [24-Bits]
       00AA68 E6 02            [ 1]  466 	ld a,(2,x)
       00AA6A C7 00 04         [ 1]  467 	ld count,a 
       00AA6D 90 AE 16 90      [ 2]  468 	ldw y,#tib 
-      00AA71 CD 93 F6         [ 4]  469 	call decompile 
+      00AA71 CD 94 2E         [ 4]  469 	call decompile 
       00AA74 0F 01            [ 1]  470 	clr (LL_HB,sp)
       00AA76 A6 0D            [ 1]  471 	ld a,#CR 
       00AA78 CD 83 40         [ 4]  472 	call putc 
@@ -2073,7 +2073,7 @@ Hexadecimal [24-Bits]
                                     537 ; toggle between insert/overwrite
       00AB04 03 04            [ 1]  538 	cpl (OVRWR,sp)
       00AB06 90 89            [ 2]  539 	pushw y 
-      00AB08 CD 98 CB         [ 4]  540 	call beep_1khz
+      00AB08 CD 98 F8         [ 4]  540 	call beep_1khz
       00AB0B 90 85            [ 2]  541 	popw y 
       00AB0D CC A9 D2         [ 2]  542 	jp readln_loop 
       00AB10 A1 84            [ 1]  543 11$: cp a,#SUP 

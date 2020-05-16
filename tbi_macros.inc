@@ -126,9 +126,9 @@
 
     ; reset BASIC pointer
     ; to beginning of last token
-    ; parsed 
+    ; extracted except if it was end of line 
     .macro _unget_token 
-    mov in,in.saved
+     mov in,in.saved  
     .endm
 
 ;-------------------------------

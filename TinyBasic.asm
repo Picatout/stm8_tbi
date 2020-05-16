@@ -1030,6 +1030,8 @@ insert_line:
 ;first text line 
 	ldw x,#2 
 	ld a,([ptr16],x)
+	cp a,#3
+	jreq insert_ln_exit
 	clrw x 
 	ld xl,a
 	ldw (LLEN,sp),x 
@@ -1386,8 +1388,8 @@ err_no_prog: .asciz "No program in RAM!\n"
 err_no_fspace: .asciz "File system full.\n" 
 err_buf_full: .asciz "Buffer full\n"
 
-rt_msg: .asciz "run time error, "
-comp_msg: .asciz "compile error, "
+rt_msg: .asciz "\nrun time error, "
+comp_msg: .asciz "\ncompile error, "
 tk_id: .asciz "last token id: "
 
 syntax_error:
@@ -2188,8 +2190,8 @@ gt_tst:
 	_case '>' lt_tst 
 	ld a,#TK_GT 
 	ld (ATTRIB,sp),a 
-	inc in 
 	ld a,([in.w],y)
+	inc in 
 	cp a,#'=
 	jrne 1$
 	ld a,#TK_GE 
@@ -2205,8 +2207,8 @@ lt_tst:
 	_case '<' other
 	ld a,#TK_LT 
 	ld (ATTRIB,sp),a 
-	inc in 
 	ld a,([in.w],y)
+	inc in 
 	cp a,#'=
 	jrne 1$
 	ld a,#TK_LE 
@@ -2354,23 +2356,48 @@ skip:
 ;debug support
 DEBUG_PRT=1
 .if DEBUG_PRT 
+	REGA=1
+	SAVEB=2
+	REGX=3
+	REGY=5
+	ACC24=7
+	VSIZE=9 
 printxy:
+	_vars VSIZE 
+	ld (REGA,sp),a 
 	ld a,base 
-	push a 
-	pushw x 
-	pushw y
+	ld (SAVEB,sp),a
+	ldw (REGX,sp),x
+	ldw (REGY,sp),y
+	ldw x,acc24 
+	ld a,acc8 
+	ldw (ACC24,sp),x 
+	ld (ACC24+2,sp),a 
 	mov base,#16 
+	clrw x 
+	ld a,(REGA,sp)
+	ld xl,a 
 	call print_int
 	ld a,#SPACE 
 	call putc  
-	ldw x,(1,sp)
+	ldw x,(REGX,sp)
+	call print_int 
+	ld a,#SPACE 
+	call putc  
+	ldw x,(REGY,sp)
 	call print_int 
 	ld a,#CR 
 	call putc 
-	popw y 
-	popw x 
-	pop a 
+	ld a,(ACC24+2,sp)
+	ldw x,(ACC24,sp)
+	ldw acc24,x 
+	ld acc8,a
+	ld a,(SAVEB,sp)
 	ld base,a 
+	ld a,(REGA,sp)
+	ldw x,(REGX,sp)
+	ldw y,(REGY,sp)
+	_drop VSIZE 
 	ret 
 .endif 
 
@@ -2916,8 +2943,8 @@ get_array_element:
 factor:
 	_vars VSIZE 
 	call next_token
-	cp a,#CMD_END 
-	jrult 20$
+	cp a,#CMD_END  
+	jrult 16$
 1$:	ld (NEG,sp),a 
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_ADD 
@@ -2956,6 +2983,8 @@ factor:
 	popw x 
 	jra 18$	
 16$:
+	tnz a 
+	jreq 20$ 
 	_unget_token
 	clr a 
 	jra 20$ 
@@ -2982,23 +3011,22 @@ factor:
 term:
 	_vars VSIZE
 	call factor
-	cp a,#CMD_END
-	jrult term_exit
+	tnz a 
+	jreq term_exit 
 term01:	 ; check for  operator 
 	ldw (N1,sp),x  ; save first factor 
 	call next_token
+	ld (MULOP,sp),a
 	cp a,#CMD_END
-	jrult 9$
-0$:	ld (MULOP,sp),a
+	jrult 8$
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_MULT
 	jreq 1$
-	_unget_token 
-	jra 9$
+	jra 8$
 1$:	; got *|/|%
 	call factor
 	cp a,#TK_INTGR
-	jreq 2$ 
+	jreq 2$
 	jp syntax_error
 2$:	ldw y,x 
 	ldw x,(N1,sp)
@@ -3013,6 +3041,9 @@ term01:	 ; check for  operator
 	jra term01 
 4$: call modulo
 	jra term01 
+8$: ld a,(MULOP,sp)
+	jreq 9$ 
+	_unget_token
 9$: ldw x,(N1,sp)
 	ld a,#TK_INTGR 	
 term_exit:
@@ -3032,21 +3063,20 @@ term_exit:
 expression:
 	_vars VSIZE 
 	call term
-	cp a,#CMD_END 
-	jrult expr_exit 
-0$:	ldw (N1,sp),x 
+	tnz a 
+	jreq expr_exit 
+1$:	ldw (N1,sp),x 
 	call next_token
+	ld (OP,sp),a 
 	cp a,#CMD_END 
-	jrult 9$ 
-1$:	ld (OP,sp),a  
+	jrult 8$ 
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_ADD 
 	jreq 2$ 
-	_unget_token
-	jra 9$
+	jra 8$
 2$: 
 	call term
-	cp a,#TK_INTGR 
+	cp a,#TK_INTGR
 	jreq 3$
 	jp syntax_error
 3$:	ldw acc16,x 
@@ -3055,9 +3085,12 @@ expression:
 	cp a,#TK_PLUS 
 	jrne 4$
 	addw x,acc16
-	jra 0$ 
+	jra 1$ 
 4$:	subw x,acc16
-	jra 0$
+	jra 1$
+8$: ld a,(OP,sp)
+	jreq 9$ 
+	_unget_token	
 9$: ldw x,(N1,sp)
 	ld a,#TK_INTGR	
 expr_exit:
@@ -3078,23 +3111,18 @@ expr_exit:
 relation: 
 	_vars VSIZE
 	call expression
-	cp a,#CMD_END  
-	jrult rel_exit 
-	; expect rel_op or leave 
+	tnz a 
+	jreq rel_exit
 	ldw (N1,sp),x 
+; expect rel_op or leave 
 	call next_token 
-	cp a,#CMD_END 
-	jrult 9$
-1$:	
 	ld (RELOP,sp),a 
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_RELOP 
-	jreq 2$
-	_unget_token  
-	jra 9$
-2$:	; expect another expression or error 
+	jrne 8$
+2$:	; expect another expression
 	call expression
-	cp a,#TK_INTGR 
+	cp a,#TK_INTGR
 	jreq 3$
 	jp syntax_error 
 3$:	ldw acc16,x 
@@ -3116,12 +3144,15 @@ relation:
 	tnz a 
 	jreq 10$
 	incw x 
-7$:	 
 	jra 10$  	
-9$: ldw x,(N1,sp)
+8$: ld a,(RELOP,sp)
+	jreq 9$
+	_unget_token
+9$: 
+	ldw x,(N1,sp)
 10$:
 	ld a,#TK_INTGR
-rel_exit: 	 
+rel_exit:
 	_drop VSIZE
 	ret 
 
@@ -3683,7 +3714,7 @@ prt_basic_line:
 	COMMA=1
 	VSIZE=1
 print:
-push #0 ; local variable COMMA 
+	_vars VSIZE 
 reset_comma:
 	clr (COMMA,sp)
 prt_loop:
@@ -3714,9 +3745,8 @@ prt_loop:
 	call putc
 	jra reset_comma 
 4$: ; set comma state 
-	ld a,#255 
-	ld (COMMA,sp),a  
-	jp prt_loop   
+	cpl (COMMA,sp)
+	jra prt_loop   
 5$: ; # character must be followed by an integer   
 	call next_token
 	cp a,#TK_INTGR 
@@ -3728,13 +3758,11 @@ prt_loop:
 	ld tab_width,a 
 	jra reset_comma 
 7$:	
-	_unget_token
+	_unget_token 
 	call relation 
-	cp a,#TK_INTGR
-	jreq 8$
-	_unget_token
-	jp print_exit 
-8$: call print_int 
+	cp a,#TK_INTGR 
+	jrne print_exit 
+    call print_int 
 	jra reset_comma 
 print_exit:
 	tnz (COMMA,sp)
@@ -5100,6 +5128,7 @@ write:
 ; évaluate expression 
 ; and take the 7 least 
 ; bits as ASCII character
+; return a TK_CHAR 
 ;---------------------
 char:
 	call func_args 
@@ -5114,7 +5143,7 @@ char:
 	ret
 
 ;---------------------
-; BASIC: ASC(string|char)
+; BASIC: ASC(string|char|TK_CFUNC)
 ; extract first character 
 ; of string argument 
 ; return it as TK_INTGR 
@@ -5127,7 +5156,11 @@ ascii:
 	jreq 1$
 	cp a,#TK_CHAR 
 	jreq 2$ 
+	cp a,#TK_CFUNC 
+	jreq 0$
 	jp syntax_error
+0$: call (x)
+	jra 2$
 1$: 
 	ld a,(x) 
 	clrw x
@@ -5613,22 +5646,31 @@ pin_mode:
 	dec (PINNO,sp)
 	jrne 2$ 
 	ld (PINNO,sp),a
+	ld a,(PINNO,sp)
 	or a,(GPIO_CR1,x) ;if input->pull-up else push-pull 
 	ld (GPIO_CR1,x),a 
 4$:	cpw y,#OUTP 
 	jreq 6$
 ; input mode
+; disable external interrupt 
+	ld a,(PINNO,sp)
+	cpl a 
+	and a,(GPIO_CR2,x)
+	ld (GPIO_CR2,x),a 
+;clear bit in DDR for input mode 
 	ld a,(PINNO,sp)
 	cpl a 
 	and a,(GPIO_DDR,x)	; bit==0 for input. 
+	ld (GPIO_DDR,x),a 
 	jra 9$
 6$: ;output mode  
 	ld a,(PINNO,sp)
+	or a,(GPIO_DDR,x) ; bit==1 for output 
+	ld (GPIO_DDR,x),a 
+	ld a,(PINNO,sp)
 	or a,(GPIO_CR2,x) ;port speed 10 Mhz 
 	ld (GPIO_CR2,x),a 
-	ld a,(PINNO,sp)
-	or a,(GPIO_DDR,x) ; bit==1 for output 
-9$:	ld (GPIO_DDR,x),a 
+9$:	
 	_drop VSIZE 
 	ret
 
@@ -6140,6 +6182,8 @@ data_search_loop:
 	jruge 9$
 	ldw y,x 
 	ldw x,(4,x)
+	addw x,#code_addr
+	ldw x,(x)
 	cpw x,#data 
 	jrne try_next_line 
 	ldw data_ptr,y 

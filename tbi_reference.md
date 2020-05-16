@@ -43,7 +43,7 @@ Le code utilisé pour le texte est le code [ASCII](https://fr.wikipedia.org/wiki
 
 Un programme débute par un numéro de ligne suivit d'une ou plusieurs commandes séparées par le caractère **':'**.
 
-Une commande est suivie de ses arguments séparés par une virgule. Les arguments des fonctions doiven-être mis entre parenthèses. Par fonction j'entends une sous-routine qui retourne une valeur. Cependant une fonction qui n'utilise pas d'arguments n'est pas suivie de parenthèses. Les commandes , c'est à dire les sous-routine qui ne retoune pas de valeur, reçoivent leur arguments sans parenthèses. 
+Une commande est suivie de ses arguments séparés par une virgule. Les arguments des fonctions doivent-être mis entre parenthèses. Par fonction j'entends une sous-routine qui retourne une valeur. Cependant une fonction qui n'utilise pas d'arguments n'est pas suivie de parenthèses. Les commandes , c'est à dire les sous-routines qui ne retoune pas de valeur, reçoivent leur arguments sans parenthèses. 
 
 Les *espaces* entre les *unitées lexicales* sont facultatifs sauf s'il y a ambiguité. Par exemple si le nom d'un commande est immédiatement suivit par le nom d'une variable un espace doit les séparer. 
 
@@ -52,9 +52,18 @@ L'analyseur lexical convertie les lettres en  majuscule sauf à l'intérieur d'u
 
 Les commandes peuvent-être abrégées au plus court à 2 caractères à condition qu'il n'y est pas d'ambiguité entre 2 commandes. L'abréviation doit-être d'au moins 2 lettres pour éviter la confusion avec les variables. Par exemple **GOTO**peut-être abrégé **GOT** et **GOSUB** peut-être abrégé **GOS**. 
 
-Certaines commandes sont représentées facultativement par une caractère unique qui évite d'avoir à faire une recherche dans le dictionnaire ce qui accélère l'exécution. Par exemple la commande **PRINT** peut-être remplacée par le caractère **'?'**. 
+Certaines commandes sont représentées facultativement par une caractère unique. Par exemple la commande **PRINT** peut-être remplacée par le caractère **'?'**. La commande **REMARK** peut-être remplacée par un apostrophe (**'**). 
 
-Plusieurs commandes peuvent-être présentent sur la même ligne. Le caractère **':'** est utilisé comme séparateur de commande.
+Plusieurs commandes peuvent-être présentent sur la même ligne. Le caractère **':'** est utilisé pour indiqué la fin d'une commande. Son utilisation est facultif s'il n'y pas pas d'ambiguité. 
+```
+>A=2:B=4   ' valide
+
+>C=3 D=35 ' valide car il n'y pas d'ambiguité.
+
+>? a=3 b<=45  ' pas d'ambiguité il s,agit de 2 comparaisons. 
+   0   1
+
+```
 
 Une fin de ligne marque la fin d'une commande. Autrement dit une commande ne peut s'étendre sur plusieurs lignes. 
 
@@ -85,9 +94,7 @@ version 1.0
 
 >
 ```
-À partir de là l'utilisateur doit saisir une commande au clavier. Cette commande est considérée comme complétée lorsque la touche **ENTER** est enfoncée. C'est alors que l'interpréteur l'analyse et l'exécute. 
-
-Cependant si cette commande débute par un entier, cette ligne est considéré comme faisant partie d'un programme et et au lieu d'être exécutée est insérée dans la mémoire RAM réservé au programmes BASIC.  
+À partir de là l'utilisateur doit saisir une commande au clavier. Cette commande est considérée comme complétée lorsque la touche **ENTER** est enfoncée. La texte est d'abord compilé en *tokens*. Si il y a un numéro de ligne alors cette ligne est inséré dans l'espace mémoire réservé aux programmes sinon elle est exébutée immédiatement. 
 
 * Un numéro de ligne doit-être dans l'intervalle {1...32767}.
 
@@ -344,7 +351,7 @@ Cette fonction permet de lire l'état d'une des broches **D0..D15** du connecteu
 Lorsqu'elle est configuré avec **PMODE** en mode entrée. Cette fonction retourne **0** si l'entrée est à zéro volt ou **1** si l'entrée est à Vdd. 
 ```
 10 PMODE 5,PINP 
-20 ? DREAD 5
+20 ? DREAD(5)
 ```
 
 ### DWRITE *pin*,*level* 
