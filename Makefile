@@ -1,8 +1,7 @@
 #############################
-# librairies make file
+# TinyBasic make file
 #############################
 NAME=TinyBasic
-VM=vm1
 SDAS=sdasstm8
 SDCC=sdcc
 SDAR=sdar
@@ -53,8 +52,3 @@ flash: $(LIB)
 	@echo "***************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx 
 
-vm: vm1.asm 
-	-rm build/vm1.* 
-	$(SDAS) -g -l -o $(BUILD)$(VM).rel $(VM).asm 
-	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(VM).ihx  $(BUILD)$(VM).rel
-	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(VM).ihx

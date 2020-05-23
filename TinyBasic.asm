@@ -1556,14 +1556,12 @@ next_token:
 	inc in 
 	jra 3$
 6$: 
-	addw y,in.w 
-	ldw y,(y)
+	ldw x,y 
+	ldw x,([in.w],x)
 	cp a,#TK_INTGR
 	jrpl 7$
-	addw y,#code_addr
-	ldw y,(y) 
-7$:	exgw x,y 
-	inc in
+	ldw x,(code_addr,x) 
+7$:	inc in
 8$:	inc in 
 9$: 
 	ret	
@@ -2941,8 +2939,8 @@ get_array_element:
 ;   expression parse,execute 
 ;***********************************
 ;-----------------------------------
-; factor ::= ['+'|'-'|e]  var | @ |
-;			 integer | function |
+; factor ::= ['+'|'-'|e] | var | @ |
+;			 integer | function | constant 
 ;			 '('relation')' 
 ; output:
 ;   A    token attribute 
@@ -2985,7 +2983,7 @@ factor:
 	jra 18$
 12$:			
 	cp a,#TK_LPAREN
-	jrne 16$
+	jrne 17$
 	call relation
 	pushw x 
 	ld a,#TK_RPAREN 
@@ -2995,6 +2993,7 @@ factor:
 16$:
 	tnz a 
 	jreq 20$ 
+17$:
 	_unget_token
 	clr a 
 	jra 20$ 
@@ -3546,7 +3545,7 @@ decomp_loop:
 	jrne 1$
 	jp 20$
 1$:	jrpl 6$
-;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR
+;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_VAR|TK_INTGR
 	cp a,#TK_VAR 
 	jrne 3$
 ;; TK_VAR 

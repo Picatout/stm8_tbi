@@ -74,11 +74,11 @@ CODE                                00008080    00002B06 =       11014. bytes (R
      00008416  strlen                             STM8_TBI
      00008440  move                               STM8_TBI
      00008482  search_lineno                      STM8_TBI
-     00008E40  to_upper                           STM8_TBI
-     00008E4C  atoi24                             STM8_TBI
-     0000943B  decompile                          STM8_TBI
-     00009905  beep_1khz                          STM8_TBI
-     00009DF8  qkey                               STM8_TBI
+     00008E3B  to_upper                           STM8_TBI
+     00008E47  atoi24                             STM8_TBI
+     00009436  decompile                          STM8_TBI
+     00009900  beep_1khz                          STM8_TBI
+     00009DF3  qkey                               STM8_TBI
      0000A8C0  puts                               TERMINAL
      0000A92D  spaces                             TERMINAL
      0000A9C5  readln                             TERMINAL

@@ -1,3 +1,10 @@
+#### 2020-05-22
+
+* Annuler travail commencé sur branche *tbv2*  recommance à zéro. 
+
+* Modification à sous-routine *next_token*.
+
+
 #### 2020-05-16
 
 * Continuer test et débogage. Pas trouvé d'autres bogues aujourd'hui.
@@ -28,9 +35,9 @@
 
 **session 1**
 
-* Dans [terminal.inc](terminal.inc) renommé *delete_end* en *delete_nchar*.
+* Dans [terminal.asm](terminal.asm) renommé *delete_end* en *delete_nchar*.
 
-* Dans [terminal.inc](terminal.inc) amélioration des commentaires.
+* Dans [terminal.asm](terminal.asm) amélioration des commentaires.
 
 #### 2020-05-13
 
