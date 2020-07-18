@@ -1,3 +1,18 @@
+#### 2020-07-17
+
+* Ajout du module [xmodem.asm](xmodem.asm).  Ce module va permettre de faire des transferts de fichiers BASIC entre la carte **NUCLEO** et le **PC** hôte. Les fichiers seront transmis sous leur forme tokenisé.  Pour faire ce transfert il fallait un deuxième canal de communication avec le PC. Donc le **UART3** a est initialisé selon la même configuration que le **UART1**. Les commandes de transfert **XTRMT** et **XRCV** vérifie quel UART est utilisé pour la console et sélectionne automatiquement l'autre UART pour le transfert du fichier.
+
+* Ajout de la commande **CONSOLE COMA|COMC** pour sélectionner quel UART utilisé pour la console. Par défaut c'est le **COMA** qui est utilisé.
+
+    * **COMA** correspond au périphérique **UART1** du mcu. 
+    * **COMC** correspond au périphérique **UART3** du mcu.
+
+* Ajout des constantes   **COMA** et **COMC** 
+
+* commande BASIC **XTRMT**  pour transmettre le fichier qui et en mémoire RAM selon le protocole XMODEM. Complété et testé. 
+
+* commande BASIC **XRCV** Pour la réception d'un fichier selon le protocole XMODEM. Le fichier est stocké en mémoire RAM. 
+
 #### 2020-05-16
 
 * Continuer test et débogage. Pas trouvé d'autres bogues aujourd'hui.

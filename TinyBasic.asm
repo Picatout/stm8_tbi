@@ -72,7 +72,7 @@ acc24:: .blkb 1 ; 24 bit accumulator upper-byte
 acc16:: .blkb 1 ; 16 bit accumulator, acc24 high-byte
 acc8::  .blkb 1 ;  8 bit accumulator, acc24 low-byte  
 ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
-timer: .blkw 1 ;  milliseconds count down timer 
+timer:: .blkw 1 ;  milliseconds count down timer 
 seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
 seedy: .blkw 1  ; xorshift 16 seed y  used by RND() funcion
 farptr: .blkb 1 ; 24 bits pointer used by file system, upper-byte
@@ -88,6 +88,8 @@ tab_width: .blkb 1 ; print colon width (default 4)
 rx_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx_head:  .blkb 1 ; rx_queue head pointer
 rx_tail:   .blkb 1 ; rx_queue tail pointer  
+comm: .blkb 1 ; active communication UART1|UART3 
+
 vars: .blkw 26 ; BASIC variables A-Z, keep it as but last .
 ; keep 'free_ram' as last variable 
 free_ram: ; from here RAM free for BASIC text 
@@ -130,10 +132,10 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int15 TIM3 Update/overflow
 	int NonHandledInterrupt ;int16 TIM3 Capture/compare
 	int NonHandledInterrupt ;int17 UART1 TX completed
-	int Uart1RxHandler		;int18 UART1 RX full ; user communication channel.
+	int UartRxHandler		;int18 UART1 RX full ; default user communication channel.
 	int NonHandledInterrupt ;int19 I2C 
-	int NonHandledInterrupt ;int20 UART1 TX completed
-	int NonHandledInterrupt ;int21 UART1 RX full
+	int NonHandledInterrupt ;int20 UART3 TX completed
+	int UartRxHandler       ;int21 UART3 RX full
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
 	int Timer4UpdateHandler	;int23 TIM4 update/overflow ; used as msec ticks counter
 	int NonHandledInterrupt ;int24 flash writing EOP/WR_PG_DIS
@@ -169,29 +171,36 @@ AWUHandler:
 	iret
 
 ;--------------------------
-; UART1 receive character
+; UART receive character
 ; CTRL-C (ASCII 3)
 ; cancel program execution
 ; and fall back to command line
 ;--------------------------
-Uart1RxHandler:
+UartRxHandler:
+	ld a,comm 
+	jrne 0$ 
 	btjf UART1_SR,#UART_SR_RXNE,.
 	ld a,UART1_DR 
+	jra 1$
+0$:	
+	btjf UART3_SR,#UART_SR_RXNE,.
+	ld a,UART3_DR 
+1$:
 	cp a,#CTRL_C 
-	jrne 1$
+	jrne 2$
 	clr rx_head 
 	clr rx_tail 
 	jp user_interrupted
-1$:
+2$:
 	cp a,#CAN ; CTRL_X 
-	jrne 2$
-	jp cold_start 	
-2$: 
-	cp a,#CTRL_Z
 	jrne 3$
+	jp cold_start 	
+3$: 
+	cp a,#CTRL_Z
+	jrne 4$
 	call cancel_autorun 
 	jp cold_start 
-3$:	ldw x,#rx_queue  
+4$:	ldw x,#rx_queue  
 	push a 
 	ld a,xl 
 	add a,rx_tail 
@@ -614,6 +623,34 @@ write_block:
 ;;		115200 8N1 no flow control
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;--------------------------------
+; initialize UART3, 115200 8N1 
+;--------------------------------
+uart3_init: 
+	bset PD_DDR,#UART3_TX_PIN
+	bset PD_CR1,#UART3_TX_PIN 
+	bset PD_CR2,#UART3_TX_PIN 
+	bset CLK_PCKENR1,#CLK_PCKENR1_UART3
+uart3_set_baud: 
+; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
+; 1) check clock source, HSI at 16Mhz or HSE at 8Mhz  
+	ld a,#CLK_SWR_HSI
+	cp a,CLK_CMSR 
+	jreq 2$ 
+1$: ; 8 Mhz 	
+	mov UART3_BRR2,#0x05 ; must be loaded first
+	mov UART3_BRR1,#0x4
+	jra 3$
+2$: ; 16 Mhz 	
+	mov UART3_BRR2,#0x0b ; must be loaded first
+	mov UART3_BRR1,#0x08
+3$:
+    clr UART3_DR
+	mov UART3_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
+	bset UART3_CR2,#UART_CR2_SBK
+    btjf UART3_SR,#UART_SR_TC,.
+	ret 
+
 ;---------------------------------------------
 ; initialize UART1, 115200 8N1
 ; input:
@@ -657,8 +694,26 @@ uart1_set_baud:
 ;   none 
 ;--------------------------------	
 putc::
+	push a 
+	ld a,comm 
+	jrne putc3
+putc1: 
+	pop a 
 	btjf UART1_SR,#UART_SR_TXE,.
 	ld UART1_DR,a 
+	ret 
+putc3:
+	pop a 
+	btjf UART3_SR,#UART_SR_TXE,.
+	ld UART3_DR,a 
+	ret 
+
+;---------------------------------
+; Query for character in rx_queue
+;---------------------------------
+qgetc::
+	ld a,rx_head 
+	cp a,rx_tail 
 	ret 
 
 ;---------------------------------
@@ -669,9 +724,8 @@ putc::
 ;   A 			char  
 ;--------------------------------	
 getc::
-	ld a,rx_head 
-1$:	cp a,rx_tail 
-	jreq 1$
+	call qgetc
+	jreq getc 
 	pushw x 
 	ldw x,#rx_queue
 	ld a,xl 
@@ -1266,6 +1320,9 @@ cold_start:
 	call timer2_init
 ; UART1 at 115200 BAUD
 	call uart1_init
+; UART3 at 115200 BAUD 
+	call uart3_init	
+	clr comm ; default to UART1
 ; activate PE_4 (user button interrupt)
     bset PE_CR2,#USR_BTN_BIT 
 ; display system information
@@ -6389,6 +6446,125 @@ pad_ref:
 	ret 
 
 ;------------------------------
+; BASIC; XTRMT  
+; transmit file using xmodem protocol
+; via terminal serial port 
+;------------------------------------
+	SERIAL=1 ;packet serial number
+	VAR_SIZE=1
+transmit:
+	_vars VAR_SIZE
+; transmit on other channel 	
+	ld a,#UART3 
+	sub a,comm 
+	call con_sel  
+	ldw y,#10000
+	call wait_ack ; receiver must send NAK  
+	cp a,#NAK 
+	jrne tx_failed
+	clr (SERIAL,sp)
+	ldw x,txtbgn
+tx_loop:
+	ld a,(SERIAL,sp)
+	inc a
+	ld (SERIAL,sp),a 
+	call xtrmt_block
+	cp a,#NAK 
+	jreq tx_failed 
+	cpw x,txtend
+	jrult tx_loop 
+tx_success:
+	ld a,#EOT 
+	call putc 
+	call wait_ack 
+	ld a,#UART3 
+	sub a,comm 
+	call con_sel 		
+	ldw x,#xtrmt_success 
+	call puts 
+	jra tx_exit
+tx_failed:
+	ld a,#UART3 
+	sub a,comm 
+	call con_sel 		
+	ldw x,#xtrmt_failed 
+	call puts 
+tx_exit:
+	_drop VAR_SIZE 
+	ret 
+xtrmt_success: .asciz "XMODEM transmit succeeded.\n"
+xtrmt_failed: .asciz "XMODEM transmit failed.\n"
+
+
+;------------------------------
+; BASIC: XRCV file_name 
+; receive a basic file using
+; xmodem protocol
+; via terminal serial port 
+;------------------------------
+receive: 
+	ldw x,#xrcv_msg 
+	call puts 
+	ret
+xrcv_msg: .asciz "XMODEM receive"
+
+;------------------------------
+; BASIC: COMA  
+; return device id of UART1 
+;------------------------------
+const_coma:
+	ld a,#TK_INTGR
+	ldw x,#UART1 
+	ret
+
+;------------------------------
+; BASIC: COMC 
+; return device id of UART3
+;------------------------------
+const_comc:
+	ld a,#TK_INTGR
+	ldw x,#UART3 
+	ret 	 
+
+;------------------------------
+; BASIC: CONSOLE COMA|COMC
+; select communication channel 
+; default is COMA
+;------------------------------
+console_select:
+	call next_token 
+	cp a,#TK_IFUNC
+	jreq 1$
+	jp syntax_error
+1$: call (x)
+	ld a,xl 
+;-----------------------------
+; comm_sel 
+; input:
+;    A    channel UART1|UART3	
+;----------------------------
+con_sel:: 
+	cp a,#UART1 
+	jreq 4$
+	cp a,#UART3 
+	jreq 6$
+	jp syntax_error 
+4$: ld comm,a  
+	bres UART3_CR2,#UART_CR2_RIEN
+	clr rx_head 
+	clr rx_tail  
+	ld a,#UART1_DR
+	bset UART1_CR2,#UART_CR2_RIEN 
+	ret 
+6$: ld comm,a 
+	bres UART1_CR2,#UART_CR2_RIEN
+	clr rx_head 
+	clr rx_tail 
+	ld a,#UART3_DR  
+	bset UART3_CR2,#UART_CR2_RIEN 
+	ret 
+
+;------------------------------
 ;      dictionary 
 ; format:
 ;   link:   2 bytes 
@@ -6409,6 +6585,8 @@ name:
 ; respect alphabetic order for BASIC names from Z-A
 ; this sort order is for a cleaner WORDS cmd output. 	
 kword_end:
+	_dict_entry,5,XTRMT,XTRMT_IDX ; xmodem transmit
+	_dict_entry,4,XRCV,XRCV_IDX ; xmodem receive
 	_dict_entry,3+F_IFUNC,XOR,XOR_IDX;bit_xor
 	_dict_entry,5,WRITE,WRITE_IDX;write  
 	_dict_entry,5,WORDS,WORDS_IDX;words 
@@ -6416,7 +6594,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,USR,USR_IDX;usr
 	_dict_entry,5,UNTIL,UNTIL_IDX;until 
 	_dict_entry,6+F_IFUNC,UFLASH,UFLASH_IDX;uflash 
-	_dict_entry,6+F_IFUNC,UBOUND,UBOUND_IDX;ubound 
+	_dict_entry,6+F_IFUNC,UBOUND,UBOUND_IDX;ubound
 	_dict_entry,4,TONE,TONE_IDX;tone  
 	_dict_entry,2,TO,TO_IDX;to
 	_dict_entry,7+F_IFUNC,TIMEOUT,TMROUT_IDX;timeout 
@@ -6495,6 +6673,9 @@ kword_end:
 	_dict_entry,4,DATA,DATA_IDX;data  
 	_dict_entry,3+F_IFUNC,CRL,CRL_IDX;const_cr1 
 	_dict_entry,3+F_IFUNC,CRH,CRH_IDX;const_cr2 
+	_dict_entry,7,CONSOLE,CONS_IDX ; console_select
+	_dict_entry,4+F_IFUNC,COMC,COMC_IDX ; const_uarta
+	_dict_entry,4+F_IFUNC,COMA,COMA_IDX ; const_uartc 
 	_dict_entry,4+F_CFUNC,CHAR,CHAR_IDX;char
 	_dict_entry,3,BYE,BYE_IDX;bye 
 	_dict_entry,5,BTOGL,BTOGL_IDX;bit_toggle
@@ -6525,8 +6706,8 @@ code_addr:
 	.word restore,return, random,rshift,run,save,show,size ; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
-	.word wait,words,write,bit_xor ; 96..103 
-	.word 0 
+	.word wait,words,write,bit_xor,transmit,receive,const_coma,const_comc ; 96..103 
+	.word console_select,0 
 
 	.bndry 128 ; align on FLASH block.
 ; free space for user application  

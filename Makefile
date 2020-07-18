@@ -10,8 +10,8 @@ CFLAGS=-mstm8 -lstm8 -L$(LIB_PATH) -I../inc
 INC=../inc/
 INCLUDES=$(INC)stm8s208.inc
 BUILD=build/
-LIB_PATH=../lib/
-OBJECTS=$(BUILD)$(SRC:.c=.rel)
+SRC=$(NAME).asm terminal.asm xmodem.asm 
+OBJECTS=$(BUILD)$(SRC:.asm=.rel)
 SYMBOLS=$(OBJECTS:.rel=.sym)
 LISTS=$(OBJECTS:.rel=.lst)
 FLASH=stm8flash
@@ -22,16 +22,17 @@ PROGRAMMER=stlinkv21
 
 all: clean $(NAME).rel $(NAME).ihx 
 
-$(NAME).rel:
+$(NAME).rel: $(SRC)
 	@echo
 	@echo "**********************"
 	@echo "compiling $(NAME)       "
 	@echo "**********************"
-	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm
+	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm 
 	$(SDAS) -g -l -o $(BUILD)terminal.rel terminal.asm	
+	$(SDAS) -g -l -o $(BUILD)xmodem.rel xmodem.asm 
 
-$(NAME).ihx: $(NAME).rel 
-	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx  $(BUILD)$(NAME).rel $(BUILD)terminal.rel
+$(NAME).ihx: $(BUILD)$(NAME).rel $(BUILD)terminal.rel $(BUILD)xmodem.rel
+	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx $^  
 
 .PHONY: clean 
 clean: build
@@ -51,7 +52,7 @@ flash: $(LIB)
 	@echo "***************"
 	@echo "flashing device"
 	@echo "***************"
-	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(NAME).ihx 
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -w $(BUILD)$(NAME).ihx 
 
 vm: vm1.asm 
 	-rm build/vm1.* 

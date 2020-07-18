@@ -642,7 +642,7 @@ Hexadecimal [24-Bits]
                                  
                                         
                                         ; uart identifier
-                                        ; to be used by uart_init
+                                 
                                  
                                  
                                         
@@ -1574,7 +1574,7 @@ Hexadecimal [24-Bits]
       000022 26 F7            [ 1]   83     jrne 2$
       000024 4F               [ 1]   84     clr a
       000025 81               [ 4]   85     ret 
-      000026 5C               [ 2]   86 4$: incw x 
+      000026 5C               [ 1]   86 4$: incw x 
       000027 F6               [ 1]   87     ld a,(x)
       000028 A1 84            [ 1]   88     cp a,#SUP
       00002A 26 05            [ 1]   89     jrne 5$
@@ -1596,7 +1596,7 @@ Hexadecimal [24-Bits]
       000032 F6               [ 1]  105     ld a,(x)
       000033 27 06            [ 1]  106 	jreq 1$
       000035 CD 00 00         [ 4]  107 	call putc 
-      000038 5C               [ 2]  108 	incw x 
+      000038 5C               [ 1]  108 	incw x 
       000039 20 F7            [ 2]  109 	jra puts 
       00003B 81               [ 4]  110 1$:	ret 
                                     111 
@@ -1779,7 +1779,7 @@ Hexadecimal [24-Bits]
       0000B2 9F               [ 1]  272     ld a,xl 
       0000B3 6B 03            [ 1]  273     ld (LLEN,sp),a  
       0000B5 93               [ 1]  274     ldw x,y
-      0000B6 5C               [ 2]  275     incw x 
+      0000B6 5C               [ 1]  275     incw x 
       0000B7 7B 03            [ 1]  276     ld a,(LLEN,sp)
       0000B9 10 01            [ 1]  277     sub a,(IPOS,sp)
       0000BB 4C               [ 1]  278     inc a 
@@ -1792,7 +1792,7 @@ Hexadecimal [24-Bits]
       0000CF 72 B9 00 00      [ 2]  285     addw y,acc16 
       0000D3 7B 02            [ 1]  286     ld a,(CHAR,sp)
       0000D5 90 F7            [ 1]  287     ld (y),a
-      0000D7 90 5C            [ 2]  288     incw y  
+      0000D7 90 5C            [ 1]  288     incw y  
       0000D9 7B 01            [ 1]  289     ld a,(IPOS,sp)
       0000DB CD 00 83         [ 4]  290     call move_left
       0000DE AE 00 00         [ 2]  291     ldw x,#tib 
@@ -1827,7 +1827,7 @@ Hexadecimal [24-Bits]
       0000F2 9F               [ 1]  313     ld a,xl 
       0000F3 6B 01            [ 1]  314     ld (CPOS,sp),a 
       0000F5 93               [ 1]  315     ldw x,y ; move destination
-      0000F6 90 5C            [ 2]  316     incw y  ; move source 
+      0000F6 90 5C            [ 1]  316     incw y  ; move source 
       0000F8 7B 02            [ 1]  317     ld a,(LLEN,sp)
       0000FA 10 01            [ 1]  318     sub a,(CPOS,sp)
       0000FC 4C               [ 1]  319     inc a ; move including zero at end.
@@ -2023,7 +2023,7 @@ Hexadecimal [24-Bits]
       000213 A6 01            [ 1]  492     ld a,#1 
       000215 CD 00 91         [ 4]  493 	call move_right 
       000218 0C 03            [ 1]  494 	inc (CPOS,sp)
-      00021A 90 5C            [ 2]  495     incw y 
+      00021A 90 5C            [ 1]  495     incw y 
       00021C CC 01 44         [ 2]  496     jp readln_loop 
       00021F A1 80            [ 1]  497 7$: cp a,#ARROW_LEFT  
       000221 26 13            [ 1]  498 	jrne 8$
@@ -2121,7 +2121,7 @@ Hexadecimal [24-Bits]
       0002C3                        580 overwrite:
       0002C3 7B 01            [ 1]  581 	ld a,(RXCHAR,sp)
       0002C5 90 F7            [ 1]  582 	ld (y),a
-      0002C7 90 5C            [ 2]  583     incw y
+      0002C7 90 5C            [ 1]  583     incw y
       0002C9 CD 00 00         [ 4]  584     call putc 
       0002CC 7B 03            [ 1]  585 	ld a,(CPOS,sp)
       0002CE 11 02            [ 1]  586 	cp a,(LL,sp)
@@ -2483,53 +2483,54 @@ Symbol Table
     UART1_CR=  005235     |     UART1_CR=  005236     |     UART1_CR=  005237 
     UART1_CR=  005238     |     UART1_DR=  005231     |     UART1_GT=  005239 
     UART1_PO=  000000     |     UART1_PS=  00523A     |     UART1_RX=  000004 
-    UART1_SR=  005230     |     UART1_TX=  000005     |     UART3   =  000001 
-    UART3_BA=  005240     |     UART3_BR=  005242     |     UART3_BR=  005243 
-    UART3_CR=  005244     |     UART3_CR=  005245     |     UART3_CR=  005246 
-    UART3_CR=  005247     |     UART3_CR=  004249     |     UART3_DR=  005241 
-    UART3_PO=  00000F     |     UART3_RX=  000006     |     UART3_SR=  005240 
-    UART3_TX=  000005     |     UART_BRR=  000002     |     UART_BRR=  000003 
-    UART_CR1=  000004     |     UART_CR1=  000004     |     UART_CR1=  000002 
-    UART_CR1=  000000     |     UART_CR1=  000001     |     UART_CR1=  000007 
-    UART_CR1=  000006     |     UART_CR1=  000005     |     UART_CR1=  000003 
-    UART_CR2=  000005     |     UART_CR2=  000004     |     UART_CR2=  000002 
-    UART_CR2=  000005     |     UART_CR2=  000001     |     UART_CR2=  000000 
-    UART_CR2=  000006     |     UART_CR2=  000003     |     UART_CR2=  000007 
-    UART_CR3=  000006     |     UART_CR3=  000003     |     UART_CR3=  000001 
-    UART_CR3=  000002     |     UART_CR3=  000000     |     UART_CR3=  000006 
-    UART_CR3=  000004     |     UART_CR3=  000005     |     UART_CR4=  000007 
-    UART_CR4=  000000     |     UART_CR4=  000001     |     UART_CR4=  000002 
-    UART_CR4=  000003     |     UART_CR4=  000004     |     UART_CR4=  000006 
-    UART_CR4=  000005     |     UART_CR5=  000008     |     UART_CR5=  000003 
-    UART_CR5=  000001     |     UART_CR5=  000002     |     UART_CR5=  000004 
-    UART_CR5=  000005     |     UART_CR6=  000009     |     UART_CR6=  000004 
-    UART_CR6=  000007     |     UART_CR6=  000001     |     UART_CR6=  000002 
-    UART_CR6=  000000     |     UART_CR6=  000005     |     UART_DR =  000001 
-    UART_GTR=  000009     |     UART_PSC=  00000A     |     UART_SR =  000000 
+    UART1_SR=  005230     |     UART1_TX=  000005     |     UART2   =  000001 
+    UART3   =  000002     |     UART3_BA=  005240     |     UART3_BR=  005242 
+    UART3_BR=  005243     |     UART3_CR=  005244     |     UART3_CR=  005245 
+    UART3_CR=  005246     |     UART3_CR=  005247     |     UART3_CR=  004249 
+    UART3_DR=  005241     |     UART3_PO=  00000F     |     UART3_RX=  000006 
+    UART3_SR=  005240     |     UART3_TX=  000005     |     UART_BRR=  000002 
+    UART_BRR=  000003     |     UART_CR1=  000004     |     UART_CR1=  000004 
+    UART_CR1=  000002     |     UART_CR1=  000000     |     UART_CR1=  000001 
+    UART_CR1=  000007     |     UART_CR1=  000006     |     UART_CR1=  000005 
+    UART_CR1=  000003     |     UART_CR2=  000005     |     UART_CR2=  000004 
+    UART_CR2=  000002     |     UART_CR2=  000005     |     UART_CR2=  000001 
+    UART_CR2=  000000     |     UART_CR2=  000006     |     UART_CR2=  000003 
+    UART_CR2=  000007     |     UART_CR3=  000006     |     UART_CR3=  000003 
+    UART_CR3=  000001     |     UART_CR3=  000002     |     UART_CR3=  000000 
+    UART_CR3=  000006     |     UART_CR3=  000004     |     UART_CR3=  000005 
+    UART_CR4=  000007     |     UART_CR4=  000000     |     UART_CR4=  000001 
+    UART_CR4=  000002     |     UART_CR4=  000003     |     UART_CR4=  000004 
+    UART_CR4=  000006     |     UART_CR4=  000005     |     UART_CR5=  000008 
+    UART_CR5=  000003     |     UART_CR5=  000001     |     UART_CR5=  000002 
+    UART_CR5=  000004     |     UART_CR5=  000005     |     UART_CR6=  000009 
+    UART_CR6=  000004     |     UART_CR6=  000007     |     UART_CR6=  000001 
+    UART_CR6=  000002     |     UART_CR6=  000000     |     UART_CR6=  000005 
+    UART_DR =  000001     |     UART_GTR=  000009     |     UART_PSC=  00000A 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 18.
 Hexadecimal [24-Bits]
 
 Symbol Table
 
-    UART_SR_=  000001     |     UART_SR_=  000004     |     UART_SR_=  000002 
-    UART_SR_=  000003     |     UART_SR_=  000000     |     UART_SR_=  000005 
-    UART_SR_=  000006     |     UART_SR_=  000007     |     UBC     =  004801 
-    US      =  00001F     |     USR_BTN_=  000004     |     USR_BTN_=  000010 
-    USR_BTN_=  005015     |     VSISE   =  000003     |     VSIZE   =  000004 
-    VT      =  00000B     |     WDGOPT  =  004805     |     WDGOPT_I=  000002 
-    WDGOPT_L=  000003     |     WDGOPT_W=  000000     |     WDGOPT_W=  000001 
-    WWDG_CR =  0050D1     |     WWDG_WR =  0050D2     |     XOFF    =  000013 
-    XON     =  000011     |     acc16      ****** GX  |     acc8       ****** GX
-  1 accept_c   00029E R   |     atoi24     ****** GX  |     basicptr   ****** GX
-    beep_1kh   ****** GX  |   1 bksp       00003C R   |   1 convert_   000000 R
-    count      ****** GX  |     decompil   ****** GX  |   1 delete_l   000129 R
-  1 delete_n   00004C R   |   1 delete_u   0000EE R   |   1 final_te   000297 R
-  1 get_esca   00000C R   |     getc       ****** GX  |   1 insert_c   0000AB R
-    move       ****** GX  |   1 move_lef   000083 R   |   1 move_rig   000091 R
-  1 overwrit   0002C3 R   |     putc       ****** GX  |   1 puts       000032 GR
-  1 readln     000137 GR  |   1 readln_l   000144 R   |   1 readln_q   0002E0 R
-    search_l   ****** GX  |   1 send_esc   00005A R   |   1 send_par   000065 R
-  1 spaces     00009F GR  |     strlen     ****** GX  |     tib        ****** GX
+    UART_SR =  000000     |     UART_SR_=  000001     |     UART_SR_=  000004 
+    UART_SR_=  000002     |     UART_SR_=  000003     |     UART_SR_=  000000 
+    UART_SR_=  000005     |     UART_SR_=  000006     |     UART_SR_=  000007 
+    UBC     =  004801     |     US      =  00001F     |     USR_BTN_=  000004 
+    USR_BTN_=  000010     |     USR_BTN_=  005015     |     VSISE   =  000003 
+    VSIZE   =  000004     |     VT      =  00000B     |     WDGOPT  =  004805 
+    WDGOPT_I=  000002     |     WDGOPT_L=  000003     |     WDGOPT_W=  000000 
+    WDGOPT_W=  000001     |     WWDG_CR =  0050D1     |     WWDG_WR =  0050D2 
+    XOFF    =  000013     |     XON     =  000011     |     acc16      ****** GX
+    acc8       ****** GX  |   1 accept_c   00029E R   |     atoi24     ****** GX
+    basicptr   ****** GX  |     beep_1kh   ****** GX  |   1 bksp       00003C R
+  1 convert_   000000 R   |     count      ****** GX  |     decompil   ****** GX
+  1 delete_l   000129 R   |   1 delete_n   00004C R   |   1 delete_u   0000EE R
+  1 final_te   000297 R   |   1 get_esca   00000C R   |     getc       ****** GX
+  1 insert_c   0000AB R   |     move       ****** GX  |   1 move_lef   000083 R
+  1 move_rig   000091 R   |   1 overwrit   0002C3 R   |     putc       ****** GX
+  1 puts       000032 GR  |   1 readln     000137 GR  |   1 readln_l   000144 R
+  1 readln_q   0002E0 R   |     search_l   ****** GX  |   1 send_esc   00005A R
+  1 send_par   000065 R   |   1 spaces     00009F GR  |     strlen     ****** GX
+    tib        ****** GX
 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 19.
 Hexadecimal [24-Bits]
