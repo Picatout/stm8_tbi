@@ -35,33 +35,81 @@
 
 PACKET_SIZE=128
 
+;-----------------------
+; get next character 
+; wait 1 second maximum
 ;------------------------
-; wait 1 second to receive 
-; ACK/NAK character 
+get_next:
+	ldw y,#1000
+
+;-------------------------------
+; getc with timeout 
 ; input:
-;    Y   wait time in msec 
-;------------------------
-wait_ack::
+;   Y     timeout delay in msec.
+; output:
+;   A     0|char received
+;-------------------------------
+getc_to::
 	ldw timer,y 
-1$:	call qgetc 
-	jreq 2$ 
+	clr a 
+1$: ldw y,timer 
+	jrne 2$
+	ret 
+2$:	call qgetc 
+	jreq 1$ 
 	call getc 
-	cp a,#ACK 
-	jreq 4$ 
-	cp a,#NAK 
-	jreq 4$ 
-2$:	clr a 
-	ldw y, timer
-	jrne 1$
-4$: clrw y 
-	ldw timer,y 
 	ret 
 
-;------------------------
+
+;-----------------------------------
 ; XMODEM receive 128 bytes block
-;------------------------
+; input:
+;   X    receive buffer address
+; output:
+;   A    ACK packet received ok
+;        NAK packet received failed
+;        EOT end of file 
+;-----------------------------------
+	BCOUNT=1 
+	CHKSUM=2 
+	SERIAL=3
+	VAR_SIZE=3
 xrcv_block::
-    ret 
+	_vars VAR_SIZE 
+    call get_next 
+	cp a,#EOT 
+	jrne 1$
+	ld a,#ACK  
+	call putc 
+	ld a,#EOT 
+	jra 6$ 		
+1$:	cp a,#SOH 
+	jrne 4$ 
+	ld a,#PACKET_SIZE
+	ld (BCOUNT,sp),a 
+	clr (CHKSUM,sp)
+	call get_next  
+	ld (SERIAL,sp),a 
+	call get_next
+	add a,(SERIAL,sp)
+	inc a 
+	jrne 4$
+2$: 
+	call get_next 
+	ld (x),a 
+	add a,(CHKSUM,sp)
+	ld (CHKSUM,sp),a 
+	dec (BCOUNT,sp)
+	jrne 2$
+	call get_next  
+	cp a,(CHKSUM,sp)
+	jrne 4$
+	ld a,#ACK 
+	jra 6$ 
+4$: ld a,#CAN 
+	call putc
+6$:	_drop VAR_SIZE 
+	ret 
 
 ;-------------------------
 ; XMODEM transmit 128 bytes block
@@ -103,8 +151,7 @@ tx_retries:
 	jrne 1$ 
 	ld a,(CHKSUM,sp)
 	call putc
-	ldw y,#500
-	call wait_ack 	
+	call get_next
 	cp a,#ACK 
 	jreq 2$ 
 	dec (RETRY,sp)

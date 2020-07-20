@@ -21,7 +21,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000064  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
-     00002CF1  l_CODE                          
+     00002DAB  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -65,28 +65,30 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00002CF1 =       11505. bytes (REL,CON)
+CODE                                00008080    00002DAB =       11691. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
      0000838A  putc                               STM8_TBI
      000083A4  qgetc                              STM8_TBI
      000083AB  getc                               STM8_TBI
-     00008475  strlen                             STM8_TBI
-     0000849F  move                               STM8_TBI
-     000084E1  search_lineno                      STM8_TBI
-     00008EA6  to_upper                           STM8_TBI
-     00008EB2  atoi24                             STM8_TBI
-     000094A1  decompile                          STM8_TBI
-     0000996B  beep_1khz                          STM8_TBI
-     00009E5E  qkey                               STM8_TBI
-     0000A50D  con_sel                            STM8_TBI
-     0000AA40  puts                               TERMINAL
-     0000AAAD  spaces                             TERMINAL
-     0000AB45  readln                             TERMINAL
-     0000AD06  wait_ack                           XMODEM
-     0000AD28  xrcv_block                         XMODEM
-     0000AD29  xtrmt_block                        XMODEM
+     000083CA  drain                              STM8_TBI
+     0000848A  strlen                             STM8_TBI
+     000084B4  move                               STM8_TBI
+     000084F6  search_lineno                      STM8_TBI
+     00008EBB  to_upper                           STM8_TBI
+     00008EC7  atoi24                             STM8_TBI
+     000094B6  decompile                          STM8_TBI
+     00009980  beep_1khz                          STM8_TBI
+     00009E73  qkey                               STM8_TBI
+     0000A58A  con_sel                            STM8_TBI
+     0000AAC0  puts                               TERMINAL
+     0000AB2D  spaces                             TERMINAL
+     0000ABC5  readln                             TERMINAL
+     0000AD8A  getc_to                            XMODEM
+     0000AD9F  xrcv_block                         XMODEM
+     0000ADE7  xtrmt_block                        XMODEM
+
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
 Files Linked                              [ module(s) ]

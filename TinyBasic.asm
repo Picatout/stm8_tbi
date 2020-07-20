@@ -710,10 +710,15 @@ putc3:
 
 ;---------------------------------
 ; Query for character in rx_queue
+; input:
+;   none 
+; output:
+;   A     0 no charcter available
+;   Z     1 no character available
 ;---------------------------------
 qgetc::
 	ld a,rx_head 
-	cp a,rx_tail 
+	sub a,rx_tail 
 	ret 
 
 ;---------------------------------
@@ -740,6 +745,26 @@ getc::
 	ld rx_head,a 
 	pop a  
 	ret 
+
+;-----------------------------
+; drop all characters 
+; received in the 
+; next Y msec 
+; input:
+;   Y    drain time msec 
+; output:
+;   none 
+;----------------------------
+drain::
+	ldw timer,y 
+1$: ldw y,timer 
+	jrne 2$
+	ret
+2$:	call qgetc 
+	jreq 1$ 
+	call getc 
+	jra 1$
+
 
 ;----------------------
 ; print token id && value
@@ -6436,6 +6461,7 @@ cs_high:
 	ret 
 
 
+
 ;-------------------------------
 ; BASIC: PAD 
 ; Return pad buffer address.
@@ -6454,12 +6480,30 @@ pad_ref:
 	VAR_SIZE=1
 transmit:
 	_vars VAR_SIZE
+	ldw x,#xtrmt_msg 
+	call puts 
+; end of file marker 
+	ldw x,txtend 
+	ldw y,#END_IDX 
+	ldw (x),y 
+; zeroes end of file 
+	addw x,#2 
+	pushw x 
+	subw x,txtbgn 
+	ld a,xl 
+	ld acc8,a 
+	ld a,#128 
+	sub a,acc8 
+	ld acc8,a 
+	popw x 
+1$:	clr (x)
+	incw x 
+	dec acc8  
+	jrne 1$ 
 ; transmit on other channel 	
-	ld a,#UART3 
-	sub a,comm 
-	call con_sel  
+	call console_toggle  
 	ldw y,#10000
-	call wait_ack ; receiver must send NAK  
+	call getc_to ; receiver must send NAK  
 	cp a,#NAK 
 	jrne tx_failed
 	clr (SERIAL,sp)
@@ -6476,37 +6520,74 @@ tx_loop:
 tx_success:
 	ld a,#EOT 
 	call putc 
-	call wait_ack 
-	ld a,#UART3 
-	sub a,comm 
-	call con_sel 		
-	ldw x,#xtrmt_success 
+	ldw y,#1000
+	call getc_to  
+	call console_toggle
+	ldw x,#x_success 
 	call puts 
 	jra tx_exit
 tx_failed:
-	ld a,#UART3 
-	sub a,comm 
-	call con_sel 		
-	ldw x,#xtrmt_failed 
+	ld a,#CAN 
+	call putc 
+	ldw y,#1000 
+	call drain 
+	call console_toggle 
+	ldw x,#x_fail 
 	call puts 
 tx_exit:
 	_drop VAR_SIZE 
-	ret 
-xtrmt_success: .asciz "XMODEM transmit succeeded.\n"
-xtrmt_failed: .asciz "XMODEM transmit failed.\n"
+	ret
+xtrmt_msg: .asciz "XMODEM transmit "	 
+x_success: .asciz "succeeded.\n"
+x_fail: .asciz "failed.\n"
 
 
 ;------------------------------
 ; BASIC: XRCV file_name 
 ; receive a basic file using
 ; xmodem protocol
-; via terminal serial port 
+; via terminal serial port
+; file is expected to be tokenized 
+; BASIC file and is stored in RAM. 
 ;------------------------------
 receive: 
 	ldw x,#xrcv_msg 
 	call puts 
+; wait 10 second for sender setup
+; drop characters while waiting 
+	ldw y,#10000
+	call drain 
+	ld a,#NAK 
+	call putc 
+	ldw x,txtbgn
+rx_loop:
+	call xrcv_block
+	cp a,#EOT
+	jreq rx_success 	
+	cp a,#NAK 
+	jreq rx_failed
+	cp a,#CAN 
+	jreq rx_failed 
+	jra rx_loop
+rx_success:
+;back to END_IDX 	
+	cpw x,txtbgn
+	jreq 1$ 
+	ldw y,x 
+	ldw y,(y)
+	cpw y,#END_IDX 
+	jreq 1$
+	decw x 
+	jra rx_success
+1$:	ldw txtend,x 
+	ldw x,#x_success
+	call puts 
 	ret
-xrcv_msg: .asciz "XMODEM receive"
+rx_failed:
+	ldw x,#x_fail 
+	call puts 
+	ret 
+xrcv_msg: .asciz "XMODEM receive "
 
 ;------------------------------
 ; BASIC: COMA  
@@ -6525,6 +6606,16 @@ const_comc:
 	ld a,#TK_INTGR
 	ldw x,#UART3 
 	ret 	 
+
+;-------------------------
+; console_toggle
+; switch to other console 
+; channel
+;-------------------------
+console_toggle:
+	ld a,#UART3 
+	sub a,comm 
+	jp con_sel
 
 ;------------------------------
 ; BASIC: CONSOLE COMA|COMC
