@@ -1,3 +1,9 @@
+#### 2020-07-22
+
+* Je me ravise et supprime les mots **COMA**, **COMC** et **CONSOLE**.  Cette fonctionnalité de pouvoir sélectionner la console me paraît superflue dans le contexte. Donc la console est toujours branchée sur UART1 et UART3 est utilisé pour les autres types de communications comme le transfert de fichiers.
+
+* séparation des files de réceptions et des gestionnaires d'interruption pour les 2 UART. 
+
 #### 2020-07-21
 
 * Déboger commande **XRCV** en fait le bogue était dans **UartRxHandler**. Les commandes **CTRL-C**,**CTRL-X** et **CTRL-Z** ne sont pas compatible avec **XRCV** je les ai donc désactivées.

@@ -604,3 +604,37 @@ readln_quit:
 	_drop VSIZE 
 	ret
 
+;------------------------------
+; print byte  in hexadecimal 
+; on console
+; input:
+;    A		byte to print
+;------------------------------
+print_hex::
+	push a 
+	swap a 
+	call to_hex_char 
+	call putc 
+    ld a,(1,sp) 
+	call to_hex_char
+	call putc
+	ld a,#SPACE 
+	call putc 
+	pop a 
+	ret 
+
+;----------------------------------
+; convert to hexadecimal digit 
+; input:
+;   A       digit to convert 
+; output:
+;   A       hexdecimal character 
+;----------------------------------
+to_hex_char::
+	and a,#15 
+	cp a,#9 
+	jrule 1$ 
+	add a,#7
+1$: add a,#'0 
+	ret 
+

@@ -124,6 +124,3 @@
     XOR_IDX=99<<1 
     XTRMT_IDX=100<<1
     XRCV_IDX=101<<1
-    COMA_IDX=102<<1
-    COMC_IDX=103<<1
-    CONS_IDX=104<<1 

@@ -269,17 +269,6 @@ La fonction *character* retourne le caractère ASCII correspondant aux 7 bits le
      !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
     > 
 
-### COMA 
-Constante qui identifie le UART1 pour la commande **CONSOLE**. 
-
-### COMC 
-Constante qui identifie le UART3 pour la commande **CONSOLE**.
-
-### CONSOLE COMx 
-Sélectionne le canal de communication pour la console utilisateur. Par défaut il s'agit de **COMA**. **COMx** peut prendre les valeurs {COMA,COMC}. Ces valeurs correspondes aux 2 UART du MCU stm8s208rb. Le **UART1** ou **COMA** est celui relié au programmeur STLINKV2.1 de la carte. Le programmeur émule un périphérique USB **ACM** pour ce canal. se périphérique apparaît dans **/dev/ttyACMx** sur le PC. 
-
-Le **UART3** ou **COMC** peut apparaître comme un périphérique **/dev/ttySx** ou un autre **ACM** dépendant s'il est branché sur port sériel traditionnel sur le PC ou un émulateur sériel USB. 
-
 ### CRH {C,P}
 Cette fonction retourne l'index du registre **CR2** *(Control Register 2)* d'un port GPIO. En mode entrée ce registre active ou désactive l'interruption externe. En mode sortie il configure la vitesse du port. 
 
@@ -1241,14 +1230,18 @@ Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxre
 ```
 
 ### XRCV 
-Commande pour revevoir un fichier BASIC qui est sur le PC hôte en utilisant le protocole **XMODEM**. Il faut donc utiliser sur le PC un émulateur de terminal qui supporte le transfert de fichier par **XMODEM**. **minicom** est un de ces émulateur. Il faut donc 2 émulateurs de terminal. L'un pour l'interface utilisateur et l'autre pour le transfert. On doit activer la transmission avant de passer la commande **XRCV** sur le terminal d'interface utilisateur. <br/>
+Commande pour revevoir un fichier BASIC qui est sur le PC hôte en utilisant le protocole **XMODEM**. Il faut donc utiliser sur le PC un émulateur de terminal qui supporte le transfert de fichier par **XMODEM**, par exemple **minicom**. Il faut donc 2 émulateurs de terminal. L'un pour la console utilisateur et l'autre pour le transfert. On doit activer la transmission avant de passer la commande **XRCV** sur la console. <br/>
 ![docs/images/xrcv.png](docs/images/xrcv.png)
-Dans cette capture d'écran **GTKTerm** est utiliser comme interface utilisateur et **minicom** pour activer la transmission du fichier à partir du PC. La console communique via **COMA** et xmodem via le canal **COMC**. 
+Dans cette capture d'écran **GTKTerm** est utiliser comme console utilisateur et **minicom** pour activer la transmission du fichier à partir du PC. La console communique via **UART1** et xmodem via le canal **UART3**. 
+
+Cette commande peut aussi être utilisée pour transmettre un programm BASIC directement d'une carte à l'autre.
 
 ### XTRMT 
 Commande pour transmettre le fichier BASIC qui est en émoire RAM vers le PC hôte en utlisant le protocole **XMODEM**. On doit lancer la commande **XTRMT** sur la console avant de lancer la réception **XMODEM** sur l'autre terminal.<br/> 
 ![docs/images/xtrmt.png](docs/images/xtrmt.png)
-Sur cette capture d'écran **GTKTerm** branché sur **COMA** est utilisé comme console utilisateur et **minicom** branché sur **COMC** est utilisé pour la réception vers le PC. 
+Sur cette capture d'écran **GTKTerm** branché sur **UART1** est utilisé comme console utilisateur et **minicom** branché sur **UART3** est utilisé pour la réception vers le PC. 
+
+Cette commande peut aussi être utilisée pour transmettre un programm BASIC directement d'une carte à l'autre.
 
 ## Installation de Tiny BASIC sur la carte NUCLEO-8S208RB 
 À la ligne 36 du fichier [PABasic.asm](PABasic.asm) il y a une macro nommée **_dbg**. Cette macro ajoute du code supplémentaire lors du développement du système et doit-être mise en commentaire pour construire la version finale. construire Tiny BASIC et programmer la carte NUCLEO est très simple grâce la l'utilitaire **make**. Lorsque la carte est branchée et prête à être programmée faites la commande suivante:

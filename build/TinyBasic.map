@@ -18,10 +18,10 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
-     00000064  l_DATA                          
+     0000006D  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
-     00002E25  l_CODE                          
+     00002D93  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -30,7 +30,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-DATA                                00000001    00000064 =         100. bytes (REL,CON)
+DATA                                00000001    0000006D =         109. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -65,29 +65,35 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00002E25 =       11813. bytes (REL,CON)
+CODE                                00008080    00002D93 =       11667. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008378  putc                               STM8_TBI
-     00008394  qgetc                              STM8_TBI
-     0000839B  getc                               STM8_TBI
-     000083BA  drain                              STM8_TBI
-     0000847A  strlen                             STM8_TBI
-     000084A4  move                               STM8_TBI
-     000084E6  search_lineno                      STM8_TBI
-     00008EA7  to_upper                           STM8_TBI
-     00008EB3  atoi24                             STM8_TBI
-     000094A2  decompile                          STM8_TBI
-     0000996C  beep_1khz                          STM8_TBI
-     00009E5F  qkey                               STM8_TBI
-     0000A577  con_sel                            STM8_TBI
-     0000AAC0  puts                               TERMINAL
-     0000AB2D  spaces                             TERMINAL
-     0000ABC5  readln                             TERMINAL
-     0000ADB1  getc_to                            XMODEM
-     0000AE00  xrcv_block                         XMODEM
-     0000AE61  xtrmt_block                        XMODEM
+     000083AB  putc                               STM8_TBI
+     000083AB  uart1_putc                         STM8_TBI
+     000083B4  uart3_putc                         STM8_TBI
+     000083BD  qgetc                              STM8_TBI
+     000083BD  uart1_qgetc                        STM8_TBI
+     000083C4  uart3_qgetc                        STM8_TBI
+     000083CB  getc                               STM8_TBI
+     000083CB  uart1_getc                         STM8_TBI
+     000083EA  uart3_getc                         STM8_TBI
+     000084B4  strlen                             STM8_TBI
+     000084DE  move                               STM8_TBI
+     00008520  search_lineno                      STM8_TBI
+     00008EDD  to_upper                           STM8_TBI
+     00008EE9  atoi24                             STM8_TBI
+     000094D8  decompile                          STM8_TBI
+     000099A2  beep_1khz                          STM8_TBI
+     00009E95  qkey                               STM8_TBI
+     0000AA40  puts                               TERMINAL
+     0000AAAD  spaces                             TERMINAL
+     0000AB45  readln                             TERMINAL
+     0000AD06  print_hex                          TERMINAL
+     0000AD1D  to_hex_char                        TERMINAL
+     0000AD53  getc_to                            XMODEM
+     0000AD6E  xrcv_block                         XMODEM
+     0000ADCF  xtrmt_block                        XMODEM
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 

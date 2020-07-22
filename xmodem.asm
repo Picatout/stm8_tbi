@@ -54,9 +54,9 @@ wait_soh:
 	ldw y,timer 
 	jrne 2$
 	ret 
-2$:	call qgetc 
+2$:	call uart3_qgetc 
 	jreq 1$ 
-	call getc 
+	call uart3_getc 
 	cp a,#SOH 
 	jreq 4$ 
 	cp a,#EOT 
@@ -85,35 +85,11 @@ getc_to::
 1$: ldw y,timer 
 	jrne 2$
 	ret 
-2$:	call qgetc 
+2$:	call uart3_qgetc 
 	jreq 1$ 
-	call getc 
+	call uart3_getc 
 	clrw y 
 	ldw timer,y 
-	ret 
-
-hexo:
-	push a 
-	swap a 
-	and a,#15 
-	cp a,#9
-	jrule 2$
-	add a,#7 
-2$: add a,#'0 
-	btjf UART1_SR,#UART_SR_TXE,. 
-	ld UART1_DR,a 
-    ld a,(1,sp) 
-	and a,#15 
-	cp a,#9
-	jrule 4$
-	add a,#7 
-4$: add a,#'0 
-	btjf UART1_SR,#UART_SR_TXE,. 
-	ld UART1_DR,a 
-	ld a,#SPACE 
-	btjf UART1_SR,#UART_SR_TXE,. 
-	ld UART1_DR,a 
-	pop a 
 	ret 
 
 ;-----------------------------------
@@ -144,7 +120,7 @@ try_again:
 	cp a,#EOT 
 	jrne 2$
 	ld a,#ACK  
-	call putc 
+	call uart3_putc 
 	ld a,#EOT 
 	jra 7$ 		
 1$:	;start of header received
@@ -159,7 +135,7 @@ try_again:
 	jreq 4$
 2$:	
 	ld a,#NAK 
-	call putc 
+	call uart3_putc 
 	dec (TRIES,sp) 
 	jrne try_again 
 	jra 5$
@@ -176,12 +152,12 @@ try_again:
 	jrne 2$
 ; packet received ok	
 	ld a,(SERIAL,sp)
-	call hexo
+	call print_hex 
 	ld a,#ACK
 	jra 6$ 
 5$: ; all tries failed 
 	ld a,#CAN 
-6$:	call putc
+6$:	call uart3_putc
 7$:	_drop VAR_SIZE 
 	ret 
 
@@ -193,42 +169,42 @@ try_again:
 ;-------------------------
 ; local variables
 	CHKSUM=1 ; byte
-	RETRY=2  ; byte 10 retries
-	PACKNO=3 ; byte packet number
+	TRIES=2  ; byte 10 retries
+	SERIAL=3 ; byte packet number
 	PLEN=4   ; byte packet length 128 bytes
 	BUFF=5   ; word buffer address 
 	VAR_SIZE=6
 xtrmt_block::
 	_vars VAR_SIZE
 	ldw (BUFF,sp),x 
-	ld (PACKNO,sp),a 
+	ld (SERIAL,sp),a 
 	ld a,#10 
-	ld (RETRY,sp),a 
+	ld (TRIES,sp),a 
 tx_retries:
 	ld a,#SOH 
-	call putc 
-	ld a,(PACKNO,sp)
-	call putc 
-	ld a,(PACKNO,sp)
+	call uart3_putc 
+	ld a,(SERIAL,sp)
+	call uart3_putc 
+	ld a,(SERIAL,sp)
 	cpl a 
-	call putc 
+	call uart3_putc 
 	clr (CHKSUM,sp)
 	ld a,#PACKET_SIZE 
 	ld (PLEN,sp),a 
 	ldw x,(BUFF,sp)
 1$: ld a,(x)
 	incw x 
-	call putc 
+	call uart3_putc 
 	add a,(CHKSUM,sp)
 	ld (CHKSUM,sp),a 
 	dec (PLEN,sp)
 	jrne 1$ 
 	ld a,(CHKSUM,sp)
-	call putc
+	call uart3_putc
 	call get_next
 	cp a,#ACK 
 	jreq 2$ 
-	dec (RETRY,sp)
+	dec (TRIES,sp)
 	jrne tx_retries
 	ld a,#NAK  
 2$:

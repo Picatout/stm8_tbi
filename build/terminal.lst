@@ -2152,7 +2152,46 @@ Hexadecimal [24-Bits]
       0002F5 5B 04            [ 2]    1     addw sp,#VSIZE 
       0002F7 81               [ 4]  605 	ret
                                     606 
+                                    607 ;------------------------------
+                                    608 ; print byte  in hexadecimal 
+                                    609 ; on console
+                                    610 ; input:
+                                    611 ;    A		byte to print
+                                    612 ;------------------------------
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 12.
+Hexadecimal [24-Bits]
+
+
+
+      0002F8                        613 print_hex::
+      0002F8 88               [ 1]  614 	push a 
+      0002F9 4E               [ 1]  615 	swap a 
+      0002FA CD 03 0F         [ 4]  616 	call to_hex_char 
+      0002FD CD 00 00         [ 4]  617 	call putc 
+      000300 7B 01            [ 1]  618     ld a,(1,sp) 
+      000302 CD 03 0F         [ 4]  619 	call to_hex_char
+      000305 CD 00 00         [ 4]  620 	call putc
+      000308 A6 20            [ 1]  621 	ld a,#SPACE 
+      00030A CD 00 00         [ 4]  622 	call putc 
+      00030D 84               [ 1]  623 	pop a 
+      00030E 81               [ 4]  624 	ret 
+                                    625 
+                                    626 ;----------------------------------
+                                    627 ; convert to hexadecimal digit 
+                                    628 ; input:
+                                    629 ;   A       digit to convert 
+                                    630 ; output:
+                                    631 ;   A       hexdecimal character 
+                                    632 ;----------------------------------
+      00030F                        633 to_hex_char::
+      00030F A4 0F            [ 1]  634 	and a,#15 
+      000311 A1 09            [ 1]  635 	cp a,#9 
+      000313 23 02            [ 2]  636 	jrule 1$ 
+      000315 AB 07            [ 1]  637 	add a,#7
+      000317 AB 30            [ 1]  638 1$: add a,#'0 
+      000319 81               [ 4]  639 	ret 
+                                    640 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 13.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -2212,7 +2251,7 @@ Symbol Table
     CLK_PCKE=  000002     |     CLK_PCKE=  000007     |     CLK_SWCR=  0050C5 
     CLK_SWCR=  000000     |     CLK_SWCR=  000001     |     CLK_SWCR=  000002 
     CLK_SWCR=  000003     |     CLK_SWIM=  0050CD     |     CLK_SWR =  0050C4 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 13.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 14.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -2272,7 +2311,7 @@ Symbol Table
     FS      =  00001C     |     F_CFUNC =  000080     |     F_CMD   =  000000 
     F_CONST =  0000C0     |     F_IFUNC =  000040     |     GPIO_BAS=  005000 
     GPIO_CR1=  000003     |     GPIO_CR2=  000004     |     GPIO_DDR=  000002 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 14.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 15.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -2332,7 +2371,7 @@ Symbol Table
     NAK     =  000015     |     NCLKOPT =  004808     |     NFLASH_W=  00480E 
     NHSECNT =  00480A     |     NOPT1   =  004802     |     NOPT2   =  004804 
     NOPT3   =  004806     |     NOPT4   =  004808     |     NOPT5   =  00480A 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 15.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 16.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -2392,7 +2431,7 @@ Symbol Table
     TIM1_CCM=  000007     |     TIM1_CCM=  000002     |     TIM1_CCM=  000004 
     TIM1_CCM=  000005     |     TIM1_CCM=  000006     |     TIM1_CCM=  000003 
     TIM1_CCM=  005259     |     TIM1_CCM=  000000     |     TIM1_CCM=  000001 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 16.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 17.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -2452,7 +2491,7 @@ Symbol Table
     TIM3_CCE=  000004     |     TIM3_CCE=  000005     |     TIM3_CCE=  000000 
     TIM3_CCE=  000001     |     TIM3_CCM=  005325     |     TIM3_CCM=  005326 
     TIM3_CCM=  000000     |     TIM3_CCM=  000004     |     TIM3_CCM=  000003 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 17.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 18.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -2512,7 +2551,7 @@ Symbol Table
     UART_CR6=  000004     |     UART_CR6=  000007     |     UART_CR6=  000001 
     UART_CR6=  000002     |     UART_CR6=  000000     |     UART_CR6=  000005 
     UART_DR =  000001     |     UART_GTR=  000009     |     UART_PSC=  00000A 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 18.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 19.
 Hexadecimal [24-Bits]
 
 Symbol Table
@@ -2532,17 +2571,17 @@ Symbol Table
   1 delete_l   000129 R   |   1 delete_n   00004C R   |   1 delete_u   0000EE R
   1 final_te   000297 R   |   1 get_esca   00000C R   |     getc       ****** GX
   1 insert_c   0000AB R   |     move       ****** GX  |   1 move_lef   000083 R
-  1 move_rig   000091 R   |   1 overwrit   0002C3 R   |     putc       ****** GX
-  1 puts       000032 GR  |   1 readln     000137 GR  |   1 readln_l   000144 R
-  1 readln_q   0002E0 R   |     search_l   ****** GX  |   1 send_esc   00005A R
-  1 send_par   000065 R   |   1 spaces     00009F GR  |     strlen     ****** GX
-    tib        ****** GX
+  1 move_rig   000091 R   |   1 overwrit   0002C3 R   |   1 print_he   0002F8 GR
+    putc       ****** GX  |   1 puts       000032 GR  |   1 readln     000137 GR
+  1 readln_l   000144 R   |   1 readln_q   0002E0 R   |     search_l   ****** GX
+  1 send_esc   00005A R   |   1 send_par   000065 R   |   1 spaces     00009F GR
+    strlen     ****** GX  |     tib        ****** GX  |   1 to_hex_c   00030F GR
 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 19.
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 20.
 Hexadecimal [24-Bits]
 
 Area Table
 
    0 _CODE      size      0   flags    0
-   1 CODE       size    2F8   flags    0
+   1 CODE       size    31A   flags    0
 
