@@ -35,6 +35,36 @@
 
 PACKET_SIZE=128
 
+DEBUG=0
+
+;-----------------------
+; wait SOH or EOT
+; drain all other char 
+; input:
+;   Y    time out msec 
+; output:
+;   A     SOH  start of header
+;         EOT end of transmission
+;         0   time out
+;-----------------------
+wait_soh:
+	ldw y,#1000
+	ldw timer,y 
+1$:	clr a
+	ldw y,timer 
+	jrne 2$
+	ret 
+2$:	call qgetc 
+	jreq 1$ 
+	call getc 
+	cp a,#SOH 
+	jreq 4$ 
+	cp a,#EOT 
+	jrne 1$ 
+4$: clrw y 
+	ldw timer,y 
+	ret 
+
 ;-----------------------
 ; get next character 
 ; wait 1 second maximum
@@ -58,8 +88,33 @@ getc_to::
 2$:	call qgetc 
 	jreq 1$ 
 	call getc 
+	clrw y 
+	ldw timer,y 
 	ret 
 
+hexo:
+	push a 
+	swap a 
+	and a,#15 
+	cp a,#9
+	jrule 2$
+	add a,#7 
+2$: add a,#'0 
+	btjf UART1_SR,#UART_SR_TXE,. 
+	ld UART1_DR,a 
+    ld a,(1,sp) 
+	and a,#15 
+	cp a,#9
+	jrule 4$
+	add a,#7 
+4$: add a,#'0 
+	btjf UART1_SR,#UART_SR_TXE,. 
+	ld UART1_DR,a 
+	ld a,#SPACE 
+	btjf UART1_SR,#UART_SR_TXE,. 
+	ld UART1_DR,a 
+	pop a 
+	ret 
 
 ;-----------------------------------
 ; XMODEM receive 128 bytes block
@@ -67,24 +122,32 @@ getc_to::
 ;   X    receive buffer address
 ; output:
 ;   A    ACK packet received ok
-;        NAK packet received failed
+;        CAN all tries failed
 ;        EOT end of file 
 ;-----------------------------------
 	BCOUNT=1 
 	CHKSUM=2 
 	SERIAL=3
-	VAR_SIZE=3
+	TRIES=4
+	BUFFER=5
+	VAR_SIZE=6
 xrcv_block::
 	_vars VAR_SIZE 
-    call get_next 
+	ldw (BUFFER,sp),x 
+	ld a,#10 ; number of tries 
+	ld (TRIES,sp),a 
+try_again:
+	ldw x,(BUFFER,sp)
+	call wait_soh
+	cp a,#SOH 
+	jreq 1$
 	cp a,#EOT 
-	jrne 1$
+	jrne 2$
 	ld a,#ACK  
 	call putc 
 	ld a,#EOT 
-	jra 6$ 		
-1$:	cp a,#SOH 
-	jrne 4$ 
+	jra 7$ 		
+1$:	;start of header received
 	ld a,#PACKET_SIZE
 	ld (BCOUNT,sp),a 
 	clr (CHKSUM,sp)
@@ -93,22 +156,33 @@ xrcv_block::
 	call get_next
 	add a,(SERIAL,sp)
 	inc a 
-	jrne 4$
-2$: 
+	jreq 4$
+2$:	
+	ld a,#NAK 
+	call putc 
+	dec (TRIES,sp) 
+	jrne try_again 
+	jra 5$
+4$: ; receive data
 	call get_next 
 	ld (x),a 
+	incw x 
 	add a,(CHKSUM,sp)
 	ld (CHKSUM,sp),a 
 	dec (BCOUNT,sp)
-	jrne 2$
+	jrne 4$
 	call get_next  
 	cp a,(CHKSUM,sp)
-	jrne 4$
-	ld a,#ACK 
+	jrne 2$
+; packet received ok	
+	ld a,(SERIAL,sp)
+	call hexo
+	ld a,#ACK
 	jra 6$ 
-4$: ld a,#CAN 
-	call putc
-6$:	_drop VAR_SIZE 
+5$: ; all tries failed 
+	ld a,#CAN 
+6$:	call putc
+7$:	_drop VAR_SIZE 
 	ret 
 
 ;-------------------------

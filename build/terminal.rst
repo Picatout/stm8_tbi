@@ -70,6 +70,12 @@ Hexadecimal [24-Bits]
                                  
                                  
                                         
+                                            .macro _led2_on 
+                                        
+                                            .macro _led2_off 
+                                        
+                                            .macro _led2_toggle 
+                                             
                                         ; B1 on schematic is user button
                                         ; connected to PE4
                                         ; external pullup resistor R6 4k7 and debounce capacitor C5 100nF
@@ -1552,19 +1558,19 @@ Hexadecimal [24-Bits]
                                      66 ; ignored sequence return 0 
                                      67 ; output:
                                      68 ;   A    converted character 
-                                     69 ;-------------------------------
-      00AA9A                         70 get_escape:
-      00AA9A CD 83 AB         [ 4]   71     call getc 
-      00AA9D A1 5B            [ 1]   72     cp a,#'[ ; this character is expected after ESC 
-      00AA9F 27 02            [ 1]   73     jreq 1$
-      00AAA1 4F               [ 1]   74     clr a
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 2.
 Hexadecimal [24-Bits]
 
 
 
+                                     69 ;-------------------------------
+      00AA9A                         70 get_escape:
+      00AA9A CD 83 9B         [ 4]   71     call getc 
+      00AA9D A1 5B            [ 1]   72     cp a,#'[ ; this character is expected after ESC 
+      00AA9F 27 02            [ 1]   73     jreq 1$
+      00AAA1 4F               [ 1]   74     clr a
       00AAA2 81               [ 4]   75     ret
-      00AAA3 CD 83 AB         [ 4]   76 1$: call getc 
+      00AAA3 CD 83 9B         [ 4]   76 1$: call getc 
       00AAA6 AE AA 8E         [ 2]   77     ldw x,#convert_table
       00AAA9                         78 2$:
       00AAA9 F1               [ 1]   79     cp a,(x)
@@ -1579,7 +1585,7 @@ Hexadecimal [24-Bits]
       00AAB6 A1 84            [ 1]   88     cp a,#SUP
       00AAB8 26 05            [ 1]   89     jrne 5$
       00AABA 88               [ 1]   90     push a 
-      00AABB CD 83 AB         [ 4]   91     call getc
+      00AABB CD 83 9B         [ 4]   91     call getc
       00AABE 84               [ 1]   92     pop a 
       00AABF                         93 5$:
       00AABF 81               [ 4]   94     ret 
@@ -1595,7 +1601,7 @@ Hexadecimal [24-Bits]
       00AAC0                        104 puts::
       00AAC0 F6               [ 1]  105     ld a,(x)
       00AAC1 27 06            [ 1]  106 	jreq 1$
-      00AAC3 CD 83 8A         [ 4]  107 	call putc 
+      00AAC3 CD 83 78         [ 4]  107 	call putc 
       00AAC6 5C               [ 1]  108 	incw x 
       00AAC7 20 F7            [ 2]  109 	jra puts 
       00AAC9 81               [ 4]  110 1$:	ret 
@@ -1611,18 +1617,18 @@ Hexadecimal [24-Bits]
                                     120 ;---------------------------
       00AACA                        121 bksp:
       00AACA A6 08            [ 1]  122 	ld a,#BS 
-      00AACC CD 83 8A         [ 4]  123 	call putc 
-      00AACF A6 20            [ 1]  124 	ld a,#SPACE 
-      00AAD1 CD 83 8A         [ 4]  125 	call putc 
-      00AAD4 A6 08            [ 1]  126 	ld a,#BS 
-      00AAD6 CD 83 8A         [ 4]  127 	call putc 
-      00AAD9 81               [ 4]  128 	ret 
-                                    129 ;---------------------------
+      00AACC CD 83 78         [ 4]  123 	call putc 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 3.
 Hexadecimal [24-Bits]
 
 
 
+      00AACF A6 20            [ 1]  124 	ld a,#SPACE 
+      00AAD1 CD 83 78         [ 4]  125 	call putc 
+      00AAD4 A6 08            [ 1]  126 	ld a,#BS 
+      00AAD6 CD 83 78         [ 4]  127 	call putc 
+      00AAD9 81               [ 4]  128 	ret 
+                                    129 ;---------------------------
                                     130 ; delete n character left of cursor 
                                     131 ; at terminal.
                                     132 ; input: 
@@ -1648,9 +1654,9 @@ Hexadecimal [24-Bits]
                                     152 ;-------------------------- 
       00AAE8                        153 send_escape:
       00AAE8 A6 1B            [ 1]  154 	ld a,#ESC 
-      00AAEA CD 83 8A         [ 4]  155 	call putc 
+      00AAEA CD 83 78         [ 4]  155 	call putc 
       00AAED A6 5B            [ 1]  156 	ld a,#'[
-      00AAEF CD 83 8A         [ 4]  157 	call putc 
+      00AAEF CD 83 78         [ 4]  157 	call putc 
       00AAF2 81               [ 4]  158 	ret 
                                     159 
                                     160 ;---------------------
@@ -1672,25 +1678,25 @@ Hexadecimal [24-Bits]
       00AAF4 5F               [ 1]  176 	clrw x 
       00AAF5 97               [ 1]  177 	ld xl,a 
       00AAF6 A6 0A            [ 1]  178 	ld a,#10 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 4.
+Hexadecimal [24-Bits]
+
+
+
       00AAF8 62               [ 2]  179 	div x,a 
       00AAF9 95               [ 1]  180 	ld xh,a 
       00AAFA 9F               [ 1]  181 	ld a,xl
       00AAFB 4D               [ 1]  182     tnz a 
       00AAFC 27 0B            [ 1]  183     jreq 2$
       00AAFE A1 09            [ 1]  184 	cp a,#9 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 4.
-Hexadecimal [24-Bits]
-
-
-
       00AB00 23 02            [ 2]  185 	jrule 1$
       00AB02 A6 39            [ 1]  186 	ld a,#'9
       00AB04                        187 1$:
       00AB04 AB 30            [ 1]  188 	add a,#'0 
-      00AB06 CD 83 8A         [ 4]  189 	call putc
+      00AB06 CD 83 78         [ 4]  189 	call putc
       00AB09 9E               [ 1]  190 2$:	ld a,xh 
       00AB0A AB 30            [ 1]  191 	add a,#'0
-      00AB0C CD 83 8A         [ 4]  192 	call putc 
+      00AB0C CD 83 78         [ 4]  192 	call putc 
       00AB0F 85               [ 2]  193 	popw x 
       00AB10 81               [ 4]  194 	ret 
                                     195 
@@ -1711,7 +1717,7 @@ Hexadecimal [24-Bits]
       00AB15 84               [ 1]  210     pop a
       00AB16 CD AA F3         [ 4]  211 	call send_parameter 
       00AB19 A6 44            [ 1]  212 	ld a,#'D 
-      00AB1B CD 83 8A         [ 4]  213 	call putc 
+      00AB1B CD 83 78         [ 4]  213 	call putc 
       00AB1E 81               [ 4]  214 	ret	
                                     215 
                                     216 
@@ -1729,27 +1735,27 @@ Hexadecimal [24-Bits]
       00AB23 84               [ 1]  228     pop a
       00AB24 CD AA F3         [ 4]  229 	call send_parameter 
       00AB27 A6 43            [ 1]  230 	ld a,#'C 
-      00AB29 CD 83 8A         [ 4]  231 	call putc 
+      00AB29 CD 83 78         [ 4]  231 	call putc 
       00AB2C 81               [ 4]  232 	ret 
                                     233 
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 5.
+Hexadecimal [24-Bits]
+
+
+
                                     234 
                                     235 ;--------------------------
                                     236 ; print n spaces on terminal
                                     237 ; input:
                                     238 ;  X 		number of spaces 
                                     239 ; output:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 5.
-Hexadecimal [24-Bits]
-
-
-
                                     240 ;	none 
                                     241 ;---------------------------
       00AB2D                        242 spaces::
       00AB2D A6 20            [ 1]  243 	ld a,#SPACE 
       00AB2F 5D               [ 2]  244 1$:	tnzw x
       00AB30 27 06            [ 1]  245 	jreq 9$
-      00AB32 CD 83 8A         [ 4]  246 	call putc 
+      00AB32 CD 83 78         [ 4]  246 	call putc 
       00AB35 5A               [ 2]  247 	decw x
       00AB36 20 F7            [ 2]  248 	jra 1$
       00AB38                        249 9$: 
@@ -1785,24 +1791,24 @@ Hexadecimal [24-Bits]
       00AB49 4C               [ 1]  278     inc a 
       00AB4A C7 00 0E         [ 1]  279     ld acc8,a 
       00AB4D 72 5F 00 0D      [ 1]  280     clr acc16
-      00AB51 CD 84 B4         [ 4]  281     call move
+      00AB51 CD 84 A4         [ 4]  281     call move
       00AB54 90 AE 16 90      [ 2]  282     ldw y,#tib 
       00AB58 7B 01            [ 1]  283     ld a,(IPOS,sp)
       00AB5A C7 00 0E         [ 1]  284     ld acc8,a 
       00AB5D 72 B9 00 0D      [ 2]  285     addw y,acc16 
       00AB61 7B 02            [ 1]  286     ld a,(CHAR,sp)
       00AB63 90 F7            [ 1]  287     ld (y),a
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 6.
+Hexadecimal [24-Bits]
+
+
+
       00AB65 90 5C            [ 1]  288     incw y  
       00AB67 7B 01            [ 1]  289     ld a,(IPOS,sp)
       00AB69 CD AB 11         [ 4]  290     call move_left
       00AB6C AE 16 90         [ 2]  291     ldw x,#tib 
       00AB6F CD AA C0         [ 4]  292     call puts 
       00AB72 7B 03            [ 1]  293     ld a,(LLEN,sp)
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 6.
-Hexadecimal [24-Bits]
-
-
-
       00AB74 10 01            [ 1]  294     sub a,(IPOS,sp) 
       00AB76 CD AB 11         [ 4]  295     call move_left 
       0000EB                        296 	_drop VSIZE 
@@ -1833,7 +1839,7 @@ Hexadecimal [24-Bits]
       00AB8A 4C               [ 1]  319     inc a ; move including zero at end.
       00AB8B C7 00 0E         [ 1]  320     ld acc8,a 
       00AB8E 72 5F 00 0D      [ 1]  321     clr acc16 
-      00AB92 CD 84 B4         [ 4]  322 	call move 
+      00AB92 CD 84 A4         [ 4]  322 	call move 
       00AB95 90 AE 16 90      [ 2]  323     ldw y,#tib 
       00AB99 7B 01            [ 1]  324     ld a,(CPOS,sp)
       00AB9B C7 00 0E         [ 1]  325     ld acc8,a 
@@ -1841,7 +1847,7 @@ Hexadecimal [24-Bits]
       00ABA2 93               [ 1]  327     ldw x,y 
       00ABA3 CD AA C0         [ 4]  328     call puts 
       00ABA6 A6 20            [ 1]  329     ld a,#SPACE  
-      00ABA8 CD 83 8A         [ 4]  330     call putc
+      00ABA8 CD 83 78         [ 4]  330     call putc
       00ABAB 7B 02            [ 1]  331     ld a,(LLEN,sp)
       00ABAD 10 01            [ 1]  332     sub a,(CPOS,sp)
       00ABAF CD AB 11         [ 4]  333     call move_left 
@@ -1852,25 +1858,25 @@ Hexadecimal [24-Bits]
                                     337 
                                     338 ;-----------------------------
                                     339 ; send ANSI sequence to delete
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 7.
+Hexadecimal [24-Bits]
+
+
+
                                     340 ; whole line. Cursor position
                                     341 ; is not updated.
                                     342 ; ANSI: ESC[2K
                                     343 ; input:
                                     344 ;   none
                                     345 ; output:
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 7.
-Hexadecimal [24-Bits]
-
-
-
                                     346 ;   none 
                                     347 ;-----------------------------
       00ABB7                        348 delete_line:
       00ABB7 CD AA E8         [ 4]  349     call send_escape
       00ABBA A6 32            [ 1]  350 	ld a,#'2
-      00ABBC CD 83 8A         [ 4]  351 	call putc 
+      00ABBC CD 83 78         [ 4]  351 	call putc 
       00ABBF A6 4B            [ 1]  352 	ld a,#'K 
-      00ABC1 CD 83 8A         [ 4]  353 	call putc 
+      00ABC1 CD 83 78         [ 4]  353 	call putc 
       00ABC4 81               [ 4]  354 	ret 
                                     355 
                                     356 
@@ -1912,17 +1918,17 @@ Hexadecimal [24-Bits]
       00ABCC 03 04            [ 1]  391 	cpl (OVRWR,sp) ; default to overwrite mode 
       00ABCE 90 AE 16 90      [ 2]  392  	ldw y,#tib ; input buffer
       00ABD2                        393 readln_loop:
-      00ABD2 CD 83 AB         [ 4]  394 	call getc
-      00ABD5 6B 01            [ 1]  395 	ld (RXCHAR,sp),a
-      00ABD7 A1 1B            [ 1]  396     cp a,#ESC 
-      00ABD9 26 05            [ 1]  397     jrne 0$
-      00ABDB CD AA 9A         [ 4]  398     call get_escape 
-      00ABDE 6B 01            [ 1]  399     ld (RXCHAR,sp),a 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 8.
 Hexadecimal [24-Bits]
 
 
 
+      00ABD2 CD 83 9B         [ 4]  394 	call getc
+      00ABD5 6B 01            [ 1]  395 	ld (RXCHAR,sp),a
+      00ABD7 A1 1B            [ 1]  396     cp a,#ESC 
+      00ABD9 26 05            [ 1]  397     jrne 0$
+      00ABDB CD AA 9A         [ 4]  398     call get_escape 
+      00ABDE 6B 01            [ 1]  399     ld (RXCHAR,sp),a 
       00ABE0 A1 0D            [ 1]  400 0$:	cp a,#CR
       00ABE2 26 03            [ 1]  401 	jrne 1$
       00ABE4 CC AD 6E         [ 2]  402 	jp readln_quit
@@ -1950,7 +1956,7 @@ Hexadecimal [24-Bits]
       00AC0D 4C               [ 1]  424     inc a 
       00AC0E CD AB 11         [ 4]  425     call move_left 
       00AC11 A6 3E            [ 1]  426 	ld a,#'> 
-      00AC13 CD 83 8A         [ 4]  427 	call putc 
+      00AC13 CD 83 78         [ 4]  427 	call putc 
       00AC16 90 AE 16 90      [ 2]  428 	ldw y,#tib
       00AC1A 90 7F            [ 1]  429 	clr (y)
       00AC1C 0F 02            [ 1]  430 	clr (LL,sp)
@@ -1963,7 +1969,7 @@ Hexadecimal [24-Bits]
       00AC26 0D 02            [ 1]  437 	tnz (LL,sp)
       00AC28 26 A8            [ 1]  438 	jrne readln_loop
       00AC2A AE 16 90         [ 2]  439 	ldw x,#tib 
-      00AC2D CD 84 8A         [ 4]  440 	call strlen 
+      00AC2D CD 84 7A         [ 4]  440 	call strlen 
       00AC30 90 AE 16 90      [ 2]  441 	ldw y,#tib 
       00AC34 27 9C            [ 1]  442 	jreq readln_loop
       00AC36 6B 02            [ 1]  443 	ld (LL,sp),a 
@@ -1972,20 +1978,20 @@ Hexadecimal [24-Bits]
       00AC3D CD AA C0         [ 4]  446 	call puts
       00AC40 0F 01            [ 1]  447 	clr (LL_HB,sp)
       00AC42 72 F9 01         [ 2]  448 	addw y,(LL_HB,sp)
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 9.
+Hexadecimal [24-Bits]
+
+
+
       00AC45 20 8B            [ 2]  449 	jra readln_loop 
       00AC47                        450 5$:
       00AC47 A1 05            [ 1]  451 	cp a,#CTRL_E 
       00AC49 26 49            [ 1]  452 	jrne 6$
                                     453 ;edit line number 
       00AC4B AE 16 90         [ 2]  454 	ldw x,#tib 
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 9.
-Hexadecimal [24-Bits]
-
-
-
-      00AC4E CD 8E C7         [ 4]  455 	call atoi24
+      00AC4E CD 8E B3         [ 4]  455 	call atoi24
       00AC51 CE 00 0D         [ 2]  456 	ldw x,acc16
-      00AC54 CD 84 F6         [ 4]  457 	call search_lineno
+      00AC54 CD 84 E6         [ 4]  457 	call search_lineno
       00AC57 5D               [ 2]  458 	tnzw x 
       00AC58 26 0B            [ 1]  459 	jrne 51$
       00AC5A 0F 02            [ 1]  460 	clr (LL,sp)
@@ -1997,14 +2003,14 @@ Hexadecimal [24-Bits]
       00AC68 E6 02            [ 1]  466 	ld a,(2,x)
       00AC6A C7 00 04         [ 1]  467 	ld count,a 
       00AC6D 90 AE 16 90      [ 2]  468 	ldw y,#tib 
-      00AC71 CD 94 B6         [ 4]  469 	call decompile 
+      00AC71 CD 94 A2         [ 4]  469 	call decompile 
       00AC74 0F 01            [ 1]  470 	clr (LL_HB,sp)
       00AC76 A6 0D            [ 1]  471 	ld a,#CR 
-      00AC78 CD 83 8A         [ 4]  472 	call putc 
+      00AC78 CD 83 78         [ 4]  472 	call putc 
       00AC7B A6 3E            [ 1]  473 	ld a,#'>
-      00AC7D CD 83 8A         [ 4]  474 	call putc
+      00AC7D CD 83 78         [ 4]  474 	call putc
       00AC80 AE 16 90         [ 2]  475     ldw x,#tib  
-      00AC83 CD 84 8A         [ 4]  476 	call strlen 
+      00AC83 CD 84 7A         [ 4]  476 	call strlen 
       00AC86 6B 02            [ 1]  477 	ld (LL,sp),a 
       00AC88 CD AA C0         [ 4]  478 	call puts 
       00AC8B 90 93            [ 1]  479 	ldw y,x
@@ -2032,17 +2038,17 @@ Hexadecimal [24-Bits]
       00ACB3 26 03            [ 1]  501 	jrne 71$
       00ACB5 CC AB D2         [ 2]  502 	jp readln_loop
       00ACB8                        503 71$:
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 10.
+Hexadecimal [24-Bits]
+
+
+
       00ACB8 A6 01            [ 1]  504     ld a,#1 
       00ACBA CD AB 11         [ 4]  505 	call move_left 
       00ACBD 0A 03            [ 1]  506 	dec (CPOS,sp)
       00ACBF 90 5A            [ 2]  507     decw y 
       00ACC1 CC AB D2         [ 2]  508 	jp readln_loop 
       00ACC4 A1 82            [ 1]  509 8$: cp a,#HOME  
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 10.
-Hexadecimal [24-Bits]
-
-
-
       00ACC6 26 0E            [ 1]  510 	jrne 9$
                                     511 ; HOME 
       00ACC8 7B 03            [ 1]  512     ld a,(CPOS,sp)
@@ -2073,7 +2079,7 @@ Hexadecimal [24-Bits]
                                     537 ; toggle between insert/overwrite
       00AD04 03 04            [ 1]  538 	cpl (OVRWR,sp)
       00AD06 90 89            [ 2]  539 	pushw y 
-      00AD08 CD 99 80         [ 4]  540 	call beep_1khz
+      00AD08 CD 99 6C         [ 4]  540 	call beep_1khz
       00AD0B 90 85            [ 2]  541 	popw y 
       00AD0D CC AB D2         [ 2]  542 	jp readln_loop 
       00AD10 A1 84            [ 1]  543 11$: cp a,#SUP 
@@ -2092,17 +2098,17 @@ Hexadecimal [24-Bits]
       00AD25                        556 final_test:
       00AD25 A1 20            [ 1]  557 	cp a,#SPACE
       00AD27 2A 03            [ 1]  558 	jrpl accept_char
+ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 11.
+Hexadecimal [24-Bits]
+
+
+
       00AD29 CC AB D2         [ 2]  559 	jp readln_loop
       00AD2C                        560 accept_char:
       00AD2C A6 4F            [ 1]  561 	ld a,#TIB_SIZE-1
       00AD2E 11 02            [ 1]  562 	cp a, (LL,sp)
       00AD30 2A 03            [ 1]  563 	jrpl 1$
       00AD32 CC AB D2         [ 2]  564 	jp readln_loop
-ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 11.
-Hexadecimal [24-Bits]
-
-
-
       00AD35 0D 04            [ 1]  565 1$:	tnz (OVRWR,sp)
       00AD37 26 18            [ 1]  566 	jrne overwrite
                                     567 ; insert mode 
@@ -2122,7 +2128,7 @@ Hexadecimal [24-Bits]
       00AD51 7B 01            [ 1]  581 	ld a,(RXCHAR,sp)
       00AD53 90 F7            [ 1]  582 	ld (y),a
       00AD55 90 5C            [ 1]  583     incw y
-      00AD57 CD 83 8A         [ 4]  584     call putc 
+      00AD57 CD 83 78         [ 4]  584     call putc 
       00AD5A 7B 03            [ 1]  585 	ld a,(CPOS,sp)
       00AD5C 11 02            [ 1]  586 	cp a,(LL,sp)
       00AD5E 2B 09            [ 1]  587 	jrmi 1$
@@ -2141,7 +2147,7 @@ Hexadecimal [24-Bits]
       00AD79 7B 02            [ 1]  600 	ld a,(LL,sp)
       00AD7B C7 00 04         [ 1]  601 	ld count,a 
       00AD7E A6 0D            [ 1]  602 	ld a,#CR
-      00AD80 CD 83 8A         [ 4]  603 	call putc
+      00AD80 CD 83 78         [ 4]  603 	call putc
       0002F5                        604 	_drop VSIZE 
       00AD83 5B 04            [ 2]    1     addw sp,#VSIZE 
       00AD85 81               [ 4]  605 	ret

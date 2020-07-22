@@ -177,19 +177,21 @@ AWUHandler:
 ; and fall back to command line
 ;--------------------------
 UartRxHandler:
-	ld a,comm 
+	_led2_on 
+	ld a,#UART1
+	cp a,comm 
 	jrne 0$ 
-	btjf UART1_SR,#UART_SR_RXNE,.
+	btjf UART1_SR,#UART_SR_RXNE,5$
 	ld a,UART1_DR 
 	jra 1$
 0$:	
-	btjf UART3_SR,#UART_SR_RXNE,.
+	btjf UART3_SR,#UART_SR_RXNE,5$
 	ld a,UART3_DR 
 1$:
+.if 0 ; pas compatible avec XMODEM
 	cp a,#CTRL_C 
 	jrne 2$
-	clr rx_head 
-	clr rx_tail 
+	call putc 
 	jp user_interrupted
 2$:
 	cp a,#CAN ; CTRL_X 
@@ -199,7 +201,8 @@ UartRxHandler:
 	cp a,#CTRL_Z
 	jrne 4$
 	call cancel_autorun 
-	jp cold_start 
+	jp cold_start
+.endif 	 
 4$:	ldw x,#rx_queue  
 	push a 
 	ld a,xl 
@@ -210,8 +213,9 @@ UartRxHandler:
 	inc rx_tail 
 	ld a,#RX_QUEUE_SIZE-1
 	and a,rx_tail 
-	ld rx_tail,a  	
-	iret 
+	ld rx_tail,a  
+	_led2_off 	
+5$:	iret 
 
 ;------------------------------------
 ; software interrupt handler  
@@ -236,7 +240,7 @@ Timer4UpdateHandler:
 	incw x
 	ldw ticks,x 
 	ldw x,timer
-	tnzw x 
+;	tnzw x 
 	jreq 1$
 	decw x 
 	ldw timer,x 
@@ -262,6 +266,8 @@ UserButtonHandler:
 	iret
 2$:	
 user_interrupted:
+	ld a,#UART1 
+	call con_sel 
     btjt flags,#FRUN,4$
 	jra UBTN_Handler_exit 
 4$:	; program interrupted by user 
@@ -695,7 +701,8 @@ uart1_set_baud:
 ;--------------------------------	
 putc::
 	push a 
-	ld a,comm 
+	ld a,#UART1 
+	cp a,comm 
 	jrne putc3
 putc1: 
 	pop a 
@@ -1329,7 +1336,7 @@ cold_start:
     bset PC_CR1,#LED2_BIT
     bset PC_CR2,#LED2_BIT
     bset PC_DDR,#LED2_BIT
-	bset PC_ODR,#LED2_BIT 
+	bres PC_ODR,#LED2_BIT 
 ; disable schmitt triggers on Arduino CN4 analog inputs
 	mov ADC_TDRL,0x3f
 ; disable peripherals clocks
@@ -1377,7 +1384,7 @@ cold_start:
 	call ubound 
 ;	jra 2$	
 	call beep_1khz  
-2$:	bres PC_ODR,#LED2_BIT	
+2$:	
 	call warm_init
 	call load_autorun
     jp cmd_line  
@@ -6553,22 +6560,23 @@ x_fail: .asciz "failed.\n"
 receive: 
 	ldw x,#xrcv_msg 
 	call puts 
-; wait 10 second for sender setup
-; drop characters while waiting 
-	ldw y,#10000
-	call drain 
+	call console_toggle
 	ld a,#NAK 
 	call putc 
 	ldw x,txtbgn
 rx_loop:
 	call xrcv_block
+	cp a,#ACK 
+	jreq rx_loop 
 	cp a,#EOT
 	jreq rx_success 	
-	cp a,#NAK 
-	jreq rx_failed
-	cp a,#CAN 
-	jreq rx_failed 
-	jra rx_loop
+rx_failed:
+	ld a,#ETX 
+	call putc 
+	call console_toggle
+	ldw x,#x_fail 
+	call puts 
+	ret 
 rx_success:
 ;back to END_IDX 	
 	cpw x,txtbgn
@@ -6580,13 +6588,10 @@ rx_success:
 	decw x 
 	jra rx_success
 1$:	ldw txtend,x 
+	call console_toggle
 	ldw x,#x_success
 	call puts 
 	ret
-rx_failed:
-	ldw x,#x_fail 
-	call puts 
-	ret 
 xrcv_msg: .asciz "XMODEM receive "
 
 ;------------------------------

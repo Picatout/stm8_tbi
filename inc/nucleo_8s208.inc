@@ -33,6 +33,20 @@ LED2_PORT = 0x500a ;port C  ODR
 LED2_BIT = 5
 LED2_MASK = (1<<LED2_BIT) ;bit 5 mask
 
+    .macro _led2_on 
+    bset LED2_PORT,#LED2_BIT 
+    .endm 
+
+    .macro _led2_off 
+    bres LED2_PORT,#LED2_BIT 
+    .endm 
+
+    .macro _led2_toggle 
+    ld a,LED2_PORT 
+    xor a,#LED2_BIT 
+    ld LED2_PORT,a 
+    .endm 
+     
 ; B1 on schematic is user button
 ; connected to PE4
 ; external pullup resistor R6 4k7 and debounce capacitor C5 100nF

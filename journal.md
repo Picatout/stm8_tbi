@@ -1,3 +1,11 @@
+#### 2020-07-21
+
+* Déboger commande **XRCV** en fait le bogue était dans **UartRxHandler**. Les commandes **CTRL-C**,**CTRL-X** et **CTRL-Z** ne sont pas compatible avec **XRCV** je les ai donc désactivées.
+
+#### 2020-07-20
+
+* Travail sur xmodem.asm et commande XRCV.
+
 #### 2020-07-19 
 
 * Travail sur xmodem.asm et commande XRCV
