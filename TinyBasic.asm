@@ -4807,7 +4807,7 @@ seek_fdrive:
 	call incr_farptr
 	ldw x,#0x280  
 	cpw x,farptr
-	jrmi 1$
+	jrugt 1$
 4$: ; copy farptr to ffree	 
 	ldw x,farptr 
 	ld a,farptr+2 
@@ -4875,6 +4875,7 @@ cmp_name:
 ; output:
 ;   farptr  addr at name|0
 ;   X       offset to size field
+;   Carray   0 not found, 1 found 
 ;-----------------------
 	FSIZE=1
 	YSAVE=3
@@ -4953,6 +4954,7 @@ save:
 	ldw (NAMEPTR,sp),x  
 	call move_prg_to_ram ; move flashing program to 'tib' buffer 
 ; check if enough free space 
+	ldw x,(NAMEPTR,sp)
 	call strlen 
 	add a,#3
 	clrw x 
@@ -5093,48 +5095,57 @@ load:
 ; after it. 
 ; without argument erase all files 
 ;-----------------------------------
-	NEW_FREE=1 
-	VSIZE=3 
+	NEW_FREE=1   ; free address after file delete
+	BLOCK_COUNT=4  ; how many rows to delete
+	VSIZE=5 
 forget:
 	_vars VSIZE 
 	call next_token 
 	cp a,#TK_NONE 
-	jreq 3$ 
+	jreq 2$ 
 	cp a,#TK_QSTR
 	jreq 1$
 	jp syntax_error
 1$: ldw y,x 
 	mov in,count 
 	call search_file
-	jrc 2$
+	jrc 3$
 	ld a,#ERR_NOT_FILE 
 	jp tb_error 
 2$: 
-	ldw x,farptr
-	ld a,farptr+2
-	jra 4$ 
-3$: ; forget all files 
 	ldw x,#0x100
 	clr a 
 	ldw farptr,x 
 	ld farptr+2,a 
-4$:	; save new free address 
+3$:	ld a,farptr+2 
+	ldw x,farptr 
+; save new free address 
 	ldw (NEW_FREE,sp),x
 	ld (NEW_FREE+2,sp),a 
+; count blocks to erase 
+	ld a,ffree+2 
+	ldw x,ffree 
+	sub a,farptr+2 
+	jrnc 4$
+	decw x 
+4$:	subw x,farptr 
+; X= X:A/BLOCK_SIZE 
+	sll a 
+	rlcw x 
+	ldw (BLOCK_COUNT,sp),x
 	call move_erase_to_ram
-5$: call block_erase 
+5$: ldw x,(BLOCK_COUNT,sp)
+	tnzw x
+	jreq 6$
+	call block_erase 
 	ldw x,#BLOCK_SIZE 
 	call incr_farptr 
-	call row_align 
-; check if all blocks erased
-	ld a,farptr+2  
-	sub a,ffree+2
-	ld a,farptr+1 
-	sbc a,ffree+1 
-	ld a,farptr 
-	sbc a,ffree 
-	jrmi 5$ 
-	ld a,(NEW_FREE+2,sp)
+	ldw x,(BLOCK_COUNT,sp)
+	decw x 
+	ldw (BLOCK_COUNT,sp),x
+	jra 5$  
+; save new free address
+6$:	ld a,(NEW_FREE+2,sp)
 	ldw x,(NEW_FREE,sp)
 	ld ffree+2,a 
 	ldw ffree,x 

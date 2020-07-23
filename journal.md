@@ -1,3 +1,7 @@
+#### 2020-07-23 
+ 
+* Corrigé bogue dans **seek_fdrive**.
+
 #### 2020-07-22
 
 * Je me ravise et supprime les mots **COMA**, **COMC** et **CONSOLE**.  Cette fonctionnalité de pouvoir sélectionner la console me paraît superflue dans le contexte. Donc la console est toujours branchée sur UART1 et UART3 est utilisé pour les autres types de communications comme le transfert de fichiers.

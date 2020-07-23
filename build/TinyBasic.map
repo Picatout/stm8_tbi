@@ -85,7 +85,7 @@ CODE                                00008080    00002D93 =       11667. bytes (R
      00008EE9  atoi24                             STM8_TBI
      000094D8  decompile                          STM8_TBI
      000099A2  beep_1khz                          STM8_TBI
-     00009E95  qkey                               STM8_TBI
+     00009E9E  qkey                               STM8_TBI
      0000AA40  puts                               TERMINAL
      0000AAAD  spaces                             TERMINAL
      0000AB45  readln                             TERMINAL
