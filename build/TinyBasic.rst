@@ -9258,20 +9258,20 @@ Hexadecimal [24-Bits]
       00A1ED 23                       4 	.byte 2 	
       00A1EE 06 0C                    5 	.ascii "TO"
       00A1F0 01 98                    6 	.word TO_IDX 
-      002569                       6655 	_dict_entry,7+F_IFUNC,TIMEOUT,TMROUT_IDX;timeout 
+      002569                       6655 	_dict_entry,5,TIMER,TIMER_IDX;set_timer
       00A1F2 56 20                    1 	.word LINK 
                            00256B     2 	LINK=.
-      00256B                          3 TIMEOUT:
-      00A1F4 F5                       4 	.byte 7+F_IFUNC 	
-      00A1F5 35 55 50 E0 84 C7 50     5 	.ascii "TIMEOUT"
-      00A1FC E1 9F                    6 	.word TMROUT_IDX 
-      002575                       6656 	_dict_entry,5,TIMER,TIMER_IDX;set_timer
-      00A1FE 4A 35                    1 	.word LINK 
-                           002577     2 	LINK=.
-      002577                          3 TIMER:
-      00A200 55                       4 	.byte 5 	
-      00A201 50 E0 C7 50 E2           5 	.ascii "TIMER"
-      00A206 35 AA                    6 	.word TIMER_IDX 
+      00256B                          3 TIMER:
+      00A1F4 F5                       4 	.byte 5 	
+      00A1F5 35 55 50 E0 84           5 	.ascii "TIMER"
+      00A1FA C7 50                    6 	.word TIMER_IDX 
+      002573                       6656 	_dict_entry,7+F_IFUNC,TIMEOUT,TMROUT_IDX;timeout 
+      00A1FC E1 9F                    1 	.word LINK 
+                           002575     2 	LINK=.
+      002575                          3 TIMEOUT:
+      00A1FE 4A                       4 	.byte 7+F_IFUNC 	
+      00A1FF 35 55 50 E0 C7 50 E2     5 	.ascii "TIMEOUT"
+      00A206 35 AA                    6 	.word TMROUT_IDX 
       00257F                       6657 	_dict_entry,5+F_IFUNC,TICKS,TICKS_IDX;get_ticks
       00A208 50 E0                    1 	.word LINK 
                            002581     2 	LINK=.
@@ -9312,20 +9312,20 @@ Hexadecimal [24-Bits]
       00A227 97                       4 	.byte 6 	
       00A228 A6 84 81 53 45 4C        5 	.ascii "SPISEL"
       00A22B 00 A6                    6 	.word SPISEL_IDX 
-      0025B0                       6662 	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
+      0025B0                       6662 	_dict_entry,5+F_IFUNC,SPIRD,SPIRD_IDX; spi_read 
       00A22B CD 91                    1 	.word LINK 
                            0025B2     2 	LINK=.
-      0025B2                          3 SPIEN:
-      00A22D 6F                       4 	.byte 5 	
-      00A22E A1 01 27 03 CC           5 	.ascii "SPIEN"
-      00A233 89 9C                    6 	.word SPIEN_IDX 
-      0025BA                       6663 	_dict_entry,5+F_IFUNC,SPIRD,SPIRD_IDX; spi_read 
+      0025B2                          3 SPIRD:
+      00A22D 6F                       4 	.byte 5+F_IFUNC 	
+      00A22E A1 01 27 03 CC           5 	.ascii "SPIRD"
+      00A233 89 9C                    6 	.word SPIRD_IDX 
+      0025BA                       6663 	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
       00A235 85 9F                    1 	.word LINK 
                            0025BC     2 	LINK=.
-      0025BC                          3 SPIRD:
-      00A237 A4                       4 	.byte 5+F_IFUNC 	
-      00A238 0F 5F 5C 4D 27           5 	.ascii "SPIRD"
-      00A23D 04 58                    6 	.word SPIRD_IDX 
+      0025BC                          3 SPIEN:
+      00A237 A4                       4 	.byte 5 	
+      00A238 0F 5F 5C 4D 27           5 	.ascii "SPIEN"
+      00A23D 04 58                    6 	.word SPIEN_IDX 
       0025C4                       6664 	_dict_entry,5,SLEEP,SLEEP_IDX;sleep 
       00A23F 4A 20                    1 	.word LINK 
                            0025C6     2 	LINK=.
@@ -9516,27 +9516,27 @@ Hexadecimal [24-Bits]
       00A2E7 AE                       4 	.byte 4 	
       00A2E8 00 04 81 45              5 	.ascii "POKE"
       00A2EB 00 70                    6 	.word POKE_IDX 
-      0026B0                       6689 	_dict_entry,4+F_IFUNC,PINP,PINP_IDX;const_input
+      0026B0                       6689 	_dict_entry,5,PMODE,PMODE_IDX;pin_mode 
       00A2EB A6 84                    1 	.word LINK 
                            0026B2     2 	LINK=.
-      0026B2                          3 PINP:
-      00A2ED AE                       4 	.byte 4+F_IFUNC 	
-      00A2EE 00 01 81 50              5 	.ascii "PINP"
-      00A2F1 00 6E                    6 	.word PINP_IDX 
-      0026B9                       6690 	_dict_entry,4+F_IFUNC,PEEK,PEEK_IDX;peek 
+      0026B2                          3 PMODE:
+      00A2ED AE                       4 	.byte 5 	
+      00A2EE 00 01 81 44 45           5 	.ascii "PMODE"
+      00A2F1 00 6A                    6 	.word PMODE_IDX 
+      0026BA                       6690 	_dict_entry,4+F_IFUNC,PINP,PINP_IDX;const_input
       00A2F1 A6 84                    1 	.word LINK 
-                           0026BB     2 	LINK=.
-      0026BB                          3 PEEK:
+                           0026BC     2 	LINK=.
+      0026BC                          3 PINP:
       00A2F3 AE                       4 	.byte 4+F_IFUNC 	
-      00A2F4 00 00 81 4B              5 	.ascii "PEEK"
-      00A2F7 00 6C                    6 	.word PEEK_IDX 
-      0026C2                       6691 	_dict_entry,5,PMODE,PMODE_IDX;pin_mode 
+      00A2F4 00 00 81 50              5 	.ascii "PINP"
+      00A2F7 00 6E                    6 	.word PINP_IDX 
+      0026C3                       6691 	_dict_entry,4+F_IFUNC,PEEK,PEEK_IDX;peek 
       00A2F7 A6 84                    1 	.word LINK 
-                           0026C4     2 	LINK=.
-      0026C4                          3 PMODE:
-      00A2F9 AE                       4 	.byte 5 	
-      00A2FA 40 00 81 44 45           5 	.ascii "PMODE"
-      00A2FD 00 6A                    6 	.word PMODE_IDX 
+                           0026C5     2 	LINK=.
+      0026C5                          3 PEEK:
+      00A2F9 AE                       4 	.byte 4+F_IFUNC 	
+      00A2FA 40 00 81 4B              5 	.ascii "PEEK"
+      00A2FD 00 6C                    6 	.word PEEK_IDX 
       0026CC                       6692 	_dict_entry,5,PAUSE,PAUSE_IDX;pause 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 133.
 Hexadecimal [24-Bits]
@@ -9577,20 +9577,20 @@ Hexadecimal [24-Bits]
       00A31A EE                       4 	.byte 3+F_IFUNC 	
       00A31B 04 A3 A2                 5 	.ascii "NOT"
       00A31E FD 26                    6 	.word NOT_IDX 
-      0026F5                       6697 	_dict_entry,3,NEW,NEW_IDX;new
+      0026F5                       6697 	_dict_entry,4,NEXT,NEXT_IDX;next 
       00A320 F2 90                    1 	.word LINK 
                            0026F7     2 	LINK=.
-      0026F7                          3 NEW:
-      00A322 CF                       4 	.byte 3 	
-      00A323 00 07 90                 5 	.ascii "NEW"
-      00A326 E6 02                    6 	.word NEW_IDX 
-      0026FD                       6698 	_dict_entry,4,NEXT,NEXT_IDX;next 
-      00A328 C7 00                    1 	.word LINK 
-                           0026FF     2 	LINK=.
-      0026FF                          3 NEXT:
-      00A32A 0A                       4 	.byte 4 	
-      00A32B 35 06 00 09              5 	.ascii "NEXT"
-      00A32F 81 5C                    6 	.word NEXT_IDX 
+      0026F7                          3 NEXT:
+      00A322 CF                       4 	.byte 4 	
+      00A323 00 07 90 E6              5 	.ascii "NEXT"
+      00A327 02 C7                    6 	.word NEXT_IDX 
+      0026FE                       6698 	_dict_entry,3,NEW,NEW_IDX;new
+      00A329 00 0A                    1 	.word LINK 
+                           002700     2 	LINK=.
+      002700                          3 NEW:
+      00A32B 35                       4 	.byte 3 	
+      00A32C 06 00 09                 5 	.ascii "NEW"
+      00A32F 81 5E                    6 	.word NEW_IDX 
       00A330                       6699 	_dict_entry,6+F_IFUNC,MULDIV,MULDIV_IDX;muldiv 
       00A330 72 5F                    1 	.word LINK 
                            002708     2 	LINK=.
@@ -9746,36 +9746,36 @@ Hexadecimal [24-Bits]
       00A3D5 A3                       4 	.byte 4 	
       00A3D6 6F 20 A8 55              5 	.ascii "FCPU"
       00A3D9 00 34                    6 	.word FCPU_IDX 
-      0027C1                       6719 	_dict_entry,6+F_IFUNC,EEPROM,EEPROM_IDX;const_eeprom_base   
+      0027C1                       6719 	_dict_entry,3,END,END_IDX;cmd_end  
       00A3D9 CD 91                    1 	.word LINK 
                            0027C3     2 	LINK=.
-      0027C3                          3 EEPROM:
-      00A3DB 74                       4 	.byte 6+F_IFUNC 	
-      00A3DC A1 02 27 03 CC 89        5 	.ascii "EEPROM"
-      00A3E2 9C 32                    6 	.word EEPROM_IDX 
-      00A3E3                       6720 	_dict_entry,3,END,END_IDX;cmd_end  
-      00A3E3 72 12                    1 	.word LINK 
-                           0027CE     2 	LINK=.
-      0027CE                          3 END:
-      00A3E5 50                       4 	.byte 3 	
-      00A3E6 C7 85 5D                 5 	.ascii "END"
-      00A3E9 27 21                    6 	.word END_IDX 
+      0027C3                          3 END:
+      00A3DB 74                       4 	.byte 3 	
+      00A3DC A1 02 27                 5 	.ascii "END"
+      00A3DF 03 CC                    6 	.word END_IDX 
+      0027C9                       6720 	_dict_entry,6+F_IFUNC,EEPROM,EEPROM_IDX;const_eeprom_base   
+      00A3E1 89 9C                    1 	.word LINK 
+                           0027CB     2 	LINK=.
+      00A3E3                          3 EEPROM:
+      00A3E3 72                       4 	.byte 6+F_IFUNC 	
+      00A3E4 12 50 C7 85 5D 27        5 	.ascii "EEPROM"
+      00A3EA 21 85                    6 	.word EEPROM_IDX 
       0027D4                       6721 	_dict_entry,6+F_CMD,DWRITE,DWRITE_IDX;digital_write
-      00A3EB 85 A6                    1 	.word LINK 
+      00A3EC A6 08                    1 	.word LINK 
                            0027D6     2 	LINK=.
       0027D6                          3 DWRITE:
-      00A3ED 08                       4 	.byte 6+F_CMD 	
-      00A3EE 42 9F C7 52 00 72        5 	.ascii "DWRITE"
-      00A3F4 1A 50                    6 	.word DWRITE_IDX 
+      00A3EE 42                       4 	.byte 6+F_CMD 	
+      00A3EF 9F C7 52 00 72 1A        5 	.ascii "DWRITE"
+      00A3F5 50 14                    6 	.word DWRITE_IDX 
       0027DF                       6722 	_dict_entry,5+F_IFUNC,DREAD,DREAD_IDX;digital_read
-      00A3F6 14 72                    1 	.word LINK 
+      00A3F7 72 1A                    1 	.word LINK 
                            0027E1     2 	LINK=.
       0027E1                          3 DREAD:
-      00A3F8 1A                       4 	.byte 5+F_IFUNC 	
-      00A3F9 50 16 72 14 52           5 	.ascii "DREAD"
-      00A3FE 00 72                    6 	.word DREAD_IDX 
+      00A3F9 50                       4 	.byte 5+F_IFUNC 	
+      00A3FA 16 72 14 52 00           5 	.ascii "DREAD"
+      00A3FF 72 12                    6 	.word DREAD_IDX 
       0027E9                       6723 	_dict_entry,2,DO,DO_IDX;do_loop
-      00A400 12 52                    1 	.word LINK 
+      00A401 52 01                    1 	.word LINK 
                            0027EB     2 	LINK=.
       0027EB                          3 DO:
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 137.
@@ -9783,15 +9783,15 @@ Hexadecimal [24-Bits]
 
 
 
-      00A402 01                       4 	.byte 2 	
-      00A403 72 10                    5 	.ascii "DO"
-      00A405 52 01                    6 	.word DO_IDX 
+      00A403 72                       4 	.byte 2 	
+      00A404 10 52                    5 	.ascii "DO"
+      00A406 01 72                    6 	.word DO_IDX 
       0027F0                       6724 	_dict_entry,3,DIR,DIR_IDX;directory 
-      00A407 72 1C                    1 	.word LINK 
+      00A408 1C 52                    1 	.word LINK 
                            0027F2     2 	LINK=.
       0027F2                          3 DIR:
-      00A409 52                       4 	.byte 3 	
-      00A40A 00 81 52                 5 	.ascii "DIR"
+      00A40A 00                       4 	.byte 3 	
+      00A40B 81 49 52                 5 	.ascii "DIR"
       00A40C 00 28                    6 	.word DIR_IDX 
       0027F8                       6725 	_dict_entry,3,DEC,DEC_IDX;dec_base
       00A40C 5B 02                    1 	.word LINK 
@@ -10132,9 +10132,9 @@ Hexadecimal [24-Bits]
 Symbol Table
 
     DO_IDX  =  00002A     |   5 DREAD      0027E1 R   |     DREAD_ID=  00002C 
-  5 DWRITE     0027D6 R   |     DWRITE_I=  00002E     |   5 EEPROM     0027C3 R
+  5 DWRITE     0027D6 R   |     DWRITE_I=  00002E     |   5 EEPROM     0027CB R
     EEPROM_B=  004000     |     EEPROM_E=  0047FF     |     EEPROM_I=  000032 
-    EEPROM_S=  000800     |     EM      =  000019     |   5 END        0027CE R
+    EEPROM_S=  000800     |     EM      =  000019     |   5 END        0027C3 R
     END_IDX =  000030     |     ENQ     =  000005     |     EOF     =  0000FF 
     EOT     =  000004     |     ERR_BAD_=  00000A     |     ERR_BUF_=  00000F 
     ERR_CMD_=  000007     |     ERR_DIV0=  000004     |     ERR_DUPL=  000008 
@@ -10241,8 +10241,8 @@ Symbol Table
     MINOR   =  000000     |   5 MULDIV     002708 R   |     MULDIV_I=  00005A 
     MULOP   =  000003     |     N1      =  000001     |     NAFR    =  004804 
     NAK     =  000015     |     NAMEPTR =  000003     |     NCLKOPT =  004808 
-    NEG     =  000001     |   5 NEW        0026F7 R   |     NEW_FREE=  000001 
-    NEW_IDX =  00005E     |   5 NEXT       0026FF R   |     NEXT_IDX=  00005C 
+    NEG     =  000001     |   5 NEW        002700 R   |     NEW_FREE=  000001 
+    NEW_IDX =  00005E     |   5 NEXT       0026F7 R   |     NEXT_IDX=  00005C 
     NFLASH_W=  00480E     |     NHSECNT =  00480A     |     NLEN    =  000001 
     NOPT1   =  004802     |     NOPT2   =  004804     |     NOPT3   =  004806 
     NOPT4   =  004808     |     NOPT5   =  00480A     |     NOPT6   =  00480C 
@@ -10274,7 +10274,7 @@ Symbol Table
     PC_DDR  =  00500C     |     PC_IDR  =  00500B     |     PC_ODR  =  00500A 
     PD      =  00000F     |     PD_BASE =  00500F     |     PD_CR1  =  005012 
     PD_CR2  =  005013     |     PD_DDR  =  005011     |     PD_IDR  =  005010 
-    PD_ODR  =  00500F     |     PE      =  000014     |   5 PEEK       0026BB R
+    PD_ODR  =  00500F     |     PE      =  000014     |   5 PEEK       0026C5 R
     PEEK_IDX=  00006C     |     PE_BASE =  005014     |     PE_CR1  =  005017 
     PE_CR2  =  005018     |     PE_DDR  =  005016     |     PE_IDR  =  005015 
     PE_ODR  =  005014     |     PF      =  000019     |     PF_BASE =  005019 
@@ -10285,10 +10285,10 @@ Symbol Table
     PH      =  000023     |     PH_BASE =  005023     |     PH_CR1  =  005026 
     PH_CR2  =  005027     |     PH_DDR  =  005025     |     PH_IDR  =  005024 
     PH_ODR  =  005023     |     PI      =  000028     |     PINNO   =  000001 
-  5 PINP       0026B2 R   |     PINP_IDX=  00006E     |     PINVAL  =  000002 
+  5 PINP       0026BC R   |     PINP_IDX=  00006E     |     PINVAL  =  000002 
     PI_BASE =  005028     |     PI_CR1  =  00502B     |     PI_CR2  =  00502C 
     PI_DDR  =  00502A     |     PI_IDR  =  005029     |     PI_ODR  =  005028 
-  5 PMODE      0026C4 R   |     PMODE_ID=  00006A     |   5 POKE       0026A9 R
+  5 PMODE      0026B2 R   |     PMODE_ID=  00006A     |   5 POKE       0026A9 R
     POKE_IDX=  000070     |     PORT    =  000003     |   5 POUT       0026A0 R
     POUT_IDX=  000072     |     PREV    =  000001     |   5 PRINT      002696 R
   5 PRTA       00268D R   |     PRTA_IDX=  000076     |   5 PRTB       002684 R
@@ -10320,8 +10320,8 @@ Symbol Table
     SI      =  00000F     |     SIGN    =  000001     |   5 SIZE       0025D0 R
     SIZE_IDX=  00009E     |     SKIP    =  000005     |   5 SLEEP      0025C6 R
     SLEEP_ID=  0000A0     |     SO      =  00000E     |     SOH     =  000001 
-    SPACE   =  000020     |   5 SPIEN      0025B2 R   |     SPIEN_ID=  0000A4 
-  5 SPIRD      0025BC R   |     SPIRD_ID=  0000A2     |   5 SPISEL     0025A7 R
+    SPACE   =  000020     |   5 SPIEN      0025BC R   |     SPIEN_ID=  0000A4 
+  5 SPIRD      0025B2 R   |     SPIRD_ID=  0000A2     |   5 SPISEL     0025A7 R
     SPISEL_I=  0000A6     |   5 SPIWR      00259D R   |     SPIWR_ID=  0000A8 
     SPI_CR1 =  005200     |     SPI_CR1_=  000003     |     SPI_CR1_=  000000 
     SPI_CR1_=  000001     |     SPI_CR1_=  000007     |     SPI_CR1_=  000002 
@@ -10422,7 +10422,7 @@ Symbol Table
     TIM4_PSC=  000001     |     TIM4_PSC=  000005     |     TIM4_PSC=  000002 
     TIM4_PSC=  000006     |     TIM4_PSC=  000003     |     TIM4_PSC=  000000 
     TIM4_PSC=  000001     |     TIM4_PSC=  000002     |     TIM4_SR =  005342 
-    TIM4_SR_=  000000     |   5 TIMEOUT    00256B R   |   5 TIMER      002577 R
+    TIM4_SR_=  000000     |   5 TIMEOUT    002575 R   |   5 TIMER      00256B R
     TIMER_ID=  0000B0     |     TIM_CR1_=  000007     |     TIM_CR1_=  000000 
     TIM_CR1_=  000006     |     TIM_CR1_=  000005     |     TIM_CR1_=  000004 
     TIM_CR1_=  000003     |     TIM_CR1_=  000001     |     TIM_CR1_=  000002 

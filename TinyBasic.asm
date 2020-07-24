@@ -6243,18 +6243,27 @@ const_cr2:
 	ldw x,#GPIO_CR2
 	ret 
 ;-------------------------
+; BASIC: POUT 
 ;  constant for port mode
 ;  used by PMODE 
-;  input or output
+;  to set pin as output
 ;------------------------
 const_output:
 	ld a,#TK_INTGR 
 	ldw x,#OUTP
 	ret 
+
+;-------------------------
+; BASIC: PINP 
+;  constant for port mode
+;  used by PMODE 
+;  to set pin as input
+;------------------------
 const_input:
 	ld a,#TK_INTGR 
 	ldw x,#INP 
 	ret 
+	
 ;-----------------------
 ; memory area constants
 ;-----------------------
@@ -6652,15 +6661,15 @@ kword_end:
 	_dict_entry,6+F_IFUNC,UBOUND,UBOUND_IDX;ubound
 	_dict_entry,4,TONE,TONE_IDX;tone  
 	_dict_entry,2,TO,TO_IDX;to
-	_dict_entry,7+F_IFUNC,TIMEOUT,TMROUT_IDX;timeout 
 	_dict_entry,5,TIMER,TIMER_IDX;set_timer
+	_dict_entry,7+F_IFUNC,TIMEOUT,TMROUT_IDX;timeout 
 	_dict_entry,5+F_IFUNC,TICKS,TICKS_IDX;get_ticks
 	_dict_entry,4,STOP,STOP_IDX;stop 
 	_dict_entry,4,STEP,STEP_IDX;step 
 	_dict_entry,5,SPIWR,SPIWR_IDX;spi_write
 	_dict_entry,6,SPISEL,SPISEL_IDX;spi_select
-	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
 	_dict_entry,5+F_IFUNC,SPIRD,SPIRD_IDX; spi_read 
+	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
 	_dict_entry,5,SLEEP,SLEEP_IDX;sleep 
 	_dict_entry,4+F_IFUNC,SIZE,SIZE_IDX;size
     _dict_entry,4,SHOW,SHOW_IDX;show 
@@ -6686,16 +6695,16 @@ kword_end:
 	_dict_entry 5,PRINT,PRT_IDX;print 
 	_dict_entry,4+F_IFUNC,POUT,POUT_IDX;const_output
 	_dict_entry,4,POKE,POKE_IDX;poke 
+	_dict_entry,5,PMODE,PMODE_IDX;pin_mode 
 	_dict_entry,4+F_IFUNC,PINP,PINP_IDX;const_input
 	_dict_entry,4+F_IFUNC,PEEK,PEEK_IDX;peek 
-	_dict_entry,5,PMODE,PMODE_IDX;pin_mode 
 	_dict_entry,5,PAUSE,PAUSE_IDX;pause 
 	_dict_entry,3+F_IFUNC,PAD,PAD_IDX;pad_ref 
 	_dict_entry,2+F_IFUNC,OR,OR_IDX;bit_or
 	_dict_entry,3+F_IFUNC,ODR,ODR_IDX;const_odr 
 	_dict_entry,3+F_IFUNC,NOT,NOT_IDX;func_not 
-	_dict_entry,3,NEW,NEW_IDX;new
 	_dict_entry,4,NEXT,NEXT_IDX;next 
+	_dict_entry,3,NEW,NEW_IDX;new
 	_dict_entry,6+F_IFUNC,MULDIV,MULDIV_IDX;muldiv 
 	_dict_entry,6+F_IFUNC,LSHIFT,LSHIFT_IDX;lshift
 	_dict_entry,3+F_IFUNC,LOG,LOG_IDX;log2 
@@ -6716,8 +6725,8 @@ kword_end:
 	_dict_entry,6,FORGET,FORGET_IDX;forget 
 	_dict_entry,3,FOR,FOR_IDX;for 
 	_dict_entry,4,FCPU,FCPU_IDX;fcpu 
-	_dict_entry,6+F_IFUNC,EEPROM,EEPROM_IDX;const_eeprom_base   
 	_dict_entry,3,END,END_IDX;cmd_end  
+	_dict_entry,6+F_IFUNC,EEPROM,EEPROM_IDX;const_eeprom_base   
 	_dict_entry,6+F_CMD,DWRITE,DWRITE_IDX;digital_write
 	_dict_entry,5+F_IFUNC,DREAD,DREAD_IDX;digital_read
 	_dict_entry,2,DO,DO_IDX;do_loop
