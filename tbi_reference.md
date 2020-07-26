@@ -1,5 +1,33 @@
 # référence du langage Tiny BASIC pour STM8
 
+<a id="index-princ"></a>
+## index principal 
+
+* [Types de données](#data)
+
+* [Variables](#variables)
+
+* [Expressions arithmétiques](#expressions)
+
+* [Syntaxe](#syntaxe)
+
+* [Bases numériques](#bases)
+
+* [Ligne de commande](#cli)
+
+* [Fichiers](#fichiers)
+
+* [Référence des commandes et fonctions](#index)
+
+* [Installation](#install)
+
+* [Utilisation](#utilisation)
+
+* [transfert de fichiers](#xmodem)
+
+* [Code source](#sources)
+
+<a id="data"></a>
 ### Type de données 
 Le seul type de donné numérique est l'entier 16 bits donc dans l'intervalle **-32768...32767**.  
 
@@ -9,6 +37,9 @@ Le type caractère est aussi disponible sous la forme **\c** i.e. un *backslash*
 
 Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()**. Qui retourne un jeton de type **TK_CHAR**. Ce type de donnée ne peut-être sauvegardé dans une variable sauf en utilisant la fonction **ASC()** qui le convertie ent type **TK_INTGR** qui peut-être sauvegardé dans une variable ou utilisé dans un expression.  
 
+[index principal](#index-princ)
+
+<a id="variables"></a>
 ### Variables 
 
 Le nombre des variables est limité à 26 et chacune d'elle est représentée par une lettre de l'alphabet. 
@@ -17,6 +48,8 @@ Le nombre des variables est limité à 26 et chacune d'elle est représentée pa
 
 Il n'y a qu'un seul tableau appelé **@** et dont la taille dépend de la taille du programme. En effet ce tableau utilise la mémoire RAM laissée libre par le programme. Un programme peut connaître la taille de ce tableau en invoquant la fonction **UBOUND**. 
 
+[index principal](#index-princ)
+<a id="expressions"></a>
 ### expression arithmétiques 
 
 Il y a 5 opérateurs arithmétiques par ordre de précédence:
@@ -37,6 +70,8 @@ Les opérateurs relationnels ont une priorités inférieure à celle des opérat
 1. **'='** Retourne vrai si les 2 termes sont identiques. 
 1. **'&lt;&gt;'** ou **'&gt;&lt;'** Retourne vrai si les 2 termes sont différents. 
 
+[index principal](#index-princ)
+<a id="syntaxe"></a>
 ## Syntaxe 
 
 Le code utilisé pour le texte est le code [ASCII](https://fr.wikipedia.org/wiki/American_Standard_Code_for_Information_Interchange).
@@ -67,6 +102,8 @@ Plusieurs commandes peuvent-être présentent sur la même ligne. Le caractère 
 
 Une fin de ligne marque la fin d'une commande. Autrement dit une commande ne peut s'étendre sur plusieurs lignes. 
 
+[index principal](#index-princ)
+<a id="bases"></a>
 ## bases numériques
 Les entiers peuvent-être indiqués en décimal,hexadécimal ou binaire. Cependant ils ne peuvent-être affichés qu'en décimal ou hexadécimal. 
 
@@ -84,6 +121,8 @@ examples d'entiers:
     $ff0f  ' entier hexadécimal 
     &101   ' entier binaire correspondant à 5 en décimal. 
 
+[index principal](#index-princ)
+<a id="cli"></a>
 ## Ligne de commande et programmes 
  
 Au démarrage l'information sur Tiny BASIC est affichée. Ensuite viens l'invite de commande qui est représentée par le caractère **&gt;**. 
@@ -108,12 +147,17 @@ Certaines commandes ne peuvent-être utilisées qu'à l'intérieur d'un programm
 
 Le programme en mémoire RAM est perdu à chaque réinitialiation du processeur sauf s'il a été sauvegardé comme fichier dans la mémoire flash. Les commandes de fichiers sont décrites dans la section référence.
 
+[index principal](#index-princ)
+<a id="fichiers"></a>
 ## Système de fichier
 Le microcontrôleur de la carte NUCLEO-8S208RB possède 128Ko de mémoire flash. Cependant seulement 32Ko sont dans la plage de mémoire standard {0..65535}. Le reste fait partie de la mémoire étendue {32768..131071}. 
 Cette mémoire étendu n'est pas utilisée par Tiny BASIC, elle est réservée pour un mini système de fichiers qui sert à sauvegarder les programmes BASIC.
 
+<a id="reference"></a>
 ## Référence des commandes et fonctions.
 la remarque **{C,P}** après le nom de chaque commande indique dans quel contexte cette commande ou fonction peut-être utilisée. **P** pour *programme* et **C** pour ligne de commande. Une fonction ne peut-être utilisée que comme argument d'une commande ou comme partie d'une expression. 
+
+[index principal](#index-princ)
 
 <a id="index"></a>
 ## INDEX du vocabulaire
@@ -156,8 +200,8 @@ nom|abrévation
 [IF](#if)|IF
 [INPUT](#input)|IN
 [INVERT](#invert)|INV
-[IWDGEN](#idwgen)|IDGE
-[IWDGREF](#idwgref)|IWGR
+[IWDGEN](#iwdgen)|IDGE
+[IWDGREF](#iwdgref)|IWGR
 [KEY](#key)|KE
 [LET](#let)|LE
 [LIST](#list)|LI
@@ -771,7 +815,7 @@ Active l'*Independant WatchDog timer*. *expr* représente le délais de la minut
 ```
 
 [index](#index)
-<a id="iwdref"></a>
+<a id="iwdgref"></a>
 ### IWDGREF  {C,P}
 Cette commande sert à rafraîchir le compteur du **IWDG** avant l'expiration de son délais.
 Voir commande **IWDGEN**.
@@ -990,6 +1034,12 @@ Retourne la valeur de l'octet situé à l'adresse représentée par *expr*. Mêm
 
 >
 ```
+
+[index](#index)
+<a id="pinp"></a>  {C,P}
+### PINP pin 
+Constante utilisée par la commande [PMODE](#pmode) pour définir une broche en mode entrée logique.
+
 [index](#index)
 <a id="pmode"></a>
 ### PMODE *pin*,*mode*
@@ -998,7 +1048,8 @@ Configure le mode entrée/sortie d'une des 15 broches nommées **D0..D15** sur l
 10 PMODE 10,POUT 
 20 DWRITE 10, 1#
 ```
-
+[index](#index)
+<a id="poke"></a>
 ### POKE *expr1*,*expr2*
 Dépose la valeur de *expr2* à l'adresse de *expr1*. Même si expr2 est un entier seul l'octet faible est utilisé. 
 ```
@@ -1006,6 +1057,11 @@ Dépose la valeur de *expr2* à l'adresse de *expr1*. Même si expr2 est un enti
 A
 >
 ```
+[index](#index)
+<a id="pout"></a>
+### POUT  {C,P} 
+Constante utilisée par la commande [PMODE](#pmode) pour définir une broche en mode sortie logique. 
+
 [index](#index)
 <a id="print"></a>
 ### PRINT [*string*|*expr*|*char*][,*string*|*expr*|*char*][','] {C,P}
@@ -1096,7 +1152,7 @@ La commande **REM**  sert à insérer des commentaires (*remark*) dans un progra
 [index](#index)
 <a id="restore"></a>
 ### RESTORE {p}
-Cette commande initialise le pointeur de **DATA** au début de la première ligne de données. Il peut être invoqué à l'intérieur d'une boucle si on veut relire les même données plusieurs fois. Pour un exemple d'utilisation voir la fonction **READ**. 
+Cette commande initialise le pointeur de [DATA](#data) au début de la première ligne de données. Il peut être invoqué à l'intérieur d'une boucle si on veut relire les même données plusieurs fois. Pour un exemple d'utilisation voir la fonction [READ](#read). 
 
 [index](#index)
 <a id="return"></a>
@@ -1523,8 +1579,10 @@ Cette commande peut aussi être utilisée pour transmettre un programm BASIC dir
 
 [index](#index)
 
+[index principal](#index-princ)
 <hr>
 
+<a id="install"></a>
 ## Installation de Tiny BASIC sur la carte NUCLEO-8S208RB 
 À la ligne 36 du fichier [PABasic.asm](PABasic.asm) il y a une macro nommée **_dbg**. Cette macro ajoute du code supplémentaire lors du développement du système et doit-être mise en commentaire pour construire la version finale. construire Tiny BASIC et programmer la carte NUCLEO est très simple grâce la l'utilitaire **make**. Lorsque la carte est branchée et prête à être programmée faites la commande suivante:
 ```
@@ -1550,10 +1608,48 @@ Due to its file extension (or lack thereof), "build/PABasic.ihx" is considered a
 7808 bytes at 0x8000... OK
 Bytes written: 7808
 ```
+[index principal](#index-princ)
 
+<a id="utilisation"></a>
 # Utilisation de TinyBASIC sur STM8
 Vous trouverez dans le manuel de l'[utilisateur de tiny BASIC](manuel_util_tb.md) des exemples d'utilisation. 
 
+[index principal](#index-princ)
+
+<a id="xmodem"></a>
+# Transfert de fichiers
+Il est possible de transférer des programmes BASIC entre la carte et le PC ou entre 2 cartes sur lesquelles est installé **STM8 TinyBasic**. Voici une photo du branchement matériel requi entre la carte et le PC.
+
+![docs/images/connections-carte.png](docs/images/connections-carte.png)
+Le cable USB du programmeur STLINK de la carte est utilisé pour la console utilisateur. En ubuntu/linux ce lien apparaît comme un périphérique **ACM** sur le PC. sur mon poste de travail il s'agit du périphérique **/dev/ttyACM0** mais ça peut-être un autre chiffre dépendant de la configuration de votre PC. S'il y a 2 cartes de branchées au PC il y aura **ttyACM0** et **ttyACM1**. 
+
+J'utilise **GTKTerm** comme console utilisateur configuré sur le port **/dev/ttyACM0** à 115200 BAUD 8N1. 
+
+![docs/images/gtkTerm_config.png](docs/images/gtkTerm_config.png)
+
+![console](docs/images/console.png)
+
+Pour le transfert de fichiers il faut un deuxième lien. Ce deuxième lien est assuré par le périphérique **UART3** de la carte qui est relié au périphérique **/dev/ttyS0** sur le PC en Passant par un adapteur de niveau RS-232.  Puisque le transfert de fichier utilise le protocole **XMODEM** et que **GTKTerm** ne supporte pas ce protocole je dois utilisé un autre émulateur de terminal. En l'occurence j'utilise **minicom** relié au périphérique **/dev/ttyS0** avec la configuration 115200 8N1. 
+
+### Envoie d'un fichier vers le PC
+
+Le fichier à transmettre doit-être chargé en mémoire RAM. Le fichier est transmis sous sa forme exécutable (binaire) et non comme fichier source. Le protocole XMODEM est contrôlé par la partie qui reçoit le fichier donc pour transmettre le fichier vers le PC on doit d'abord lancer la commande [XTRMT](#xtrmt) à partir de la console de la carte. Ensuite on va sur la console de minicom pour initialiser la réception avec le protocole **XMODMEM**. 
+
+![Transmission XMODEM](docs/images/xtrmt.png)
+
+[Vidéo de la comamnde XTRMT](https://youtu.be/l-YkdHDM9o0)
+
+### réception d'un fichier
+Pour recevoir un fichier sur la carte il faut d'abord lancer la commande de transmission dans le terminal minicom puis passer au terminal console de la carte pour lancer la commande [xrcv](#xrcv). Le fichier est téléchargé dans la mémoire RAM et prêt à l'exécution. Il peut-être sauvegardé sur la carte avec la commande [save][#save]
+
+
+![réception XMODEM](docs/images/xrcv.png)
+
+[vidéo de la commande XRCV](https://youtu.be/OXjFfrBSkU8)
+
+[index principal](#index-princ)
+
+<a id="sources"></a>
 # code source 
 
 * [TinyBasic.asm](TinyBasic.asm)  Code source de l'interpréteur BASIC.
@@ -1561,4 +1657,4 @@ Vous trouverez dans le manuel de l'[utilisateur de tiny BASIC](manuel_util_tb.md
 * [terminal.asm](terminal.asm) interface utilisateur avec l'émulateur de terminal sur le PC.
 * [xmodem.asm](xmodem.asm) fonctions du protocole de transfert de fichier XMODEM.
 
-[index](#index)
+[index principal](#index-princ)
