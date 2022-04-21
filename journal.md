@@ -1,3 +1,56 @@
+#### 2022-04-21
+
+* 14:21 commit avant modifications majeures.
+
+* Réinitialisé le git à la version 1.0. Recommencer optimisation. 
+
+* Création du dossier BASIC pour les fichiers programme source.
+
+* Copié utilitaire SendFile dans le dossier BASIC. Création du script [send.sh](send.sh) 
+
+* Déplacé code du compilateur dans un fichier séparé [compiler.asm](compiler.asm)
+
+* Déplacé code du decompilateur dans un fichier séparé [decompiler.asm](decompiler.asm)
+
+* Suppression des commandes **XRCV** et **XTRMT**. 
+
+* Renommé commande **SIZE** **FREE**. 
+
+* Modifié le compilateur pour laisser tomber la commande **LET**. 
+
+
+#### 2022-04-20 
+
+* Débuté travail pour réduire la taille et améliorer la performance. 
+
+    * objectif: réduire taille à moins de 8Ko. 
+
+* Éliminer les commandes **XRCV** et **XTRMT**  
+
+* Modifié Makefile pour créer un fichier **.bin**. 
+
+* Command must be terminated by end of line or ':'. 
+
+* Extrait le code du compilateur de [TinyBasic.asm](TinyBasic.asm) pour le mettre dans un fichier séparé [compiler.asm](compiler.asm).
+
+#### 2022-04-19
+
+* Copy de SendFile dans dossier BASIC.
+
+* Tests et débogage. 
+
+* Renommé commande **SIZE** **FREE**. Mis à jour [tbi_reference.md](tbi_reference.md)
+
+#### 2022-04-18
+
+* À faire tests. 
+
+* Nettoyage et création dossier **BASIC**.
+
+* Remplacer **call (x)** par **jp (x)** dans interp_loop  pour les commandes replacer les **ret** par des **jp interp_loop** à la fin des commandes.
+
+<hr>
+
 #### 2020-07-24
 
 * Mise à jour documentation 

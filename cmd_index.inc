@@ -101,7 +101,7 @@
     RUN_IDX=76<<1
     SAVE_IDX=77<<1
     SHOW_IDX=78<<1
-    SIZE_IDX=79<<1
+    FREE_IDX=79<<1
     SLEEP_IDX=80<<1
     SPIRD_IDX=81<<1
     SPIEN_IDX=82<<1
@@ -122,5 +122,3 @@
     WORDS_IDX=97<<1
     WRITE_IDX=98<<1
     XOR_IDX=99<<1 
-    XTRMT_IDX=100<<1
-    XRCV_IDX=101<<1

@@ -15,7 +15,6 @@
 ;     You should have received a copy of the GNU General Public License
 ;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-
 ;--------------------------------------
 ;   Implementation of Tiny BASIC
 ;   REF: https://en.wikipedia.org/wiki/Li-Chen_Wang#Palo_Alto_Tiny_BASIC
@@ -42,9 +41,10 @@
 ;--------------------------------------	
 
 
+
 in.w::  .blkb 1 ; parser position in text line high-byte 
 in::    .blkb 1 ; low byte of in.w 
-in.saved:: .blkb 1 ; set by get_token before parsing next token, used by unget_token
+in.saved:: .blkb 1 ; set by parse_lex before parsing next token, used by unget_token
 count:: .blkb 1 ; current BASIC line length and tib text length  
 basicptr::  .blkb 2  ; point to current BASIC line address.
 data_ptr:  .blkw 1  ; point to DATA address
@@ -162,7 +162,6 @@ AWUHandler:
 ; and fall back to command line
 ;--------------------------
 Uart1RxHandler: ; console receive char 
-	_led2_on 
 	btjf UART1_SR,#UART_SR_RXNE,5$
 	ld a,UART1_DR 
 	cp a,#CTRL_C 
@@ -189,7 +188,7 @@ Uart1RxHandler: ; console receive char
 	ld a,#RX_QUEUE_SIZE-1
 	and a,rx1_tail 
 	ld rx1_tail,a  
-5$:	_led2_off 	
+5$:	
 	iret 
 
 ;-----------------------------
@@ -1009,6 +1008,39 @@ move_exit:
 	_drop VSIZE
 	ret 	
 
+;-------------------------------------
+; search text area for a line#
+; input:
+;	X 			line# 
+; output:
+;   X 			addr of line | 0 
+;   Y           line#|insert address if not found  
+;-------------------------------------
+	LL=1 ; line length 
+	LB=2 ; line length low byte 
+	VSIZE=2 
+search_lineno::
+	_vars VSIZE
+	clr (LL,sp)
+	ldw y,txtbgn
+search_ln_loop:
+	cpw y,txtend 
+	jrpl 8$
+	cpw x,(y)
+	jreq 9$
+	jrmi 8$ 
+	ld a,(2,y)
+	ld (LB,sp),a 
+	addw y,(LL,sp)
+	jra search_ln_loop 
+8$: 
+	clrw x 	
+	exgw x,y 
+9$: _drop VSIZE
+	exgw x,y   
+	ret 
+
+
 ;------------------------------------
 ;  set all variables to zero 
 ; input:
@@ -1079,7 +1111,7 @@ is_alnum::
 ;  program initialization entry point 
 ;-------------------------------------
 	MAJOR=1
-	MINOR=0
+	MINOR=1
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2020\nversion "
 cold_start:
 ;set stack 
@@ -1195,7 +1227,8 @@ load_autorun:
 ; if file doesn't exit
 	call cancel_autorun
 	jra 9$ 
-2$:	call load_file
+2$:	
+	call load_file
 	ldw x,#AUTORUN_NAME 
 	call puts
 	ldw x,#autorun_msg 
@@ -1348,8 +1381,8 @@ interp_loop:
 	jreq next_line 
 	cp a,#TK_CMD
 	jrne 1$
-	call (x) 
-	jra interp_loop 
+	jp (x) 
+;	jra interp_loop 
 1$:	 
 	cp a,#TK_VAR
 	jrne 2$
@@ -1735,6 +1768,26 @@ atoi_exit:
 	ret
 
 
+;------------------------------------
+; skip character c in text starting from 'in'
+; input:
+;	 y 		point to text buffer
+;    a 		character to skip
+; output:  
+;	'in' ajusted to new position
+;------------------------------------
+	C = 1 ; local var
+skip::
+	push a
+1$:	ld a,([in.w],y)
+	jreq 2$
+	cp a,(C,sp)
+	jrne 2$
+	inc in
+	jra 1$
+2$: _drop 1 
+	ret
+	
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;   TINY BASIC  operators,
 ;;   commands and functions 
@@ -2100,72 +2153,6 @@ muldiv:
 	ret 
 
 
-;---------------------------------
-; dictionary search 
-; input:
-;	X 		dictionary entry point, name field  
-;   y		.asciz name to search 
-; output:
-;  A 		TK_CMD|TK_IFUNC|TK_NONE 
-;  X		cmd_index ; execution address | 0 
-;---------------------------------
-	NLEN=1 ; cmd length 
-	XSAVE=2
-	YSAVE=4
-	VSIZE=5 
-search_dict::
-	_vars VSIZE 
-
-	ldw (YSAVE,sp),y 
-search_next:
-	ldw (XSAVE,sp),x 
-; get name length in dictionary	
-	ld a,(x)
-	and a,#0xf 
-	ld (NLEN,sp),a  
-	ldw y,(YSAVE,sp) ; name pointer 
-	incw x 
-cp_loop:
-	ld a,(y)
-	jreq str_match 
-	tnz (NLEN,sp)
-	jreq no_match  
-	cp a,(x)
-	jrne no_match 
-	incw y 
-	incw x
-	dec (NLEN,sp)
-	jra cp_loop 
-no_match:
-	ldw x,(XSAVE,sp) 
-	subw x,#2 ; move X to link field
-	push #TK_NONE 
-	ldw x,(x) ; next word link 
-	pop a ; TK_NONE 
-	jreq search_exit  ; not found  
-;try next 
-	jra search_next
-str_match:
-	ldw x,(XSAVE,sp)
-	ld a,(X)
-	ld (NLEN,sp),a ; needed to test keyword type  
-	and a,#0xf 
-; move x to procedure address field 	
-	inc a 
-	ld acc8,a 
-	clr acc16 
-	addw x,acc16 
-	ldw x,(x) ; routine index  
-;determine keyword type bits 7:6 
-	ld a,(NLEN,sp)
-	swap a 
-	and a,#0xc
-	srl a
-	srl a 
-	add a,#128
-search_exit: 
-	_drop VSIZE 	 
-	ret 
 
 ;---------------------
 ; check if next token
@@ -2520,13 +2507,14 @@ show:
 	ldw x,#cstk_prompt
 	call puts 
 	ldw x,sp 
-	addw x,#3 ; ignore return address
 	ldw y,#RAM_SIZE  
 	ldw acc16,x 
+	cpw y,acc16 
+	jrmi 1$
 	subw y,acc16
 	call hex_dump
-	clr a 
-	ret
+1$:	clr a 
+	jp interp_loop
 
 cstk_prompt: .asciz "\ncontent of stack from top to bottom:\n"
 
@@ -2537,7 +2525,7 @@ cstk_prompt: .asciz "\ncontent of stack from top to bottom:\n"
 ;---------------------------------------------
 hex_base:
 	mov base,#16 
-	ret 
+	jp interp_loop
 
 ;--------------------------------------------
 ; BASIC: DEC 
@@ -2545,10 +2533,10 @@ hex_base:
 ;---------------------------------------------
 dec_base:
 	mov base,#10
-	ret 
+	jp interp_loop
 
 ;------------------------
-; BASIC: FREE 
+; BASIC: FREE  
 ; return free size in text area
 ; output:
 ;   A 		TK_INTGR
@@ -2592,19 +2580,20 @@ ubound:
 let::
 	call next_token 
 	cp a,#TK_VAR 
-	jreq let_var
-	cp a,#TK_ARRAY 
-	jreq  let_array
+	jrne 0$
+	call let_var 
+	jp interp_loop 
+0$:	cp a,#TK_ARRAY 
+	jreq  1$
 	jp syntax_error
+1$: call let_array 
+	jp interp_loop 		
 let_array:
 	call get_array_element
 let_var:
-	pushw x  
-	call next_token 
-	cp a,#TK_EQUAL
-	jreq 1$
-	jp syntax_error
-1$:	
+	pushw x 
+	ld a,#TK_EQUAL 
+	call expect  
 	call relation   
 	cp a,#TK_INTGR 
 	jreq 2$
@@ -2630,7 +2619,7 @@ list:
 	ldw x,txtbgn 
 	cpw x,txtend 
 	jrmi 1$
-	ret 
+	jp interp_loop
 1$:	
 	_vars VSIZE
 	ldw (LN_PTR,sp),x 
@@ -2686,8 +2675,7 @@ list_exit:
 	ldw x,#pad 
 	ldw basicptr,x 
 	_drop VSIZE 
-	ret
-
+	jp interp_loop
 
 ;--------------------------
 ; decompile line from token list
@@ -2777,7 +2765,7 @@ print_exit:
 	ld a,#CR 
     call putc 
 9$:	_drop VSIZE 
-	ret 
+	jp interp_loop
 
 ;----------------------
 ; 'save_context' and
@@ -2854,7 +2842,7 @@ input_loop:
 	call var_name 
 	call putc   
 21$:
-	ld a,#':
+	ld a,#':'
 	call putc 
 	call save_context 
 	clr count  
@@ -2866,7 +2854,7 @@ input_loop:
 	incw x 
 	_drop 2 
 	clr in 
-	call get_token
+	call parse_lex
 	cp a,#TK_INTGR
 	jreq 3$ 
 	call rest_context 
@@ -2882,7 +2870,7 @@ input_loop:
 	jp syntax_error 
 input_exit:
 	_drop VSIZE 
-	ret 
+	jp interp_loop
 
 
 ;---------------------
@@ -2891,7 +2879,7 @@ input_exit:
 ;---------------------- 
 remark::
 	mov in,count 
- 	ret 
+ 	jp interp_loop
 
 
 ;---------------------
@@ -2928,7 +2916,7 @@ wait:
 	xor a,(XMASK,sp)
 	jreq 2$ 
 	_drop VSIZE 
-	ret 
+	jp interp_loop
 
 ;---------------------
 ; BASIC: BSET addr,mask
@@ -2951,7 +2939,7 @@ bit_set:
 	popw x ; addr  
 	or a,(x)
 	ld (x),a
-	ret 
+	jp interp_loop
 
 ;---------------------
 ; BASIC: BRES addr,mask
@@ -2975,7 +2963,7 @@ bit_reset:
 	popw x ; addr  
 	and a,(x)
 	ld (x),a 
-	ret 
+	jp interp_loop
 
 ;---------------------
 ; BASIC: BTOGL addr,mask
@@ -2997,7 +2985,7 @@ bit_toggle:
 	popw x ; addr  
 	xor a,(x)
 	ld (x),a 
-	ret 
+	jp interp_loop
 
 
 ;---------------------
@@ -3008,7 +2996,7 @@ bit_toggle:
 ; 	addr 		memory address RAM|PERIPHERAL 
 ;   bit 	    bit position {0..7}  
 ; output:
-;	none 
+;	XL          bit value  
 ;--------------------------
 bit_test:
 	call func_args 
@@ -3025,7 +3013,7 @@ bit_test:
 	jreq 2$
 	sll a 
 	dec (1,sp)
-	jra 1$
+	jrne 1$
 2$: _drop 1 
 	popw x 
 	and a,(x)
@@ -3034,7 +3022,7 @@ bit_test:
 3$:	clrw x 
 	ld xl,a 
 	ld a,#TK_INTGR
-	ret
+	ret 
 
 
 ;--------------------
@@ -3051,7 +3039,7 @@ poke:
     ld a,xl 
 	popw x 
 	ld (x),a 
-	ret 
+	jp interp_loop
 
 ;-----------------------
 ; BASIC: PEEK(addr)
@@ -3088,7 +3076,7 @@ if:
 	jrne 9$  
 ;skip to next line
 	mov in,count
-9$:	ret 
+9$:	jp interp_loop
 
 ;------------------------
 ; BASIC: FOR var=expr 
@@ -3097,17 +3085,14 @@ if:
 ; on stack and set
 ; FLOOP bit in 'flags'
 ;-----------------
-	RETL1=1 ; return address  
-	FSTEP=3  ; variable increment
-	LIMIT=5 ; loop limit 
-	CVAR=7   ; control variable 
-	INW=9   ;  in.w saved
-	BPTR=11 ; baseptr saved
+	FSTEP=1  ; variable increment
+	LIMIT=3 ; loop limit 
+	CVAR=5   ; control variable 
+	INW=7   ;  in.w saved
+	BPTR=9 ; baseptr saved
 	VSIZE=10  
 for: ; { -- var_addr }
-	popw x ; call return address 
 	_vars VSIZE 
-	pushw x  ; RETL1 
 	ld a,#TK_VAR 
 	call expect
 	ldw (CVAR,sp),x  ; control variable 
@@ -3178,7 +3163,7 @@ store_loop_addr:
 	ldw (INW,sp),x   
 	bres flags,#FLOOP 
 	inc loop_depth  
-	ret 
+	jp interp_loop
 
 ;--------------------------------
 ; BASIC: NEXT var 
@@ -3224,15 +3209,12 @@ loop_back:
 	ld count,a
 1$:	ldw x,(INW,sp)
 	ldw in.w,x 
-	ret 
+	jp interp_loop
 loop_done:
 	; remove loop data from stack  
-	popw x
 	_drop VSIZE 
 	dec loop_depth 
-;	pushw x 
-;	ret 
-	jp (x)
+	jp interp_loop
 
 ;----------------------------
 ; called by goto/gosub
@@ -3259,14 +3241,13 @@ goto:
 	btjt flags,#FRUN,0$ 
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
-	ret 
 0$:	call get_target_line
 jp_to_target:
 	ldw basicptr,x 
 	ld a,(2,x)
 	ld count,a 
 	mov in,#3 
-	ret 
+	jp interp_loop
 
 
 ;--------------------
@@ -3274,19 +3255,16 @@ jp_to_target:
 ; basic subroutine call
 ; actual line# and basicptr 
 ; are saved on cstack
-; here cstack is 2 call deep from interpreter 
 ;--------------------
-	RET_ADDR=3
-	RET_INW=5
+	RET_ADDR=1
+	RET_INW=3
 	VSIZE=4  
 gosub:
 	btjt flags,#FRUN,0$ 
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
-	ret 
-0$:	popw x 
+0$:	
 	_vars VSIZE  
-	pushw x 
 	ldw x,basicptr
 	ldw (RET_ADDR,sp),x 
 	call get_target_line  
@@ -3312,10 +3290,8 @@ return:
 	ld count,a  
 	ldw x,(RET_INW,sp)
 	ldw in.w,x 
-	popw x 
 	_drop VSIZE 
-	pushw x
-	ret  
+	jp interp_loop
 
 
 ;----------------------------------
@@ -3325,10 +3301,9 @@ return:
 run: 
 	btjf flags,#FRUN,0$  
 	clr a 
-	ret
+	jp interp_loop
 0$: 
 	btjf flags,#FBREAK,1$
-	_drop 2 
 	call rest_context
 	_drop CTXT_SIZE 
 	bres flags,#FBREAK 
@@ -3340,10 +3315,9 @@ run:
 	ldw x,#err_no_prog
 	call puts 
 	mov in,count
-	ret 
+	jp interp_loop
 run_it:	 
     call ubound 
-	_drop 2 ; drop return address 
 ; clear data pointer 
 	clrw x 
 	ldw data_ptr,x 
@@ -3373,8 +3347,8 @@ cmd_end:
 ; 1 Khz beep 
 ;-----------------
 beep_1khz:: 
-	ldw x,#100
-	ldw y,#1000
+	ldw x,#100  ; duration 
+	ldw y,#1000 ; frequency 
 	jra beep
 
 ;-----------------------
@@ -3392,9 +3366,18 @@ tone:
 	jp syntax_error 
 1$: 
 	popw x ; duration
-	popw y ; frequency 
+	popw y ; frequency
+	call beep 
+	jp interp_loop 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;  setup PWM for tone generation 
+; input:
+;     X   duration
+;     Y   frequency  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 beep:  
-	pushw x 
+	pushw X 
 	ldw x,#TIM2_CLK_FREQ
 	divw x,y 
 ; round to nearest integer 
@@ -3420,7 +3403,7 @@ beep:
 	call pause02
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
-	ret 
+	ret
 
 ;-------------------------------
 ; BASIC: ADCON 0|1 [,divisor]  
@@ -3453,7 +3436,7 @@ power_adc:
 2$: bres ADC_CR1,#ADC_CR1_ADON
 	bres CLK_PCKENR2,#CLK_PCKENR2_ADC
 3$:	_drop VSIZE 
-	ret
+	jp interp_loop
 
 ;-----------------------------
 ; BASIC: ADCREAD (channel)
@@ -3563,7 +3546,7 @@ digital_write:
 5$: or a,(GPIO_ODR,x)
 8$: ld (GPIO_ODR,x),a 
 	_drop VSIZE 
-	ret
+	jp interp_loop
 
 
 ;-----------------------
@@ -3576,12 +3559,11 @@ digital_write:
 stop:
 	btjt flags,#FRUN,2$
 	clr a
-	ret 
+	jp interp_loop
 2$:	 
 ; create space on cstack to save context 
 	ldw x,#break_point 
 	call puts 
-	_drop 2 ;drop return address 
 	_vars CTXT_SIZE ; context size 
 	call save_context 
 	ldw x,#tib 
@@ -3603,10 +3585,10 @@ break_point: .asciz "\nbreak point, RUN to resume.\n"
 ;------------------------
 new: 
 	btjf flags,#FRUN,0$ 
-	ret 
+	jp interp_loop
 0$:	
 	call clear_basic 
-	ret 
+	jp interp_loop
 	 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  file system routines
@@ -3827,7 +3809,7 @@ save:
 	ldw x,#err_no_prog 
 	call puts 
 	mov in,count 
-	ret  	
+	jp interp_loop
 1$:	
 	_vars VSIZE 
 	ldw (BSIZE,sp),x 
@@ -3915,7 +3897,7 @@ save:
 	ldw x,(BSIZE,sp) 
 	call print_int 
 	_drop VSIZE 
-	ret 
+	jp interp_loop
 
 ;----------------------
 ; load file in RAM memory
@@ -3972,7 +3954,7 @@ load:
 	ldw x,txtend 
 	subw x,txtbgn
 	call print_int 
-	ret 
+	jp interp_loop
 
 ;-----------------------------------
 ; BASIC: FORGET ["file_name"] 
@@ -4035,7 +4017,7 @@ forget:
 	ld ffree+2,a 
 	ldw ffree,x 
 	_drop VSIZE 
-	ret 
+	jp interp_loop
 
 ;----------------------
 ; BASIC: DIR 
@@ -4096,7 +4078,7 @@ dir_loop:
 	ldw x,#drive_free
 	call puts 
 	_drop VSIZE 
-	ret
+	jp interp_loop
 file_count: .asciz " files\n"
 drive_free: .asciz " bytes free\n" 
 
@@ -4138,7 +4120,7 @@ write:
 	jra 0$ 
 9$:
 	_drop VSIZE
-	ret 
+	jp interp_loop
 
 
 ;---------------------
@@ -4376,7 +4358,7 @@ autorun:
 	clrw x 
 	call write_block 
 	_drop 2 
-	ret 
+	jp interp_loop
 
 ;----------------------------------
 ; BASIC: SLEEP 
@@ -4388,7 +4370,7 @@ sleep:
 	btjf UART1_SR,#UART_SR_TC,.
 	bset flags,#FSLEEP
 	halt 
-	ret 
+	jp interp_loop
 
 ;-------------------------------
 ; BASIC: PAUSE expr 
@@ -4401,8 +4383,11 @@ sleep:
 pause:
 	call expression
 	cp a,#TK_INTGR
-	jreq pause02 
+	jreq 1$ 
 	jp syntax_error
+1$:	call pause02 
+	jp interp_loop 
+
 pause02: 
 1$: tnzw x 
 	jreq 2$
@@ -4410,7 +4395,7 @@ pause02:
 	decw x 
 	jrne 1$
 2$:	clr a 
-	ret 
+	ret
 
 ;------------------------------
 ; BASIC: AWU expr
@@ -4463,8 +4448,8 @@ awu02:
   ld AWU_APR,a 
   bset AWU_CSR,#AWU_CSR_AWUEN
   halt 
-
-  ret 
+  jp interp_loop
+  
 
 ;------------------------------
 ; BASIC: TICKS
@@ -4636,7 +4621,7 @@ fcpu:
 	ld a,xl 
 	and a,#7 
 	ld CLK_CKDIVR,a 
-	ret 
+	jp interp_loop 
 
 ;------------------------------
 ; BASIC: PMODE pin#, mode 
@@ -4690,7 +4675,7 @@ pin_mode:
 	ld (GPIO_CR2,x),a 
 9$:	
 	_drop VSIZE 
-	ret
+	jp interp_loop
 
 ;------------------------
 ; select Arduino pin 
@@ -4854,7 +4839,7 @@ words:
 	ldw x,#words_count_msg
 	call puts 
 	_drop VSIZE 
-	ret 
+	jp interp_loop
 words_count_msg: .asciz " words in dictionary\n"
 
 
@@ -4870,7 +4855,7 @@ set_timer:
 1$: 
 	popw x 
 	ldw timer,x 
-	ret 
+	jp interp_loop
 
 ;------------------------------
 ; BASIC: TIMEOUT 
@@ -4931,7 +4916,7 @@ enable_iwdg:
 	mov IWDG_KR,#IWDG_KEY_ACCESS 
 	ld IWDG_RLR,a 
 	mov IWDG_KR,#IWDG_KEY_REFRESH
-	ret 
+	jp interp_loop
 
 
 ;-----------------------------------
@@ -4941,7 +4926,7 @@ enable_iwdg:
 ;-----------------------------------
 refresh_iwdg:
 	mov IWDG_KR,#IWDG_KEY_REFRESH 
-	ret 
+	jp interp_loop
 
 
 ;-------------------------------------
@@ -5016,19 +5001,17 @@ invert:
 ; BASIC: DO 
 ; initiate a DO ... UNTIL loop 
 ;------------------------------
-	DOLP_ADR=3 
-	DOLP_INW=5
+	DOLP_ADR=1 
+	DOLP_INW=3
 	VSIZE=4 
 do_loop:
-	popw x 
 	_vars VSIZE 
-	pushw x 
 	ldw y,basicptr 
 	ldw (DOLP_ADR,sp),y
 	ldw y,in.w 
 	ldw (DOLP_INW,sp),y
 	inc loop_depth 
-	ret 
+	jp interp_loop
 
 ;--------------------------------
 ; BASIC: UNTIL expr 
@@ -5053,12 +5036,11 @@ until:
 	ld count,a 
 	ldw x,(DOLP_INW,sp)
 	ldw in.w,x 
-	ret 
+	jp interp_loop
 9$:	; remove loop data from stack  
-	popw x
 	_drop VSIZE
 	dec loop_depth 
-	jp (x)
+	jp interp_loop
 
 ;--------------------------
 ; BASIC: PRTA...PRTI  
@@ -5164,7 +5146,7 @@ const_eeprom_base:
 ;---------------------------
 data:
 	mov in,count 
-	ret 
+	jp interp_loop
 
 ;---------------------------
 ; BASIC: DATLN  *expr*
@@ -5184,13 +5166,15 @@ data_line:
 3$: ; check if valid data line 
     ldw y,x 
 	ldw x,(4,x)
+	addw x,#code_addr
+	ldw x,(x)
 	cpw x,#data 
 	jrne 2$ 
 	ldw data_ptr,y
 	ld a,(2,y)
 	ld data_len,a 
 	mov data_ofs,#FIRST_DATA_ITEM 
-	ret
+	jp interp_loop
 
 ;---------------------------------
 ; BASIC: RESTORE 
@@ -5204,7 +5188,15 @@ restore:
 	clr data_ofs 
 	clr data_len
 	ldw x,txtbgn
-data_search_loop: 	
+	call next_data_line 
+	jp interp_loop 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;
+; search next DATA line 
+; input:
+;    X    start address 
+;;;;;;;;;;;;;;;;;;;;;;;;
+next_data_line: 	
 	cpw x,txtend
 	jruge 9$
 	ldw y,x 
@@ -5221,15 +5213,14 @@ data_search_loop:
     jrne 10$
 	ld a,#ERR_NO_DATA 
 	jp tb_error 
-10$:ret
+10$: ret 
 try_next_line:
 	ldw x,y 
 	ld a,(2,x)
 	ld acc8,a 
 	clr acc16 
 	addw x,acc16 
-	jra data_search_loop
-
+	jra next_data_line 
 
 ;---------------------------------
 ; BASIC: READ 
@@ -5308,7 +5299,7 @@ spi_enable:
     bset SPI_CR2,#SPI_CR2_SSI 
 ; enable SPI
 	bset SPI_CR1,#SPI_CR1_SPE 	
-	ret 
+	jp interp_loop
 spi_disable:
 	_drop #2; throw first argument.
 ; wait spi idle 
@@ -5319,7 +5310,7 @@ spi_disable:
 	bres SPI_CR1,#SPI_CR1_SPE
 	bres CLK_PCKENR1,#CLK_PCKENR1_SPI 
 	bres PE_DDR,#SPI_CS_BIT 
-	ret 
+	jp interp_loop
 
 spi_clear_error:
 	ld a,#0x78 
@@ -5363,7 +5354,7 @@ spi_write:
 2$:	tnz a 
 	jreq 3$
 	_unget_token  
-3$:	ret 
+3$:	jp interp_loop
 
 
 ;-------------------------------
@@ -5390,10 +5381,10 @@ spi_select:
 1$: tnzw x  
 	jreq cs_high 
 	bres PE_ODR,#SPI_CS_BIT
-	ret 
+	jp interp_loop
 cs_high: 
 	bset PE_ODR,#SPI_CS_BIT
-	ret 
+	jp interp_loop
 
 ;-------------------------------
 ; BASIC: PAD 
@@ -5404,142 +5395,18 @@ pad_ref:
 	ld a,TK_INTGR
 	ret 
 
-
-;------------------------------
-;      dictionary 
-; format:
-;   link:   2 bytes 
-;   name_length+flags:  1 byte, bits 0:4 lenght,5:8 flags  
-;   cmd_name: 16 byte max 
-;   cmd_index: 2 bytes 
-;------------------------------
-	.macro _dict_entry len,name,cmd_idx 
-	.word LINK 
-	LINK=.
-name:
-	.byte len 	
-	.ascii "name"
-	.word cmd_idx 
-	.endm 
-
-	LINK=0
-; respect alphabetic order for BASIC names from Z-A
-; this sort order is for a cleaner WORDS cmd output. 	
-kword_end:
-	_dict_entry,3+F_IFUNC,XOR,XOR_IDX;bit_xor
-	_dict_entry,5,WRITE,WRITE_IDX;write  
-	_dict_entry,5,WORDS,WORDS_IDX;words 
-	_dict_entry 4,WAIT,WAIT_IDX;wait 
-	_dict_entry,3+F_IFUNC,USR,USR_IDX;usr
-	_dict_entry,5,UNTIL,UNTIL_IDX;until 
-	_dict_entry,6+F_IFUNC,UFLASH,UFLASH_IDX;uflash 
-	_dict_entry,6+F_IFUNC,UBOUND,UBOUND_IDX;ubound
-	_dict_entry,4,TONE,TONE_IDX;tone  
-	_dict_entry,2,TO,TO_IDX;to
-	_dict_entry,5,TIMER,TIMER_IDX;set_timer
-	_dict_entry,7+F_IFUNC,TIMEOUT,TMROUT_IDX;timeout 
-	_dict_entry,5+F_IFUNC,TICKS,TICKS_IDX;get_ticks
-	_dict_entry,4,STOP,STOP_IDX;stop 
-	_dict_entry,4,STEP,STEP_IDX;step 
-	_dict_entry,5,SPIWR,SPIWR_IDX;spi_write
-	_dict_entry,6,SPISEL,SPISEL_IDX;spi_select
-	_dict_entry,5+F_IFUNC,SPIRD,SPIRD_IDX; spi_read 
-	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
-	_dict_entry,5,SLEEP,SLEEP_IDX;sleep 
-    _dict_entry,4,SHOW,SHOW_IDX;show 
-	_dict_entry,4,SAVE,SAVE_IDX;save
-	_dict_entry 3,RUN,RUN_IDX;run
-	_dict_entry,6+F_IFUNC,RSHIFT,RSHIFT_IDX;rshift
-	_dict_entry,3+F_IFUNC,RND,RND_IDX;random 
-	_dict_entry,6,RETURN,RET_IDX;return 
-	_dict_entry,7,RESTORE,REST_IDX;restore 
-	_dict_entry 6,REMARK,REM_IDX;remark 
-	_dict_entry,6,REBOOT,RBT_IDX;cold_start
-	_dict_entry,4+F_IFUNC,READ,READ_IDX;read  
-	_dict_entry,4+F_IFUNC,QKEY,QKEY_IDX;qkey  
-	_dict_entry,4+F_IFUNC,PRTI,PRTI_IDX;const_porti 
-	_dict_entry,4+F_IFUNC,PRTH,PRTH_IDX;const_porth 
-	_dict_entry,4+F_IFUNC,PRTG,PRTG_IDX;const_portg 
-	_dict_entry,4+F_IFUNC,PRTF,PRTF_IDX;const_portf
-	_dict_entry,4+F_IFUNC,PRTE,PRTE_IDX;const_porte
-	_dict_entry,4+F_IFUNC,PRTD,PRTD_IDX;const_portd
-	_dict_entry,4+F_IFUNC,PRTC,PRTC_IDX;const_portc
-	_dict_entry,4+F_IFUNC,PRTB,PRTB_IDX;const_portb
-	_dict_entry,4+F_IFUNC,PRTA,PRTA_IDX;const_porta 
-	_dict_entry 5,PRINT,PRT_IDX;print 
-	_dict_entry,4+F_IFUNC,POUT,POUT_IDX;const_output
-	_dict_entry,4,POKE,POKE_IDX;poke 
-	_dict_entry,5,PMODE,PMODE_IDX;pin_mode 
-	_dict_entry,4+F_IFUNC,PINP,PINP_IDX;const_input
-	_dict_entry,4+F_IFUNC,PEEK,PEEK_IDX;peek 
-	_dict_entry,5,PAUSE,PAUSE_IDX;pause 
-	_dict_entry,3+F_IFUNC,PAD,PAD_IDX;pad_ref 
-	_dict_entry,2+F_IFUNC,OR,OR_IDX;bit_or
-	_dict_entry,3+F_IFUNC,ODR,ODR_IDX;const_odr 
-	_dict_entry,3+F_IFUNC,NOT,NOT_IDX;func_not 
-	_dict_entry,4,NEXT,NEXT_IDX;next 
-	_dict_entry,3,NEW,NEW_IDX;new
-	_dict_entry,6+F_IFUNC,MULDIV,MULDIV_IDX;muldiv 
-	_dict_entry,6+F_IFUNC,LSHIFT,LSHIFT_IDX;lshift
-	_dict_entry,3+F_IFUNC,LOG,LOG_IDX;log2 
-	_dict_entry,4,LOAD,LOAD_IDX;load 
-	_dict_entry 4,LIST,LIST_IDX;list
-	_dict_entry 3,LET,LET_IDX;let 
-	_dict_entry,3+F_IFUNC,KEY,KEY_IDX;key 
-	_dict_entry,7,IWDGREF,IWDGREF_IDX;refresh_iwdg
-	_dict_entry,6,IWDGEN,IWDGEN_IDX;enable_iwdg
-	_dict_entry,6+F_IFUNC,INVERT,INVERT_IDX;invert 
-	_dict_entry,5,INPUT,INPUT_IDX;input_var  
-	_dict_entry,2,IF,IF_IDX;if 
-	_dict_entry,3+F_IFUNC,IDR,IDR_IDX;const_idr 
-	_dict_entry,3,HEX,HEX_IDX;hex_base
-	_dict_entry,4+F_IFUNC,GPIO,GPIO_IDX;gpio 
-	_dict_entry,4,GOTO,GOTO_IDX;goto 
-	_dict_entry,5,GOSUB,GOSUB_IDX;gosub 
-	_dict_entry,4+F_IFUNC,FREE,FREE_IDX;free
-	_dict_entry,6,FORGET,FORGET_IDX;forget 
-	_dict_entry,3,FOR,FOR_IDX;for 
-	_dict_entry,4,FCPU,FCPU_IDX;fcpu 
-	_dict_entry,3,END,END_IDX;cmd_end  
-	_dict_entry,6+F_IFUNC,EEPROM,EEPROM_IDX;const_eeprom_base   
-	_dict_entry,6+F_CMD,DWRITE,DWRITE_IDX;digital_write
-	_dict_entry,5+F_IFUNC,DREAD,DREAD_IDX;digital_read
-	_dict_entry,2,DO,DO_IDX;do_loop
-	_dict_entry,3,DIR,DIR_IDX;directory 
-	_dict_entry,3,DEC,DEC_IDX;dec_base
-	_dict_entry,3+F_IFUNC,DDR,DDR_IDX;const_ddr 
-	_dict_entry,6,DATALN,DATALN_IDX;data_line  
-	_dict_entry,4,DATA,DATA_IDX;data  
-	_dict_entry,3+F_IFUNC,CRL,CRL_IDX;const_cr1 
-	_dict_entry,3+F_IFUNC,CRH,CRH_IDX;const_cr2 
-	_dict_entry,4+F_CFUNC,CHAR,CHAR_IDX;char
-	_dict_entry,3,BYE,BYE_IDX;bye 
-	_dict_entry,5,BTOGL,BTOGL_IDX;bit_toggle
-	_dict_entry,5+F_IFUNC,BTEST,BTEST_IDX;bit_test 
-	_dict_entry,4,BSET,BSET_IDX;bit_set 
-	_dict_entry,4,BRES,BRES_IDX;bit_reset
-	_dict_entry,3+F_IFUNC,BIT,BIT_IDX;bitmask
-	_dict_entry,3,AWU,AWU_IDX;awu 
-	_dict_entry,7,AUTORUN,AUTORUN_IDX;autorun
-	_dict_entry,3+F_IFUNC,ASC,ASC_IDX;ascii
-	_dict_entry,3+F_IFUNC,AND,AND_IDX;bit_and
-	_dict_entry,7+F_IFUNC,ADCREAD,ADCREAD_IDX;analog_read
-	_dict_entry,5,ADCON,ADCON_IDX;power_adc 
-kword_dict::
-	_dict_entry,3+F_IFUNC,ABS,ABS_IDX ;abs
-
-;comands and fonctions address table 	
+;commands and fonctions code entry point table 	
 code_addr::
 	.word abs,power_adc,analog_read,bit_and,ascii,autorun,awu,bitmask ; 0..7
-	.word bit_reset,bit_set,bit_test,bit_toggle,bye,char,const_cr2  ; 8..15
-	.word const_cr1,data,data_line,const_ddr,dec_base,directory,do_loop,digital_read,digital_write ;16..23 
+	.word bit_reset,bit_set,bit_test,bit_toggle,bye,char,const_cr2,const_cr1  ; 8..15
+	.word data,data_line,const_ddr,dec_base,directory,do_loop,digital_read,digital_write ;16..23 
 	.word cmd_end,const_eeprom_base,fcpu,for,forget,gosub,goto,gpio ; 24..31 
 	.word hex_base,const_idr,if,input_var,invert,enable_iwdg,refresh_iwdg,key ; 32..39 
 	.word let,list,load,log2,lshift,muldiv,next,new ; 40..47
 	.word func_not,const_odr,bit_or,pad_ref,pause,pin_mode,peek,const_input ; 48..55
 	.word poke,const_output,print,const_porta,const_portb,const_portc,const_portd,const_porte ; 56..63
 	.word const_portf,const_portg,const_porth,const_porti,qkey,read,cold_start,remark ; 64..71 
-	.word restore,return, random,rshift,run,save,show,free ; 72..79
+	.word restore,return, random,rshift,run,save,show, free; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
 	.word wait,words,write,bit_xor ; 96..99

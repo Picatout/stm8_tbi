@@ -24,6 +24,26 @@
         F_CFUNC=0x80 ; character function keyword
         F_CONST=0xC0 ; function keyword that return a constant
 
+	STACK_SIZE=160
+	STACK_EMPTY=RAM_SIZE-1  
+	FRUN=0 ; flags run code in variable flags
+	FTRAP=1 ; inside trap handler 
+	FLOOP=2 ; FOR loop in preparation 
+	FSLEEP=3 ; halt produit par la commande SLEEP 
+	FBREAK=4 ; break point flag 
+	FCOMP=5  ; compiling flags 
+	FAUTORUN=6; auto start program running 
+
+	AUTORUN_NAME=0x4000 ; address in EEPROM where auto run file name is saved 
+
+        FIRST_DATA_ITEM=6 ; first DATA item offset on line.
+
+	MAX_LINENO=0x7fff; BASIC maximum line number 
+
+	RX_QUEUE_SIZE=8 
+
+
+
 	TIB_SIZE=80
         PAD_SIZE=128
 

@@ -2,15 +2,15 @@
 # librairies make file
 #############################
 NAME=TinyBasic
-VM=vm1
 SDAS=sdasstm8
 SDCC=sdcc
 SDAR=sdar
+OBJCPY=objcpy 
 CFLAGS=-mstm8 -lstm8 -L$(LIB_PATH) -I../inc
 INC=../inc/
 INCLUDES=$(INC)stm8s208.inc
 BUILD=build/
-SRC=$(NAME).asm terminal.asm xmodem.asm 
+SRC=$(NAME).asm terminal.asm compiler.asm decompiler.asm 
 OBJECTS=$(BUILD)$(SRC:.asm=.rel)
 SYMBOLS=$(OBJECTS:.rel=.sym)
 LISTS=$(OBJECTS:.rel=.lst)
@@ -20,8 +20,7 @@ PROGRAMMER=stlinkv21
 
 .PHONY: all
 
-all: clean $(NAME).rel $(NAME).ihx 
-
+all: clean $(NAME).rel $(NAME).ihx $(NAME).bin
 $(NAME).rel: $(SRC)
 	@echo
 	@echo "**********************"
@@ -29,10 +28,19 @@ $(NAME).rel: $(SRC)
 	@echo "**********************"
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm 
 	$(SDAS) -g -l -o $(BUILD)terminal.rel terminal.asm	
-	$(SDAS) -g -l -o $(BUILD)xmodem.rel xmodem.asm 
+	$(SDAS) -g -l -o $(BUILD)compiler.rel compiler.asm	
+	$(SDAS) -g -l -o $(BUILD)decompiler.rel decompiler.asm	
 
-$(NAME).ihx: $(BUILD)$(NAME).rel $(BUILD)terminal.rel $(BUILD)xmodem.rel
+
+$(NAME).ihx: $(BUILD)$(NAME).rel $(BUILD)terminal.rel $(BUILD)compiler.rel $(BUILD)decompiler.rel 
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx $^  
+
+
+$(NAME).bin:  $(BUILD)$(NAME).ihx
+	objcopy -Iihex -Obinary  $(BUILD)$(NAME).ihx $(BUILD)$(NAME).bin 
+	@echo 
+	@ls -l  $(BUILD)$(NAME).bin 
+	@echo 
 
 .PHONY: clean 
 clean: build
@@ -53,9 +61,3 @@ flash: $(LIB)
 	@echo "flashing device"
 	@echo "***************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -w $(BUILD)$(NAME).ihx 
-
-vm: vm1.asm 
-	-rm build/vm1.* 
-	$(SDAS) -g -l -o $(BUILD)$(VM).rel $(VM).asm 
-	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(VM).ihx  $(BUILD)$(VM).rel
-	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -w $(BUILD)$(VM).ihx

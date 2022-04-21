@@ -8,7 +8,7 @@ Area                                    Addr        Size        Decimal Bytes (A
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
      FFFFFFFF  s_SSEG                          
-     00000000  .__.ABS.                           XMODEM
+     00000000  .__.ABS.                           DECOMPILER
      00000000  l_FLASH_DRIVE                   
      00000000  l_FLASH_DRIVE1                  
      00000000  l_SSEG                          
@@ -21,7 +21,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      0000006D  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
-     00002D93  l_CODE                          
+     00002BCC  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -34,12 +34,23 @@ DATA                                00000001    0000006D =         109. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
+     00000001  in.w                               STM8_TBI
+     00000002  in                                 STM8_TBI
+     00000003  in.saved                           STM8_TBI
      00000004  count                              STM8_TBI
      00000005  basicptr                           STM8_TBI
+     0000000B  base                               STM8_TBI
      0000000C  acc24                              STM8_TBI
      0000000D  acc16                              STM8_TBI
      0000000E  acc8                               STM8_TBI
      00000011  timer                              STM8_TBI
+     00000018  ptr16                              STM8_TBI
+     0000001D  txtbgn                             STM8_TBI
+     0000001F  txtend                             STM8_TBI
+     00000024  flags                              STM8_TBI
+     00000025  tab_width                          STM8_TBI
+     0000003A  vars                               STM8_TBI
+
 ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
 Hexadecimal  [32-Bits]
 
@@ -50,7 +61,8 @@ SSEG0                               00000000    00000170 =         368. bytes (A
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
      00001690  tib                                STM8_TBI
-
+     000016E0  pad                                STM8_TBI
+     00001760  stack_full                         STM8_TBI
 ASxxxx Linker V03.00 + NoICE + sdld,  page 4.
 Hexadecimal  [32-Bits]
 
@@ -65,7 +77,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00002D93 =       11667. bytes (REL,CON)
+CODE                                00008080    00002BCC =       11212. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -79,21 +91,36 @@ CODE                                00008080    00002D93 =       11667. bytes (R
      000083CB  uart1_getc                         STM8_TBI
      000083EA  uart3_getc                         STM8_TBI
      000084B4  strlen                             STM8_TBI
+     000084D0  strcpy                             STM8_TBI
      000084DE  move                               STM8_TBI
-     00008520  search_lineno                      STM8_TBI
-     00008EDD  to_upper                           STM8_TBI
-     00008EE9  atoi24                             STM8_TBI
-     000094D8  decompile                          STM8_TBI
-     000099A2  beep_1khz                          STM8_TBI
-     00009E9E  qkey                               STM8_TBI
-     0000AA40  puts                               TERMINAL
-     0000AAAD  spaces                             TERMINAL
-     0000AB45  readln                             TERMINAL
-     0000AD06  print_hex                          TERMINAL
-     0000AD1D  to_hex_char                        TERMINAL
-     0000AD53  getc_to                            XMODEM
-     0000AD6E  xrcv_block                         XMODEM
-     0000ADCF  xtrmt_block                        XMODEM
+     0000852E  is_alpha                           STM8_TBI
+     0000853F  is_digit                           STM8_TBI
+     00008548  is_alnum                           STM8_TBI
+     0000883B  syntax_error                       STM8_TBI
+     0000883D  tb_error                           STM8_TBI
+     0000892D  next_token                         STM8_TBI
+     000089AA  itoa                               STM8_TBI
+     00008A94  to_upper                           STM8_TBI
+     00008AA0  atoi24                             STM8_TBI
+     00008C87  search_dict                        STM8_TBI
+     00008F00  let                                STM8_TBI
+     000090B9  remark                             STM8_TBI
+     00009309  beep_1khz                          STM8_TBI
+     00009805  qkey                               STM8_TBI
+     0000A196  kword_dict                         STM8_TBI
+     0000A19E  code_addr                          STM8_TBI
+     0000A2C0  puts                               TERMINAL
+     0000A32D  spaces                             TERMINAL
+     0000A3C5  readln                             TERMINAL
+     0000A586  print_hex                          TERMINAL
+     0000A59D  to_hex_char                        TERMINAL
+     0000A5A8  search_lineno                      COMPILER
+     0000A6E3  escaped                            COMPILER
+     0000A7D7  get_token                          COMPILER
+     0000A996  compile                            COMPILER
+     0000AA30  right_align                        DECOMPILER
+     0000AA83  var_name                           DECOMPILER
+     0000AAAC  decompile                          DECOMPILER
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
@@ -101,7 +128,8 @@ Files Linked                              [ module(s) ]
 
 build/TinyBasic.rel                       [ STM8_TBI ]
 build/terminal.rel                        [ TERMINAL ]
-build/xmodem.rel                          [ XMODEM ]
+build/compiler.rel                        [ COMPILER ]
+build/decompiler.rel                      [ DECOMPILER ]
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 7.
 

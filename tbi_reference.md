@@ -192,6 +192,7 @@ nom|abrévation
 [FCPU](#fcpu)|FC 
 [FOR](#for)|FO
 [FORGET](#forget)|FORG
+[FREE](#free)|FR
 [GOSUB](#gosub)|GOS
 [GOTO](#goto)|GOT
 [GPIO](#gpio)|GP
@@ -242,7 +243,6 @@ nom|abrévation
 [RUN](#run)|RU
 [SAVE](#save)|SA
 [SHOW](#show)|SH
-[SIZE](#size)|SI
 [SLEEP](#sleep)|SL
 [SPIEN](#spien)|SPIE
 [SPIRD](#spird)|SPIR
@@ -263,8 +263,6 @@ nom|abrévation
 [WORDS](#words)|WO
 [WRITE](#write)|WR
 [XOR](#xor)|XO
-[XRCV](#xrcv)|XR
-[XTRMT](#xtrmt)|XT
 
 <hr>
 
@@ -1258,15 +1256,15 @@ Dans cet exemple la commande **STOP** a été insérée au milieu d'une boucle *
 À la deuxième itération la commande **END** est utilisée pour arrêter l'exécution. 
 
 [index](#index)
-<a id="size"></a>
-### SIZE {C,P}
+<a id="free"></a>
+### FREE {C,P}
 Cette commande retourne le nombre d'octets libre dans la mémoire RAM
 ```
->?size
+>? free
 5740
 >10 ?hello world!"
 
->?size
+>? free
 5721
 >
 ```
@@ -1558,24 +1556,6 @@ Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxre
 
 >
 ```
-
-[index](#index)
-<a id="xrcv"></a>
-### XRCV 
-Commande pour revevoir un fichier BASIC qui est sur le PC hôte en utilisant le protocole **XMODEM**. Il faut donc utiliser sur le PC un émulateur de terminal qui supporte le transfert de fichier par **XMODEM**, par exemple **minicom**. Il faut donc 2 émulateurs de terminal. L'un pour la console utilisateur et l'autre pour le transfert. On doit activer la transmission avant de passer la commande **XRCV** sur la console. <br/>
-![docs/images/xrcv.png](docs/images/xrcv.png)
-Dans cette capture d'écran **GTKTerm** est utiliser comme console utilisateur et **minicom** pour activer la transmission du fichier à partir du PC. La console communique via **UART1** et xmodem via le canal **UART3**. 
-
-Cette commande peut aussi être utilisée pour transmettre un programm BASIC directement d'une carte à l'autre.
-
-[index](#index)
-<a id="xtrmt"></a>
-### XTRMT 
-Commande pour transmettre le fichier BASIC qui est en émoire RAM vers le PC hôte en utlisant le protocole **XMODEM**. On doit lancer la commande **XTRMT** sur la console avant de lancer la réception **XMODEM** sur l'autre terminal.<br/> 
-![docs/images/xtrmt.png](docs/images/xtrmt.png)
-Sur cette capture d'écran **GTKTerm** branché sur **UART1** est utilisé comme console utilisateur et **minicom** branché sur **UART3** est utilisé pour la réception vers le PC. 
-
-Cette commande peut aussi être utilisée pour transmettre un programm BASIC directement d'une carte à l'autre.
 
 [index](#index)
 

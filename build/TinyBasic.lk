@@ -12,6 +12,7 @@
 -l stm8
 build/TinyBasic.rel
 build/terminal.rel
-build/xmodem.rel
+build/compiler.rel
+build/decompiler.rel
 
 -e

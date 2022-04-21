@@ -1,0 +1,904 @@
+;;
+; Copyright Jacques Deschênes 2019,2020,2021,2022  
+; This file is part of stm8_tbi 
+;
+;     stm8_tbi is free software: you can redistribute it and/or modify
+;     it under the terms of the GNU General Public License as published by
+;     the Free Software Foundation, either version 3 of the License, or
+;     (at your option) any later version.
+;
+;     stm8_tbi is distributed in the hope that it will be useful,
+;     but WITHOUT ANY WARRANTY; without even the implied warranty of
+;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;     GNU General Public License for more details.
+;
+;     You should have received a copy of the GNU General Public License
+;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
+;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;   compile source to tokens list 
+;;
+;;   Le texte source est convertie en byte code 
+;;   pos    contenu 
+;;   0-1    no de ligne 
+;;     2    longueur de la ligne 
+;;   3+     tokens 
+;;   La ligne est terminé par TK_NONE 
+;; 
+;;   structure des tokens 
+;;   token id    1 byte 
+;;   le token id est suivie de 0 ou plus octets 
+;;   TK_CMD,TK_IFUNC,TK_CFUNC  sont 
+;;   suivit de l'adresse du code commande 
+;;   TK_QSTR est suivit de la chaîne elle-même 
+;;   TK_INTGR  est suivit d'un entier 16 bits 
+;;   TK_CHAR   est suivit d'un charactère ASCII 
+;;   TK_VAR    est suivit de l'adresse de la variable
+;;   les autres type de jetons n'ont pas de valeur.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+    .module COMPILER 
+
+    .nlist
+	.include "inc/nucleo_8s208.inc"
+	.include "inc/stm8s208.inc"
+	.include "inc/ascii.inc"
+	.include "inc/gen_macros.inc" 
+	.include "tbi_macros.inc" 
+	.include "cmd_index.inc"
+    .list 
+
+
+    .area  CODE 
+
+
+    ;-----------------------------------
+; create token list fromm text line 
+; save this list in pad buffer 
+;  compiled line format: 
+;    line_no  2 bytes {0...32767}
+;    count    1 byte  
+;    commands tokens   variable length 
+;   
+; input:
+;   none
+; modified variables:
+;   basicptr     token list buffer address 
+;   in.w  		 3|count, i.e. index in buffer
+;   count        length of line | 0  
+;-----------------------------------
+	XSAVE=1
+	VSIZE=2
+compile::
+	_vars VSIZE 
+	bset flags,#FCOMP 
+	ld a,#0
+	ldw x,#0
+	ldw pad,x ; line number 0  
+	ld pad+2,a ; line length  
+	ldw x,#pad+3
+	clr in 
+	call parse_lex
+	cp a,#TK_INTGR
+	jrne 2$
+	cpw x,#1 
+	jrpl 1$
+	ld a,#ERR_BAD_VALUE
+	jp tb_error
+1$:	ldw pad,x  ; line number 
+	ldw y,#pad+3 
+;;; compile loop ;;;; 
+2$:	cpw y,#stack_full 
+	jrult 3$
+	ld a,#ERR_BUF_FULL 
+	jp tb_error 
+3$:	
+	ldw x,y 
+	call parse_lex
+	cp a,#TK_NONE 
+	jrne 2$ 
+; compilation completed  
+	subw y,#pad
+    ld a,yl
+	ldw x,#pad 
+	ldw ptr16,x 
+	ld (2,x),a 
+	ldw x,(x)
+	jreq 10$
+	call insert_line
+	clr  count 
+	jra  11$ 
+10$: ; line# is zero 
+	ldw x,ptr16  
+	ldw basicptr,x 
+	ld a,(2,x)
+	ld count,a 
+	mov in,#3 
+11$:
+	_drop VSIZE 
+	bres flags,#FCOMP 
+	ret 
+
+
+;------------------------------------
+; scan text for next lexical unit 
+; input: 
+;	X 		pointer to buffer where 
+;	        token id and value are copied 
+; use:
+;	Y   	pointer to text in tib 
+; output:
+;   A       token attribute 
+;   X 		token value
+;   Y       updated position in output buffer   
+;------------------------------------
+	; use to check special character 
+	.macro _case c t  
+	ld a,#c 
+	cp a,(TCHAR,sp) 
+	jrne t
+	.endm 
+
+	TCHAR=1
+	ATTRIB=2
+	VSIZE=2
+parse_lex:: 
+	_vars VSIZE
+0$: 
+	ldw y,#tib    	
+	ld a,#SPACE
+	call skip
+	mov in.saved,in 
+	ld a,([in.w],y)
+	jrne 1$
+	ldw y,x 
+	jp token_exit ; end of line 
+1$:	inc in 
+	call to_upper 
+	ld (TCHAR,sp),a 
+; check for quoted string
+str_tst:  	
+	_case '"' nbr_tst
+	ld a,#TK_QSTR
+	ld (x),a 
+	incw x 
+	call parse_quote
+	jp token_exit
+nbr_tst:
+; check for hexadecimal number 
+	ld a,#'$'
+	cp a,(TCHAR,sp) 
+	jreq 1$
+;check for binary number 
+	ld a,#'&
+	cp a,(TCHAR,sp)
+	jrne 0$
+	ld a,#TK_INTGR
+	ld (x),a 
+	incw x 
+	call parse_binary ; expect binary integer 
+	jp token_exit 
+; check for decimal number 	
+0$:	ld a,(TCHAR,sp)
+	call is_digit
+	jrnc 3$
+1$:	ld a,#TK_INTGR 
+	ld (x),a 
+	incw x 
+	ld a,(TCHAR,sp)
+	call parse_integer 
+	jp token_exit 
+3$: 
+	_case '(' bkslsh_tst 
+	ld a,#TK_LPAREN
+	jp token_char   	
+bkslsh_tst: ; character token 
+	_case '\',rparnt_tst
+	ld a,#TK_CHAR 
+	ld (x),a 
+	incw x 
+	ld a,([in.w],y)
+	ld (x),a 
+	incw x
+	ldw y,x 	 
+	inc in  
+	clrw x 
+	ld xl,a 
+	ld a,#TK_CHAR 
+	jp token_exit 
+rparnt_tst:		
+	_case ')' colon_tst 
+	ld a,#TK_RPAREN 
+	jp token_char
+colon_tst:
+	_case ':' comma_tst 
+	ld a,#TK_COLON 
+	jp token_char  
+comma_tst:
+	_case COMMA sharp_tst 
+	ld a,#TK_COMMA
+	jp token_char
+sharp_tst:
+	_case SHARP dash_tst 
+	ld a,#TK_SHARP
+	jp token_char  	 	 
+dash_tst: 	
+	_case '-' at_tst 
+	ld a,#TK_MINUS  
+	jp token_char 
+at_tst:
+	_case '@' qmark_tst 
+	ld a,#TK_ARRAY 
+	jp token_char
+qmark_tst:
+	_case '?' tick_tst 
+	ld a,#TK_CMD  
+	ld (x),a 
+	incw x 
+	ldw y,x 
+	ldw x,#PRT_IDX 
+	ldw (y),x 
+	addw y,#2
+	jp token_exit
+tick_tst: ; comment 
+	_case TICK plus_tst 
+	ld a,#TK_CMD
+	ld (x),a 
+	incw x
+	ldw y,#REM_IDX
+	ldw (x),y 
+	addw x,#2  
+copy_comment:
+	ldw y,#tib 
+	addw y,in.w
+	pushw y
+	call strcpy
+    subw y,(1,sp)
+	ld a,yl 
+	add a,in
+	ld in,a 
+	ldw (1,sp),x
+	addw y,(1,sp)
+	incw y 
+	_drop 2 
+	ldw x,#REM_IDX 
+	ld a,#TK_CMD 
+	jp token_exit 
+plus_tst:
+	_case '+' star_tst 
+	ld a,#TK_PLUS  
+	jp token_char 
+star_tst:
+	_case '*' slash_tst 
+	ld a,#TK_MULT 
+	jp token_char 
+slash_tst: 
+	_case '/' prcnt_tst 
+	ld a,#TK_DIV 
+	jp token_char 
+prcnt_tst:
+	_case '%' eql_tst 
+	ld a,#TK_MOD
+	jp token_char  
+; 1 or 2 character tokens 	
+eql_tst:
+	_case '=' gt_tst 		
+	ld a,#TK_EQUAL
+	jp token_char 
+gt_tst:
+	_case '>' lt_tst 
+	ld a,#TK_GT 
+	ld (ATTRIB,sp),a 
+	ld a,([in.w],y)
+	inc in 
+	cp a,#'=
+	jrne 1$
+	ld a,#TK_GE 
+	jra token_char  
+1$: cp a,#'<
+	jrne 2$
+	ld a,#TK_NE 
+	jra token_char 
+2$: dec in
+	ld a,(ATTRIB,sp)
+	jra token_char 	 
+lt_tst:
+	_case '<' other
+	ld a,#TK_LT 
+	ld (ATTRIB,sp),a 
+	ld a,([in.w],y)
+	inc in 
+	cp a,#'=
+	jrne 1$
+	ld a,#TK_LE 
+	jra token_char 
+1$: cp a,#'>
+	jrne 2$
+	ld a,#TK_NE 
+	jra token_char 
+2$: dec in 
+	ld a,(ATTRIB,sp)
+	jra token_char 	
+other: ; not a special character 	 
+	ld a,(TCHAR,sp)
+	call is_alpha 
+	jrc 30$ 
+	jp syntax_error 
+30$: 
+	call parse_keyword
+	cpw x,#remark 
+	jrne token_exit 
+	ldw y,x 
+	jp copy_comment 
+token_char:
+	ld (x),a 
+	incw x
+	ldw y,x 
+token_exit:
+	_drop VSIZE 
+	ret
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; compiler routines        ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;------------------------------------
+; parse quoted string 
+; input:
+;   Y 	pointer to tib 
+;   X   pointer to output buffer 
+; output:
+;	buffer   parsed string
+;------------------------------------
+	PREV = 1
+	CURR =2
+	VSIZE=2
+parse_quote: 
+	_vars VSIZE 
+	clr a
+1$:	ld (PREV,sp),a 
+2$:	
+	ld a,([in.w],y)
+	jreq 6$
+	inc in 
+	ld (CURR,sp),a 
+	ld a,#'\
+	cp a, (PREV,sp)
+	jrne 3$
+	clr (PREV,sp)
+	ld a,(CURR,sp)
+	callr convert_escape
+	ld (x),a 
+	incw x 
+	jra 2$
+3$:
+	ld a,(CURR,sp)
+	cp a,#'\'
+	jreq 1$
+	cp a,#'"
+	jreq 6$ 
+	ld (x),a 
+	incw x 
+	jra 2$
+6$:
+	clr (x)
+	incw x 
+	ldw y,x 
+	clrw x 
+	ld a,#TK_QSTR  
+	_drop VSIZE
+	ret 
+
+;---------------------------------------
+; called by parse_quote
+; subtitute escaped character 
+; by their ASCII value .
+; input:
+;   A  character following '\'
+; output:
+;   A  substitued char or same if not valid.
+;---------------------------------------
+convert_escape:
+	pushw x 
+	ldw x,#escaped 
+1$:	cp a,(x)
+	jreq 2$
+	tnz (x)
+	jreq 3$
+	incw x 
+	jra 1$
+2$: subw x,#escaped 
+	ld a,xl 
+	add a,#7
+3$:	popw x 
+	ret 
+
+escaped:: .asciz "abtnvfr"
+
+;-------------------------
+; integer parser 
+; input:
+;   X 		point to output buffer  
+;   Y 		point to tib 
+;   A 	    first digit|'$' 
+; output:  
+;   X 		integer 
+;   A 		TK_INTGR
+;   acc24   24 bits integer 
+;-------------------------
+	BASE=1
+	TCHAR=2 
+	XSAVE=3
+	VSIZE=4 
+parse_integer: ; { -- n }
+	pushw x 	
+	push #0 ; TCHAR
+	push #10 ; BASE=10
+	cp a,#'$
+	jrne 2$ 
+    _drop #1
+	push #16  ; BASE=16
+2$:	ld (x),a 
+	incw x 
+	ld a,([in.w],y)
+	inc in 
+	call to_upper 
+	ld (TCHAR,sp),a 
+	call is_digit 
+	jrc 2$
+	ld a,#16 
+	cp a,(BASE,sp)
+	jrne 3$ 
+	ld a,(TCHAR,sp)
+	cp a,#'A 
+	jrmi 3$ 
+	cp a,#'G 
+	jrmi 2$ 
+3$: dec in 	
+    clr (x)
+	ldw x,(XSAVE,sp)
+	call atoi24
+	ldw y,x 
+	ldw x,acc16 
+	ld a,#TK_INTGR
+	ldw (y),x 
+	addw y,#2
+	_drop VSIZE  
+	ret 	
+
+;-------------------------
+; binary integer parser
+; build integer in acc24  
+; input:
+;   X 		point to output buffer  
+;   Y 		point to tib 
+;   A 	    '&' 
+; output:  
+;   buffer  TK_INTGR integer  
+;   X 		int16 
+;   A 		TK_INTGR
+;   acc24    int24 
+;-------------------------
+	BINARY=1 ; 24 bits integer 
+	VSIZE=3
+parse_binary: ; { -- n }
+	push #0
+	push #0
+	push #0
+2$:	
+	ld a,([in.w],y)
+	inc in 
+	cp a,#'0 
+	jreq 3$
+	cp a,#'1 
+	jreq 3$ 
+	jra bin_exit 
+3$: sub a,#'0 
+	rrc a
+	rlc (BINARY+2,sp) 
+	rlc (BINARY+1,sp)
+	rlc (BINARY,sp) 
+	jra 2$  
+bin_exit:
+	dec in 
+	ldw y,x
+	ld a,(BINARY,sp)
+	ld acc24,a 
+	ldw x,(BINARY+1,sp)
+	ldw acc16,x
+	ldw (y),x 
+	addw y,#2  
+	ld a,#TK_INTGR 	
+	_drop VSIZE 
+	ret
+
+;---------------------------
+;  token begin with a letter,
+;  is keyword or variable. 	
+; input:
+;   X 		point to pad 
+;   Y 		point to text
+;   A 	    first letter  
+; output:
+;   X		exec_addr|var_addr 
+;   A 		TK_CMD|TK_IFUNC|TK_CFUNC  
+;   pad 	keyword|var_name  
+;--------------------------  
+	XFIRST=1
+	VSIZE=2
+parse_keyword: 
+	pushw x 
+kw_loop:	
+	call to_upper 
+	ld (x),a 
+	incw x 
+	ld a,([in.w],y)
+	inc in 
+	call is_alpha 
+	jrc kw_loop
+	dec in   
+1$: clr (x)
+	ldw x,(XFIRST,sp) 
+	ld a,(1,x)
+	jrne 2$
+; one letter variable name 
+	ld a,(x) 
+	sub a,#'A 
+	sll a 
+	push a 
+	push #0
+	ldw x,#vars 
+	addw x,(1,sp) ; X=var address 
+	_drop 2 
+	ld a,#TK_VAR 
+	jra 4$ 
+2$: ; check for keyword, otherwise syntax error.
+	_ldx_dict kword_dict ; dictionary entry point
+	ldw y,(XFIRST,sp) ; name to search for
+	call search_dict
+	tnz a
+	jrne 4$ 
+	jp syntax_error
+4$:	
+	ldw y,(XFIRST,sp)
+	ld (y),a 
+	incw y 
+	ldw (y),x
+	addw y,#2  
+	_drop VSIZE 
+	ret  	
+
+
+;--------------------------------------------
+; insert line in pad into text area 
+; first search for already existing 
+; replace existing 
+; if new line empty delete existing one. 
+; input:
+;   ptr16		pointer to tokenized line  
+; output:
+;   none
+;---------------------------------------------
+	DEST=1  ; text area insertion address 
+	SRC=3   ; str to insert address 
+	LINENO=5 ; line number 
+	LLEN=7 ; line length 
+	VSIZE=8  
+insert_line:
+	_vars VSIZE 
+	ldw x,txtend  
+	cpw x,txtbgn 
+	jrne 0$
+;first text line 
+	ldw x,#2 
+	ld a,([ptr16],x)
+	cp a,#3
+	jreq insert_ln_exit
+	clrw x 
+	ld xl,a
+	ldw (LLEN,sp),x 
+	ldw x,txtbgn
+	ldw (DEST,sp),x 
+	ldw x,txtend 
+	jra 4$
+0$:	ldw x,[ptr16]
+; line number
+	ldw (LINENO,sp),x 
+	ldw x,#2 
+	ld a,([ptr16],x)
+	ld xl,a
+; line length
+	ldw (LLEN,sp),x
+; check if that line number already exit 	
+	ldw x,(LINENO,sp)
+	call search_lineno 
+	tnzw x 
+	jrne 2$
+; line doesn't exit
+; it will be inserted at this point.  	
+	ldw (DEST,sp),y 
+	jra 3$
+; line exit delete it.
+; it will be replaced by new one 	
+2$: ldw (DEST,sp),x 
+	call del_line
+3$: 
+; insert new line or leave if LLEN==3
+; LLEN==3 means empty line 
+	ld a,#3
+	cp a,(LLEN+1,sp)
+	jreq insert_ln_exit ; empty line exit.
+; if insertion point at txtend 
+; move no need to create a gap 
+	ldw x,(DEST,sp)
+	cpw x,txtend 
+	jreq 4$ 
+; must create a gap
+; at insertion point  
+	ldw x,(DEST,sp)
+	ldw y,(LLEN,sp)
+	call create_gap
+	jra 5$
+4$: 
+	addw x,(LLEN,sp)
+	ldw txtend,x 	 
+; move new line in gap 
+5$:	ldw x,(LLEN,sp)
+	ldw acc16,x 
+	ldw y,#pad ;SRC 
+	ldw x,(DEST,sp) ; dest address 
+	call move 
+insert_ln_exit:	
+	_drop VSIZE
+	ret
+
+;-------------------------------------
+; delete line at addr
+; input:
+;   X 		addr of line i.e DEST for move 
+;-------------------------------------
+	LLEN=1
+	SRC=3
+	VSIZE=4
+del_line: 
+	_vars VSIZE 
+	ld a,(2,x) ; line length
+	ld (LLEN+1,sp),a 
+	clr (LLEN,sp)
+	ldw y,x  
+	addw y,(LLEN,sp) ;SRC  
+	ldw (SRC,sp),y  ;save source 
+	ldw y,txtend 
+	subw y,(SRC,sp) ; y=count 
+	ldw acc16,y 
+	ldw y,(SRC,sp)    ; source
+	call move
+	ldw y,txtend 
+	subw y,(LLEN,sp)
+	ldw txtend,y  
+	_drop VSIZE     
+	ret 
+
+;---------------------------------------------
+; create a gap in text area to 
+; move new line in this gap
+; input:
+;    X 			addr gap start 
+;    Y 			gap length 
+; output:
+;    X 			addr gap start 
+;--------------------------------------------
+	DEST=1
+	SRC=3
+	LEN=5
+	VSIZE=6 
+create_gap:
+	_vars VSIZE
+	ldw (SRC,sp),x 
+	ldw (LEN,sp),y 
+	ldw acc16,y 
+	ldw y,x ; SRC
+	addw x,acc16  
+	ldw (DEST,sp),x 
+;compute size to move 	
+	ldw x,txtend 
+	subw x,(SRC,sp)
+	ldw acc16,x ; size to move
+	ldw x,(DEST,sp) 
+	call move
+	ldw x,txtend
+	addw x,(LEN,sp)
+	ldw txtend,x
+9$:	_drop VSIZE 
+	ret 
+
+;---------------------------------
+; dictionary search 
+; input:
+;	X 		dictionary entry point, name field  
+;   y		.asciz name to search 
+; output:
+;  A 		TK_CMD|TK_IFUNC|TK_NONE 
+;  X		cmd_index ; execution address | 0 
+;---------------------------------
+	NLEN=1 ; cmd length 
+	XSAVE=2
+	YSAVE=4
+	VSIZE=5 
+search_dict:
+	_vars VSIZE 
+
+	ldw (YSAVE,sp),y 
+search_next:
+	ldw (XSAVE,sp),x 
+; get name length in dictionary	
+	ld a,(x)
+	and a,#0xf 
+	ld (NLEN,sp),a  
+	ldw y,(YSAVE,sp) ; name pointer 
+	incw x 
+cp_loop:
+	ld a,(y)
+	jreq str_match 
+	tnz (NLEN,sp)
+	jreq no_match  
+	cp a,(x)
+	jrne no_match 
+	incw y 
+	incw x
+	dec (NLEN,sp)
+	jra cp_loop 
+no_match:
+	ldw x,(XSAVE,sp) 
+	subw x,#2 ; move X to link field
+	push #TK_NONE 
+	ldw x,(x) ; next word link 
+	pop a ; TK_NONE 
+	jreq search_exit  ; not found  
+;try next 
+	jra search_next
+str_match:
+	ldw x,(XSAVE,sp)
+	ld a,(X)
+	ld (NLEN,sp),a ; needed to test keyword type  
+	and a,#0xf 
+; move x to procedure address field 	
+	inc a 
+	ld acc8,a 
+	clr acc16 
+	addw x,acc16 
+	ldw x,(x) ; routine index  
+;determine keyword type bits 7:6 
+	ld a,(NLEN,sp)
+	swap a 
+	and a,#0xc
+	srl a
+	srl a 
+	add a,#128
+search_exit: 
+	_drop VSIZE 	 
+	ret 
+
+;------------------------------
+;      dictionary 
+; format:
+;   link:   2 bytes 
+;   name_length+flags:  1 byte, bits 0:4 lenght,5:8 flags  
+;   cmd_name: 16 byte max 
+;   cmd_index: 2 bytes 
+;------------------------------
+	.macro _dict_entry len,name,cmd_idx 
+	.word LINK 
+	LINK=.
+name:
+	.byte len 	
+	.ascii "name"
+	.word cmd_idx 
+	.endm 
+
+	LINK=0
+; respect alphabetic order for BASIC names from Z-A
+; this sort order is for a cleaner WORDS cmd output. 	
+kword_end::
+	_dict_entry,3+F_IFUNC,XOR,XOR_IDX;bit_xor
+	_dict_entry,5,WRITE,WRITE_IDX;write  
+	_dict_entry,5,WORDS,WORDS_IDX;words 
+	_dict_entry 4,WAIT,WAIT_IDX;wait 
+	_dict_entry,3+F_IFUNC,USR,USR_IDX;usr
+	_dict_entry,5,UNTIL,UNTIL_IDX;until 
+	_dict_entry,6+F_IFUNC,UFLASH,UFLASH_IDX;uflash 
+	_dict_entry,6+F_IFUNC,UBOUND,UBOUND_IDX;ubound
+	_dict_entry,4,TONE,TONE_IDX;tone  
+	_dict_entry,2,TO,TO_IDX;to
+	_dict_entry,5,TIMER,TIMER_IDX;set_timer
+	_dict_entry,7+F_IFUNC,TIMEOUT,TMROUT_IDX;timeout 
+	_dict_entry,5+F_IFUNC,TICKS,TICKS_IDX;get_ticks
+	_dict_entry,4,STOP,STOP_IDX;stop 
+	_dict_entry,4,STEP,STEP_IDX;step 
+	_dict_entry,5,SPIWR,SPIWR_IDX;spi_write
+	_dict_entry,6,SPISEL,SPISEL_IDX;spi_select
+	_dict_entry,5+F_IFUNC,SPIRD,SPIRD_IDX; spi_read 
+	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
+	_dict_entry,5,SLEEP,SLEEP_IDX;sleep 
+	_dict_entry,4+F_IFUNC,FREE,FREE_IDX;free
+    _dict_entry,4,SHOW,SHOW_IDX;show 
+	_dict_entry,4,SAVE,SAVE_IDX;save
+	_dict_entry 3,RUN,RUN_IDX;run
+	_dict_entry,6+F_IFUNC,RSHIFT,RSHIFT_IDX;rshift
+	_dict_entry,3+F_IFUNC,RND,RND_IDX;random 
+	_dict_entry,6,RETURN,RET_IDX;return 
+	_dict_entry,7,RESTORE,REST_IDX;restore 
+	_dict_entry 6,REMARK,REM_IDX;remark 
+	_dict_entry,6,REBOOT,RBT_IDX;cold_start
+	_dict_entry,4+F_IFUNC,READ,READ_IDX;read  
+	_dict_entry,4+F_IFUNC,QKEY,QKEY_IDX;qkey  
+	_dict_entry,4+F_IFUNC,PRTI,PRTI_IDX;const_porti 
+	_dict_entry,4+F_IFUNC,PRTH,PRTH_IDX;const_porth 
+	_dict_entry,4+F_IFUNC,PRTG,PRTG_IDX;const_portg 
+	_dict_entry,4+F_IFUNC,PRTF,PRTF_IDX;const_portf
+	_dict_entry,4+F_IFUNC,PRTE,PRTE_IDX;const_porte
+	_dict_entry,4+F_IFUNC,PRTD,PRTD_IDX;const_portd
+	_dict_entry,4+F_IFUNC,PRTC,PRTC_IDX;const_portc
+	_dict_entry,4+F_IFUNC,PRTB,PRTB_IDX;const_portb
+	_dict_entry,4+F_IFUNC,PRTA,PRTA_IDX;const_porta 
+	_dict_entry 5,PRINT,PRT_IDX;print 
+	_dict_entry,4+F_IFUNC,POUT,POUT_IDX;const_output
+	_dict_entry,4,POKE,POKE_IDX;poke 
+	_dict_entry,5,PMODE,PMODE_IDX;pin_mode 
+	_dict_entry,4+F_IFUNC,PINP,PINP_IDX;const_input
+	_dict_entry,4+F_IFUNC,PEEK,PEEK_IDX;peek 
+	_dict_entry,5,PAUSE,PAUSE_IDX;pause 
+	_dict_entry,3+F_IFUNC,PAD,PAD_IDX;pad_ref 
+	_dict_entry,2+F_IFUNC,OR,OR_IDX;bit_or
+	_dict_entry,3+F_IFUNC,ODR,ODR_IDX;const_odr 
+	_dict_entry,3+F_IFUNC,NOT,NOT_IDX;func_not 
+	_dict_entry,4,NEXT,NEXT_IDX;next 
+	_dict_entry,3,NEW,NEW_IDX;new
+	_dict_entry,6+F_IFUNC,MULDIV,MULDIV_IDX;muldiv 
+	_dict_entry,6+F_IFUNC,LSHIFT,LSHIFT_IDX;lshift
+	_dict_entry,3+F_IFUNC,LOG,LOG_IDX;log2 
+	_dict_entry,4,LOAD,LOAD_IDX;load 
+	_dict_entry 4,LIST,LIST_IDX;list
+	_dict_entry 3,LET,LET_IDX;let 
+	_dict_entry,3+F_IFUNC,KEY,KEY_IDX;key 
+	_dict_entry,7,IWDGREF,IWDGREF_IDX;refresh_iwdg
+	_dict_entry,6,IWDGEN,IWDGEN_IDX;enable_iwdg
+	_dict_entry,6+F_IFUNC,INVERT,INVERT_IDX;invert 
+	_dict_entry,5,INPUT,INPUT_IDX;input_var  
+	_dict_entry,2,IF,IF_IDX;if 
+	_dict_entry,3+F_IFUNC,IDR,IDR_IDX;const_idr 
+	_dict_entry,3,HEX,HEX_IDX;hex_base
+	_dict_entry,4+F_IFUNC,GPIO,GPIO_IDX;gpio 
+	_dict_entry,4,GOTO,GOTO_IDX;goto 
+	_dict_entry,5,GOSUB,GOSUB_IDX;gosub 
+	_dict_entry,6,FORGET,FORGET_IDX;forget 
+	_dict_entry,3,FOR,FOR_IDX;for 
+	_dict_entry,4,FCPU,FCPU_IDX;fcpu 
+	_dict_entry,3,END,END_IDX;cmd_end  
+	_dict_entry,6+F_IFUNC,EEPROM,EEPROM_IDX;const_eeprom_base   
+	_dict_entry,6+F_CMD,DWRITE,DWRITE_IDX;digital_write
+	_dict_entry,5+F_IFUNC,DREAD,DREAD_IDX;digital_read
+	_dict_entry,2,DO,DO_IDX;do_loop
+	_dict_entry,3,DIR,DIR_IDX;directory 
+	_dict_entry,3,DEC,DEC_IDX;dec_base
+	_dict_entry,3+F_IFUNC,DDR,DDR_IDX;const_ddr 
+	_dict_entry,6,DATALN,DATALN_IDX;data_line  
+	_dict_entry,4,DATA,DATA_IDX;data  
+	_dict_entry,3+F_IFUNC,CRL,CRL_IDX;const_cr1 
+	_dict_entry,3+F_IFUNC,CRH,CRH_IDX;const_cr2 
+	_dict_entry,4+F_CFUNC,CHAR,CHAR_IDX;char
+	_dict_entry,3,BYE,BYE_IDX;bye 
+	_dict_entry,5,BTOGL,BTOGL_IDX;bit_toggle
+	_dict_entry,5+F_IFUNC,BTEST,BTEST_IDX;bit_test 
+	_dict_entry,4,BSET,BSET_IDX;bit_set 
+	_dict_entry,4,BRES,BRES_IDX;bit_reset
+	_dict_entry,3+F_IFUNC,BIT,BIT_IDX;bitmask
+	_dict_entry,3,AWU,AWU_IDX;awu 
+	_dict_entry,7,AUTORUN,AUTORUN_IDX;autorun
+	_dict_entry,3+F_IFUNC,ASC,ASC_IDX;ascii
+	_dict_entry,3+F_IFUNC,AND,AND_IDX;bit_and
+	_dict_entry,7+F_IFUNC,ADCREAD,ADCREAD_IDX;analog_read
+	_dict_entry,5,ADCON,ADCON_IDX;power_adc 
+kword_dict::
+	_dict_entry,3+F_IFUNC,ABS,ABS_IDX ;abs
+
