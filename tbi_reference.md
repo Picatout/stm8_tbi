@@ -23,7 +23,7 @@
 
 * [Utilisation](#utilisation)
 
-* [transfert de fichiers](#xmodem)
+* [transfert de fichiers](#send)
 
 * [Code source](#sources)
 
@@ -1625,9 +1625,9 @@ Vous trouverez dans le manuel de l'[utilisateur de tiny BASIC](manuel_util_tb.md
 
 [index principal](#index-princ)
 
-<a id="xmodem"></a>
+<a id="send"></a>
 # Transfert de fichiers
-Il est possible de transférer des programmes BASIC du PC vers la carte sur lesquelles est installé **STM8 TinyBasic**. 
+Il est possible de transférer des programmes BASIC du PC vers la carte sur laquelle est installé **STM8 TinyBasic**. 
 
 Le cable USB du programmeur STLINK de la carte est utilisé pour la console utilisateur. En ubuntu/linux ce lien apparaît comme un périphérique **ACM** sur le PC. sur mon poste de travail il s'agit du périphérique **/dev/ttyACM0** mais ça peut-être un autre chiffre dépendant de la configuration de votre PC. S'il y a 2 cartes de branchées au PC il y aura **ttyACM0** et **ttyACM1**. 
 
@@ -1635,7 +1635,7 @@ J'utilise **GTKTerm** comme console utilisateur configuré sur le port **/dev/tt
 
 ![docs/images/gtkTerm_config.png](docs/images/gtkTerm_config.png)
 
-Dans le dossier BASIC il y a un utilitaire qui permet de transférer un fichier source BASIC vers la carte via le port sériel utilisé par l'émulateur de terminal (GtkTerm dans mon cas). Dans le dossier racine il y a le script [send.sh](send.sh) qu'on utilise de la façon suivante:
+Dans le dossier BASIC il y a un utilitaire qui permet de transférer un fichier source BASIC vers la carte via le port sériel utilisé par l'émulateur de terminal (GtkTerm dans mon cas). 
 ```
 $ BASIC/SendFile
 Command line tool to send source file to stm8_eForth MCU
@@ -1660,10 +1660,6 @@ Durant le transfert le texte appaîrait sur l'écran du shell de commande et sur
 ![console](docs/images/SendFile.png)
 
 Bien qu'il soit possible de créer les fichiers source sur le terminal et de les sauvegarder sur dans la mémoire flash du MCU. Il plus pratique de les créer dans un éditeur de texte sur le PC et de les transférer par la suite sur la carte.
-
-
-
-
 
 [index principal](#index-princ)
 
