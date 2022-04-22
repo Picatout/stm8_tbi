@@ -1,5 +1,10 @@
 #### 2022-04-21
 
+* commit 772a21d63847b53dd827c659403abd0390ce3b06 (HEAD -> master)<br>
+  Date:   Thu Apr 21 20:14:13 2022 -0400
+
+    J'ai décidé d'abandonné l'idée d'amélioration majaure sur de cette version et de créer une toute nouvelle vesion 2 dans une autre git
+
 * 14:22 commit avant modifications majeures.
 
 * Réinitialisé le git à la version 1.0. Recommencer optimisation. 
