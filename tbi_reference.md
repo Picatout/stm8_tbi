@@ -263,8 +263,6 @@ nom|abrévation
 [WORDS](#words)|WO
 [WRITE](#write)|WR
 [XOR](#xor)|XO
-[XRCV](#xrcv)|XR
-[XTRMT](#xtrmt)|XT
 
 <hr>
 
@@ -1629,34 +1627,43 @@ Vous trouverez dans le manuel de l'[utilisateur de tiny BASIC](manuel_util_tb.md
 
 <a id="xmodem"></a>
 # Transfert de fichiers
-Il est possible de transférer des programmes BASIC entre la carte et le PC ou entre 2 cartes sur lesquelles est installé **STM8 TinyBasic**. Voici une photo du branchement matériel requi entre la carte et le PC.
+Il est possible de transférer des programmes BASIC du PC vers la carte sur lesquelles est installé **STM8 TinyBasic**. 
 
-![docs/images/connections-carte.png](docs/images/connections-carte.png)
 Le cable USB du programmeur STLINK de la carte est utilisé pour la console utilisateur. En ubuntu/linux ce lien apparaît comme un périphérique **ACM** sur le PC. sur mon poste de travail il s'agit du périphérique **/dev/ttyACM0** mais ça peut-être un autre chiffre dépendant de la configuration de votre PC. S'il y a 2 cartes de branchées au PC il y aura **ttyACM0** et **ttyACM1**. 
 
 J'utilise **GTKTerm** comme console utilisateur configuré sur le port **/dev/ttyACM0** à 115200 BAUD 8N1. 
 
 ![docs/images/gtkTerm_config.png](docs/images/gtkTerm_config.png)
 
-![console](docs/images/console.png)
+Dans le dossier BASIC il y a un utilitaire qui permet de transférer un fichier source BASIC vers la carte via le port sériel utilisé par l'émulateur de terminal (GtkTerm dans mon cas). Dans le dossier racine il y a le script [send.sh](send.sh) qu'on utilise de la façon suivante:
+```
+$ BASIC/SendFile
+Command line tool to send source file to stm8_eForth MCU
+USAGE: SendFile -s device [-d msec] file_name 
+  -s device serial port to use.
+  -d msec  delay in msec between text lines. Default to 50.
+   file_name   file to send.
+Port config  115200 8N1 no flow control.
+```
+Dans le dossier racine il y a le script [send.sh](send.sh) qu'on utilise de la façon suivante:
+```
+./send.sh nom_programme 
+```
+le script est très simple. 
+```
+#! /bin/sh 
+# Modifiez le nom du port sériel selon votre configuration.
+BASIC/SendFile -s/dev/ttyACM0 BASIC/$1
+```
+Durant le transfert le texte appaîrait sur l'écran du shell de commande et sur celui du terminal.
 
-Pour le transfert de fichiers il faut un deuxième lien. Ce deuxième lien est assuré par le périphérique **UART3** de la carte qui est relié au périphérique **/dev/ttyS0** sur le PC en Passant par un adapteur de niveau RS-232.  Puisque le transfert de fichier utilise le protocole **XMODEM** et que **GTKTerm** ne supporte pas ce protocole je dois utiliser un autre émulateur de terminal. En l'occurence j'utilise **minicom** relié au périphérique **/dev/ttyS0** avec la configuration 115200 8N1. 
+![console](docs/images/SendFile.png)
 
-### Envoie d'un fichier vers le PC
-
-Le fichier à transmettre doit-être chargé en mémoire RAM. Le fichier est transmis sous sa forme exécutable (binaire) et non comme fichier source. Le protocole XMODEM est contrôlé par la partie qui reçoit le fichier donc pour transmettre le fichier vers le PC on doit d'abord lancer la commande [XTRMT](#xtrmt) à partir de la console de la carte. Ensuite on va sur la console de minicom pour initialiser la réception avec le protocole **XMODMEM**. 
-
-![Transmission XMODEM](docs/images/xtrmt.png)
-
-[Vidéo de la comamnde XTRMT](https://youtu.be/l-YkdHDM9o0)
-
-### réception d'un fichier
-Pour recevoir un fichier sur la carte il faut d'abord lancer la commande de transmission dans le terminal minicom puis passer au terminal console de la carte pour lancer la commande [xrcv](#xrcv). Le fichier est téléchargé dans la mémoire RAM et prêt à l'exécution. Il peut-être sauvegardé sur la carte avec la commande [save](#save)
+Bien qu'il soit possible de créer les fichiers source sur le terminal et de les sauvegarder sur dans la mémoire flash du MCU. Il plus pratique de les créer dans un éditeur de texte sur le PC et de les transférer par la suite sur la carte.
 
 
-![réception XMODEM](docs/images/xrcv.png)
 
-[vidéo de la commande XRCV](https://youtu.be/OXjFfrBSkU8)
+
 
 [index principal](#index-princ)
 
@@ -1666,6 +1673,7 @@ Pour recevoir un fichier sur la carte il faut d'abord lancer la commande de tran
 * [TinyBasic.asm](TinyBasic.asm)  Code source de l'interpréteur BASIC.
 * [tbi_macros.inc](tbi_macros.inc) constantes et macros utilisées par ce programme.
 * [terminal.asm](terminal.asm) interface utilisateur avec l'émulateur de terminal sur le PC.
-* [xmodem.asm](xmodem.asm) fonctions du protocole de transfert de fichier XMODEM.
+* [compiler.asm](compiler.asm) compile le code source BASIC en byte code pour exécution.
+* [decompiler.asm](decompiler.asm) décompile le bytecode pour l'afficher à nouveau sur l'écran du terminal. Le décompilateur est utilisé par la commande [LIST](#list).
 
 [index principal](#index-princ)
