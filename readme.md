@@ -1,4 +1,4 @@
-## version 1.1 
+## 2022-04-21 version 1.1 
 
 * Travail sur l'organisation interne du code.
   
