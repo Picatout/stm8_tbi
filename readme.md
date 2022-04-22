@@ -12,7 +12,7 @@
   ```
   ./send.sh  nom_fichier_basic 
   ```
-* Renommé la commande **SIZE** **FREE** 
+* Renommé la commande **SIZE** -&gt; **FREE** 
 
 * Mise à jour du fichier [tbi_reference.md](tbi_reference.md)
 
