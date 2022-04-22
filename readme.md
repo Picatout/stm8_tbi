@@ -1,3 +1,23 @@
+## version 1.1 
+
+* Travail sur l'organisation interne du code.
+  
+  * déplacé le compilateur dans [compiler.asm](compiler.asm)
+
+  * déplacé le décompilateur dans [decompiler.asm](decompiler.asm)
+
+* Création d'un dossier **BASIC** pour y mettre les fichiers source BASIC 
+
+* Copier l'utilitaire **SendFile** dans le dossier **BASIC**  et créer un script shell  [send.sh](send.sh) pour envoyer un fichier BASIC source vers la carte en utilisant le port du terminal.
+  ```
+  ./send.sh  nom_fichier_basic 
+  ```
+* Renommé la commande **SIZE** **FREE** 
+
+* Mise à jour du fichier [tbi_reference.md](tbi_reference.md)
+
+<hr>
+
 **Maintenant la version 1.0 est considérée stable.** Pour suivre le détail du projet vous pouvez consulter le [journal](journal.md).
 
 Il s'agit d'une implémentation du [Tiny BASIC](https://en.wikipedia.org/wiki/Tiny_BASIC) originellement conçu par [Dennis Allison](https://en.wikipedia.org/wiki/Dennis_Allison) au milieu des années 197x. Cette implémentation est créée en me référend aux documents [TINYDISK.DOC](TINYDISK.DOC) et [TINYDISK.ASM](TINYDISK.ASM). Cependant elle n'est pas exactement identique. Comme il s'agit de programmer un microcontrôleur et non un ordinateur d'usage général des fonctions et commandes spécifiques à cet objectif sont ajoutées.
