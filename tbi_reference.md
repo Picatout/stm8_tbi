@@ -210,8 +210,8 @@ nom|abrévation
 [LOG](#log)|LOG
 [LSHIFT](#lshift)|LS
 [MULDIV](#muldiv)|MU
-[NEW](#new)|NEW
-[NEXT](#next)|NE
+[NEW](#new)|NE
+[NEXT](#next)|NEX
 [NOT](#not)|NO
 [ODR](#odr)|OD
 [OR](#or)|OR
@@ -263,6 +263,8 @@ nom|abrévation
 [WORDS](#words)|WO
 [WRITE](#write)|WR
 [XOR](#xor)|XO
+[XRCV](#xrcv)|XR
+[XTRMT](#xtrmt)|XT
 
 <hr>
 
@@ -616,7 +618,7 @@ Réduire la vitesse du CPU permet de réduire la consommation électrique. Notez
 
 [index](#index)
 <a id="for"></a>
-### FOR *var*=*expr1* TO *expr2* [STEP *expr3*] {C,P}
+### FOR *var*=*expr1* TO *expr2* [STEP *expr3*] NEXT *var* {C,P}
 Cette commande initialise une boucle avec compteur. La variable est initialisée avec la valeur de l'expression *expr1*. À chaque boucle la variable est incrémentée de la valeur indiquée par *expr3* qui suit le mot réservé **STEP**. Si **STEP** n'est pas indiqué la valeur par défaut **1** est utilisée. Une boucle **FOR** se termine par la commande **NEXT** tel qu'indiqué plus bas. Les instructions entre les comamndes **FOR** et **NEXT**
 peuvent s'étaler sur plusieurs lignes à l'intérieur d'un programme. Mais sur la ligne de commande le bloc au complet doit-être sur la même ligne.
 
@@ -678,6 +680,20 @@ table1   66
 hello   21
    2 files
 
+>
+```
+
+[index](#index)
+<a id="free"></a>
+### FREE {C,P}
+Cette commande retourne le nombre d'octets libre dans la mémoire RAM
+```
+>?free
+5740
+>10 ?hello world!"
+
+>?free
+5721
 >
 ```
 
@@ -949,6 +965,16 @@ Cette fonction effectue une multiplication suive d'une division. Le résultat de
 1161 
 ```
 
+
+[index](#index)
+<a id="new"></a>
+### NEW {C}
+Clean RAM and reset variables 
+
+[index](#index)
+<a id="next"></a>
+### NEXT var {C,P}
+Fait parti de la structure de contrôle ***FOR...NEXT** indique la fin de la boucle.  Voir [FOR](#for).  
 [index](#index)
 <a id="not"></a>
 ### NOT(*expr*) {C,P}
@@ -1256,19 +1282,6 @@ Dans cet exemple la commande **STOP** a été insérée au milieu d'une boucle *
 À la deuxième itération la commande **END** est utilisée pour arrêter l'exécution. 
 
 [index](#index)
-<a id="free"></a>
-### FREE {C,P}
-Cette commande retourne le nombre d'octets libre dans la mémoire RAM
-```
->? free
-5740
->10 ?hello world!"
-
->? free
-5721
->
-```
-[index](#index)
 <a id="sleep"></a>
 ### SLEEP {C,P}
 Cette commande place le MCU en sommeil profond. En mode *sleep* le processeur est suspendu et dépense un minimum d'énergie. Pour redémarrer le processeur il faut une interruption externe ou un reset. Le bouton **USER** sur la carte NUCLEO peut réactivé celle-ci.
@@ -1349,7 +1362,7 @@ Cette commande permet d'envoyer un ou plusieurs octets vers le périphérique SP
 [index](#index)
 <a id="step"></a>
 ### STEP *expr* {C,P}
-Ce mot réservé fait partie de la commande **FOR** et indique l'incrément de la variable de contrôle de la boucle. Pour plus de détail voir la commande **FOR**. 
+Ce mot réservé fait partie de la commande [FOR](#for) et indique l'incrément de la variable de contrôle de la boucle. Pour plus de détail voir la commande **FOR**. 
 
 [index](#index)
 <a id="stop"></a>
@@ -1407,7 +1420,7 @@ Cette foncition s'utilise avec la commande **TIMER** et retourne **-1** si la mi
 [index](#index)
 <a id="timer"></a>
 ### TIMER *expr* {C,P}
-Cette commande sert à initialiser une minuterie. *expr* doit résulté en un entier qui représente le nombre de millisecondes. Contrairement à **PAUSE** la commande **TIMER** ne bloque pas l'exécution. On doit vérifier l'expiration de la minuterie avec la fonction **TIMEOUT**.  
+Cette commande sert à initialiser une minuterie. *expr* doit résulté en un entier qui représente le nombre de millisecondes. Contrairement à **PAUSE** la commande **TIMER** ne bloque pas l'exécution. On doit vérifier l'expiration de la minuterie avec la fonction [TIMEOUT](#timeout).  
 ```
 >timer 1000 ' initialise à 1 seconde.
 ```
@@ -1415,7 +1428,7 @@ Cette commande sert à initialiser une minuterie. *expr* doit résulté en un en
 [index](#index)
 <a id="to"></a>
 ### TO *expr* {C,P}
-Ce mot réservé est utilisé lors de l'initialisation d'une boucle **FOR**. **expr** détermine la valeur limite de la variable de contrôle de la boucle. Voir la commande **FOR** pour plus d'information. 
+Ce mot réservé est utilisé lors de l'initialisation d'une boucle [FOR](#for). **expr** détermine la valeur limite de la variable de contrôle de la boucle. Voir la commande [FOR](#for) pour plus d'information. 
 
 [index](#index)
 <a id="tone"></a>
@@ -1556,6 +1569,24 @@ Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxre
 
 >
 ```
+
+[index](#index)
+<a id="xrcv"></a>
+### XRCV 
+Commande pour revevoir un fichier BASIC qui est sur le PC hôte en utilisant le protocole **XMODEM**. Il faut donc utiliser sur le PC un émulateur de terminal qui supporte le transfert de fichier par **XMODEM**, par exemple **minicom**. Il faut donc 2 émulateurs de terminal. L'un pour la console utilisateur et l'autre pour le transfert. On doit activer la transmission avant de passer la commande **XRCV** sur la console. <br/>
+![docs/images/xrcv.png](docs/images/xrcv.png)
+Dans cette capture d'écran **GTKTerm** est utiliser comme console utilisateur et **minicom** pour activer la transmission du fichier à partir du PC. La console communique via **UART1** et xmodem via le canal **UART3**. 
+
+Cette commande peut aussi être utilisée pour transmettre un programm BASIC directement d'une carte à l'autre.
+
+[index](#index)
+<a id="xtrmt"></a>
+### XTRMT 
+Commande pour transmettre le fichier BASIC qui est en émoire RAM vers le PC hôte en utlisant le protocole **XMODEM**. On doit lancer la commande **XTRMT** sur la console avant de lancer la réception **XMODEM** sur l'autre terminal.<br/> 
+![docs/images/xtrmt.png](docs/images/xtrmt.png)
+Sur cette capture d'écran **GTKTerm** branché sur **UART1** est utilisé comme console utilisateur et **minicom** branché sur **UART3** est utilisé pour la réception vers le PC. 
+
+Cette commande peut aussi être utilisée pour transmettre un programm BASIC directement d'une carte à l'autre.
 
 [index](#index)
 

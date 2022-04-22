@@ -1079,7 +1079,7 @@ is_alnum::
 ;  program initialization entry point 
 ;-------------------------------------
 	MAJOR=1
-	MINOR=0
+	MINOR=1
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2020\nversion "
 cold_start:
 ;set stack 
@@ -2412,9 +2412,10 @@ term_exit:
 ;   A    token attribute 
 ;   X	 integer   
 ;-------------------------------
-	N1=1 
-	OP=3 
-	VSIZE=3 
+	N1=1
+	N2=3 
+	OP=5 
+	VSIZE=5 
 expression:
 	_vars VSIZE 
 	call term
@@ -2434,14 +2435,14 @@ expression:
 	cp a,#TK_INTGR
 	jreq 3$
 	jp syntax_error
-3$:	ldw acc16,x 
+3$:	ldw (N2,sp),x 
 	ldw x,(N1,sp)
 	ld a,(OP,sp)
 	cp a,#TK_PLUS 
 	jrne 4$
-	addw x,acc16
+	addw x,(N2,sp)
 	jra 1$ 
-4$:	subw x,acc16
+4$:	subw x,(N2,sp)
 	jra 1$
 8$: ld a,(OP,sp)
 	jreq 9$ 

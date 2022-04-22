@@ -2104,7 +2104,7 @@ Hexadecimal [24-Bits]
 
 
       00A506 90 89            [ 2]  539 	pushw y 
-      00A508 CD 93 09         [ 4]  540 	call beep_1khz
+      00A508 CD 93 06         [ 4]  540 	call beep_1khz
       00A50B 90 85            [ 2]  541 	popw y 
       00A50D CC A3 D2         [ 2]  542 	jp readln_loop 
       00A510 A1 84            [ 1]  543 11$: cp a,#SUP 

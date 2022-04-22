@@ -1825,7 +1825,7 @@ Hexadecimal [24-Bits]
                                     175 ;-----------------------------
       00AA8B                        176 get_cmd_idx:
       00AA8B 90 89            [ 2]  177 	pushw y
-      00AA8D 90 AE A1 9E      [ 2]  178 	ldw y,#code_addr 
+      00AA8D 90 AE A1 9B      [ 2]  178 	ldw y,#code_addr 
       00AA91 90 CF 00 18      [ 2]  179 	ldw ptr16,y 
       00AA95 90 5F            [ 1]  180 	clrw y 
       00AA97 91 D3 18         [ 5]  181 1$:	cpw x,([ptr16],y)
@@ -2075,7 +2075,7 @@ Hexadecimal [24-Bits]
       00AC1A 52 04            [ 2]    1     sub sp,#VSIZE 
       00AC1C 72 5F 00 0D      [ 1]  401 	clr acc16 
       00AC20 1F 01            [ 2]  402 	ldw (CMDX,sp),x  
-      00AC22 AE A1 96         [ 2]  403 	ldw x,#kword_dict	
+      00AC22 AE A1 93         [ 2]  403 	ldw x,#kword_dict	
       00AC25 1F 03            [ 2]  404 1$:	ldw (LINK,sp),x
       00AC27 E6 02            [ 1]  405 	ld a,(2,x)
       00AC29 A4 0F            [ 1]  406 	and a,#15 

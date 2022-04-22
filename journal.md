@@ -1,6 +1,6 @@
 #### 2022-04-21
 
-* 14:21 commit avant modifications majeures.
+* 14:22 commit avant modifications majeures.
 
 * Réinitialisé le git à la version 1.0. Recommencer optimisation. 
 

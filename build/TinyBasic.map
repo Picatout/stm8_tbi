@@ -103,12 +103,12 @@ CODE                                00008080    00002BCC =       11212. bytes (R
      00008A94  to_upper                           STM8_TBI
      00008AA0  atoi24                             STM8_TBI
      00008C87  search_dict                        STM8_TBI
-     00008F00  let                                STM8_TBI
-     000090B9  remark                             STM8_TBI
-     00009309  beep_1khz                          STM8_TBI
-     00009805  qkey                               STM8_TBI
-     0000A196  kword_dict                         STM8_TBI
-     0000A19E  code_addr                          STM8_TBI
+     00008EFD  let                                STM8_TBI
+     000090B6  remark                             STM8_TBI
+     00009306  beep_1khz                          STM8_TBI
+     00009802  qkey                               STM8_TBI
+     0000A193  kword_dict                         STM8_TBI
+     0000A19B  code_addr                          STM8_TBI
      0000A2C0  puts                               TERMINAL
      0000A32D  spaces                             TERMINAL
      0000A3C5  readln                             TERMINAL

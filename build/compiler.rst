@@ -2115,14 +2115,14 @@ Hexadecimal [24-Bits]
       00A7A0 20 0E            [ 2]  425 	jra 4$ 
       00A7A2                        426 2$: ; check for keyword, otherwise syntax error.
       0001FA                        427 	_ldx_dict kword_dict ; dictionary entry point
-      00A7A2 AE A1 98         [ 2]    1     ldw x,#kword_dict+2
+      00A7A2 AE A1 95         [ 2]    1     ldw x,#kword_dict+2
       00A7A5 16 01            [ 2]  428 	ldw y,(XFIRST,sp) ; name to search for
       00A7A7 CD 8C 87         [ 4]  429 	call search_dict
       00A7AA 4D               [ 1]  430 	tnz a
       00A7AB 26 03            [ 1]  431 	jrne 4$ 
       00A7AD CC 88 3B         [ 2]  432 	jp syntax_error
       00A7B0                        433 4$:	
-      00A7B0 A3 8F 00         [ 2]  434     cpw x,#let 
+      00A7B0 A3 8E FD         [ 2]  434     cpw x,#let 
       00A7B3 27 0C            [ 1]  435     jreq 5$
       00A7B5 16 01            [ 2]  436 	ldw y,(XFIRST,sp)
       00A7B7 90 F7            [ 1]  437 	ld (y),a 
@@ -2447,7 +2447,7 @@ Hexadecimal [24-Bits]
       00A97F CC 88 3B         [ 2]  673 	jp syntax_error 
       00A982                        674 30$: 
       00A982 CD A7 72         [ 4]  675 	call parse_keyword
-      00A985 A3 90 B9         [ 2]  676 	cpw x,#remark 
+      00A985 A3 90 B6         [ 2]  676 	cpw x,#remark 
       00A988 26 09            [ 1]  677 	jrne token_exit 
       00A98A 90 93            [ 1]  678 	ldw y,x 
       00A98C CC A8 C6         [ 2]  679 	jp copy_comment 
