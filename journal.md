@@ -1,4 +1,6 @@
-##### 2022-04-24 
+##### 2022-04-25 
+
+* Création de la branche de développement **v2**.
 
 * Modifié la valeur de **TK_COLON** de **1** à **0xb** dans [bit_macros.inc](tbi_macros.inc) pour supprimer un test dans *next_token*. La commande **INPUT** a été mmodifiée en conséquence.   
 
