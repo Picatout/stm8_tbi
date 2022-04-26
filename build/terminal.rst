@@ -1433,6 +1433,7 @@ Hexadecimal [24-Bits]
                                  
                                  
                                  
+                                                
                                  
                                  
                                  
@@ -1557,12 +1558,12 @@ Hexadecimal [24-Bits]
                                      46 ;  ANSI sequence received 
                                      47 ;  from terminal.
                                      48 ;  These are the ANSI sequences
-                                     49 ;  accepted by function readln
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 2.
 Hexadecimal [24-Bits]
 
 
 
+                                     49 ;  accepted by function readln
                                      50 ;------------------------------
                            000080    51     ARROW_LEFT=128
                            000081    52     ARROW_RIGHT=129
@@ -1570,7 +1571,7 @@ Hexadecimal [24-Bits]
                            000083    54     END=131
                            000084    55     SUP=132 
                                      56 
-      00A28E 43 81 44 80 48 82 46    57 convert_table: .byte 'C',ARROW_RIGHT,'D',ARROW_LEFT,'H',HOME,'F',END,'3',SUP,0,0
+      00A20E 43 81 44 80 48 82 46    57 convert_table: .byte 'C',ARROW_RIGHT,'D',ARROW_LEFT,'H',HOME,'F',END,'3',SUP,0,0
              83 33 84 00 00
                                      58 
                                      59 ;--------------------------------
@@ -1584,31 +1585,31 @@ Hexadecimal [24-Bits]
                                      67 ; output:
                                      68 ;   A    converted character 
                                      69 ;-------------------------------
-      00A29A                         70 get_escape:
-      00A29A CD 83 CB         [ 4]   71     call getc 
-      00A29D A1 5B            [ 1]   72     cp a,#'[ ; this character is expected after ESC 
-      00A29F 27 02            [ 1]   73     jreq 1$
-      00A2A1 4F               [ 1]   74     clr a
-      00A2A2 81               [ 4]   75     ret
-      00A2A3 CD 83 CB         [ 4]   76 1$: call getc 
-      00A2A6 AE A2 8E         [ 2]   77     ldw x,#convert_table
-      00A2A9                         78 2$:
-      00A2A9 F1               [ 1]   79     cp a,(x)
-      00A2AA 27 08            [ 1]   80     jreq 4$
-      00A2AC 1C 00 02         [ 2]   81     addw x,#2
-      00A2AF 7D               [ 1]   82     tnz (x)
-      00A2B0 26 F7            [ 1]   83     jrne 2$
-      00A2B2 4F               [ 1]   84     clr a
-      00A2B3 81               [ 4]   85     ret 
-      00A2B4 5C               [ 1]   86 4$: incw x 
-      00A2B5 F6               [ 1]   87     ld a,(x)
-      00A2B6 A1 84            [ 1]   88     cp a,#SUP
-      00A2B8 26 05            [ 1]   89     jrne 5$
-      00A2BA 88               [ 1]   90     push a 
-      00A2BB CD 83 CB         [ 4]   91     call getc
-      00A2BE 84               [ 1]   92     pop a 
-      00A2BF                         93 5$:
-      00A2BF 81               [ 4]   94     ret 
+      00A21A                         70 get_escape:
+      00A21A CD 83 52         [ 4]   71     call getc 
+      00A21D A1 5B            [ 1]   72     cp a,#'[ ; this character is expected after ESC 
+      00A21F 27 02            [ 1]   73     jreq 1$
+      00A221 4F               [ 1]   74     clr a
+      00A222 81               [ 4]   75     ret
+      00A223 CD 83 52         [ 4]   76 1$: call getc 
+      00A226 AE A2 0E         [ 2]   77     ldw x,#convert_table
+      00A229                         78 2$:
+      00A229 F1               [ 1]   79     cp a,(x)
+      00A22A 27 08            [ 1]   80     jreq 4$
+      00A22C 1C 00 02         [ 2]   81     addw x,#2
+      00A22F 7D               [ 1]   82     tnz (x)
+      00A230 26 F7            [ 1]   83     jrne 2$
+      00A232 4F               [ 1]   84     clr a
+      00A233 81               [ 4]   85     ret 
+      00A234 5C               [ 1]   86 4$: incw x 
+      00A235 F6               [ 1]   87     ld a,(x)
+      00A236 A1 84            [ 1]   88     cp a,#SUP
+      00A238 26 05            [ 1]   89     jrne 5$
+      00A23A 88               [ 1]   90     push a 
+      00A23B CD 83 52         [ 4]   91     call getc
+      00A23E 84               [ 1]   92     pop a 
+      00A23F                         93 5$:
+      00A23F 81               [ 4]   94     ret 
                                      95 
                                      96 
                                      97 ;-----------------------------
@@ -1617,19 +1618,19 @@ Hexadecimal [24-Bits]
                                     100 ;   x 		char * 
                                     101 ; output:
                                     102 ;   none 
-                                    103 ;-------------------------------
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 3.
 Hexadecimal [24-Bits]
 
 
 
-      00A2C0                        104 puts::
-      00A2C0 F6               [ 1]  105     ld a,(x)
-      00A2C1 27 06            [ 1]  106 	jreq 1$
-      00A2C3 CD 83 AB         [ 4]  107 	call putc 
-      00A2C6 5C               [ 1]  108 	incw x 
-      00A2C7 20 F7            [ 2]  109 	jra puts 
-      00A2C9 81               [ 4]  110 1$:	ret 
+                                    103 ;-------------------------------
+      00A240                        104 puts::
+      00A240 F6               [ 1]  105     ld a,(x)
+      00A241 27 06            [ 1]  106 	jreq 1$
+      00A243 CD 83 42         [ 4]  107 	call putc 
+      00A246 5C               [ 1]  108 	incw x 
+      00A247 20 F7            [ 2]  109 	jra puts 
+      00A249 81               [ 4]  110 1$:	ret 
                                     111 
                                     112 
                                     113 ;---------------------------
@@ -1640,14 +1641,14 @@ Hexadecimal [24-Bits]
                                     118 ; output:
                                     119 ;	none 
                                     120 ;---------------------------
-      00A2CA                        121 bksp:
-      00A2CA A6 08            [ 1]  122 	ld a,#BS 
-      00A2CC CD 83 AB         [ 4]  123 	call putc 
-      00A2CF A6 20            [ 1]  124 	ld a,#SPACE 
-      00A2D1 CD 83 AB         [ 4]  125 	call putc 
-      00A2D4 A6 08            [ 1]  126 	ld a,#BS 
-      00A2D6 CD 83 AB         [ 4]  127 	call putc 
-      00A2D9 81               [ 4]  128 	ret 
+      00A24A                        121 bksp:
+      00A24A A6 08            [ 1]  122 	ld a,#BS 
+      00A24C CD 83 42         [ 4]  123 	call putc 
+      00A24F A6 20            [ 1]  124 	ld a,#SPACE 
+      00A251 CD 83 42         [ 4]  125 	call putc 
+      00A254 A6 08            [ 1]  126 	ld a,#BS 
+      00A256 CD 83 42         [ 4]  127 	call putc 
+      00A259 81               [ 4]  128 	ret 
                                     129 ;---------------------------
                                     130 ; delete n character left of cursor 
                                     131 ; at terminal.
@@ -1656,15 +1657,15 @@ Hexadecimal [24-Bits]
                                     134 ; output:
                                     135 ;    none 
                                     136 ;--------------------------	
-      00A2DA                        137 delete_nchar:
-      00A2DA 88               [ 1]  138 	push a 
-      00A2DB 0D 01            [ 1]  139 0$:	tnz (1,sp)
-      00A2DD 27 07            [ 1]  140 	jreq 1$
-      00A2DF CD A2 CA         [ 4]  141 	call bksp 
-      00A2E2 0A 01            [ 1]  142 	dec (1,sp)
-      00A2E4 20 F5            [ 2]  143 	jra 0$
-      00A2E6 84               [ 1]  144 1$:	pop a 
-      00A2E7 81               [ 4]  145 	ret
+      00A25A                        137 delete_nchar:
+      00A25A 88               [ 1]  138 	push a 
+      00A25B 0D 01            [ 1]  139 0$:	tnz (1,sp)
+      00A25D 27 07            [ 1]  140 	jreq 1$
+      00A25F CD A2 4A         [ 4]  141 	call bksp 
+      00A262 0A 01            [ 1]  142 	dec (1,sp)
+      00A264 20 F5            [ 2]  143 	jra 0$
+      00A266 84               [ 1]  144 1$:	pop a 
+      00A267 81               [ 4]  145 	ret
                                     146 
                                     147 ;--------------------------
                                     148 ; send ANSI escape sequence
@@ -1672,17 +1673,17 @@ Hexadecimal [24-Bits]
                                     150 ; note: ESC is ASCII 27
                                     151 ;       [   is ASCII 91  
                                     152 ;-------------------------- 
-      00A2E8                        153 send_escape:
-      00A2E8 A6 1B            [ 1]  154 	ld a,#ESC 
-      00A2EA CD 83 AB         [ 4]  155 	call putc 
-      00A2ED A6 5B            [ 1]  156 	ld a,#'[
-      00A2EF CD 83 AB         [ 4]  157 	call putc 
-      00A2F2 81               [ 4]  158 	ret 
+      00A268                        153 send_escape:
+      00A268 A6 1B            [ 1]  154 	ld a,#ESC 
+      00A26A CD 83 42         [ 4]  155 	call putc 
+      00A26D A6 5B            [ 1]  156 	ld a,#'[
+      00A26F CD 83 42         [ 4]  157 	call putc 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 4.
 Hexadecimal [24-Bits]
 
 
 
+      00A272 81               [ 4]  158 	ret 
                                     159 
                                     160 ;---------------------
                                     161 ;send ANSI parameter value
@@ -1698,27 +1699,27 @@ Hexadecimal [24-Bits]
                                     171 ; output:
                                     172 ;   none 
                                     173 ;---------------------
-      00A2F3                        174 send_parameter:
-      00A2F3 89               [ 2]  175 	pushw x 
-      00A2F4 5F               [ 1]  176 	clrw x 
-      00A2F5 97               [ 1]  177 	ld xl,a 
-      00A2F6 A6 0A            [ 1]  178 	ld a,#10 
-      00A2F8 62               [ 2]  179 	div x,a 
-      00A2F9 95               [ 1]  180 	ld xh,a 
-      00A2FA 9F               [ 1]  181 	ld a,xl
-      00A2FB 4D               [ 1]  182     tnz a 
-      00A2FC 27 0B            [ 1]  183     jreq 2$
-      00A2FE A1 09            [ 1]  184 	cp a,#9 
-      00A300 23 02            [ 2]  185 	jrule 1$
-      00A302 A6 39            [ 1]  186 	ld a,#'9
-      00A304                        187 1$:
-      00A304 AB 30            [ 1]  188 	add a,#'0 
-      00A306 CD 83 AB         [ 4]  189 	call putc
-      00A309 9E               [ 1]  190 2$:	ld a,xh 
-      00A30A AB 30            [ 1]  191 	add a,#'0
-      00A30C CD 83 AB         [ 4]  192 	call putc 
-      00A30F 85               [ 2]  193 	popw x 
-      00A310 81               [ 4]  194 	ret 
+      00A273                        174 send_parameter:
+      00A273 89               [ 2]  175 	pushw x 
+      00A274 5F               [ 1]  176 	clrw x 
+      00A275 97               [ 1]  177 	ld xl,a 
+      00A276 A6 0A            [ 1]  178 	ld a,#10 
+      00A278 62               [ 2]  179 	div x,a 
+      00A279 95               [ 1]  180 	ld xh,a 
+      00A27A 9F               [ 1]  181 	ld a,xl
+      00A27B 4D               [ 1]  182     tnz a 
+      00A27C 27 0B            [ 1]  183     jreq 2$
+      00A27E A1 09            [ 1]  184 	cp a,#9 
+      00A280 23 02            [ 2]  185 	jrule 1$
+      00A282 A6 39            [ 1]  186 	ld a,#'9
+      00A284                        187 1$:
+      00A284 AB 30            [ 1]  188 	add a,#'0 
+      00A286 CD 83 42         [ 4]  189 	call putc
+      00A289 9E               [ 1]  190 2$:	ld a,xh 
+      00A28A AB 30            [ 1]  191 	add a,#'0
+      00A28C CD 83 42         [ 4]  192 	call putc 
+      00A28F 85               [ 2]  193 	popw x 
+      00A290 81               [ 4]  194 	ret 
                                     195 
                                     196 ;--------------------------
                                     197 ; move cursor left n character
@@ -1731,19 +1732,19 @@ Hexadecimal [24-Bits]
                                     204 ; output:
                                     205 ;   none
                                     206 ;--------------------------
-      00A311                        207 move_left:
-      00A311 88               [ 1]  208 	push a 
-      00A312 CD A2 E8         [ 4]  209 	call send_escape
-      00A315 84               [ 1]  210     pop a
-      00A316 CD A2 F3         [ 4]  211 	call send_parameter 
-      00A319 A6 44            [ 1]  212 	ld a,#'D 
-      00A31B CD 83 AB         [ 4]  213 	call putc 
+      00A291                        207 move_left:
+      00A291 88               [ 1]  208 	push a 
+      00A292 CD A2 68         [ 4]  209 	call send_escape
+      00A295 84               [ 1]  210     pop a
+      00A296 CD A2 73         [ 4]  211 	call send_parameter 
+      00A299 A6 44            [ 1]  212 	ld a,#'D 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 5.
 Hexadecimal [24-Bits]
 
 
 
-      00A31E 81               [ 4]  214 	ret	
+      00A29B CD 83 42         [ 4]  213 	call putc 
+      00A29E 81               [ 4]  214 	ret	
                                     215 
                                     216 
                                     217 ;--------------------------
@@ -1754,14 +1755,14 @@ Hexadecimal [24-Bits]
                                     222 ; output:
                                     223 ;   none
                                     224 ;--------------------------
-      00A31F                        225 move_right:
-      00A31F 88               [ 1]  226 	push a 
-      00A320 CD A2 E8         [ 4]  227 	call send_escape
-      00A323 84               [ 1]  228     pop a
-      00A324 CD A2 F3         [ 4]  229 	call send_parameter 
-      00A327 A6 43            [ 1]  230 	ld a,#'C 
-      00A329 CD 83 AB         [ 4]  231 	call putc 
-      00A32C 81               [ 4]  232 	ret 
+      00A29F                        225 move_right:
+      00A29F 88               [ 1]  226 	push a 
+      00A2A0 CD A2 68         [ 4]  227 	call send_escape
+      00A2A3 84               [ 1]  228     pop a
+      00A2A4 CD A2 73         [ 4]  229 	call send_parameter 
+      00A2A7 A6 43            [ 1]  230 	ld a,#'C 
+      00A2A9 CD 83 42         [ 4]  231 	call putc 
+      00A2AC 81               [ 4]  232 	ret 
                                     233 
                                     234 
                                     235 ;--------------------------
@@ -1771,15 +1772,15 @@ Hexadecimal [24-Bits]
                                     239 ; output:
                                     240 ;	none 
                                     241 ;---------------------------
-      00A32D                        242 spaces::
-      00A32D A6 20            [ 1]  243 	ld a,#SPACE 
-      00A32F 5D               [ 2]  244 1$:	tnzw x
-      00A330 27 06            [ 1]  245 	jreq 9$
-      00A332 CD 83 AB         [ 4]  246 	call putc 
-      00A335 5A               [ 2]  247 	decw x
-      00A336 20 F7            [ 2]  248 	jra 1$
-      00A338                        249 9$: 
-      00A338 81               [ 4]  250 	ret 
+      00A2AD                        242 spaces::
+      00A2AD A6 20            [ 1]  243 	ld a,#SPACE 
+      00A2AF 5D               [ 2]  244 1$:	tnzw x
+      00A2B0 27 06            [ 1]  245 	jreq 9$
+      00A2B2 CD 83 42         [ 4]  246 	call putc 
+      00A2B5 5A               [ 2]  247 	decw x
+      00A2B6 20 F7            [ 2]  248 	jra 1$
+      00A2B8                        249 9$: 
+      00A2B8 81               [ 4]  250 	ret 
                                     251 
                                     252 ;--------------------------
                                     253 ; insert character in text 
@@ -1796,44 +1797,44 @@ Hexadecimal [24-Bits]
                            000002   264 	CHAR=2 
                            000003   265     LLEN=3 
                            000003   266 	VSISE=3 
-      00A339                        267 insert_char: 
-      0000AB                        268 	_vars VSIZE 
+      00A2B9                        267 insert_char: 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 6.
 Hexadecimal [24-Bits]
 
 
 
-      00A339 52 04            [ 2]    1     sub sp,#VSIZE 
-      00A33B 6B 02            [ 1]  269     ld (CHAR,sp),a 
-      00A33D 9E               [ 1]  270     ld a,xh 
-      00A33E 6B 01            [ 1]  271 	ld (IPOS,sp),a
-      00A340 9F               [ 1]  272     ld a,xl 
-      00A341 6B 03            [ 1]  273     ld (LLEN,sp),a  
-      00A343 93               [ 1]  274     ldw x,y
-      00A344 5C               [ 1]  275     incw x 
-      00A345 7B 03            [ 1]  276     ld a,(LLEN,sp)
-      00A347 10 01            [ 1]  277     sub a,(IPOS,sp)
-      00A349 4C               [ 1]  278     inc a 
-      00A34A C7 00 0E         [ 1]  279     ld acc8,a 
-      00A34D 72 5F 00 0D      [ 1]  280     clr acc16
-      00A351 CD 84 DE         [ 4]  281     call move
-      00A354 90 AE 16 90      [ 2]  282     ldw y,#tib 
-      00A358 7B 01            [ 1]  283     ld a,(IPOS,sp)
-      00A35A C7 00 0E         [ 1]  284     ld acc8,a 
-      00A35D 72 B9 00 0D      [ 2]  285     addw y,acc16 
-      00A361 7B 02            [ 1]  286     ld a,(CHAR,sp)
-      00A363 90 F7            [ 1]  287     ld (y),a
-      00A365 90 5C            [ 1]  288     incw y  
-      00A367 7B 01            [ 1]  289     ld a,(IPOS,sp)
-      00A369 CD A3 11         [ 4]  290     call move_left
-      00A36C AE 16 90         [ 2]  291     ldw x,#tib 
-      00A36F CD A2 C0         [ 4]  292     call puts 
-      00A372 7B 03            [ 1]  293     ld a,(LLEN,sp)
-      00A374 10 01            [ 1]  294     sub a,(IPOS,sp) 
-      00A376 CD A3 11         [ 4]  295     call move_left 
+      0000AB                        268 	_vars VSIZE 
+      00A2B9 52 04            [ 2]    1     sub sp,#VSIZE 
+      00A2BB 6B 02            [ 1]  269     ld (CHAR,sp),a 
+      00A2BD 9E               [ 1]  270     ld a,xh 
+      00A2BE 6B 01            [ 1]  271 	ld (IPOS,sp),a
+      00A2C0 9F               [ 1]  272     ld a,xl 
+      00A2C1 6B 03            [ 1]  273     ld (LLEN,sp),a  
+      00A2C3 93               [ 1]  274     ldw x,y
+      00A2C4 5C               [ 1]  275     incw x 
+      00A2C5 7B 03            [ 1]  276     ld a,(LLEN,sp)
+      00A2C7 10 01            [ 1]  277     sub a,(IPOS,sp)
+      00A2C9 4C               [ 1]  278     inc a 
+      00A2CA C7 00 0E         [ 1]  279     ld acc8,a 
+      00A2CD 72 5F 00 0D      [ 1]  280     clr acc16
+      00A2D1 CD 84 46         [ 4]  281     call move
+      00A2D4 90 AE 16 90      [ 2]  282     ldw y,#tib 
+      00A2D8 7B 01            [ 1]  283     ld a,(IPOS,sp)
+      00A2DA C7 00 0E         [ 1]  284     ld acc8,a 
+      00A2DD 72 B9 00 0D      [ 2]  285     addw y,acc16 
+      00A2E1 7B 02            [ 1]  286     ld a,(CHAR,sp)
+      00A2E3 90 F7            [ 1]  287     ld (y),a
+      00A2E5 90 5C            [ 1]  288     incw y  
+      00A2E7 7B 01            [ 1]  289     ld a,(IPOS,sp)
+      00A2E9 CD A2 91         [ 4]  290     call move_left
+      00A2EC AE 16 90         [ 2]  291     ldw x,#tib 
+      00A2EF CD A2 40         [ 4]  292     call puts 
+      00A2F2 7B 03            [ 1]  293     ld a,(LLEN,sp)
+      00A2F4 10 01            [ 1]  294     sub a,(IPOS,sp) 
+      00A2F6 CD A2 91         [ 4]  295     call move_left 
       0000EB                        296 	_drop VSIZE 
-      00A379 5B 04            [ 2]    1     addw sp,#VSIZE 
-      00A37B 81               [ 4]  297 	ret 
+      00A2F9 5B 04            [ 2]    1     addw sp,#VSIZE 
+      00A2FB 81               [ 4]  297 	ret 
                                     298 
                                     299 
                                     300 ;--------------------------
@@ -1846,40 +1847,40 @@ Hexadecimal [24-Bits]
                            000001   307 	CPOS=1
                            000002   308 	LLEN=2
                            000002   309 	VSIZE=2
-      00A37C                        310 delete_under:
+      00A2FC                        310 delete_under:
       0000EE                        311 	_vars VSIZE 
-      00A37C 52 02            [ 2]    1     sub sp,#VSIZE 
-      00A37E 6B 02            [ 1]  312     ld (LLEN,sp),a 
-      00A380 9F               [ 1]  313     ld a,xl 
-      00A381 6B 01            [ 1]  314     ld (CPOS,sp),a 
-      00A383 93               [ 1]  315     ldw x,y ; move destination
-      00A384 90 5C            [ 1]  316     incw y  ; move source 
-      00A386 7B 02            [ 1]  317     ld a,(LLEN,sp)
-      00A388 10 01            [ 1]  318     sub a,(CPOS,sp)
-      00A38A 4C               [ 1]  319     inc a ; move including zero at end.
-      00A38B C7 00 0E         [ 1]  320     ld acc8,a 
+      00A2FC 52 02            [ 2]    1     sub sp,#VSIZE 
+      00A2FE 6B 02            [ 1]  312     ld (LLEN,sp),a 
+      00A300 9F               [ 1]  313     ld a,xl 
+      00A301 6B 01            [ 1]  314     ld (CPOS,sp),a 
+      00A303 93               [ 1]  315     ldw x,y ; move destination
+      00A304 90 5C            [ 1]  316     incw y  ; move source 
+      00A306 7B 02            [ 1]  317     ld a,(LLEN,sp)
+      00A308 10 01            [ 1]  318     sub a,(CPOS,sp)
+      00A30A 4C               [ 1]  319     inc a ; move including zero at end.
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 7.
 Hexadecimal [24-Bits]
 
 
 
-      00A38E 72 5F 00 0D      [ 1]  321     clr acc16 
-      00A392 CD 84 DE         [ 4]  322 	call move 
-      00A395 90 AE 16 90      [ 2]  323     ldw y,#tib 
-      00A399 7B 01            [ 1]  324     ld a,(CPOS,sp)
-      00A39B C7 00 0E         [ 1]  325     ld acc8,a 
-      00A39E 72 B9 00 0D      [ 2]  326     addw y,acc16 
-      00A3A2 93               [ 1]  327     ldw x,y 
-      00A3A3 CD A2 C0         [ 4]  328     call puts 
-      00A3A6 A6 20            [ 1]  329     ld a,#SPACE  
-      00A3A8 CD 83 AB         [ 4]  330     call putc
-      00A3AB 7B 02            [ 1]  331     ld a,(LLEN,sp)
-      00A3AD 10 01            [ 1]  332     sub a,(CPOS,sp)
-      00A3AF CD A3 11         [ 4]  333     call move_left 
-      00A3B2 0A 02            [ 1]  334     dec (LLEN,sp)
+      00A30B C7 00 0E         [ 1]  320     ld acc8,a 
+      00A30E 72 5F 00 0D      [ 1]  321     clr acc16 
+      00A312 CD 84 46         [ 4]  322 	call move 
+      00A315 90 AE 16 90      [ 2]  323     ldw y,#tib 
+      00A319 7B 01            [ 1]  324     ld a,(CPOS,sp)
+      00A31B C7 00 0E         [ 1]  325     ld acc8,a 
+      00A31E 72 B9 00 0D      [ 2]  326     addw y,acc16 
+      00A322 93               [ 1]  327     ldw x,y 
+      00A323 CD A2 40         [ 4]  328     call puts 
+      00A326 A6 20            [ 1]  329     ld a,#SPACE  
+      00A328 CD 83 42         [ 4]  330     call putc
+      00A32B 7B 02            [ 1]  331     ld a,(LLEN,sp)
+      00A32D 10 01            [ 1]  332     sub a,(CPOS,sp)
+      00A32F CD A2 91         [ 4]  333     call move_left 
+      00A332 0A 02            [ 1]  334     dec (LLEN,sp)
       000126                        335 	_drop VSIZE 
-      00A3B4 5B 02            [ 2]    1     addw sp,#VSIZE 
-      00A3B6 81               [ 4]  336 	ret 
+      00A334 5B 02            [ 2]    1     addw sp,#VSIZE 
+      00A336 81               [ 4]  336 	ret 
                                     337 
                                     338 ;-----------------------------
                                     339 ; send ANSI sequence to delete
@@ -1891,13 +1892,13 @@ Hexadecimal [24-Bits]
                                     345 ; output:
                                     346 ;   none 
                                     347 ;-----------------------------
-      00A3B7                        348 delete_line:
-      00A3B7 CD A2 E8         [ 4]  349     call send_escape
-      00A3BA A6 32            [ 1]  350 	ld a,#'2
-      00A3BC CD 83 AB         [ 4]  351 	call putc 
-      00A3BF A6 4B            [ 1]  352 	ld a,#'K 
-      00A3C1 CD 83 AB         [ 4]  353 	call putc 
-      00A3C4 81               [ 4]  354 	ret 
+      00A337                        348 delete_line:
+      00A337 CD A2 68         [ 4]  349     call send_escape
+      00A33A A6 32            [ 1]  350 	ld a,#'2
+      00A33C CD 83 42         [ 4]  351 	call putc 
+      00A33F A6 4B            [ 1]  352 	ld a,#'K 
+      00A341 CD 83 42         [ 4]  353 	call putc 
+      00A344 81               [ 4]  354 	ret 
                                     355 
                                     356 
                                     357 
@@ -1917,12 +1918,12 @@ Hexadecimal [24-Bits]
                                     371 ;	none
                                     372 ; local variable on stack:
                                     373 ;	LL  line length
-                                    374 ;   RXCHAR last received character 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 8.
 Hexadecimal [24-Bits]
 
 
 
+                                    374 ;   RXCHAR last received character 
                                     375 ; output:
                                     376 ;   text in tib  buffer
                                     377 ;   count  line length 
@@ -1934,248 +1935,248 @@ Hexadecimal [24-Bits]
                            000003   383 	CPOS=3  ; cursor position 
                            000004   384 	OVRWR=4 ; overwrite flag 
                            000004   385 	VSIZE=4 
-      00A3C5                        386 readln::
+      00A345                        386 readln::
       000137                        387 	_vars VSIZE 
-      00A3C5 52 04            [ 2]    1     sub sp,#VSIZE 
-      00A3C7 5F               [ 1]  388 	clrw x 
-      00A3C8 1F 02            [ 2]  389 	ldw (LL,sp),x 
-      00A3CA 1F 03            [ 2]  390 	ldw (CPOS,sp),x 
-      00A3CC 03 04            [ 1]  391 	cpl (OVRWR,sp) ; default to overwrite mode 
-      00A3CE 90 AE 16 90      [ 2]  392  	ldw y,#tib ; input buffer
-      00A3D2                        393 readln_loop:
-      00A3D2 CD 83 CB         [ 4]  394 	call getc
-      00A3D5 6B 01            [ 1]  395 	ld (RXCHAR,sp),a
-      00A3D7 A1 1B            [ 1]  396     cp a,#ESC 
-      00A3D9 26 05            [ 1]  397     jrne 0$
-      00A3DB CD A2 9A         [ 4]  398     call get_escape 
-      00A3DE 6B 01            [ 1]  399     ld (RXCHAR,sp),a 
-      00A3E0 A1 0D            [ 1]  400 0$:	cp a,#CR
-      00A3E2 26 03            [ 1]  401 	jrne 1$
-      00A3E4 CC A5 6E         [ 2]  402 	jp readln_quit
-      00A3E7 A1 0A            [ 1]  403 1$:	cp a,#LF 
-      00A3E9 26 03            [ 1]  404 	jrne 2$ 
-      00A3EB CC A5 6E         [ 2]  405 	jp readln_quit
-      00A3EE                        406 2$:
-      00A3EE A1 08            [ 1]  407 	cp a,#BS
-      00A3F0 26 12            [ 1]  408 	jrne 3$
+      00A345 52 04            [ 2]    1     sub sp,#VSIZE 
+      00A347 5F               [ 1]  388 	clrw x 
+      00A348 1F 02            [ 2]  389 	ldw (LL,sp),x 
+      00A34A 1F 03            [ 2]  390 	ldw (CPOS,sp),x 
+      00A34C 03 04            [ 1]  391 	cpl (OVRWR,sp) ; default to overwrite mode 
+      00A34E 90 AE 16 90      [ 2]  392  	ldw y,#tib ; input buffer
+      00A352                        393 readln_loop:
+      00A352 CD 83 52         [ 4]  394 	call getc
+      00A355 6B 01            [ 1]  395 	ld (RXCHAR,sp),a
+      00A357 A1 1B            [ 1]  396     cp a,#ESC 
+      00A359 26 05            [ 1]  397     jrne 0$
+      00A35B CD A2 1A         [ 4]  398     call get_escape 
+      00A35E 6B 01            [ 1]  399     ld (RXCHAR,sp),a 
+      00A360 A1 0D            [ 1]  400 0$:	cp a,#CR
+      00A362 26 03            [ 1]  401 	jrne 1$
+      00A364 CC A4 EE         [ 2]  402 	jp readln_quit
+      00A367 A1 0A            [ 1]  403 1$:	cp a,#LF 
+      00A369 26 03            [ 1]  404 	jrne 2$ 
+      00A36B CC A4 EE         [ 2]  405 	jp readln_quit
+      00A36E                        406 2$:
+      00A36E A1 08            [ 1]  407 	cp a,#BS
+      00A370 26 12            [ 1]  408 	jrne 3$
                                     409 ; delete left 
-      00A3F2 0D 03            [ 1]  410     tnz (CPOS,sp)
-      00A3F4 27 DC            [ 1]  411     jreq readln_loop 
-      00A3F6 A6 01            [ 1]  412     ld a,#1 
-      00A3F8 CD A3 11         [ 4]  413     call move_left
-      00A3FB 0A 03            [ 1]  414     dec (CPOS,sp)
-      00A3FD 90 5A            [ 2]  415     decw y 
-      00A3FF 7B 03            [ 1]  416     ld a,(CPOS,sp) 
-      00A401 CC A5 1A         [ 2]  417     jp 12$
-      00A404                        418 3$:
-      00A404 A1 04            [ 1]  419 	cp a,#CTRL_D
-      00A406 26 1A            [ 1]  420 	jrne 4$
+      00A372 0D 03            [ 1]  410     tnz (CPOS,sp)
+      00A374 27 DC            [ 1]  411     jreq readln_loop 
+      00A376 A6 01            [ 1]  412     ld a,#1 
+      00A378 CD A2 91         [ 4]  413     call move_left
+      00A37B 0A 03            [ 1]  414     dec (CPOS,sp)
+      00A37D 90 5A            [ 2]  415     decw y 
+      00A37F 7B 03            [ 1]  416     ld a,(CPOS,sp) 
+      00A381 CC A4 9A         [ 2]  417     jp 12$
+      00A384                        418 3$:
+      00A384 A1 04            [ 1]  419 	cp a,#CTRL_D
+      00A386 26 1A            [ 1]  420 	jrne 4$
                                     421 ;delete line 
-      00A408 CD A3 B7         [ 4]  422 	call delete_line 
-      00A40B 7B 03            [ 1]  423     ld a,(CPOS,sp)
-      00A40D 4C               [ 1]  424     inc a 
-      00A40E CD A3 11         [ 4]  425     call move_left 
-      00A411 A6 3E            [ 1]  426 	ld a,#'> 
-      00A413 CD 83 AB         [ 4]  427 	call putc 
-      00A416 90 AE 16 90      [ 2]  428 	ldw y,#tib
+      00A388 CD A3 37         [ 4]  422 	call delete_line 
+      00A38B 7B 03            [ 1]  423     ld a,(CPOS,sp)
+      00A38D 4C               [ 1]  424     inc a 
+      00A38E CD A2 91         [ 4]  425     call move_left 
+      00A391 A6 3E            [ 1]  426 	ld a,#'> 
+      00A393 CD 83 42         [ 4]  427 	call putc 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 9.
 Hexadecimal [24-Bits]
 
 
 
-      00A41A 90 7F            [ 1]  429 	clr (y)
-      00A41C 0F 02            [ 1]  430 	clr (LL,sp)
-      00A41E 0F 03            [ 1]  431 	clr (CPOS,sp)
-      00A420 20 B0            [ 2]  432 	jra readln_loop
-      00A422                        433 4$:
-      00A422 A1 12            [ 1]  434 	cp a,#CTRL_R 
-      00A424 26 21            [ 1]  435 	jrne 5$
+      00A396 90 AE 16 90      [ 2]  428 	ldw y,#tib
+      00A39A 90 7F            [ 1]  429 	clr (y)
+      00A39C 0F 02            [ 1]  430 	clr (LL,sp)
+      00A39E 0F 03            [ 1]  431 	clr (CPOS,sp)
+      00A3A0 20 B0            [ 2]  432 	jra readln_loop
+      00A3A2                        433 4$:
+      00A3A2 A1 12            [ 1]  434 	cp a,#CTRL_R 
+      00A3A4 26 21            [ 1]  435 	jrne 5$
                                     436 ;reprint 
-      00A426 0D 02            [ 1]  437 	tnz (LL,sp)
-      00A428 26 A8            [ 1]  438 	jrne readln_loop
-      00A42A AE 16 90         [ 2]  439 	ldw x,#tib 
-      00A42D CD 84 B4         [ 4]  440 	call strlen 
-      00A430 90 AE 16 90      [ 2]  441 	ldw y,#tib 
-      00A434 27 9C            [ 1]  442 	jreq readln_loop
-      00A436 6B 02            [ 1]  443 	ld (LL,sp),a 
-      00A438 6B 03            [ 1]  444     ld (CPOS,sp),a
-      00A43A AE 16 90         [ 2]  445 	ldw x,#tib 
-      00A43D CD A2 C0         [ 4]  446 	call puts
-      00A440 0F 01            [ 1]  447 	clr (LL_HB,sp)
-      00A442 72 F9 01         [ 2]  448 	addw y,(LL_HB,sp)
-      00A445 20 8B            [ 2]  449 	jra readln_loop 
-      00A447                        450 5$:
-      00A447 A1 05            [ 1]  451 	cp a,#CTRL_E 
-      00A449 26 49            [ 1]  452 	jrne 6$
+      00A3A6 0D 02            [ 1]  437 	tnz (LL,sp)
+      00A3A8 26 A8            [ 1]  438 	jrne readln_loop
+      00A3AA AE 16 90         [ 2]  439 	ldw x,#tib 
+      00A3AD CD 84 1C         [ 4]  440 	call strlen 
+      00A3B0 90 AE 16 90      [ 2]  441 	ldw y,#tib 
+      00A3B4 27 9C            [ 1]  442 	jreq readln_loop
+      00A3B6 6B 02            [ 1]  443 	ld (LL,sp),a 
+      00A3B8 6B 03            [ 1]  444     ld (CPOS,sp),a
+      00A3BA AE 16 90         [ 2]  445 	ldw x,#tib 
+      00A3BD CD A2 40         [ 4]  446 	call puts
+      00A3C0 0F 01            [ 1]  447 	clr (LL_HB,sp)
+      00A3C2 72 F9 01         [ 2]  448 	addw y,(LL_HB,sp)
+      00A3C5 20 8B            [ 2]  449 	jra readln_loop 
+      00A3C7                        450 5$:
+      00A3C7 A1 05            [ 1]  451 	cp a,#CTRL_E 
+      00A3C9 26 49            [ 1]  452 	jrne 6$
                                     453 ;edit line number 
-      00A44B AE 16 90         [ 2]  454 	ldw x,#tib 
-      00A44E CD 8A A0         [ 4]  455 	call atoi24
-      00A451 CE 00 0D         [ 2]  456 	ldw x,acc16
-      00A454 CD A5 A8         [ 4]  457 	call search_lineno
-      00A457 5D               [ 2]  458 	tnzw x 
-      00A458 26 0B            [ 1]  459 	jrne 51$
-      00A45A 0F 02            [ 1]  460 	clr (LL,sp)
-      00A45C 90 AE 16 90      [ 2]  461 	ldw y,#tib
-      00A460 90 7F            [ 1]  462     clr (y) 	
-      00A462 CC A5 6E         [ 2]  463 	jp readln_quit  
-      00A465                        464 51$:
-      00A465 CF 00 05         [ 2]  465 	ldw basicptr,x
-      00A468 E6 02            [ 1]  466 	ld a,(2,x)
-      00A46A C7 00 04         [ 1]  467 	ld count,a 
-      00A46D 90 AE 16 90      [ 2]  468 	ldw y,#tib 
-      00A471 CD AA AC         [ 4]  469 	call decompile 
-      00A474 0F 01            [ 1]  470 	clr (LL_HB,sp)
-      00A476 A6 0D            [ 1]  471 	ld a,#CR 
-      00A478 CD 83 AB         [ 4]  472 	call putc 
-      00A47B A6 3E            [ 1]  473 	ld a,#'>
-      00A47D CD 83 AB         [ 4]  474 	call putc
-      00A480 AE 16 90         [ 2]  475     ldw x,#tib  
-      00A483 CD 84 B4         [ 4]  476 	call strlen 
-      00A486 6B 02            [ 1]  477 	ld (LL,sp),a 
-      00A488 CD A2 C0         [ 4]  478 	call puts 
-      00A48B 90 93            [ 1]  479 	ldw y,x
-      00A48D 7B 02            [ 1]  480     ld a,(LL,sp)
-      00A48F 6B 03            [ 1]  481     ld (CPOS,sp),a  
-      00A491 CC A3 D2         [ 2]  482 	jp readln_loop
-      00A494                        483 6$:
+      00A3CB AE 16 90         [ 2]  454 	ldw x,#tib 
+      00A3CE CD 8A 04         [ 4]  455 	call atoi24
+      00A3D1 CE 00 0D         [ 2]  456 	ldw x,acc16
+      00A3D4 CD A5 28         [ 4]  457 	call search_lineno
+      00A3D7 5D               [ 2]  458 	tnzw x 
+      00A3D8 26 0B            [ 1]  459 	jrne 51$
+      00A3DA 0F 02            [ 1]  460 	clr (LL,sp)
+      00A3DC 90 AE 16 90      [ 2]  461 	ldw y,#tib
+      00A3E0 90 7F            [ 1]  462     clr (y) 	
+      00A3E2 CC A4 EE         [ 2]  463 	jp readln_quit  
+      00A3E5                        464 51$:
+      00A3E5 CF 00 05         [ 2]  465 	ldw basicptr,x
+      00A3E8 E6 02            [ 1]  466 	ld a,(2,x)
+      00A3EA C7 00 04         [ 1]  467 	ld count,a 
+      00A3ED 90 AE 16 90      [ 2]  468 	ldw y,#tib 
+      00A3F1 CD AA 34         [ 4]  469 	call decompile 
+      00A3F4 0F 01            [ 1]  470 	clr (LL_HB,sp)
+      00A3F6 A6 0D            [ 1]  471 	ld a,#CR 
+      00A3F8 CD 83 42         [ 4]  472 	call putc 
+      00A3FB A6 3E            [ 1]  473 	ld a,#'>
+      00A3FD CD 83 42         [ 4]  474 	call putc
+      00A400 AE 16 90         [ 2]  475     ldw x,#tib  
+      00A403 CD 84 1C         [ 4]  476 	call strlen 
+      00A406 6B 02            [ 1]  477 	ld (LL,sp),a 
+      00A408 CD A2 40         [ 4]  478 	call puts 
+      00A40B 90 93            [ 1]  479 	ldw y,x
+      00A40D 7B 02            [ 1]  480     ld a,(LL,sp)
+      00A40F 6B 03            [ 1]  481     ld (CPOS,sp),a  
+      00A411 CC A3 52         [ 2]  482 	jp readln_loop
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 10.
 Hexadecimal [24-Bits]
 
 
 
-      00A494 A1 81            [ 1]  484 	cp a,#ARROW_RIGHT
-      00A496 26 15            [ 1]  485    	jrne 7$ 
+      00A414                        483 6$:
+      00A414 A1 81            [ 1]  484 	cp a,#ARROW_RIGHT
+      00A416 26 15            [ 1]  485    	jrne 7$ 
                                     486 ; right arrow
-      00A498 7B 03            [ 1]  487 	ld a,(CPOS,sp)
-      00A49A 11 02            [ 1]  488     cp a,(LL,sp)
-      00A49C 2B 03            [ 1]  489     jrmi 61$
-      00A49E CC A3 D2         [ 2]  490     jp readln_loop 
-      00A4A1                        491 61$:
-      00A4A1 A6 01            [ 1]  492     ld a,#1 
-      00A4A3 CD A3 1F         [ 4]  493 	call move_right 
-      00A4A6 0C 03            [ 1]  494 	inc (CPOS,sp)
-      00A4A8 90 5C            [ 1]  495     incw y 
-      00A4AA CC A3 D2         [ 2]  496     jp readln_loop 
-      00A4AD A1 80            [ 1]  497 7$: cp a,#ARROW_LEFT  
-      00A4AF 26 13            [ 1]  498 	jrne 8$
+      00A418 7B 03            [ 1]  487 	ld a,(CPOS,sp)
+      00A41A 11 02            [ 1]  488     cp a,(LL,sp)
+      00A41C 2B 03            [ 1]  489     jrmi 61$
+      00A41E CC A3 52         [ 2]  490     jp readln_loop 
+      00A421                        491 61$:
+      00A421 A6 01            [ 1]  492     ld a,#1 
+      00A423 CD A2 9F         [ 4]  493 	call move_right 
+      00A426 0C 03            [ 1]  494 	inc (CPOS,sp)
+      00A428 90 5C            [ 1]  495     incw y 
+      00A42A CC A3 52         [ 2]  496     jp readln_loop 
+      00A42D A1 80            [ 1]  497 7$: cp a,#ARROW_LEFT  
+      00A42F 26 13            [ 1]  498 	jrne 8$
                                     499 ; left arrow 
-      00A4B1 0D 03            [ 1]  500 	tnz (CPOS,sp)
-      00A4B3 26 03            [ 1]  501 	jrne 71$
-      00A4B5 CC A3 D2         [ 2]  502 	jp readln_loop
-      00A4B8                        503 71$:
-      00A4B8 A6 01            [ 1]  504     ld a,#1 
-      00A4BA CD A3 11         [ 4]  505 	call move_left 
-      00A4BD 0A 03            [ 1]  506 	dec (CPOS,sp)
-      00A4BF 90 5A            [ 2]  507     decw y 
-      00A4C1 CC A3 D2         [ 2]  508 	jp readln_loop 
-      00A4C4 A1 82            [ 1]  509 8$: cp a,#HOME  
-      00A4C6 26 0E            [ 1]  510 	jrne 9$
+      00A431 0D 03            [ 1]  500 	tnz (CPOS,sp)
+      00A433 26 03            [ 1]  501 	jrne 71$
+      00A435 CC A3 52         [ 2]  502 	jp readln_loop
+      00A438                        503 71$:
+      00A438 A6 01            [ 1]  504     ld a,#1 
+      00A43A CD A2 91         [ 4]  505 	call move_left 
+      00A43D 0A 03            [ 1]  506 	dec (CPOS,sp)
+      00A43F 90 5A            [ 2]  507     decw y 
+      00A441 CC A3 52         [ 2]  508 	jp readln_loop 
+      00A444 A1 82            [ 1]  509 8$: cp a,#HOME  
+      00A446 26 0E            [ 1]  510 	jrne 9$
                                     511 ; HOME 
-      00A4C8 7B 03            [ 1]  512     ld a,(CPOS,sp)
-      00A4CA CD A3 11         [ 4]  513     call move_left 
-      00A4CD 0F 03            [ 1]  514 	clr (CPOS,sp)
-      00A4CF 90 AE 16 90      [ 2]  515     ldw y,#tib 
-      00A4D3 CC A3 D2         [ 2]  516 	jp readln_loop  
-      00A4D6 A1 83            [ 1]  517 9$: cp a,#END  
-      00A4D8 26 26            [ 1]  518 	jrne 10$
+      00A448 7B 03            [ 1]  512     ld a,(CPOS,sp)
+      00A44A CD A2 91         [ 4]  513     call move_left 
+      00A44D 0F 03            [ 1]  514 	clr (CPOS,sp)
+      00A44F 90 AE 16 90      [ 2]  515     ldw y,#tib 
+      00A453 CC A3 52         [ 2]  516 	jp readln_loop  
+      00A456 A1 83            [ 1]  517 9$: cp a,#END  
+      00A458 26 26            [ 1]  518 	jrne 10$
                                     519 ; END 
-      00A4DA 7B 03            [ 1]  520 	ld a,(CPOS,sp)
-      00A4DC 11 02            [ 1]  521 	cp a,(LL,sp)
-      00A4DE 26 03            [ 1]  522 	jrne 91$
-      00A4E0 CC A3 D2         [ 2]  523 	jp readln_loop 
-      00A4E3                        524 91$:
-      00A4E3 7B 02            [ 1]  525 	ld a,(LL,sp)
-      00A4E5 10 03            [ 1]  526 	sub a,(CPOS,sp)
-      00A4E7 CD A3 1F         [ 4]  527 	call move_right 
-      00A4EA 7B 02            [ 1]  528 	ld a,(LL,sp)
-      00A4EC 6B 03            [ 1]  529 	ld (CPOS,sp),a
-      00A4EE 90 AE 16 90      [ 2]  530     ldw y,#tib
-      00A4F2 72 5F 00 0D      [ 1]  531     clr acc16 
-      00A4F6 C7 00 0E         [ 1]  532     ld acc8,a 
-      00A4F9 72 B9 00 0D      [ 2]  533     addw y,acc16  
-      00A4FD CC A3 D2         [ 2]  534 	jp readln_loop 
-      00A500 A1 0F            [ 1]  535 10$: cp a,#CTRL_O
-      00A502 26 0C            [ 1]  536 	jrne 11$ 
+      00A45A 7B 03            [ 1]  520 	ld a,(CPOS,sp)
+      00A45C 11 02            [ 1]  521 	cp a,(LL,sp)
+      00A45E 26 03            [ 1]  522 	jrne 91$
+      00A460 CC A3 52         [ 2]  523 	jp readln_loop 
+      00A463                        524 91$:
+      00A463 7B 02            [ 1]  525 	ld a,(LL,sp)
+      00A465 10 03            [ 1]  526 	sub a,(CPOS,sp)
+      00A467 CD A2 9F         [ 4]  527 	call move_right 
+      00A46A 7B 02            [ 1]  528 	ld a,(LL,sp)
+      00A46C 6B 03            [ 1]  529 	ld (CPOS,sp),a
+      00A46E 90 AE 16 90      [ 2]  530     ldw y,#tib
+      00A472 72 5F 00 0D      [ 1]  531     clr acc16 
+      00A476 C7 00 0E         [ 1]  532     ld acc8,a 
+      00A479 72 B9 00 0D      [ 2]  533     addw y,acc16  
+      00A47D CC A3 52         [ 2]  534 	jp readln_loop 
+      00A480 A1 0F            [ 1]  535 10$: cp a,#CTRL_O
+      00A482 26 0C            [ 1]  536 	jrne 11$ 
                                     537 ; toggle between insert/overwrite
-      00A504 03 04            [ 1]  538 	cpl (OVRWR,sp)
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 11.
 Hexadecimal [24-Bits]
 
 
 
-      00A506 90 89            [ 2]  539 	pushw y 
-      00A508 CD 93 06         [ 4]  540 	call beep_1khz
-      00A50B 90 85            [ 2]  541 	popw y 
-      00A50D CC A3 D2         [ 2]  542 	jp readln_loop 
-      00A510 A1 84            [ 1]  543 11$: cp a,#SUP 
-      00A512 26 11            [ 1]  544     jrne final_test 
+      00A484 03 04            [ 1]  538 	cpl (OVRWR,sp)
+      00A486 90 89            [ 2]  539 	pushw y 
+      00A488 CD 92 7E         [ 4]  540 	call beep_1khz
+      00A48B 90 85            [ 2]  541 	popw y 
+      00A48D CC A3 52         [ 2]  542 	jp readln_loop 
+      00A490 A1 84            [ 1]  543 11$: cp a,#SUP 
+      00A492 26 11            [ 1]  544     jrne final_test 
                                     545 ; del character under cursor 
-      00A514 7B 03            [ 1]  546     ld a,(CPOS,sp)
-      00A516 11 02            [ 1]  547     cp a,(LL,sp)
-      00A518 2A 08            [ 1]  548     jrpl 13$
-      00A51A                        549 12$:
-      00A51A 97               [ 1]  550     ld xl,a    ; cursor position 
-      00A51B 7B 02            [ 1]  551     ld a,(LL,sp)  ; line length
-      00A51D CD A3 7C         [ 4]  552     call delete_under
-      00A520 0A 02            [ 1]  553     dec (LLEN,sp)
-      00A522                        554 13$:
-      00A522 CC A3 D2         [ 2]  555     jp readln_loop 
-      00A525                        556 final_test:
-      00A525 A1 20            [ 1]  557 	cp a,#SPACE
-      00A527 2A 03            [ 1]  558 	jrpl accept_char
-      00A529 CC A3 D2         [ 2]  559 	jp readln_loop
-      00A52C                        560 accept_char:
-      00A52C A6 4F            [ 1]  561 	ld a,#TIB_SIZE-1
-      00A52E 11 02            [ 1]  562 	cp a, (LL,sp)
-      00A530 2A 03            [ 1]  563 	jrpl 1$
-      00A532 CC A3 D2         [ 2]  564 	jp readln_loop
-      00A535 0D 04            [ 1]  565 1$:	tnz (OVRWR,sp)
-      00A537 26 18            [ 1]  566 	jrne overwrite
+      00A494 7B 03            [ 1]  546     ld a,(CPOS,sp)
+      00A496 11 02            [ 1]  547     cp a,(LL,sp)
+      00A498 2A 08            [ 1]  548     jrpl 13$
+      00A49A                        549 12$:
+      00A49A 97               [ 1]  550     ld xl,a    ; cursor position 
+      00A49B 7B 02            [ 1]  551     ld a,(LL,sp)  ; line length
+      00A49D CD A2 FC         [ 4]  552     call delete_under
+      00A4A0 0A 02            [ 1]  553     dec (LLEN,sp)
+      00A4A2                        554 13$:
+      00A4A2 CC A3 52         [ 2]  555     jp readln_loop 
+      00A4A5                        556 final_test:
+      00A4A5 A1 20            [ 1]  557 	cp a,#SPACE
+      00A4A7 2A 03            [ 1]  558 	jrpl accept_char
+      00A4A9 CC A3 52         [ 2]  559 	jp readln_loop
+      00A4AC                        560 accept_char:
+      00A4AC A6 4F            [ 1]  561 	ld a,#TIB_SIZE-1
+      00A4AE 11 02            [ 1]  562 	cp a, (LL,sp)
+      00A4B0 2A 03            [ 1]  563 	jrpl 1$
+      00A4B2 CC A3 52         [ 2]  564 	jp readln_loop
+      00A4B5 0D 04            [ 1]  565 1$:	tnz (OVRWR,sp)
+      00A4B7 26 18            [ 1]  566 	jrne overwrite
                                     567 ; insert mode 
-      00A539 7B 03            [ 1]  568     ld a,(CPOS,sp)
-      00A53B 11 02            [ 1]  569     cp a,(LL,sp)
-      00A53D 27 12            [ 1]  570     jreq overwrite
-      00A53F 7B 02            [ 1]  571     ld a,(LL,sp)
-      00A541 97               [ 1]  572     ld xl,a 
-      00A542 7B 03            [ 1]  573     ld a,(CPOS,sp)
-      00A544 95               [ 1]  574     ld xh,a
-      00A545 7B 01            [ 1]  575     ld a,(RXCHAR,sp)
-      00A547 CD A3 39         [ 4]  576     call insert_char
-      00A54A 0C 02            [ 1]  577     inc (LLEN,sp)
-      00A54C 0C 03            [ 1]  578     inc (CPOS,sp)
-      00A54E CC A3 D2         [ 2]  579     jp readln_loop 
-      00A551                        580 overwrite:
-      00A551 7B 01            [ 1]  581 	ld a,(RXCHAR,sp)
-      00A553 90 F7            [ 1]  582 	ld (y),a
-      00A555 90 5C            [ 1]  583     incw y
-      00A557 CD 83 AB         [ 4]  584     call putc 
-      00A55A 7B 03            [ 1]  585 	ld a,(CPOS,sp)
-      00A55C 11 02            [ 1]  586 	cp a,(LL,sp)
-      00A55E 2B 09            [ 1]  587 	jrmi 1$
-      00A560 90 7F            [ 1]  588 	clr (y)
-      00A562 0C 02            [ 1]  589 	inc (LL,sp)
-      00A564 0C 03            [ 1]  590     inc (CPOS,sp)
-      00A566 CC A3 D2         [ 2]  591 	jp readln_loop 
-      00A569                        592 1$:	
-      00A569 0C 03            [ 1]  593 	inc (CPOS,sp)
+      00A4B9 7B 03            [ 1]  568     ld a,(CPOS,sp)
+      00A4BB 11 02            [ 1]  569     cp a,(LL,sp)
+      00A4BD 27 12            [ 1]  570     jreq overwrite
+      00A4BF 7B 02            [ 1]  571     ld a,(LL,sp)
+      00A4C1 97               [ 1]  572     ld xl,a 
+      00A4C2 7B 03            [ 1]  573     ld a,(CPOS,sp)
+      00A4C4 95               [ 1]  574     ld xh,a
+      00A4C5 7B 01            [ 1]  575     ld a,(RXCHAR,sp)
+      00A4C7 CD A2 B9         [ 4]  576     call insert_char
+      00A4CA 0C 02            [ 1]  577     inc (LLEN,sp)
+      00A4CC 0C 03            [ 1]  578     inc (CPOS,sp)
+      00A4CE CC A3 52         [ 2]  579     jp readln_loop 
+      00A4D1                        580 overwrite:
+      00A4D1 7B 01            [ 1]  581 	ld a,(RXCHAR,sp)
+      00A4D3 90 F7            [ 1]  582 	ld (y),a
+      00A4D5 90 5C            [ 1]  583     incw y
+      00A4D7 CD 83 42         [ 4]  584     call putc 
+      00A4DA 7B 03            [ 1]  585 	ld a,(CPOS,sp)
+      00A4DC 11 02            [ 1]  586 	cp a,(LL,sp)
+      00A4DE 2B 09            [ 1]  587 	jrmi 1$
+      00A4E0 90 7F            [ 1]  588 	clr (y)
+      00A4E2 0C 02            [ 1]  589 	inc (LL,sp)
+      00A4E4 0C 03            [ 1]  590     inc (CPOS,sp)
+      00A4E6 CC A3 52         [ 2]  591 	jp readln_loop 
+      00A4E9                        592 1$:	
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 12.
 Hexadecimal [24-Bits]
 
 
 
-      00A56B CC A3 D2         [ 2]  594 	jp readln_loop 
-      00A56E                        595 readln_quit:
-      00A56E 90 AE 16 90      [ 2]  596 	ldw y,#tib
-      00A572 0F 01            [ 1]  597     clr (LL_HB,sp) 
-      00A574 72 F9 01         [ 2]  598     addw y,(LL_HB,sp)
-      00A577 90 7F            [ 1]  599     clr (y)
-      00A579 7B 02            [ 1]  600 	ld a,(LL,sp)
-      00A57B C7 00 04         [ 1]  601 	ld count,a 
-      00A57E A6 0D            [ 1]  602 	ld a,#CR
-      00A580 CD 83 AB         [ 4]  603 	call putc
+      00A4E9 0C 03            [ 1]  593 	inc (CPOS,sp)
+      00A4EB CC A3 52         [ 2]  594 	jp readln_loop 
+      00A4EE                        595 readln_quit:
+      00A4EE 90 AE 16 90      [ 2]  596 	ldw y,#tib
+      00A4F2 0F 01            [ 1]  597     clr (LL_HB,sp) 
+      00A4F4 72 F9 01         [ 2]  598     addw y,(LL_HB,sp)
+      00A4F7 90 7F            [ 1]  599     clr (y)
+      00A4F9 7B 02            [ 1]  600 	ld a,(LL,sp)
+      00A4FB C7 00 04         [ 1]  601 	ld count,a 
+      00A4FE A6 0D            [ 1]  602 	ld a,#CR
+      00A500 CD 83 42         [ 4]  603 	call putc
       0002F5                        604 	_drop VSIZE 
-      00A583 5B 04            [ 2]    1     addw sp,#VSIZE 
-      00A585 81               [ 4]  605 	ret
+      00A503 5B 04            [ 2]    1     addw sp,#VSIZE 
+      00A505 81               [ 4]  605 	ret
                                     606 
                                     607 ;------------------------------
                                     608 ; print byte  in hexadecimal 
@@ -2183,18 +2184,18 @@ Hexadecimal [24-Bits]
                                     610 ; input:
                                     611 ;    A		byte to print
                                     612 ;------------------------------
-      00A586                        613 print_hex::
-      00A586 88               [ 1]  614 	push a 
-      00A587 4E               [ 1]  615 	swap a 
-      00A588 CD A5 9D         [ 4]  616 	call to_hex_char 
-      00A58B CD 83 AB         [ 4]  617 	call putc 
-      00A58E 7B 01            [ 1]  618     ld a,(1,sp) 
-      00A590 CD A5 9D         [ 4]  619 	call to_hex_char
-      00A593 CD 83 AB         [ 4]  620 	call putc
-      00A596 A6 20            [ 1]  621 	ld a,#SPACE 
-      00A598 CD 83 AB         [ 4]  622 	call putc 
-      00A59B 84               [ 1]  623 	pop a 
-      00A59C 81               [ 4]  624 	ret 
+      00A506                        613 print_hex::
+      00A506 88               [ 1]  614 	push a 
+      00A507 4E               [ 1]  615 	swap a 
+      00A508 CD A5 1D         [ 4]  616 	call to_hex_char 
+      00A50B CD 83 42         [ 4]  617 	call putc 
+      00A50E 7B 01            [ 1]  618     ld a,(1,sp) 
+      00A510 CD A5 1D         [ 4]  619 	call to_hex_char
+      00A513 CD 83 42         [ 4]  620 	call putc
+      00A516 A6 20            [ 1]  621 	ld a,#SPACE 
+      00A518 CD 83 42         [ 4]  622 	call putc 
+      00A51B 84               [ 1]  623 	pop a 
+      00A51C 81               [ 4]  624 	ret 
                                     625 
                                     626 ;----------------------------------
                                     627 ; convert to hexadecimal digit 
@@ -2203,13 +2204,13 @@ Hexadecimal [24-Bits]
                                     630 ; output:
                                     631 ;   A       hexdecimal character 
                                     632 ;----------------------------------
-      00A59D                        633 to_hex_char::
-      00A59D A4 0F            [ 1]  634 	and a,#15 
-      00A59F A1 09            [ 1]  635 	cp a,#9 
-      00A5A1 23 02            [ 2]  636 	jrule 1$ 
-      00A5A3 AB 07            [ 1]  637 	add a,#7
-      00A5A5 AB 30            [ 1]  638 1$: add a,#'0 
-      00A5A7 81               [ 4]  639 	ret 
+      00A51D                        633 to_hex_char::
+      00A51D A4 0F            [ 1]  634 	and a,#15 
+      00A51F A1 09            [ 1]  635 	cp a,#9 
+      00A521 23 02            [ 2]  636 	jrule 1$ 
+      00A523 AB 07            [ 1]  637 	add a,#7
+      00A525 AB 30            [ 1]  638 1$: add a,#'0 
+      00A527 81               [ 4]  639 	ret 
                                     640 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 13.
 Hexadecimal [24-Bits]
@@ -2538,7 +2539,7 @@ Symbol Table
     TIM_CR1_=  000000     |     TIM_CR1_=  000006     |     TIM_CR1_=  000005 
     TIM_CR1_=  000004     |     TIM_CR1_=  000003     |     TIM_CR1_=  000001 
     TIM_CR1_=  000002     |     TK_ARRAY=  000006     |     TK_CFUNC=  000082 
-    TK_CHAR =  000003     |     TK_CMD  =  000080     |     TK_COLON=  000001 
+    TK_CHAR =  000003     |     TK_CMD  =  000080     |     TK_COLON=  00000B 
     TK_COMMA=  000009     |     TK_CONST=  000083     |     TK_DIV  =  000021 
     TK_EQUAL=  000032     |     TK_GE   =  000033     |     TK_GRP_A=  000010 
     TK_GRP_M=  000030     |     TK_GRP_M=  000000     |     TK_GRP_M=  000020 

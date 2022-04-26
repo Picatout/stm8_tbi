@@ -1,6 +1,5 @@
-' suite de fibonacci 
 NEW
-5 PRINT #6 
+5 ' suite de fibonacci 
 10 A=0:B=1:C=1
 20 PRINT  A , 
 30 C=A: A=B: B=B+C 

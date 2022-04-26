@@ -1428,6 +1428,7 @@ Hexadecimal [24-Bits]
                                  
                                  
                                  
+                                                
                                  
                                  
                                  
@@ -1677,12 +1678,12 @@ Hexadecimal [24-Bits]
                                      42 ;   X 	name address 
                                      43 ;   Y   destination buffer 
                                      44 ; output:
-                                     45 ;   Y   point after name  
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 2.
 Hexadecimal [24-Bits]
 
 
 
+                                     45 ;   Y   point after name  
                                      46 ;--------------------------
       000000                         47 cpy_cmd_name:
       000000 F6               [ 1]   48 	ld a,(x)
@@ -1737,12 +1738,12 @@ Hexadecimal [24-Bits]
       00002F A6 20            [ 1]   97 	ld a,#SPACE 
       000031 5A               [ 2]   98 	decw x
       000032 F7               [ 1]   99 	ld (x),a  
-      000033 0C 01            [ 1]  100 	inc (1,sp)
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 3.
 Hexadecimal [24-Bits]
 
 
 
+      000033 0C 01            [ 1]  100 	inc (1,sp)
       000035 20 F1            [ 2]  101 	jra 0$ 
       000037 84               [ 1]  102 1$: pop a 	
       000038 81               [ 4]  103 	ret 
@@ -1797,12 +1798,12 @@ Hexadecimal [24-Bits]
                                     152 
                                     153 ;--------------------------
                                     154 ; return variable name 
-                                    155 ; from its address.
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 4.
 Hexadecimal [24-Bits]
 
 
 
+                                    155 ; from its address.
                                     156 ; input:
                                     157 ;   X    variable address
                                     158 ; output:
@@ -1857,12 +1858,12 @@ Hexadecimal [24-Bits]
       0000A3                        207 	_vars VSIZE
       0000A3 52 04            [ 2]    1     sub sp,#VSIZE 
       0000A5 C6 00 00         [ 1]  208 	ld a,base
-      0000A8 6B 01            [ 1]  209 	ld (BASE_SAV,sp),a  
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 5.
 Hexadecimal [24-Bits]
 
 
 
+      0000A8 6B 01            [ 1]  209 	ld (BASE_SAV,sp),a  
       0000AA C6 00 00         [ 1]  210 	ld a,tab_width 
       0000AD 6B 02            [ 1]  211 	ld (WIDTH_SAV,sp),a 
       0000AF 17 03            [ 2]  212 	ldw (STR,sp),y   
@@ -1917,12 +1918,12 @@ Hexadecimal [24-Bits]
       00011E 88               [ 1]  261 	push a 
       00011F 51               [ 1]  262 	exgw x,y 
       000120 CD 00 00         [ 4]  263 	call strcpy 
-      000123 90 5F            [ 1]  264 	clrw y
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 6.
 Hexadecimal [24-Bits]
 
 
 
+      000123 90 5F            [ 1]  264 	clrw y
       000125 84               [ 1]  265 	pop a  
       000126 90 97            [ 1]  266 	ld yl,a 
       000128 72 F9 01         [ 2]  267 	addw y,(1,sp)
@@ -1975,14 +1976,14 @@ Hexadecimal [24-Bits]
       000183 90 F7            [ 1]  313 	ld (y),a 
       000185 90 5C            [ 1]  314 	incw y 
       000187 CC 00 EA         [ 2]  315 	jp decomp_loop
-      00018A A1 01            [ 1]  316 8$: cp a,#TK_COLON 
+      00018A A1 0B            [ 1]  316 8$: cp a,#TK_COLON 
       00018C 26 09            [ 1]  317 	jrne 9$
-      00018E A6 3A            [ 1]  318 	ld a,#':
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 7.
 Hexadecimal [24-Bits]
 
 
 
+      00018E A6 3A            [ 1]  318 	ld a,#':
       000190                        319 81$:
       000190 90 F7            [ 1]  320 	ld (y),a 
       000192 90 5C            [ 1]  321 	incw y 
@@ -2037,12 +2038,12 @@ Hexadecimal [24-Bits]
       0001DF 7B 02            [ 1]  370 	ld a,(WIDTH_SAV,sp)
       0001E1 C7 00 00         [ 1]  371 	ld tab_width,a
       0001E4 72 F2 03         [ 2]  372 	subw y,(STR,sp) 
-      0001E7 90 9F            [ 1]  373 	ld a,yl 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 8.
 Hexadecimal [24-Bits]
 
 
 
+      0001E7 90 9F            [ 1]  373 	ld a,yl 
       0001E9                        374 	_drop VSIZE 
       0001E9 5B 04            [ 2]    1     addw sp,#VSIZE 
       0001EB 81               [ 4]  375 	ret 
@@ -2450,7 +2451,7 @@ Symbol Table
     TIM_CR1_=  000006     |     TIM_CR1_=  000005     |     TIM_CR1_=  000004 
     TIM_CR1_=  000003     |     TIM_CR1_=  000001     |     TIM_CR1_=  000002 
     TK_ARRAY=  000006     |     TK_CFUNC=  000082     |     TK_CHAR =  000003 
-    TK_CMD  =  000080     |     TK_COLON=  000001     |     TK_COMMA=  000009 
+    TK_CMD  =  000080     |     TK_COLON=  00000B     |     TK_COMMA=  000009 
     TK_CONST=  000083     |     TK_DIV  =  000021     |     TK_EQUAL=  000032 
     TK_GE   =  000033     |     TK_GRP_A=  000010     |     TK_GRP_M=  000030 
     TK_GRP_M=  000000     |     TK_GRP_M=  000020     |     TK_GRP_R=  000030 

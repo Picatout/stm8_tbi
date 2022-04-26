@@ -38,6 +38,8 @@
 ;-------------------------------------
 ; search text area for a line#
 ; input:
+;   A           0 search from txbgn 
+;			    1 search from basicptr 
 ;	X 			line# 
 ; output:
 ;   X 			addr of line | 0 
@@ -50,6 +52,9 @@ search_lineno::
 	_vars VSIZE
 	clr (LL,sp)
 	ldw y,txtbgn
+	tnz a 
+	jreq search_ln_loop
+	ldw y,basicptr 
 search_ln_loop:
 	cpw y,txtend 
 	jrpl 8$
@@ -169,6 +174,7 @@ insert_line:
 	ldw (LLEN,sp),x
 ; check if that line number already exit 	
 	ldw x,(LINENO,sp)
+	clr a 
 	call search_lineno 
 	tnzw x 
 	jrne 2$
@@ -431,8 +437,6 @@ kw_loop:
 	jrne 4$ 
 	jp syntax_error
 4$:	
-    cpw x,#let 
-    jreq 5$
 	ldw y,(XFIRST,sp)
 	ld (y),a 
 	incw y 
@@ -705,6 +709,7 @@ token_exit:
 	VSIZE=2
 compile::
 	_vars VSIZE 
+	mov basicptr,txtbgn
 	bset flags,#FCOMP 
 	ld a,#0
 	ldw x,#0

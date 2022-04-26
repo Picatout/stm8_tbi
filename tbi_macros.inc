@@ -69,7 +69,6 @@
         TK_INTGR=132
         TK_VAR=133
         TK_NONE=0       ; not a token 
-        TK_COLON=1      ; command separator ':' 
         TK_QSTR=2     ; quoted string  
         TK_CHAR=3       ; ASCII character 
         TK_ARRAY=6     ; array variable '@' 
@@ -77,6 +76,8 @@
         TK_RPAREN=8     ; right parenthesis ')'
         TK_COMMA=9     ; item separator ',' 
         TK_SHARP=0xa     ; print colon width '#' 
+        TK_COLON=0xb      ; command separator ':' 
+        
         TK_PLUS=0x10    ; addition operator '+'
         TK_MINUS=0x11   ; subtraction operator '-'
         TK_MULT=0x20    ; multiplication operator '*'

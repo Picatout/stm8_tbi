@@ -1428,6 +1428,7 @@ Hexadecimal [24-Bits]
                                  
                                  
                                  
+                                                
                                  
                                  
                                  
@@ -1677,28 +1678,28 @@ Hexadecimal [24-Bits]
                                      42 ;   X 	name address 
                                      43 ;   Y   destination buffer 
                                      44 ; output:
-                                     45 ;   Y   point after name  
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 2.
 Hexadecimal [24-Bits]
 
 
 
+                                     45 ;   Y   point after name  
                                      46 ;--------------------------
-      00AA09                         47 cpy_cmd_name:
-      00AA09 F6               [ 1]   48 	ld a,(x)
-      00AA0A 5C               [ 1]   49 	incw x
-      00AA0B A4 0F            [ 1]   50 	and a,#15  
-      00AA0D 88               [ 1]   51 	push a 
-      00AA0E 0D 01            [ 1]   52     tnz (1,sp) 
-      00AA10 27 0A            [ 1]   53 	jreq 9$
-      00AA12 F6               [ 1]   54 1$:	ld a,(x)
-      00AA13 90 F7            [ 1]   55 	ld (y),a  
-      00AA15 5C               [ 1]   56 	incw x
-      00AA16 90 5C            [ 1]   57 	incw y 
-      00AA18 0A 01            [ 1]   58 	dec (1,sp)	 
-      00AA1A 26 F6            [ 1]   59 	jrne 1$
-      00AA1C 84               [ 1]   60 9$: pop a 
-      00AA1D 81               [ 4]   61 	ret	
+      00A991                         47 cpy_cmd_name:
+      00A991 F6               [ 1]   48 	ld a,(x)
+      00A992 5C               [ 1]   49 	incw x
+      00A993 A4 0F            [ 1]   50 	and a,#15  
+      00A995 88               [ 1]   51 	push a 
+      00A996 0D 01            [ 1]   52     tnz (1,sp) 
+      00A998 27 0A            [ 1]   53 	jreq 9$
+      00A99A F6               [ 1]   54 1$:	ld a,(x)
+      00A99B 90 F7            [ 1]   55 	ld (y),a  
+      00A99D 5C               [ 1]   56 	incw x
+      00A99E 90 5C            [ 1]   57 	incw y 
+      00A9A0 0A 01            [ 1]   58 	dec (1,sp)	 
+      00A9A2 26 F6            [ 1]   59 	jrne 1$
+      00A9A4 84               [ 1]   60 9$: pop a 
+      00A9A5 81               [ 4]   61 	ret	
                                      62 
                                      63 ;--------------------------
                                      64 ; add a space after letter or 
@@ -1708,16 +1709,16 @@ Hexadecimal [24-Bits]
                                      68 ; output:
                                      69 ;   Y    moved to end 
                                      70 ;--------------------------
-      00AA1E                         71 add_space:
-      00AA1E 90 5A            [ 2]   72 	decw y 
-      00AA20 90 F6            [ 1]   73 	ld a,(y)
-      00AA22 90 5C            [ 1]   74 	incw y
-      00AA24 CD 85 48         [ 4]   75 	call is_alnum 
-      00AA27 24 06            [ 1]   76 	jrnc 1$
-      00AA29 A6 20            [ 1]   77 	ld a,#SPACE 
-      00AA2B 90 F7            [ 1]   78 	ld (y),a 
-      00AA2D 90 5C            [ 1]   79 	incw y 
-      00AA2F 81               [ 4]   80 1$: ret 
+      00A9A6                         71 add_space:
+      00A9A6 90 5A            [ 2]   72 	decw y 
+      00A9A8 90 F6            [ 1]   73 	ld a,(y)
+      00A9AA 90 5C            [ 1]   74 	incw y
+      00A9AC CD 84 B0         [ 4]   75 	call is_alnum 
+      00A9AF 24 06            [ 1]   76 	jrnc 1$
+      00A9B1 A6 20            [ 1]   77 	ld a,#SPACE 
+      00A9B3 90 F7            [ 1]   78 	ld (y),a 
+      00A9B5 90 5C            [ 1]   79 	incw y 
+      00A9B7 81               [ 4]   80 1$: ret 
                                      81 
                                      82 ;--------------------------
                                      83 ;  align text in buffer 
@@ -1729,23 +1730,23 @@ Hexadecimal [24-Bits]
                                      89 ; output:
                                      90 ;   X      ajusted
                                      91 ;--------------------------
-      00AA30                         92 right_align::
-      00AA30 88               [ 1]   93 	push a 
-      00AA31 7B 01            [ 1]   94 0$: ld a,(1,sp)
-      00AA33 C1 00 25         [ 1]   95 	cp a,tab_width 
-      00AA36 2A 08            [ 1]   96 	jrpl 1$
-      00AA38 A6 20            [ 1]   97 	ld a,#SPACE 
-      00AA3A 5A               [ 2]   98 	decw x
-      00AA3B F7               [ 1]   99 	ld (x),a  
-      00AA3C 0C 01            [ 1]  100 	inc (1,sp)
+      00A9B8                         92 right_align::
+      00A9B8 88               [ 1]   93 	push a 
+      00A9B9 7B 01            [ 1]   94 0$: ld a,(1,sp)
+      00A9BB C1 00 25         [ 1]   95 	cp a,tab_width 
+      00A9BE 2A 08            [ 1]   96 	jrpl 1$
+      00A9C0 A6 20            [ 1]   97 	ld a,#SPACE 
+      00A9C2 5A               [ 2]   98 	decw x
+      00A9C3 F7               [ 1]   99 	ld (x),a  
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 3.
 Hexadecimal [24-Bits]
 
 
 
-      00AA3E 20 F1            [ 2]  101 	jra 0$ 
-      00AA40 84               [ 1]  102 1$: pop a 	
-      00AA41 81               [ 4]  103 	ret 
+      00A9C4 0C 01            [ 1]  100 	inc (1,sp)
+      00A9C6 20 F1            [ 2]  101 	jra 0$ 
+      00A9C8 84               [ 1]  102 1$: pop a 	
+      00A9C9 81               [ 4]  103 	ret 
                                     104 
                                     105 ;--------------------------
                                     106 ; print TK_QSTR
@@ -1758,62 +1759,62 @@ Hexadecimal [24-Bits]
                                     113 ;   X        moved forward 
                                     114 ;   Y        moved forward 
                                     115 ;-----------------------------
-      00AA42                        116 cpy_quote:
-      00AA42 A6 22            [ 1]  117 	ld a,#'"
-      00AA44 90 F7            [ 1]  118 	ld (y),a 
-      00AA46 90 5C            [ 1]  119 	incw y 
-      00AA48 F6               [ 1]  120 1$:	ld a,(x)
-      00AA49 27 30            [ 1]  121 	jreq 9$
-      00AA4B 5C               [ 1]  122 	incw x 
-      00AA4C A1 20            [ 1]  123 	cp a,#SPACE 
-      00AA4E 25 0E            [ 1]  124 	jrult 3$
-      00AA50 90 F7            [ 1]  125 	ld (y),a
-      00AA52 90 5C            [ 1]  126 	incw y 
-      00AA54 A1 5C            [ 1]  127 	cp a,#'\ 
-      00AA56 26 F0            [ 1]  128 	jrne 1$ 
-      00AA58                        129 2$:
-      00AA58 90 F7            [ 1]  130 	ld (y),a
-      00AA5A 90 5C            [ 1]  131 	incw y  
-      00AA5C 20 EA            [ 2]  132 	jra 1$
-      00AA5E 88               [ 1]  133 3$: push a 
-      00AA5F A6 5C            [ 1]  134 	ld a,#'\
-      00AA61 90 F7            [ 1]  135 	ld (y),a 
-      00AA63 90 5C            [ 1]  136 	incw y  
-      00AA65 84               [ 1]  137 	pop a 
-      00AA66 A0 07            [ 1]  138 	sub a,#7
-      00AA68 C7 00 0E         [ 1]  139 	ld acc8,a 
-      00AA6B 72 5F 00 0D      [ 1]  140 	clr acc16
-      00AA6F 89               [ 2]  141 	pushw x
-      00AA70 AE A6 E3         [ 2]  142 	ldw x,#escaped 
-      00AA73 72 BB 00 0D      [ 2]  143 	addw x,acc16 
-      00AA77 F6               [ 1]  144 	ld a,(x)
-      00AA78 85               [ 2]  145 	popw x
-      00AA79 20 DD            [ 2]  146 	jra 2$
-      00AA7B A6 22            [ 1]  147 9$: ld a,#'"
-      00AA7D 90 F7            [ 1]  148 	ld (y),a 
-      00AA7F 90 5C            [ 1]  149 	incw y  
-      00AA81 5C               [ 1]  150 	incw x 
-      00AA82 81               [ 4]  151 	ret
+      00A9CA                        116 cpy_quote:
+      00A9CA A6 22            [ 1]  117 	ld a,#'"
+      00A9CC 90 F7            [ 1]  118 	ld (y),a 
+      00A9CE 90 5C            [ 1]  119 	incw y 
+      00A9D0 F6               [ 1]  120 1$:	ld a,(x)
+      00A9D1 27 30            [ 1]  121 	jreq 9$
+      00A9D3 5C               [ 1]  122 	incw x 
+      00A9D4 A1 20            [ 1]  123 	cp a,#SPACE 
+      00A9D6 25 0E            [ 1]  124 	jrult 3$
+      00A9D8 90 F7            [ 1]  125 	ld (y),a
+      00A9DA 90 5C            [ 1]  126 	incw y 
+      00A9DC A1 5C            [ 1]  127 	cp a,#'\ 
+      00A9DE 26 F0            [ 1]  128 	jrne 1$ 
+      00A9E0                        129 2$:
+      00A9E0 90 F7            [ 1]  130 	ld (y),a
+      00A9E2 90 5C            [ 1]  131 	incw y  
+      00A9E4 20 EA            [ 2]  132 	jra 1$
+      00A9E6 88               [ 1]  133 3$: push a 
+      00A9E7 A6 5C            [ 1]  134 	ld a,#'\
+      00A9E9 90 F7            [ 1]  135 	ld (y),a 
+      00A9EB 90 5C            [ 1]  136 	incw y  
+      00A9ED 84               [ 1]  137 	pop a 
+      00A9EE A0 07            [ 1]  138 	sub a,#7
+      00A9F0 C7 00 0E         [ 1]  139 	ld acc8,a 
+      00A9F3 72 5F 00 0D      [ 1]  140 	clr acc16
+      00A9F7 89               [ 2]  141 	pushw x
+      00A9F8 AE A6 6B         [ 2]  142 	ldw x,#escaped 
+      00A9FB 72 BB 00 0D      [ 2]  143 	addw x,acc16 
+      00A9FF F6               [ 1]  144 	ld a,(x)
+      00AA00 85               [ 2]  145 	popw x
+      00AA01 20 DD            [ 2]  146 	jra 2$
+      00AA03 A6 22            [ 1]  147 9$: ld a,#'"
+      00AA05 90 F7            [ 1]  148 	ld (y),a 
+      00AA07 90 5C            [ 1]  149 	incw y  
+      00AA09 5C               [ 1]  150 	incw x 
+      00AA0A 81               [ 4]  151 	ret
                                     152 
                                     153 ;--------------------------
                                     154 ; return variable name 
-                                    155 ; from its address.
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 4.
 Hexadecimal [24-Bits]
 
 
 
+                                    155 ; from its address.
                                     156 ; input:
                                     157 ;   X    variable address
                                     158 ; output:
                                     159 ;   A     variable letter
                                     160 ;--------------------------
-      00AA83                        161 var_name::
-      00AA83 1D 00 3A         [ 2]  162 		subw x,#vars 
-      00AA86 9F               [ 1]  163 		ld a,xl 
-      00AA87 44               [ 1]  164 		srl a 
-      00AA88 AB 41            [ 1]  165 		add a,#'A 
-      00AA8A 81               [ 4]  166 		ret 
+      00AA0B                        161 var_name::
+      00AA0B 1D 00 30         [ 2]  162 		subw x,#vars 
+      00AA0E 9F               [ 1]  163 		ld a,xl 
+      00AA0F 44               [ 1]  164 		srl a 
+      00AA10 AB 41            [ 1]  165 		add a,#'A 
+      00AA12 81               [ 4]  166 		ret 
                                     167 
                                     168 ;-----------------------------
                                     169 ; return cmd  idx from its 
@@ -1823,21 +1824,21 @@ Hexadecimal [24-Bits]
                                     173 ; output:
                                     174 ;   X      cmd_idx
                                     175 ;-----------------------------
-      00AA8B                        176 get_cmd_idx:
-      00AA8B 90 89            [ 2]  177 	pushw y
-      00AA8D 90 AE A1 9B      [ 2]  178 	ldw y,#code_addr 
-      00AA91 90 CF 00 18      [ 2]  179 	ldw ptr16,y 
-      00AA95 90 5F            [ 1]  180 	clrw y 
-      00AA97 91 D3 18         [ 5]  181 1$:	cpw x,([ptr16],y)
-      00AA9A 27 0C            [ 1]  182 	jreq 3$ 
-      00AA9C 90 5C            [ 1]  183 	incw y 
-      00AA9E 91 D6 18         [ 4]  184 	ld a,([ptr16],y)
-      00AAA1 90 5C            [ 1]  185 	incw y
-      00AAA3 91 DA 18         [ 4]  186 	or a,([ptr16],y)	
-      00AAA6 26 EF            [ 1]  187 	jrne 1$
-      00AAA8 93               [ 1]  188 3$: ldw x,y 
-      00AAA9 90 85            [ 2]  189 	popw y 
-      00AAAB 81               [ 4]  190 	ret
+      00AA13                        176 get_cmd_idx:
+      00AA13 90 89            [ 2]  177 	pushw y
+      00AA15 90 AE A1 14      [ 2]  178 	ldw y,#code_addr 
+      00AA19 90 CF 00 18      [ 2]  179 	ldw ptr16,y 
+      00AA1D 90 5F            [ 1]  180 	clrw y 
+      00AA1F 91 D3 18         [ 5]  181 1$:	cpw x,([ptr16],y)
+      00AA22 27 0C            [ 1]  182 	jreq 3$ 
+      00AA24 90 5C            [ 1]  183 	incw y 
+      00AA26 91 D6 18         [ 4]  184 	ld a,([ptr16],y)
+      00AA29 90 5C            [ 1]  185 	incw y
+      00AA2B 91 DA 18         [ 4]  186 	or a,([ptr16],y)	
+      00AA2E 26 EF            [ 1]  187 	jrne 1$
+      00AA30 93               [ 1]  188 3$: ldw x,y 
+      00AA31 90 85            [ 2]  189 	popw y 
+      00AA33 81               [ 4]  190 	ret
                                     191 
                                     192 ;-------------------------------------
                                     193 ; decompile tokens list 
@@ -1853,211 +1854,211 @@ Hexadecimal [24-Bits]
                            000002   203 	WIDTH_SAV=2
                            000003   204 	STR=3
                            000004   205 	VSIZE=4 
-      00AAAC                        206 decompile::
+      00AA34                        206 decompile::
       0000A3                        207 	_vars VSIZE
-      00AAAC 52 04            [ 2]    1     sub sp,#VSIZE 
-      00AAAE C6 00 0B         [ 1]  208 	ld a,base
-      00AAB1 6B 01            [ 1]  209 	ld (BASE_SAV,sp),a  
+      00AA34 52 04            [ 2]    1     sub sp,#VSIZE 
+      00AA36 C6 00 0B         [ 1]  208 	ld a,base
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 5.
 Hexadecimal [24-Bits]
 
 
 
-      00AAB3 C6 00 25         [ 1]  210 	ld a,tab_width 
-      00AAB6 6B 02            [ 1]  211 	ld (WIDTH_SAV,sp),a 
-      00AAB8 17 03            [ 2]  212 	ldw (STR,sp),y   
-      00AABA 72 CE 00 05      [ 5]  213 	ldw x,[basicptr] ; line number 
-      00AABE 35 0A 00 0B      [ 1]  214 	mov base,#10
-      00AAC2 35 05 00 25      [ 1]  215 	mov tab_width,#5
-      00AAC6 72 5F 00 0C      [ 1]  216 	clr acc24 
-      00AACA CF 00 0D         [ 2]  217 	ldw acc16,x
-      00AACD CD 89 AA         [ 4]  218 	call itoa  
-      00AAD0 CD AA 30         [ 4]  219 	call right_align 
-      00AAD3 88               [ 1]  220 	push a 
-      00AAD4 90 93            [ 1]  221 1$:	ldw y,x ; source
-      00AAD6 1E 04            [ 2]  222 	ldw x,(STR+1,sp) ; destination
-      00AAD8 CD 84 D0         [ 4]  223 	call strcpy 
-      00AADB 90 5F            [ 1]  224 	clrw y 
-      00AADD 84               [ 1]  225 	pop a 
-      00AADE 90 97            [ 1]  226 	ld yl,a 
-      00AAE0 72 F9 03         [ 2]  227 	addw y,(STR,sp)
-      00AAE3 A6 20            [ 1]  228 	ld a,#SPACE 
-      00AAE5 90 F7            [ 1]  229 	ld (y),a 
-      00AAE7 90 5C            [ 1]  230 	incw y 
-      00AAE9 72 5F 00 25      [ 1]  231 	clr tab_width
-      00AAED AE 00 03         [ 2]  232 	ldw x,#3
-      00AAF0 CF 00 01         [ 2]  233 	ldw in.w,x 
-      00AAF3                        234 decomp_loop:
-      00AAF3 90 89            [ 2]  235 	pushw y
-      00AAF5 CD 89 2D         [ 4]  236 	call next_token 
-      00AAF8 90 85            [ 2]  237 	popw y 
-      00AAFA 4D               [ 1]  238 	tnz a  
-      00AAFB 26 03            [ 1]  239 	jrne 1$
-      00AAFD CC AB DF         [ 2]  240 	jp 20$
-      00AB00 2A 75            [ 1]  241 1$:	jrpl 6$
+      00AA39 6B 01            [ 1]  209 	ld (BASE_SAV,sp),a  
+      00AA3B C6 00 25         [ 1]  210 	ld a,tab_width 
+      00AA3E 6B 02            [ 1]  211 	ld (WIDTH_SAV,sp),a 
+      00AA40 17 03            [ 2]  212 	ldw (STR,sp),y   
+      00AA42 72 CE 00 05      [ 5]  213 	ldw x,[basicptr] ; line number 
+      00AA46 35 0A 00 0B      [ 1]  214 	mov base,#10
+      00AA4A 35 05 00 25      [ 1]  215 	mov tab_width,#5
+      00AA4E 72 5F 00 0C      [ 1]  216 	clr acc24 
+      00AA52 CF 00 0D         [ 2]  217 	ldw acc16,x
+      00AA55 CD 89 09         [ 4]  218 	call itoa  
+      00AA58 CD A9 B8         [ 4]  219 	call right_align 
+      00AA5B 88               [ 1]  220 	push a 
+      00AA5C 90 93            [ 1]  221 1$:	ldw y,x ; source
+      00AA5E 1E 04            [ 2]  222 	ldw x,(STR+1,sp) ; destination
+      00AA60 CD 84 38         [ 4]  223 	call strcpy 
+      00AA63 90 5F            [ 1]  224 	clrw y 
+      00AA65 84               [ 1]  225 	pop a 
+      00AA66 90 97            [ 1]  226 	ld yl,a 
+      00AA68 72 F9 03         [ 2]  227 	addw y,(STR,sp)
+      00AA6B A6 20            [ 1]  228 	ld a,#SPACE 
+      00AA6D 90 F7            [ 1]  229 	ld (y),a 
+      00AA6F 90 5C            [ 1]  230 	incw y 
+      00AA71 72 5F 00 25      [ 1]  231 	clr tab_width
+      00AA75 AE 00 03         [ 2]  232 	ldw x,#3
+      00AA78 CF 00 01         [ 2]  233 	ldw in.w,x 
+      00AA7B                        234 decomp_loop:
+      00AA7B 90 89            [ 2]  235 	pushw y
+      00AA7D CD 88 92         [ 4]  236 	call next_token 
+      00AA80 90 85            [ 2]  237 	popw y 
+      00AA82 4D               [ 1]  238 	tnz a  
+      00AA83 26 03            [ 1]  239 	jrne 1$
+      00AA85 CC AB 67         [ 2]  240 	jp 20$
+      00AA88 2A 75            [ 1]  241 1$:	jrpl 6$
                                     242 ;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR
-      00AB02 A1 85            [ 1]  243 	cp a,#TK_VAR 
-      00AB04 26 0C            [ 1]  244 	jrne 3$
+      00AA8A A1 85            [ 1]  243 	cp a,#TK_VAR 
+      00AA8C 26 0C            [ 1]  244 	jrne 3$
                                     245 ;; TK_VAR 
-      00AB06 CD AA 1E         [ 4]  246 	call add_space  
-      00AB09 CD AA 83         [ 4]  247 	call var_name
-      00AB0C 90 F7            [ 1]  248 	ld (y),a 
-      00AB0E 90 5C            [ 1]  249 	incw y  
-      00AB10 20 E1            [ 2]  250 	jra decomp_loop
-      00AB12                        251 3$:
-      00AB12 A1 84            [ 1]  252 	cp a,#TK_INTGR
-      00AB14 26 22            [ 1]  253 	jrne 4$
+      00AA8E CD A9 A6         [ 4]  246 	call add_space  
+      00AA91 CD AA 0B         [ 4]  247 	call var_name
+      00AA94 90 F7            [ 1]  248 	ld (y),a 
+      00AA96 90 5C            [ 1]  249 	incw y  
+      00AA98 20 E1            [ 2]  250 	jra decomp_loop
+      00AA9A                        251 3$:
+      00AA9A A1 84            [ 1]  252 	cp a,#TK_INTGR
+      00AA9C 26 22            [ 1]  253 	jrne 4$
                                     254 ;; TK_INTGR
-      00AB16 CD AA 1E         [ 4]  255 	call add_space
-      00AB19 72 5F 00 0C      [ 1]  256 	clr acc24 
-      00AB1D CF 00 0D         [ 2]  257 	ldw acc16,x 
-      00AB20 90 89            [ 2]  258 	pushw y 
-      00AB22 CD 89 AA         [ 4]  259 	call itoa  
-      00AB25 16 01            [ 2]  260 	ldw y,(1,sp) 
-      00AB27 88               [ 1]  261 	push a 
-      00AB28 51               [ 1]  262 	exgw x,y 
-      00AB29 CD 84 D0         [ 4]  263 	call strcpy 
-      00AB2C 90 5F            [ 1]  264 	clrw y
+      00AA9E CD A9 A6         [ 4]  255 	call add_space
+      00AAA1 72 5F 00 0C      [ 1]  256 	clr acc24 
+      00AAA5 CF 00 0D         [ 2]  257 	ldw acc16,x 
+      00AAA8 90 89            [ 2]  258 	pushw y 
+      00AAAA CD 89 09         [ 4]  259 	call itoa  
+      00AAAD 16 01            [ 2]  260 	ldw y,(1,sp) 
+      00AAAF 88               [ 1]  261 	push a 
+      00AAB0 51               [ 1]  262 	exgw x,y 
+      00AAB1 CD 84 38         [ 4]  263 	call strcpy 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 6.
 Hexadecimal [24-Bits]
 
 
 
-      00AB2E 84               [ 1]  265 	pop a  
-      00AB2F 90 97            [ 1]  266 	ld yl,a 
-      00AB31 72 F9 01         [ 2]  267 	addw y,(1,sp)
+      00AAB4 90 5F            [ 1]  264 	clrw y
+      00AAB6 84               [ 1]  265 	pop a  
+      00AAB7 90 97            [ 1]  266 	ld yl,a 
+      00AAB9 72 F9 01         [ 2]  267 	addw y,(1,sp)
       00012B                        268 	_drop 2 
-      00AB34 5B 02            [ 2]    1     addw sp,#2 
-      00AB36 20 BB            [ 2]  269 	jra decomp_loop
+      00AABC 5B 02            [ 2]    1     addw sp,#2 
+      00AABE 20 BB            [ 2]  269 	jra decomp_loop
                                     270 ;; dictionary keyword 
-      00AB38                        271 4$:	
-      00AB38 CD AA 8B         [ 4]  272 	call get_cmd_idx 
-      00AB3B A3 00 8E         [ 2]  273 	cpw x,#REM_IDX
-      00AB3E 26 22            [ 1]  274 	jrne 5$
-      00AB40 CE 00 05         [ 2]  275 	ldw x,basicptr 
+      00AAC0                        271 4$:	
+      00AAC0 CD AA 13         [ 4]  272 	call get_cmd_idx 
+      00AAC3 A3 00 8E         [ 2]  273 	cpw x,#REM_IDX
+      00AAC6 26 22            [ 1]  274 	jrne 5$
+      00AAC8 CE 00 05         [ 2]  275 	ldw x,basicptr 
                                     276 ; copy comment to buffer 
-      00AB43 CD AA 1E         [ 4]  277 	call add_space
-      00AB46 A6 27            [ 1]  278 	ld a,#''
-      00AB48 90 F7            [ 1]  279 	ld (y),a 
-      00AB4A 90 5C            [ 1]  280 	incw y 
-      00AB4C                        281 41$:
-      00AB4C 72 D6 00 01      [ 4]  282 	ld a,([in.w],x)
-      00AB50 72 5C 00 02      [ 1]  283 	inc in  
-      00AB54 90 F7            [ 1]  284 	ld (y),a 
-      00AB56 90 5C            [ 1]  285 	incw y 
-      00AB58 C6 00 02         [ 1]  286 	ld a,in 
-      00AB5B C1 00 04         [ 1]  287 	cp a,count 
-      00AB5E 2B EC            [ 1]  288 	jrmi 41$
-      00AB60 20 7D            [ 2]  289 	jra 20$  
-      00AB62 A3 00 50         [ 2]  290 5$: cpw x,#LET_IDX 
-      00AB65 27 8C            [ 1]  291 	jreq decomp_loop ; down display LET 	
+      00AACB CD A9 A6         [ 4]  277 	call add_space
+      00AACE A6 27            [ 1]  278 	ld a,#''
+      00AAD0 90 F7            [ 1]  279 	ld (y),a 
+      00AAD2 90 5C            [ 1]  280 	incw y 
+      00AAD4                        281 41$:
+      00AAD4 72 D6 00 01      [ 4]  282 	ld a,([in.w],x)
+      00AAD8 72 5C 00 02      [ 1]  283 	inc in  
+      00AADC 90 F7            [ 1]  284 	ld (y),a 
+      00AADE 90 5C            [ 1]  285 	incw y 
+      00AAE0 C6 00 02         [ 1]  286 	ld a,in 
+      00AAE3 C1 00 04         [ 1]  287 	cp a,count 
+      00AAE6 2B EC            [ 1]  288 	jrmi 41$
+      00AAE8 20 7D            [ 2]  289 	jra 20$  
+      00AAEA A3 00 50         [ 2]  290 5$: cpw x,#LET_IDX 
+      00AAED 27 8C            [ 1]  291 	jreq decomp_loop ; down display LET 	
                                     292 ; insert command name 
-      00AB67 CD AA 1E         [ 4]  293 	call add_space  
-      00AB6A 90 89            [ 2]  294 	pushw y
-      00AB6C CD AC 1A         [ 4]  295 	call cmd_name
-      00AB6F 90 85            [ 2]  296 	popw y 
-      00AB71 CD AA 09         [ 4]  297 	call cpy_cmd_name
-      00AB74 CC AA F3         [ 2]  298 	jp decomp_loop 
-      00AB77                        299 6$:
-      00AB77 A1 02            [ 1]  300 	cp a,#TK_QSTR 
-      00AB79 26 06            [ 1]  301 	jrne 7$
+      00AAEF CD A9 A6         [ 4]  293 	call add_space  
+      00AAF2 90 89            [ 2]  294 	pushw y
+      00AAF4 CD AB A2         [ 4]  295 	call cmd_name
+      00AAF7 90 85            [ 2]  296 	popw y 
+      00AAF9 CD A9 91         [ 4]  297 	call cpy_cmd_name
+      00AAFC CC AA 7B         [ 2]  298 	jp decomp_loop 
+      00AAFF                        299 6$:
+      00AAFF A1 02            [ 1]  300 	cp a,#TK_QSTR 
+      00AB01 26 06            [ 1]  301 	jrne 7$
                                     302 ;; TK_QSTR
-      00AB7B CD AA 42         [ 4]  303 	call cpy_quote  
-      00AB7E CC AA F3         [ 2]  304 	jp decomp_loop
-      00AB81                        305 7$:
-      00AB81 A1 03            [ 1]  306 	cp a,#TK_CHAR 
-      00AB83 26 0E            [ 1]  307 	jrne 8$
+      00AB03 CD A9 CA         [ 4]  303 	call cpy_quote  
+      00AB06 CC AA 7B         [ 2]  304 	jp decomp_loop
+      00AB09                        305 7$:
+      00AB09 A1 03            [ 1]  306 	cp a,#TK_CHAR 
+      00AB0B 26 0E            [ 1]  307 	jrne 8$
                                     308 ;; TK_CHAR 
-      00AB85 A6 5C            [ 1]  309 	ld a,#'\ 
-      00AB87 90 F7            [ 1]  310 	ld (y),a 
-      00AB89 90 5C            [ 1]  311 	incw y 
-      00AB8B 9F               [ 1]  312 	ld a,xl 
-      00AB8C 90 F7            [ 1]  313 	ld (y),a 
-      00AB8E 90 5C            [ 1]  314 	incw y 
-      00AB90 CC AA F3         [ 2]  315 	jp decomp_loop
-      00AB93 A1 01            [ 1]  316 8$: cp a,#TK_COLON 
-      00AB95 26 09            [ 1]  317 	jrne 9$
-      00AB97 A6 3A            [ 1]  318 	ld a,#':
+      00AB0D A6 5C            [ 1]  309 	ld a,#'\ 
+      00AB0F 90 F7            [ 1]  310 	ld (y),a 
+      00AB11 90 5C            [ 1]  311 	incw y 
+      00AB13 9F               [ 1]  312 	ld a,xl 
+      00AB14 90 F7            [ 1]  313 	ld (y),a 
+      00AB16 90 5C            [ 1]  314 	incw y 
+      00AB18 CC AA 7B         [ 2]  315 	jp decomp_loop
+      00AB1B A1 0B            [ 1]  316 8$: cp a,#TK_COLON 
+      00AB1D 26 09            [ 1]  317 	jrne 9$
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 7.
 Hexadecimal [24-Bits]
 
 
 
-      00AB99                        319 81$:
-      00AB99 90 F7            [ 1]  320 	ld (y),a 
-      00AB9B 90 5C            [ 1]  321 	incw y 
-      00AB9D                        322 82$:
-      00AB9D CC AA F3         [ 2]  323 	jp decomp_loop
-      00ABA0                        324 9$: 
-      00ABA0 A1 0A            [ 1]  325 	cp a,#TK_SHARP
-      00ABA2 22 0A            [ 1]  326 	jrugt 10$ 
-      00ABA4 A0 06            [ 1]  327 	sub a,#TK_ARRAY 
-      00ABA6 5F               [ 1]  328 	clrw x 
-      00ABA7 97               [ 1]  329 	ld xl,a
-      00ABA8 1C AB F5         [ 2]  330 	addw x,#single_char 
-      00ABAB F6               [ 1]  331 	ld a,(x)
-      00ABAC 20 EB            [ 2]  332 	jra 81$ 
-      00ABAE                        333 10$: 
-      00ABAE A1 11            [ 1]  334 	cp a,#TK_MINUS 
-      00ABB0 22 0A            [ 1]  335 	jrugt 11$
-      00ABB2 A0 10            [ 1]  336 	sub a,#TK_PLUS 
-      00ABB4 5F               [ 1]  337 	clrw x 
-      00ABB5 97               [ 1]  338 	ld xl,a 
-      00ABB6 1C AB FA         [ 2]  339 	addw x,#add_char 
-      00ABB9 F6               [ 1]  340 	ld a,(x)
-      00ABBA 20 DD            [ 2]  341 	jra 81$
-      00ABBC                        342 11$:
-      00ABBC A1 22            [ 1]  343     cp a,#TK_MOD 
-      00ABBE 22 0A            [ 1]  344 	jrugt 12$
-      00ABC0 A0 20            [ 1]  345 	sub a,#TK_MULT
-      00ABC2 5F               [ 1]  346 	clrw x 
-      00ABC3 97               [ 1]  347 	ld xl,a 
-      00ABC4 1C AB FC         [ 2]  348 	addw x,#mul_char
-      00ABC7 F6               [ 1]  349 	ld a,(x)
-      00ABC8 20 CF            [ 2]  350 	jra 81$
-      00ABCA                        351 12$:
-      00ABCA A0 31            [ 1]  352 	sub a,#TK_GT  
-      00ABCC 48               [ 1]  353 	sll a 
-      00ABCD 5F               [ 1]  354 	clrw x 
-      00ABCE 97               [ 1]  355 	ld xl,a 
-      00ABCF 1C AB FF         [ 2]  356 	addw x,#relop_str 
-      00ABD2 FE               [ 2]  357 	ldw x,(x)
-      00ABD3 F6               [ 1]  358 	ld a,(x)
-      00ABD4 5C               [ 1]  359 	incw x 
-      00ABD5 90 F7            [ 1]  360 	ld (y),a
-      00ABD7 90 5C            [ 1]  361 	incw y 
-      00ABD9 F6               [ 1]  362 	ld a,(x)
-      00ABDA 26 BD            [ 1]  363 	jrne 81$
-      00ABDC CC AA F3         [ 2]  364 	jp decomp_loop 
-      00ABDF                        365 20$: 
-      00ABDF 90 7F            [ 1]  366 	clr (y)
-      00ABE1 1E 03            [ 2]  367 	ldw x,(STR,sp)
-      00ABE3 7B 01            [ 1]  368 	ld a,(BASE_SAV,sp)
-      00ABE5 C7 00 0B         [ 1]  369 	ld base,a 
-      00ABE8 7B 02            [ 1]  370 	ld a,(WIDTH_SAV,sp)
-      00ABEA C7 00 25         [ 1]  371 	ld tab_width,a
-      00ABED 72 F2 03         [ 2]  372 	subw y,(STR,sp) 
-      00ABF0 90 9F            [ 1]  373 	ld a,yl 
+      00AB1F A6 3A            [ 1]  318 	ld a,#':
+      00AB21                        319 81$:
+      00AB21 90 F7            [ 1]  320 	ld (y),a 
+      00AB23 90 5C            [ 1]  321 	incw y 
+      00AB25                        322 82$:
+      00AB25 CC AA 7B         [ 2]  323 	jp decomp_loop
+      00AB28                        324 9$: 
+      00AB28 A1 0A            [ 1]  325 	cp a,#TK_SHARP
+      00AB2A 22 0A            [ 1]  326 	jrugt 10$ 
+      00AB2C A0 06            [ 1]  327 	sub a,#TK_ARRAY 
+      00AB2E 5F               [ 1]  328 	clrw x 
+      00AB2F 97               [ 1]  329 	ld xl,a
+      00AB30 1C AB 7D         [ 2]  330 	addw x,#single_char 
+      00AB33 F6               [ 1]  331 	ld a,(x)
+      00AB34 20 EB            [ 2]  332 	jra 81$ 
+      00AB36                        333 10$: 
+      00AB36 A1 11            [ 1]  334 	cp a,#TK_MINUS 
+      00AB38 22 0A            [ 1]  335 	jrugt 11$
+      00AB3A A0 10            [ 1]  336 	sub a,#TK_PLUS 
+      00AB3C 5F               [ 1]  337 	clrw x 
+      00AB3D 97               [ 1]  338 	ld xl,a 
+      00AB3E 1C AB 82         [ 2]  339 	addw x,#add_char 
+      00AB41 F6               [ 1]  340 	ld a,(x)
+      00AB42 20 DD            [ 2]  341 	jra 81$
+      00AB44                        342 11$:
+      00AB44 A1 22            [ 1]  343     cp a,#TK_MOD 
+      00AB46 22 0A            [ 1]  344 	jrugt 12$
+      00AB48 A0 20            [ 1]  345 	sub a,#TK_MULT
+      00AB4A 5F               [ 1]  346 	clrw x 
+      00AB4B 97               [ 1]  347 	ld xl,a 
+      00AB4C 1C AB 84         [ 2]  348 	addw x,#mul_char
+      00AB4F F6               [ 1]  349 	ld a,(x)
+      00AB50 20 CF            [ 2]  350 	jra 81$
+      00AB52                        351 12$:
+      00AB52 A0 31            [ 1]  352 	sub a,#TK_GT  
+      00AB54 48               [ 1]  353 	sll a 
+      00AB55 5F               [ 1]  354 	clrw x 
+      00AB56 97               [ 1]  355 	ld xl,a 
+      00AB57 1C AB 87         [ 2]  356 	addw x,#relop_str 
+      00AB5A FE               [ 2]  357 	ldw x,(x)
+      00AB5B F6               [ 1]  358 	ld a,(x)
+      00AB5C 5C               [ 1]  359 	incw x 
+      00AB5D 90 F7            [ 1]  360 	ld (y),a
+      00AB5F 90 5C            [ 1]  361 	incw y 
+      00AB61 F6               [ 1]  362 	ld a,(x)
+      00AB62 26 BD            [ 1]  363 	jrne 81$
+      00AB64 CC AA 7B         [ 2]  364 	jp decomp_loop 
+      00AB67                        365 20$: 
+      00AB67 90 7F            [ 1]  366 	clr (y)
+      00AB69 1E 03            [ 2]  367 	ldw x,(STR,sp)
+      00AB6B 7B 01            [ 1]  368 	ld a,(BASE_SAV,sp)
+      00AB6D C7 00 0B         [ 1]  369 	ld base,a 
+      00AB70 7B 02            [ 1]  370 	ld a,(WIDTH_SAV,sp)
+      00AB72 C7 00 25         [ 1]  371 	ld tab_width,a
+      00AB75 72 F2 03         [ 2]  372 	subw y,(STR,sp) 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 8.
 Hexadecimal [24-Bits]
 
 
 
+      00AB78 90 9F            [ 1]  373 	ld a,yl 
       0001E9                        374 	_drop VSIZE 
-      00ABF2 5B 04            [ 2]    1     addw sp,#VSIZE 
-      00ABF4 81               [ 4]  375 	ret 
+      00AB7A 5B 04            [ 2]    1     addw sp,#VSIZE 
+      00AB7C 81               [ 4]  375 	ret 
                                     376 
-      00ABF5 40 28 29 2C 23         377 single_char: .byte '@','(',')',',','#'
-      00ABFA 2B 2D                  378 add_char: .byte '+','-'
-      00ABFC 2A 2F 25               379 mul_char: .byte '*','/','%'
-      00ABFF AC 0B AC 0D AC 0F AC   380 relop_str: .word gt,equal,ge,lt,le,ne 
-             12 AC 14 AC 17
-      00AC0B 3E 00                  381 gt: .asciz ">"
-      00AC0D 3D 00                  382 equal: .asciz "="
-      00AC0F 3E 3D 00               383 ge: .asciz ">="
-      00AC12 3C 00                  384 lt: .asciz "<"
-      00AC14 3C 3D 00               385 le: .asciz "<="
-      00AC17 3C 3E 00               386 ne:  .asciz "<>"
+      00AB7D 40 28 29 2C 23         377 single_char: .byte '@','(',')',',','#'
+      00AB82 2B 2D                  378 add_char: .byte '+','-'
+      00AB84 2A 2F 25               379 mul_char: .byte '*','/','%'
+      00AB87 AB 93 AB 95 AB 97 AB   380 relop_str: .word gt,equal,ge,lt,le,ne 
+             9A AB 9C AB 9F
+      00AB93 3E 00                  381 gt: .asciz ">"
+      00AB95 3D 00                  382 equal: .asciz "="
+      00AB97 3E 3D 00               383 ge: .asciz ">="
+      00AB9A 3C 00                  384 lt: .asciz "<"
+      00AB9C 3C 3D 00               385 le: .asciz "<="
+      00AB9F 3C 3E 00               386 ne:  .asciz "<>"
                                     387 
                                     388 ;----------------------------------
                                     389 ; search in kword_dict name
@@ -2070,31 +2071,31 @@ Hexadecimal [24-Bits]
                            000001   396 	CMDX=1 
                            000003   397 	LINK=3 
                            000004   398 	VSIZE=4
-      00AC1A                        399 cmd_name:
+      00ABA2                        399 cmd_name:
       000211                        400 	_vars VSIZE 
-      00AC1A 52 04            [ 2]    1     sub sp,#VSIZE 
-      00AC1C 72 5F 00 0D      [ 1]  401 	clr acc16 
-      00AC20 1F 01            [ 2]  402 	ldw (CMDX,sp),x  
-      00AC22 AE A1 93         [ 2]  403 	ldw x,#kword_dict	
-      00AC25 1F 03            [ 2]  404 1$:	ldw (LINK,sp),x
-      00AC27 E6 02            [ 1]  405 	ld a,(2,x)
-      00AC29 A4 0F            [ 1]  406 	and a,#15 
-      00AC2B C7 00 0E         [ 1]  407 	ld acc8,a 
-      00AC2E 1C 00 03         [ 2]  408 	addw x,#3
-      00AC31 72 BB 00 0D      [ 2]  409 	addw x,acc16
-      00AC35 FE               [ 2]  410 	ldw x,(x) ; command index  
-      00AC36 13 01            [ 2]  411 	cpw x,(CMDX,sp)
-      00AC38 27 0A            [ 1]  412 	jreq 2$
-      00AC3A 1E 03            [ 2]  413 	ldw x,(LINK,sp)
-      00AC3C FE               [ 2]  414 	ldw x,(x) 
-      00AC3D 1D 00 02         [ 2]  415 	subw x,#2  
-      00AC40 26 E3            [ 1]  416 	jrne 1$
-      00AC42 20 05            [ 2]  417 	jra 9$
-      00AC44 1E 03            [ 2]  418 2$: ldw x,(LINK,sp)
-      00AC46 1C 00 02         [ 2]  419 	addw x,#2 	
+      00ABA2 52 04            [ 2]    1     sub sp,#VSIZE 
+      00ABA4 72 5F 00 0D      [ 1]  401 	clr acc16 
+      00ABA8 1F 01            [ 2]  402 	ldw (CMDX,sp),x  
+      00ABAA AE A1 0C         [ 2]  403 	ldw x,#kword_dict	
+      00ABAD 1F 03            [ 2]  404 1$:	ldw (LINK,sp),x
+      00ABAF E6 02            [ 1]  405 	ld a,(2,x)
+      00ABB1 A4 0F            [ 1]  406 	and a,#15 
+      00ABB3 C7 00 0E         [ 1]  407 	ld acc8,a 
+      00ABB6 1C 00 03         [ 2]  408 	addw x,#3
+      00ABB9 72 BB 00 0D      [ 2]  409 	addw x,acc16
+      00ABBD FE               [ 2]  410 	ldw x,(x) ; command index  
+      00ABBE 13 01            [ 2]  411 	cpw x,(CMDX,sp)
+      00ABC0 27 0A            [ 1]  412 	jreq 2$
+      00ABC2 1E 03            [ 2]  413 	ldw x,(LINK,sp)
+      00ABC4 FE               [ 2]  414 	ldw x,(x) 
+      00ABC5 1D 00 02         [ 2]  415 	subw x,#2  
+      00ABC8 26 E3            [ 1]  416 	jrne 1$
+      00ABCA 20 05            [ 2]  417 	jra 9$
+      00ABCC 1E 03            [ 2]  418 2$: ldw x,(LINK,sp)
+      00ABCE 1C 00 02         [ 2]  419 	addw x,#2 	
       000240                        420 9$:	_drop VSIZE
-      00AC49 5B 04            [ 2]    1     addw sp,#VSIZE 
-      00AC4B 81               [ 4]  421 	ret
+      00ABD1 5B 04            [ 2]    1     addw sp,#VSIZE 
+      00ABD3 81               [ 4]  421 	ret
                                     422 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 9.
 Hexadecimal [24-Bits]
@@ -2450,7 +2451,7 @@ Symbol Table
     TIM_CR1_=  000006     |     TIM_CR1_=  000005     |     TIM_CR1_=  000004 
     TIM_CR1_=  000003     |     TIM_CR1_=  000001     |     TIM_CR1_=  000002 
     TK_ARRAY=  000006     |     TK_CFUNC=  000082     |     TK_CHAR =  000003 
-    TK_CMD  =  000080     |     TK_COLON=  000001     |     TK_COMMA=  000009 
+    TK_CMD  =  000080     |     TK_COLON=  00000B     |     TK_COMMA=  000009 
     TK_CONST=  000083     |     TK_DIV  =  000021     |     TK_EQUAL=  000032 
     TK_GE   =  000033     |     TK_GRP_A=  000010     |     TK_GRP_M=  000030 
     TK_GRP_M=  000000     |     TK_GRP_M=  000020     |     TK_GRP_R=  000030 

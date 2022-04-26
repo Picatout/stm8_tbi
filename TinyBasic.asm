@@ -67,13 +67,10 @@ txtend:: .blkw 1 ; tokenized BASIC text end address
 loop_depth: .blkb 1 ; level of nested loop. Conformity check   
 array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
 flags:: .blkb 1 ; various boolean flags
-tab_width:: .blkb 1 ; print colon width (default 4)
+tab_width:: .blkb 1 ; print colon width (default 6)
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
-rx3_queue: .ds RX_QUEUE_SIZE ; UART3 receive circular queue
-rx3_head:  .blkb 1 ; rx3_queue head pointer 
-rx3_tail:  .blkb 1 ; rx3_queue tail pointer  
 
 vars:: .blkw 26 ; BASIC variables A-Z, keep it as but last .
 ; keep 'free_ram' as last variable 
@@ -120,7 +117,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int Uart1RxHandler		;int18 UART1 RX full ; default user communication channel.
 	int NonHandledInterrupt ;int19 I2C 
 	int NonHandledInterrupt ;int20 UART3 TX completed
-	int Uart3RxHandler      ;int21 UART3 RX full
+	int NonHandledInterrupt ;int21 UART3 RX full
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
 	int Timer4UpdateHandler	;int23 TIM4 update/overflow ; used as msec ticks counter
 	int NonHandledInterrupt ;int24 flash writing EOP/WR_PG_DIS
@@ -191,28 +188,6 @@ Uart1RxHandler: ; console receive char
 	ld rx1_tail,a  
 5$:	_led2_off 	
 	iret 
-
-;-----------------------------
-; ISR for character reception
-; on UART3
-; raw data communication
-;-----------------------------
-Uart3RxHandler:
-	_led2_on 
-	ldw x,#rx3_queue 
-	ld a,xl 
-	add a,rx3_tail 
-	ld xl,a 
-	btjf UART3_SR,#UART_SR_RXNE,9$
-	ld a,UART3_DR
-	ld (x),a  
-	inc rx3_tail 
-	ld a,#RX_QUEUE_SIZE-1 
-	and a,rx3_tail 
-	ld rx3_tail,a 
-9$:	_led2_off 
-	iret  
-
 
 ;------------------------------------
 ; software interrupt handler  
@@ -624,36 +599,6 @@ write_block:
 ;;		115200 8N1 no flow control
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;--------------------------------
-; initialize UART3, 115200 8N1 
-;--------------------------------
-uart3_init: 
-	bset PD_DDR,#UART3_TX_PIN
-	bset PD_CR1,#UART3_TX_PIN 
-	bset PD_CR2,#UART3_TX_PIN 
-	bset CLK_PCKENR1,#CLK_PCKENR1_UART3
-uart3_set_baud: 
-; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
-; 1) check clock source, HSI at 16Mhz or HSE at 8Mhz  
-	ld a,#CLK_SWR_HSI
-	cp a,CLK_CMSR 
-	jreq 2$ 
-1$: ; 8 Mhz 	
-	mov UART3_BRR2,#0x05 ; must be loaded first
-	mov UART3_BRR1,#0x4
-	jra 3$
-2$: ; 16 Mhz 	
-	mov UART3_BRR2,#0x0b ; must be loaded first
-	mov UART3_BRR1,#0x08
-3$:
-    clr UART3_DR
-	mov UART3_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
-	bset UART3_CR2,#UART_CR2_SBK
-    btjf UART3_SR,#UART_SR_TC,.
-	clr rx3_tail 
-	clr rx3_head 
-	ret 
-
 ;---------------------------------------------
 ; initialize UART1, 115200 8N1
 ; input:
@@ -701,16 +646,6 @@ uart1_putc::
 	ld UART1_DR,a 
 	ret 
 
-;---------------------------------
-; uart3_putc 
-; send a character via UART3 
-; input:
-;    A  	character to send
-;---------------------------------
-uart3_putc::
-	btjf UART3_SR,#UART_SR_TXE,.
-	ld UART3_DR,a 
-	ret 
 
 ;---------------------------------
 ; Query for character in rx1_queue
@@ -724,11 +659,6 @@ qgetc::
 uart1_qgetc::
 	ld a,rx1_head 
 	sub a,rx1_tail 
-	ret 
-
-uart3_qgetc::
-	ld a,rx3_head 
-	sub a,rx3_tail 
 	ret 
 
 ;---------------------------------
@@ -756,30 +686,6 @@ uart1_getc::
 	ld rx1_head,a 
 	pop a  
 	ret 
-
-;----------------------------------
-; wait character from UART3 
-; output:
-;   A       character received
-;-----------------------------------
-uart3_getc::
-	call uart3_qgetc
-	jreq uart3_getc 
-	pushw x 
-	ldw x,#rx3_queue
-	ld a,xl 
-	add a,rx3_head 
-	ld xl,a 
-	ld a,(x)
-	popw x
-	push a
-	inc rx3_head 
-	ld a,#RX_QUEUE_SIZE-1 
-	and a,rx3_head 
-	ld rx3_head,a 
-	pop a  
-	ret 
-
 
 ;----------------------
 ; print token id && value
@@ -1078,8 +984,8 @@ is_alnum::
 ;-------------------------------------
 ;  program initialization entry point 
 ;-------------------------------------
-	MAJOR=1
-	MINOR=1
+	MAJOR=2
+	MINOR=0 
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2020\nversion "
 cold_start:
 ;set stack 
@@ -1119,8 +1025,6 @@ cold_start:
 	call timer2_init
 ; UART1 at 115200 BAUD
 	call uart1_init
-; UART3 at 115200 BAUD 
-	call uart3_init	
 ; activate PE_4 (user button interrupt)
     bset PE_CR2,#USR_BTN_BIT 
 ; display system information
@@ -1378,11 +1282,12 @@ interp_loop:
 next_token::
 	clrw x 
 	ld a,in 
-	sub a,count ; don't replace sub by cp!  
-	jrmi 0$
-	ret  ; end of BASIC line 
+; don't replace sub by "cp a,count" 
+; if end of line must return with A=0   	
+	sub a,count 
+	jreq 9$ ; end of line 
 0$: 
-	mov in.saved,in 
+	mov in.saved,in ; in case "_unget_token" needed 
 	ldw y,basicptr 
 	ld a,([in.w],y)
 	inc in  
@@ -1390,8 +1295,6 @@ next_token::
 	jrmi 6$
 	cp a,#TK_ARRAY
 	jrpl 9$  ; no attribute for these
-	cp a,#TK_COLON
-	jreq 9$  
 1$: ; 
 	cp a,#TK_CHAR
 	jrne 2$
@@ -1399,7 +1302,7 @@ next_token::
 	ld a,([in.w],y)
 	inc in 
 	exg a,xl  
-	ret
+	jra 9$ 
 2$:	cp a,#TK_QSTR 
 	jrne 9$
 	ldw x,y 
@@ -1414,8 +1317,7 @@ next_token::
 	ldw y,(y)
 	cp a,#TK_INTGR
 	jrpl 7$
-	addw y,#code_addr
-	ldw y,(y) 
+	ldw y,(code_addr,y) 
 7$:	exgw x,y 
 	inc in
 8$:	inc in 
@@ -1485,6 +1387,9 @@ itoa::
 	addw x,#TIB_SIZE
 	decw x 
 	clr (x)
+	ld a,#32
+	ld (x),a 
+	inc (LEN,sp)
 itoa_loop:
     ld a,base
 	ldw (PSTR,sp),x 
@@ -2107,7 +2012,7 @@ muldiv:
 ;   y		.asciz name to search 
 ; output:
 ;  A 		TK_CMD|TK_IFUNC|TK_NONE 
-;  X		cmd_index ; execution address | 0 
+;  X		cmd_index
 ;---------------------------------
 	NLEN=1 ; cmd length 
 	XSAVE=2
@@ -2877,9 +2782,11 @@ input_loop:
 	call rest_context
 	call next_token 
 	cp a,#TK_COMMA 
-	jreq input_loop 
+	jreq input_loop
+	cp a,#TK_NONE 
+	jreq input_exit  
 	cp a,#TK_COLON 
-    jrule input_exit 
+    jreq input_exit 
 	jp syntax_error 
 input_exit:
 	_drop VSIZE 
@@ -3244,7 +3151,16 @@ get_target_line:
 	cp a,#TK_INTGR
 	jreq 1$
 	jp syntax_error
-1$:	call search_lineno  
+1$:	clr a
+	ldw y,basicptr 
+	ldw y,(y)
+	pushw y 
+	cpw x,(1,sp)
+	addw sp,#2 
+	jrult 11$
+	inc a 
+11$:	
+	call search_lineno  
 	tnzw x 
 	jrne 2$ 
 	ld a,#ERR_NO_LINE 
@@ -5176,8 +5092,9 @@ data_line:
 	call expression
 	cp a,#TK_INTGR
 	jreq 1$
-	jp syntax_error 
-1$: call search_lineno
+	jp syntax_error  
+1$: clr a 
+	call search_lineno
 	tnzw x 
 	jrne 3$
 2$:	ld a,#ERR_NO_LINE 

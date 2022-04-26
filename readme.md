@@ -1,24 +1,17 @@
-## 2022-04-21 version 1.1 
+## 2022-04-21 version 2.0
 
-* Travail sur l'organisation interne du code.
-  
-  * déplacé le compilateur dans [compiler.asm](compiler.asm)
+J'ai décidé de travailler sur une version 2.0 de TinyBASIC plutôt que d'essayer d'améliorer le code de la version 1.0.  Comme le code sera remanié de façon majeur, je préfère créer un nouveau dépôt git et de laisser celui de la version 1 dans l'état actuel.
 
-  * déplacé le décompilateur dans [decompiler.asm](decompiler.asm)
+* Objectifs:  
+    * Améliorer la performance ce l'interpréteur en modifiant le format du bytecode. Comme en Forth chaque token sera associé à un code machine exécutable. Le compilateur va convertir le texte source en format RPN (Reverse Polish Notation) pour améliorer la performance. Cependant contrairement à une machine virtuelelle Forth il n'y aura qu'une seule pile soit celle pointée par **SP** du STM8. Le jeu d'instruction du STM8 étant optimisé pour effecter les opérations ALU entre la pile et les registres **A**,**X** et **Y**.
 
-* Création d'un dossier **BASIC** pour y mettre les fichiers source BASIC 
+    * Réduire la taille du code idéalement à moins de 8Ko. 
 
-* Copier l'utilitaire **SendFile** dans le dossier **BASIC**  et créer un script shell  [send.sh](send.sh) pour envoyer un fichier BASIC source vers la carte en utilisant le port du terminal.
-  ```
-  ./send.sh  nom_fichier_basic 
-  ```
-* Renommé la commande **SIZE** -&gt; **FREE** 
-
-* Mise à jour du fichier [tbi_reference.md](tbi_reference.md)
+Le décompilateur sera plus complexe à réaliser et le bytecode décompilé ne sera probablement pas parfaitement identique au code source original bien qu'il devra être syntaxiquement correct et sémantiquement identique. Je ne suis pas certain d'atteindre l'objectif #2 étant la complexité accrue.
 
 <hr>
 
-**Maintenant la version 1.0 est considérée stable.** Pour suivre le détail du projet vous pouvez consulter le [journal](journal.md).
+Pour suivre l'évolution du projet vous pouvez consulter le [journal](journal.md).
 
 Il s'agit d'une implémentation du [Tiny BASIC](https://en.wikipedia.org/wiki/Tiny_BASIC) originellement conçu par [Dennis Allison](https://en.wikipedia.org/wiki/Dennis_Allison) au milieu des années 197x. Cette implémentation est créée en me référend aux documents [TINYDISK.DOC](TINYDISK.DOC) et [TINYDISK.ASM](TINYDISK.ASM). Cependant elle n'est pas exactement identique. Comme il s'agit de programmer un microcontrôleur et non un ordinateur d'usage général des fonctions et commandes spécifiques à cet objectif sont ajoutées.
 

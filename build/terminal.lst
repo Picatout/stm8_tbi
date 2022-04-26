@@ -1433,6 +1433,7 @@ Hexadecimal [24-Bits]
                                  
                                  
                                  
+                                                
                                  
                                  
                                  
@@ -1557,12 +1558,12 @@ Hexadecimal [24-Bits]
                                      46 ;  ANSI sequence received 
                                      47 ;  from terminal.
                                      48 ;  These are the ANSI sequences
-                                     49 ;  accepted by function readln
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 2.
 Hexadecimal [24-Bits]
 
 
 
+                                     49 ;  accepted by function readln
                                      50 ;------------------------------
                            000080    51     ARROW_LEFT=128
                            000081    52     ARROW_RIGHT=129
@@ -1617,12 +1618,12 @@ Hexadecimal [24-Bits]
                                     100 ;   x 		char * 
                                     101 ; output:
                                     102 ;   none 
-                                    103 ;-------------------------------
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 3.
 Hexadecimal [24-Bits]
 
 
 
+                                    103 ;-------------------------------
       000032                        104 puts::
       000032 F6               [ 1]  105     ld a,(x)
       000033 27 06            [ 1]  106 	jreq 1$
@@ -1677,12 +1678,12 @@ Hexadecimal [24-Bits]
       00005C CD 00 00         [ 4]  155 	call putc 
       00005F A6 5B            [ 1]  156 	ld a,#'[
       000061 CD 00 00         [ 4]  157 	call putc 
-      000064 81               [ 4]  158 	ret 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 4.
 Hexadecimal [24-Bits]
 
 
 
+      000064 81               [ 4]  158 	ret 
                                     159 
                                     160 ;---------------------
                                     161 ;send ANSI parameter value
@@ -1737,12 +1738,12 @@ Hexadecimal [24-Bits]
       000087 84               [ 1]  210     pop a
       000088 CD 00 65         [ 4]  211 	call send_parameter 
       00008B A6 44            [ 1]  212 	ld a,#'D 
-      00008D CD 00 00         [ 4]  213 	call putc 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 5.
 Hexadecimal [24-Bits]
 
 
 
+      00008D CD 00 00         [ 4]  213 	call putc 
       000090 81               [ 4]  214 	ret	
                                     215 
                                     216 
@@ -1797,12 +1798,12 @@ Hexadecimal [24-Bits]
                            000003   265     LLEN=3 
                            000003   266 	VSISE=3 
       0000AB                        267 insert_char: 
-      0000AB                        268 	_vars VSIZE 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 6.
 Hexadecimal [24-Bits]
 
 
 
+      0000AB                        268 	_vars VSIZE 
       0000AB 52 04            [ 2]    1     sub sp,#VSIZE 
       0000AD 6B 02            [ 1]  269     ld (CHAR,sp),a 
       0000AF 9E               [ 1]  270     ld a,xh 
@@ -1857,12 +1858,12 @@ Hexadecimal [24-Bits]
       0000F8 7B 02            [ 1]  317     ld a,(LLEN,sp)
       0000FA 10 01            [ 1]  318     sub a,(CPOS,sp)
       0000FC 4C               [ 1]  319     inc a ; move including zero at end.
-      0000FD C7 00 00         [ 1]  320     ld acc8,a 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 7.
 Hexadecimal [24-Bits]
 
 
 
+      0000FD C7 00 00         [ 1]  320     ld acc8,a 
       000100 72 5F 00 00      [ 1]  321     clr acc16 
       000104 CD 00 00         [ 4]  322 	call move 
       000107 90 AE 00 00      [ 2]  323     ldw y,#tib 
@@ -1917,12 +1918,12 @@ Hexadecimal [24-Bits]
                                     371 ;	none
                                     372 ; local variable on stack:
                                     373 ;	LL  line length
-                                    374 ;   RXCHAR last received character 
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 8.
 Hexadecimal [24-Bits]
 
 
 
+                                    374 ;   RXCHAR last received character 
                                     375 ; output:
                                     376 ;   text in tib  buffer
                                     377 ;   count  line length 
@@ -1977,12 +1978,12 @@ Hexadecimal [24-Bits]
       000180 CD 00 83         [ 4]  425     call move_left 
       000183 A6 3E            [ 1]  426 	ld a,#'> 
       000185 CD 00 00         [ 4]  427 	call putc 
-      000188 90 AE 00 00      [ 2]  428 	ldw y,#tib
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 9.
 Hexadecimal [24-Bits]
 
 
 
+      000188 90 AE 00 00      [ 2]  428 	ldw y,#tib
       00018C 90 7F            [ 1]  429 	clr (y)
       00018E 0F 02            [ 1]  430 	clr (LL,sp)
       000190 0F 03            [ 1]  431 	clr (CPOS,sp)
@@ -2037,12 +2038,12 @@ Hexadecimal [24-Bits]
       0001FF 7B 02            [ 1]  480     ld a,(LL,sp)
       000201 6B 03            [ 1]  481     ld (CPOS,sp),a  
       000203 CC 01 44         [ 2]  482 	jp readln_loop
-      000206                        483 6$:
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 10.
 Hexadecimal [24-Bits]
 
 
 
+      000206                        483 6$:
       000206 A1 81            [ 1]  484 	cp a,#ARROW_RIGHT
       000208 26 15            [ 1]  485    	jrne 7$ 
                                     486 ; right arrow
@@ -2097,12 +2098,12 @@ Hexadecimal [24-Bits]
       000272 A1 0F            [ 1]  535 10$: cp a,#CTRL_O
       000274 26 0C            [ 1]  536 	jrne 11$ 
                                     537 ; toggle between insert/overwrite
-      000276 03 04            [ 1]  538 	cpl (OVRWR,sp)
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 11.
 Hexadecimal [24-Bits]
 
 
 
+      000276 03 04            [ 1]  538 	cpl (OVRWR,sp)
       000278 90 89            [ 2]  539 	pushw y 
       00027A CD 00 00         [ 4]  540 	call beep_1khz
       00027D 90 85            [ 2]  541 	popw y 
@@ -2157,12 +2158,12 @@ Hexadecimal [24-Bits]
       0002D6 0C 03            [ 1]  590     inc (CPOS,sp)
       0002D8 CC 01 44         [ 2]  591 	jp readln_loop 
       0002DB                        592 1$:	
-      0002DB 0C 03            [ 1]  593 	inc (CPOS,sp)
 ASxxxx Assembler V02.00 + NoICE + SDCC mods  (STMicroelectronics STM8), page 12.
 Hexadecimal [24-Bits]
 
 
 
+      0002DB 0C 03            [ 1]  593 	inc (CPOS,sp)
       0002DD CC 01 44         [ 2]  594 	jp readln_loop 
       0002E0                        595 readln_quit:
       0002E0 90 AE 00 00      [ 2]  596 	ldw y,#tib
@@ -2538,7 +2539,7 @@ Symbol Table
     TIM_CR1_=  000000     |     TIM_CR1_=  000006     |     TIM_CR1_=  000005 
     TIM_CR1_=  000004     |     TIM_CR1_=  000003     |     TIM_CR1_=  000001 
     TIM_CR1_=  000002     |     TK_ARRAY=  000006     |     TK_CFUNC=  000082 
-    TK_CHAR =  000003     |     TK_CMD  =  000080     |     TK_COLON=  000001 
+    TK_CHAR =  000003     |     TK_CMD  =  000080     |     TK_COLON=  00000B 
     TK_COMMA=  000009     |     TK_CONST=  000083     |     TK_DIV  =  000021 
     TK_EQUAL=  000032     |     TK_GE   =  000033     |     TK_GRP_A=  000010 
     TK_GRP_M=  000030     |     TK_GRP_M=  000000     |     TK_GRP_M=  000020 

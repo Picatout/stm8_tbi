@@ -1,5 +1,5 @@
 #############################
-# librairies make file
+# TinyBasic make file
 #############################
 NAME=TinyBasic
 SDAS=sdasstm8

@@ -18,10 +18,10 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
-     0000006D  l_DATA                          
+     00000063  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
-     00002BCC  l_CODE                          
+     00002B54  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -30,7 +30,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-DATA                                00000001    0000006D =         109. bytes (REL,CON)
+DATA                                00000001    00000063 =          99. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -49,7 +49,7 @@ DATA                                00000001    0000006D =         109. bytes (R
      0000001F  txtend                             STM8_TBI
      00000024  flags                              STM8_TBI
      00000025  tab_width                          STM8_TBI
-     0000003A  vars                               STM8_TBI
+     00000030  vars                               STM8_TBI
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
 Hexadecimal  [32-Bits]
@@ -77,50 +77,47 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00002BCC =       11212. bytes (REL,CON)
+CODE                                00008080    00002B54 =       11092. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     000083AB  putc                               STM8_TBI
-     000083AB  uart1_putc                         STM8_TBI
-     000083B4  uart3_putc                         STM8_TBI
-     000083BD  qgetc                              STM8_TBI
-     000083BD  uart1_qgetc                        STM8_TBI
-     000083C4  uart3_qgetc                        STM8_TBI
-     000083CB  getc                               STM8_TBI
-     000083CB  uart1_getc                         STM8_TBI
-     000083EA  uart3_getc                         STM8_TBI
-     000084B4  strlen                             STM8_TBI
-     000084D0  strcpy                             STM8_TBI
-     000084DE  move                               STM8_TBI
-     0000852E  is_alpha                           STM8_TBI
-     0000853F  is_digit                           STM8_TBI
-     00008548  is_alnum                           STM8_TBI
-     0000883B  syntax_error                       STM8_TBI
-     0000883D  tb_error                           STM8_TBI
-     0000892D  next_token                         STM8_TBI
-     000089AA  itoa                               STM8_TBI
-     00008A94  to_upper                           STM8_TBI
-     00008AA0  atoi24                             STM8_TBI
-     00008C87  search_dict                        STM8_TBI
-     00008EFD  let                                STM8_TBI
-     000090B6  remark                             STM8_TBI
-     00009306  beep_1khz                          STM8_TBI
-     00009802  qkey                               STM8_TBI
-     0000A193  kword_dict                         STM8_TBI
-     0000A19B  code_addr                          STM8_TBI
-     0000A2C0  puts                               TERMINAL
-     0000A32D  spaces                             TERMINAL
-     0000A3C5  readln                             TERMINAL
-     0000A586  print_hex                          TERMINAL
-     0000A59D  to_hex_char                        TERMINAL
-     0000A5A8  search_lineno                      COMPILER
-     0000A6E3  escaped                            COMPILER
-     0000A7D7  get_token                          COMPILER
-     0000A996  compile                            COMPILER
-     0000AA30  right_align                        DECOMPILER
-     0000AA83  var_name                           DECOMPILER
-     0000AAAC  decompile                          DECOMPILER
+     00008342  putc                               STM8_TBI
+     00008342  uart1_putc                         STM8_TBI
+     0000834B  qgetc                              STM8_TBI
+     0000834B  uart1_qgetc                        STM8_TBI
+     00008352  getc                               STM8_TBI
+     00008352  uart1_getc                         STM8_TBI
+     0000841C  strlen                             STM8_TBI
+     00008438  strcpy                             STM8_TBI
+     00008446  move                               STM8_TBI
+     00008496  is_alpha                           STM8_TBI
+     000084A7  is_digit                           STM8_TBI
+     000084B0  is_alnum                           STM8_TBI
+     000087A0  syntax_error                       STM8_TBI
+     000087A2  tb_error                           STM8_TBI
+     00008892  next_token                         STM8_TBI
+     00008909  itoa                               STM8_TBI
+     000089F8  to_upper                           STM8_TBI
+     00008A04  atoi24                             STM8_TBI
+     00008BEB  search_dict                        STM8_TBI
+     00008E61  let                                STM8_TBI
+     0000901E  remark                             STM8_TBI
+     0000927E  beep_1khz                          STM8_TBI
+     0000977A  qkey                               STM8_TBI
+     0000A10C  kword_dict                         STM8_TBI
+     0000A114  code_addr                          STM8_TBI
+     0000A240  puts                               TERMINAL
+     0000A2AD  spaces                             TERMINAL
+     0000A345  readln                             TERMINAL
+     0000A506  print_hex                          TERMINAL
+     0000A51D  to_hex_char                        TERMINAL
+     0000A528  search_lineno                      COMPILER
+     0000A66B  escaped                            COMPILER
+     0000A75A  get_token                          COMPILER
+     0000A919  compile                            COMPILER
+     0000A9B8  right_align                        DECOMPILER
+     0000AA0B  var_name                           DECOMPILER
+     0000AA34  decompile                          DECOMPILER
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
