@@ -61,7 +61,6 @@ seedy: .blkw 1  ; xorshift 16 seed y  used by RND() funcion
 farptr: .blkb 1 ; 24 bits pointer used by file system, upper-byte
 ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte 
 ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
-ffree: .blkb 3 ; flash free address ; file system free space pointer
 txtbgn:: .blkw 1 ; tokenized BASIC text beginning address 
 txtend:: .blkw 1 ; tokenized BASIC text end address 
 loop_depth: .blkb 1 ; level of nested loop. Conformity check   
@@ -72,6 +71,7 @@ rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue
 rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
 
+	.bndry 16 
 vars:: .blkw 26 ; BASIC variables A-Z, keep it as but last .
 ; keep 'free_ram' as last variable 
 free_ram: ; from here RAM free for BASIC text 
@@ -159,7 +159,6 @@ AWUHandler:
 ; and fall back to command line
 ;--------------------------
 Uart1RxHandler: ; console receive char 
-	_led2_on 
 	btjf UART1_SR,#UART_SR_RXNE,5$
 	ld a,UART1_DR 
 	cp a,#CTRL_C 
@@ -170,12 +169,7 @@ Uart1RxHandler: ; console receive char
 	cp a,#CAN ; CTRL_X 
 	jrne 3$
 	jp cold_start 	
-3$: 
-	cp a,#CTRL_Z
-	jrne 4$
-	call cancel_autorun 
-	jp cold_start
-4$:	ldw x,#rx1_queue  
+3$:	ldw x,#rx1_queue  
 	push a 
 	ld a,xl 
 	add a,rx1_tail 
@@ -186,7 +180,7 @@ Uart1RxHandler: ; console receive char
 	ld a,#RX_QUEUE_SIZE-1
 	and a,rx1_tail 
 	ld rx1_tail,a  
-5$:	_led2_off 	
+5$:
 	iret 
 
 ;------------------------------------
@@ -244,14 +238,15 @@ user_interrupted:
 	bres flags,#FRUN 
 	ldw x,#USER_ABORT
 	call puts 
-	ldw x,basicptr 
-	ld a,in 
-	call prt_basic_line
 UBTN_Handler_exit:
     ldw x,#STACK_EMPTY 
     ldw sp,x
 	rim 
-	jp warm_start
+	ldw x,txtbgn 
+	cpw x,#app_space 
+	jrugt 5$
+	call clear_basic 
+5$:	jp warm_start
 
 USER_ABORT: .asciz "\nProgram aborted by user.\n"
 
@@ -461,7 +456,7 @@ do_programming:
 ;--------------------------------------
 block_erase:
 	ldw x,farptr+1
-	cpw x,#user_space 
+	cpw x,#app_space 
 	jrpl erase_flash 
 ; erase eeprom block
 	cpw x,#EEPROM_BASE 
@@ -505,7 +500,7 @@ write_byte:
 ; check addr[23:16], if <> 0 then it is extened flash memory
 	tnz farptr 
 	jrne write_flash
-    cpw y,#user_space
+    cpw y,#app_space 	 
     jruge write_flash
 	cpw y,#EEPROM_BASE  
     jrult write_exit
@@ -984,8 +979,8 @@ is_alnum::
 ;-------------------------------------
 ;  program initialization entry point 
 ;-------------------------------------
-	MAJOR=2
-	MINOR=0 
+	MAJOR=1
+	MINOR=2 
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2020\nversion "
 cold_start:
 ;set stack 
@@ -1046,7 +1041,6 @@ cold_start:
 	call prti24
 	ld a,#CR 
 	call putc
-	call seek_fdrive 
 	rim 
 	inc seedy+1 
 	inc seedx+1 
@@ -1055,8 +1049,24 @@ cold_start:
 	call beep_1khz  
 2$:	
 	call warm_init
-	call load_autorun
-    jp cmd_line  
+; check for application in flash memory 
+	ldw x,app_sign 
+	cpw x,#0x4243
+	jreq 3$
+	jp cmd_line 
+3$:	 
+	ldw x,#app 
+	ldw basicptr,x
+	ldw txtbgn,x 
+	ld a,(2,x)
+	ld count,a 
+	ld a,#3 
+	ld in,a 
+	ldw x,app_size 
+	addw x,txtbgn 
+	ldw txtend,x  
+	jp interp_loop 
+    jra .  
 
 warm_init:
 	clr flags 
@@ -1069,46 +1079,7 @@ warm_init:
 	clr count
 	ret 
 
-;--------------------------
-; called by tb_error when
-; flag FAUTORUN is set.
-; There is a bug in autorun 
-; program so cancel it.
-;---------------------------
-cancel_autorun:
-	ldw x,#AUTORUN_NAME 
-	ldw farptr+1,x 
-	clr a
-	clrw x  
-	ld farptr,a 
-	call write_byte 
-	ret 
 
-
-;--------------------------
-; if autorun file defined 
-; in eeprom address AUTORUN_NAME 
-; load and run it.
-;-------------------------
-load_autorun:
-	ldw y,#AUTORUN_NAME
-	ld a,(y)
-	jreq 9$
-	call search_file
-	jrc 2$ 
-; if file doesn't exit
-	call cancel_autorun
-	jra 9$ 
-2$:	call load_file
-	ldw x,#AUTORUN_NAME 
-	call puts
-	ldw x,#autorun_msg 
-	call puts 
-	bset flags,#FAUTORUN 
-	jp run_it    
-9$: ret 	
-
-autorun_msg: .asciz " loaded and running\n"
 ;---------------------------
 ; reset BASIC text variables 
 ; and clear variables 
@@ -1181,7 +1152,6 @@ tb_error::
 	ld xl,a 
 	call print_int
 	btjf flags,#FAUTORUN ,6$
-	call cancel_autorun  
 	jra 6$
 1$:	
 	push a 
@@ -2461,9 +2431,19 @@ dec_base:
 ;   X 	    size integer
 ;--------------------------
 free:
-	ldw x,#tib 
+	ldw x,txtbgn 
+	cpw x,app_space
+	jrult 1$
+	ldw x,#0xffff 
+	ldw y,#app
+	addw y,app_size
+	ldw acc16,y 
+	subw x,acc16 
+	incw x 
+	jra 2$ 
+1$:	ldw x,#tib 
 	subw x,txtend 
-	ld a,#TK_INTGR
+2$:	ld a,#TK_INTGR
 	ret 
 
 
@@ -3438,6 +3418,7 @@ digital_read:
 	_drop VSIZE
 	ret
 
+
 ;-----------------------
 ; BASIC: DWRITE pin,0|1
 ; Arduino pins 
@@ -3524,33 +3505,10 @@ new:
 0$:	
 	call clear_basic 
 	ret 
-	 
-;;;;;;;;;;;;;;;;;;;;;;;;;
-;  file system routines
-;  MCU flash memory from
-;  0x10000-0x27fff is 
-;  used to store BASIC 
-;  program files. 
-;  use 128 bytes sectors
-;  because this is the MCU 
-;  row size.
-;  file entry aligned to row
-;  	name  variable length
-;  	size  2 bytes  
-; 	data  variable length 
-;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;---------------------------
-; fill pad with zeros 
-;--------------------------
-zero_pad:
-	ldw x,#pad 
-	ld a,#PAD_SIZE 
-1$:	clr (x)
-	incw x 
-	dec a 
-	jrne 1$
-	ret 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;  flash memory operations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;--------------------------
 ; align farptr to BLOCK_SIZE 
@@ -3582,440 +3540,68 @@ incr_farptr:
 1$:	ldw farptr+1,x  
 	ret 
 
-;------------------------------
-; extended flash memory used as FLASH_DRIVE 
-; seek end of used flash drive   
-; starting at 0x10000 address.
-; 4 consecutives 0 bytes signal free space. 
+;-----------------------------------
+; scan block for non zero byte 
+; block are 128 bytes 
 ; input:
-;	none
+;     X     block# 
 ; output:
-;   ffree     free_addr| 0 if memory full.
-;------------------------------
-seek_fdrive:
-; start scan at 0x10000 address 
-	ld a,#1
-	ld farptr,a 
-	clrw x 
-	ldw farptr+1,x 
-1$:
-	ldw x,#3  
-2$:	ldf a,([farptr],x) 
-	jrne 3$
-	decw x
-	jrpl 2$
-	jra 4$ 
-3$:	ldw x,#BLOCK_SIZE 
-	call incr_farptr
-	ldw x,#0x280  
-	cpw x,farptr
-	jrugt 1$
-4$: ; copy farptr to ffree	 
-	ldw x,farptr 
-	ld a,farptr+2 
-	ldw ffree,x 
-	ld ffree+2,a  
-	ret 
-
-;-----------------------
-; return amount of free 
-; space on flash drive
-; input:
-;   none
-; output:
-;   acc24   free space 
-;-----------------------
-disk_free:
-	ldw x,#0x8000
-	subw x,ffree+1
-	ld a,#2
-	sbc a,ffree 
-	ld acc24,a 
+;     A     0 clean, other not clean 
+;-----------------------------------
+	COUNT=1 
+	VSIZE=1
+scan_block:
+	ld a, #128 ;COUNT 
+	push a  
+	clr acc24 
 	ldw acc16,x 
-	ret 
-
-;-----------------------
-; compare file name 
-; with name pointed by Y  
-; input:
-;   farptr   file name 
-;   Y        target name 
-; output:
-;   farptr 	 at file_name
-;   X 		 farptr[x] point at size field  
-;   Carry    0|1 no match|match  
-;----------------------
-cmp_name:
-	clrw x
-1$:	ldf a,([farptr],x)
-	cp a,(y)
-	jrne 4$
-	tnz a 
-	jreq 9$ 
-    incw x 
-	incw y 
-	jra 1$
-4$: ;no match 
-	tnz a 
-	jreq 5$
-	incw x 
-	ldf a,([farptr],x)
-	jra 4$  
-5$:	incw x ; farptr[x] point at 'size' field 
-	rcf 
-	ret
-9$: ; match  
-	incw x  ; farptr[x] at 'size' field 
-	scf 
-	ret 
-
-;-----------------------
-; search file in 
-; flash memory 
-; input:
-;   Y       file name  
-; output:
-;   farptr  addr at name|0
-;   X       offset to size field
-;   Carray   0 not found, 1 found 
-;-----------------------
-	FSIZE=1
-	YSAVE=3
-	VSIZE=4 
-search_file: 
-	_vars VSIZE
-	ldw (YSAVE,sp),y  
-	clrw x 
+	call mulu24_8  ; block address  
+	mov farptr,acc24 
+	ldw x,acc16 
 	ldw farptr+1,x 
-	mov farptr,#1
-1$:	
-; check if farptr is after any file 
-; if  0 then so.
-	ldf a,[farptr]
-	jreq 6$
-2$: clrw x 	
-	ldw y,(YSAVE,sp) 
-	call cmp_name
-	jrc 9$
-	ldf a,([farptr],x)
-	ld (FSIZE,sp),a 
-	incw x 
-	ldf a,([farptr],x)
-	ld (FSIZE+1,sp),a 
-	incw x 
-	addw x,(FSIZE,sp) ; skip over file data
+	ldw x,#1  ; farptr increment 
+1$: ldf a,[farptr]
+	jrne 2$
 	call incr_farptr
-	call row_align  
-	ldw x,#0x280
-	cpw x,farptr 
-	jrpl 1$
-6$: ; file not found 
-	clr farptr
-	clr farptr+1 
-	clr farptr+2 
-	_drop VSIZE 
-	rcf
-	ret
-9$: ; file found  farptr[0] at 'name_field',farptr[x] at 'file_size' 
-	_drop VSIZE 
-	scf 	
-	ret
-
-;--------------------------------
-; BASIC: SAVE "name" 
-; save text program in 
-; flash memory used as permanent
-; storage from address 0x10000-0x27fff 
-;--------------------------------
-	BSIZE=1
-	NAMEPTR=3
-	XSAVE=5
-	YSAVE=7
-	VSIZE=8 
-save:
-	btjf flags,#FRUN,0$ 
-	ld a,#ERR_CMD_ONLY 
-	jp tb_error
-0$:	 
-	ldw x,txtend 
-	subw x,txtbgn
-	jrne 1$
-; nothing to save 
-	ldw x,#err_no_prog 
-	call puts 
-	mov in,count 
-	ret  	
-1$:	
-	_vars VSIZE 
-	ldw (BSIZE,sp),x 
-	call next_token	
-	cp a,#TK_QSTR
-	jreq 2$
-	jp syntax_error
-2$: 
-	ldw (NAMEPTR,sp),x  
-	call move_prg_to_ram ; move flashing program to 'tib' buffer 
-; check if enough free space 
-	ldw x,(NAMEPTR,sp)
-	call strlen 
-	add a,#3
-	clrw x 
-	ld xl,a 
-	addw x,(BSIZE,sp)
-	clr a 
-	addw x,ffree+1 
-	adc a,ffree 
-	cp a,#2
-	jrmi 21$
-	cpw x,#0x8000
-	jrmi 21$
-	ld a,#ERR_NO_FSPACE  
-	jp tb_error
-21$: 
-; check for existing file of that name 
-	ldw y,(NAMEPTR,sp)	
-	call search_file 
-	jrnc 3$ 
-	ld a,#ERR_DUPLICATE 
-	jp tb_error 
-3$:	; initialize farptr 
-	ldw x,ffree 
-	ld a,ffree+2 
-	ldw farptr,x 
-	ld farptr+2,a 
-;** write file name to row buffer **	
-	ldw y,(NAMEPTR,sp)  
-	ldw x,#pad 
-	call strcpy
-	call strlen 
-	clrw x 
-	ld xl,a 
-	incw  x
-	addw x,#pad 
-; ** write file size to row buffer 
-	ldw y,(BSIZE,sp)
-	ldw (x),y 
-	addw x,#2 
-; ** write file data to row buffer 
-	ldw y,txtbgn 
-6$:	ld a,(y)
-	incw y
-	ld (x),a 
-	incw x
-	cpw y,txtend 
-	jreq 12$
-	cpw x,#stack_full 
-	jrmi 6$
-12$:
-	ldw (YSAVE,sp),y 
-14$: ; zero buffer end 
-	cpw x,#stack_full
-	jreq 16$
-	clr (x)
-	incw x 
-	jra 14$
-16$:
-	ldw x,#pad 
-	call write_row 
-	ldw x,#BLOCK_SIZE 
-	call incr_farptr
-	ldw x,#pad 
-	ldw y,(YSAVE,sp)
-	cpw y,txtend 
-	jrmi 6$
-; save farptr in ffree
-	ldw x,farptr 
-	ld a,farptr+2 
-	ldw ffree,x 
-	ld ffree+2,a
-; print file size 	
-	ldw x,(BSIZE,sp) 
-	call print_int 
-	_drop VSIZE 
+	dec (COUNT,sp)
+	jrne 1$ 
+2$:	_drop VSIZE 
 	ret 
 
-;----------------------
-; load file in RAM memory
-; input:
-;    farptr point at file size 
-; output:
-;   y point after BASIC program in RAM.
-;------------------------
-load_file:
-	call incr_farptr  
-	call clear_basic  
-	clrw x
-	ldf a,([farptr],x)
-	ld yh,a 
-	incw x  
-	ldf a,([farptr],x)
-	incw x 
-	ld yl,a 
-	addw y,txtbgn
-	ldw txtend,y
-	ldw y,txtbgn
-3$:	; load BASIC text 	
-	ldf a,([farptr],x)
-	ld (y),a 
-	incw x 
-	incw y 
-	cpw y,txtend 
-	jrmi 3$
-	ret 
-
-;------------------------
-; BASIC: LOAD "file" 
-; load file to RAM 
-; for execution 
-;------------------------
-load:
-	btjf flags,#FRUN,0$ 
-	jreq 0$ 
-	ld a,#ERR_CMD_ONLY 
-	jp tb_error 
-0$:	
-	call next_token 
-	cp a,#TK_QSTR
-	jreq 1$
-	jp syntax_error 
-1$:	ldw y,x 
-	call search_file 
-	jrc 2$ 
-	ld a,#ERR_NOT_FILE
-	jp tb_error  
-2$:
-	call load_file
-; print loaded size 	 
-	ldw x,txtend 
-	subw x,txtbgn
-	call print_int 
-	ret 
 
 ;-----------------------------------
-; BASIC: FORGET ["file_name"] 
-; erase file_name and all others 
-; after it. 
-; without argument erase all files 
+; BASIC: ERASE
+; erase all block in range from 
+;  'app_space' to RAM end (0x20000)
+; that contains a non zero byte.  
 ;-----------------------------------
-	NEW_FREE=1   ; free address after file delete
-	BLOCK_COUNT=4  ; how many rows to delete
-	VSIZE=5 
-forget:
-	_vars VSIZE 
-	call next_token 
-	cp a,#TK_NONE 
-	jreq 2$ 
-	cp a,#TK_QSTR
-	jreq 1$
-	jp syntax_error
-1$: ldw y,x 
-	mov in,count 
-	call search_file
-	jrc 3$
-	ld a,#ERR_NOT_FILE 
-	jp tb_error 
-2$: 
-	ldw x,#0x100
-	clr a 
-	ldw farptr,x 
-	ld farptr+2,a 
-3$:	ld a,farptr+2 
-	ldw x,farptr 
-; save new free address 
-	ldw (NEW_FREE,sp),x
-	ld (NEW_FREE+2,sp),a 
-; count blocks to erase 
-	ld a,ffree+2 
-	ldw x,ffree 
-	sub a,farptr+2 
-	jrnc 4$
-	decw x 
-4$:	subw x,farptr 
-; X= X:A/BLOCK_SIZE 
-	sll a 
-	rlcw x 
-	ldw (BLOCK_COUNT,sp),x
+	BLOCK=1  ;block to delete 
+	VSIZE=2
+erase:
+ ; operation done from RAM  
 	call move_erase_to_ram
-5$: ldw x,(BLOCK_COUNT,sp)
-	tnzw x
-	jreq 6$
-	call block_erase 
-	ldw x,#BLOCK_SIZE 
-	call incr_farptr 
-	ldw x,(BLOCK_COUNT,sp)
-	decw x 
-	ldw (BLOCK_COUNT,sp),x
-	jra 5$  
-; save new free address
-6$:	ld a,(NEW_FREE+2,sp)
-	ldw x,(NEW_FREE,sp)
-	ld ffree+2,a 
-	ldw ffree,x 
-	_drop VSIZE 
-	ret 
-
-;----------------------
-; BASIC: DIR 
-; list saved files 
-;----------------------
-	COUNT=1 ; files counter 
-	VSIZE=2 
-directory:
 	_vars VSIZE 
-	clrw x 
-	ldw (COUNT,sp),x 
+	ldw x,#app_space 
+	ld a,#128 
+	div x,a 
+1$:	ldw (BLOCK,sp),x 
+    call scan_block 
+	jrne 3$ 
+; this block is clean, next  
+2$:	ldw x,(BLOCK,sp)
+	incw x 
+	cpw x,#1024 ; maximum block count 
+	jrult 1$ 
+	jra 9$ ; done  
+3$: ; acc24 still contains block address
+	mov farptr,acc24			
+	ldw x,acc16 
 	ldw farptr+1,x 
-	mov farptr,#1 
-dir_loop:
-	clrw x 
-	ldf a,([farptr],x)
-	jreq 8$ 
-1$: ;name loop 	
-	ldf a,([farptr],x)
-	jreq 2$ 
-	call putc 
-	incw x 
-	jra 1$
-2$: incw x ; skip ending 0. 
-	ld a,#SPACE 
-	call putc 
-; get file size 	
-	ldf a,([farptr],x)
-	ld yh,a 
-	incw x 
-	ldf a,([farptr],x)
-	incw x 
-	ld yl,a 
-	pushw y 
-	addw x,(1,sp)
-; skip to next file 
-	call incr_farptr
-	call row_align
-; print file size 
-	popw x ; file size 
-	call print_int 
-	ld a,#CR 
-	call putc
-	ldw x,(COUNT,sp)
-	incw x
-	ldw (COUNT,sp),x  
-	jra dir_loop
-8$: ; print number of files 
-	ldw x,(COUNT,sp)
-	call print_int 
-	ldw x,#file_count 
-	call puts  
-; print drive free space 	
-	call disk_free
-	clrw x  
-	mov base,#10 
-	call prti24 
-	ldw x,#drive_free
-	call puts 
-	_drop VSIZE 
-	ret
-file_count: .asciz " files\n"
-drive_free: .asciz " bytes free\n" 
+	call block_erase 
+	jra 2$
+9$: _drop VSIZE 
+	 ret 
+
 
 ;---------------------
 ; BASIC: WRITE expr1,expr2[,expr]* 
@@ -4181,16 +3767,22 @@ bad_port:
 
 ;-------------------------
 ; BASIC: UFLASH 
-; return user flash address
+; return free flash address
 ; input:
 ;  none 
 ; output:
 ;	A		TK_INTGR
-;   X 		user address 
+;   X 		free address 
 ;---------------------------
 uflash:
-	ldw x,#user_space 
-	ld a,#TK_INTGR 
+	ldw x,app_sign
+	cpw x,#4243 ; signature "BC" 
+	jreq 1$
+	ldw x,app_size 
+	addw x,#app
+	jra 2$
+1$:	ldw x,#app_space 
+2$:	ld a,#TK_INTGR 
 	ret 
 
 
@@ -4235,65 +3827,6 @@ bye:
 	btjf UART1_SR,#UART_SR_TC,.
 	halt
 	jp cold_start  
-
-;----------------------------------
-; BASIC: AUTORUN ["file_name"] 
-; record in eeprom at adrress AUTORUN_NAME
-; the name of file to load and execute
-; at startup. 
-; empty string delete autorun name 
-; no argument display autorun name  
-; input:
-;   file_name   file to execute 
-; output:
-;   none
-;-----------------------------------
-autorun: 
-	btjf flags,#FRUN,0$ 
-	jreq 0$ 
-	ld a,#ERR_CMD_ONLY 
-	jp tb_error 
-0$:	
-	call next_token
-	tnz a 
-	jrne 1$
-	ldw x,#AUTORUN_NAME
-	call puts 
-	clr a 
-	ret 
-1$:
-	cp a,#TK_QSTR
-	jreq 2$
-	jp syntax_error 
-2$:	
-	tnz (x) 
-	jrne 3$
-; empty string, delete autorun 	
-	call cancel_autorun
-	mov in,count 
-	ret 
-3$:	pushw x 
-	ldw y,x  
-	call search_file 
-	jrc 4$ 
-	ld a,#ERR_NOT_FILE
-	jp tb_error  
-4$: 
-	mov in,count 
-	clr farptr 
-	ldw x,#AUTORUN_NAME
-	ldw farptr+1,x 
-	ldw x,(1,sp)  
-	call strlen  ; return length in A 
-	clrw x 
-	ld xl,a 
-	incw x 
-	popw y 
-	pushw x 
-	clrw x 
-	call write_block 
-	_drop 2 
-	ret 
 
 ;----------------------------------
 ; BASIC: SLEEP 
@@ -5365,7 +4898,6 @@ kword_end:
 	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
 	_dict_entry,5,SLEEP,SLEEP_IDX;sleep 
     _dict_entry,4,SHOW,SHOW_IDX;show 
-	_dict_entry,4,SAVE,SAVE_IDX;save
 	_dict_entry 3,RUN,RUN_IDX;run
 	_dict_entry,6+F_IFUNC,RSHIFT,RSHIFT_IDX;rshift
 	_dict_entry,3+F_IFUNC,RND,RND_IDX;random 
@@ -5400,7 +4932,6 @@ kword_end:
 	_dict_entry,6+F_IFUNC,MULDIV,MULDIV_IDX;muldiv 
 	_dict_entry,6+F_IFUNC,LSHIFT,LSHIFT_IDX;lshift
 	_dict_entry,3+F_IFUNC,LOG,LOG_IDX;log2 
-	_dict_entry,4,LOAD,LOAD_IDX;load 
 	_dict_entry 4,LIST,LIST_IDX;list
 	_dict_entry 3,LET,LET_IDX;let 
 	_dict_entry,3+F_IFUNC,KEY,KEY_IDX;key 
@@ -5415,15 +4946,14 @@ kword_end:
 	_dict_entry,4,GOTO,GOTO_IDX;goto 
 	_dict_entry,5,GOSUB,GOSUB_IDX;gosub 
 	_dict_entry,4+F_IFUNC,FREE,FREE_IDX;free
-	_dict_entry,6,FORGET,FORGET_IDX;forget 
 	_dict_entry,3,FOR,FOR_IDX;for 
 	_dict_entry,4,FCPU,FCPU_IDX;fcpu 
+	_dict_entry,5,ERASE,ERASE_IDX; erase 
 	_dict_entry,3,END,END_IDX;cmd_end  
 	_dict_entry,6+F_IFUNC,EEPROM,EEPROM_IDX;const_eeprom_base   
 	_dict_entry,6+F_CMD,DWRITE,DWRITE_IDX;digital_write
 	_dict_entry,5+F_IFUNC,DREAD,DREAD_IDX;digital_read
 	_dict_entry,2,DO,DO_IDX;do_loop
-	_dict_entry,3,DIR,DIR_IDX;directory 
 	_dict_entry,3,DEC,DEC_IDX;dec_base
 	_dict_entry,3+F_IFUNC,DDR,DDR_IDX;const_ddr 
 	_dict_entry,6,DATALN,DATALN_IDX;data_line  
@@ -5438,7 +4968,6 @@ kword_end:
 	_dict_entry,4,BRES,BRES_IDX;bit_reset
 	_dict_entry,3+F_IFUNC,BIT,BIT_IDX;bitmask
 	_dict_entry,3,AWU,AWU_IDX;awu 
-	_dict_entry,7,AUTORUN,AUTORUN_IDX;autorun
 	_dict_entry,3+F_IFUNC,ASC,ASC_IDX;ascii
 	_dict_entry,3+F_IFUNC,AND,AND_IDX;bit_and
 	_dict_entry,7+F_IFUNC,ADCREAD,ADCREAD_IDX;analog_read
@@ -5448,33 +4977,30 @@ kword_dict::
 
 ;comands and fonctions address table 	
 code_addr::
-	.word abs,power_adc,analog_read,bit_and,ascii,autorun,awu,bitmask ; 0..7
+	.word abs,power_adc,analog_read,bit_and,ascii,awu,bitmask ; 0..7
 	.word bit_reset,bit_set,bit_test,bit_toggle,bye,char,const_cr2  ; 8..15
-	.word const_cr1,data,data_line,const_ddr,dec_base,directory,do_loop,digital_read,digital_write ;16..23 
-	.word cmd_end,const_eeprom_base,fcpu,for,forget,gosub,goto,gpio ; 24..31 
+	.word const_cr1,data,data_line,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
+	.word const_eeprom_base,cmd_end,erase,fcpu,for,gosub,goto,gpio ; 24..31 
 	.word hex_base,const_idr,if,input_var,invert,enable_iwdg,refresh_iwdg,key ; 32..39 
-	.word let,list,load,log2,lshift,muldiv,next,new ; 40..47
+	.word let,list,log2,lshift,muldiv,next,new ; 40..47
 	.word func_not,const_odr,bit_or,pad_ref,pause,pin_mode,peek,const_input ; 48..55
 	.word poke,const_output,print,const_porta,const_portb,const_portc,const_portd,const_porte ; 56..63
 	.word const_portf,const_portg,const_porth,const_porti,qkey,read,cold_start,remark ; 64..71 
-	.word restore,return, random,rshift,run,save,show,free ; 72..79
+	.word restore,return, random,rshift,run,show,free ; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
 	.word wait,words,write,bit_xor ; 96..99
 	.word 0 
 
 	.bndry 128 ; align on FLASH block.
-; free space for user application  
-user_space:
-; USR() function test
-	pushw x 
-	bset PC_ODR,#5 
-	popw x 
-	call pause02 
-	bres PC_ODR,#5 
-	ret
+; space for user application  
+app_space:
+app_sign: .ascii "BC"  ; signature 
+app_size:  .word 41
+app: ;  BASIC byte code for blink.bas application.
+; 10 do btogl $500a,32 pause 250 until qkey bres $500a,32 end 
+.byte 0,10,41,128,0,38,128,0,20,132,80,10,9,132,0,32,128,0,98,132
+.byte 0,250,128,0,180,129,0,130,128,0,14,132,80,10,9,132,0,32,128,0,46,0
 
-	.area FLASH_DRIVE (ABS)
-	.org 0x10000
-fdrive:
-; .byte 0,0,0,0
+
+

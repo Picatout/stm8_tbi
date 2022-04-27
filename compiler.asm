@@ -438,6 +438,8 @@ kw_loop:
 	jp syntax_error
 4$:	
 	ldw y,(XFIRST,sp)
+	cpw x,#LET_IDX 
+	jreq 5$  ; don't compile LET command 
 	ld (y),a 
 	incw y 
 	ldw (y),x

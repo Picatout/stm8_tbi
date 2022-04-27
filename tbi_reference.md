@@ -76,7 +76,12 @@ Les opérateurs relationnels ont une priorités inférieure à celle des opérat
 
 Le code utilisé pour le texte est le code [ASCII](https://fr.wikipedia.org/wiki/American_Standard_Code_for_Information_Interchange).
 
-Un programme débute par un numéro de ligne suivit d'une ou plusieurs commandes séparées par le caractère **':'**.
+Un programme débute par un numéro de ligne suivit d'une ou plusieurs commandes séparées par le caractère **':'**. Ce caractère est facultatif, l'espace entre les commandes est suffisant pour les distinguées.  Par exemple:
+```
+>t=ticks for i=1to10000 a=10 next i u=ticks-t ? u
+333 
+```
+fonctionne sans problème.
 
 Une commande est suivie de ses arguments séparés par une virgule. Les arguments des fonctions doivent-être mis entre parenthèses. Par fonction j'entends une sous-routine qui retourne une valeur. Cependant une fonction qui n'utilise pas d'arguments n'est pas suivie de parenthèses. Les commandes , c'est à dire les sous-routines qui ne retoune pas de valeur, reçoivent leur arguments sans parenthèses. 
 
@@ -85,7 +90,7 @@ Les *espaces* entre les *unitées lexicales* sont facultatifs sauf s'il y a ambi
 Les commandes peuvent-être entrées indifféremment en minuscule ou majuscule.
 L'analyseur lexical convertie les lettres en  majuscule sauf à l'intérieur d'une chaîne entre guillemets.
 
-Les commandes peuvent-être abrégées au plus court à 2 caractères à condition qu'il n'y est pas d'ambiguité entre 2 commandes. L'abréviation doit-être d'au moins 2 lettres pour éviter la confusion avec les variables. Par exemple **GOTO**peut-être abrégé **GOT** et **GOSUB** peut-être abrégé **GOS**. 
+Les commandes peuvent-être abrégées au plus court à 2 caractères à condition qu'il n'y est pas d'ambiguité entre 2 commandes. L'abréviation doit-être d'au moins 2 lettres pour éviter la confusion avec les variables. Par exemple **GOTO** peut-être abrégé **GO** et **GOSUB** peut-être abrégé **GOS**. La recherche dans le dictionnaire se fait de la fin vers le début donc le **GOTO** est atteint avant le **GOSUB** voilà pourquoi **GO** peut-être utilisée pour le représenté.
 
 Certaines commandes sont représentées facultativement par une caractère unique. Par exemple la commande **PRINT** peut-être remplacée par le caractère **'?'**. La commande **REMARK** peut-être remplacée par un apostrophe (**'**). 
 
@@ -147,6 +152,20 @@ Certaines commandes ne peuvent-être utilisées qu'à l'intérieur d'un programm
 
 Le programme en mémoire RAM est perdu à chaque réinitialiation du processeur sauf s'il a été sauvegardé comme fichier dans la mémoire flash. Les commandes de fichiers sont décrites dans la section référence.
 
+### Commandes d'édtion
+
+Touches|fonction 
+-|-
+BS|efface le caractère à gauche 
+ln CTRL+E|edite la ligne 'ln'
+CTLR+R|ramène la dernière ligne saisie.
+CTRL+D|supprime la ligne en cours d'édition 
+HOME| déplace le curseur au début de ligne
+END| déplace le curseur à la fin de la ligne 
+flèche gauche| déplace le curseur vers la gauche 
+flèche droite| déplace le cureseur vers la droite
+CTRL+O|commute entre les modes insertion|écrasement
+
 [index principal](#index-princ)
 <a id="fichiers"></a>
 ## Système de fichier
@@ -168,7 +187,6 @@ nom|abrévation
 [ADCREAD](#adcread)|ADCR
 [AND](#and)|AN
 [ASC](#asc)|AS
-[AUTORUN](#autorun)|AU
 [AWU](#awu)|AW 
 [BIT](#bit)|BI
 [BRES](#bres)|BR
@@ -183,7 +201,6 @@ nom|abrévation
 [DATALN](#dataln)|DATAL
 [DDR](#ddr)|DD
 [DEC](#dec)|DE
-[DIR](#dir)|DI
 [DO](#do)|DO
 [DREAD](#dread)|DR
 [DWRITE](#dwrite)|DW
@@ -191,7 +208,6 @@ nom|abrévation
 [END](#end)|EN
 [FCPU](#fcpu)|FC 
 [FOR](#for)|FO
-[FORGET](#forget)|FORG
 [FREE](#free)|FR
 [GOSUB](#gosub)|GOS
 [GOTO](#goto)|GOT
@@ -206,7 +222,6 @@ nom|abrévation
 [KEY](#key)|KE
 [LET](#let)|LE
 [LIST](#list)|LI
-[LOAD](#load)|LO
 [LOG](#log)|LOG
 [LSHIFT](#lshift)|LS
 [MULDIV](#muldiv)|MU
@@ -241,7 +256,6 @@ nom|abrévation
 [RND](#rnd)|RN
 [RSHIFT](#rshift)|RS
 [RUN](#run)|RU
-[SAVE](#save)|SA
 [SHOW](#show)|SH
 [SLEEP](#sleep)|SL
 [SPIEN](#spien)|SPIE
@@ -336,34 +350,6 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
 
     >
 ```
-[index](#index)
-<a id="autorun"></a>
-### AUTORUN *"file"*  {C}
-Cette commande définie un fichier programme à charger et exécuter au démarrage. Si le fichier n'existe pas il n'y a aucun message d'erreur, on se retrouve simplement sur la ligne de commande.
-Le nom du fichier est sauvegardé au début de la mémoire **EEPROM** qui est à l'adresse  **0x4000 (16384)**.  Il faut donc faire attention pour ne pas l'écraser avec la commande **WRITE**.
-```
->10 btogl $500a,32: pause 333:if not(qkey):goto 10
-
->20 bres $500a,32
-
->li
-   10 BTOGL  20490 , 32 :PAUSE  333 :IF NOT (QKEY ):GOTO  10 
-   20 BRES  20490 , 32 
-
->save "blink"
-  53
->autorun "blink"
-
->reboot
-
-
-Tiny BASIC for STM8
-Copyright, Jacques Deschenes 2019,2020
-version 1.0
-blink loaded and running
-```
-Maintenant chaque fois que la carte est réinitialisée le progamme **blink** est chargé et exécuté. 
-
 [index](#index)
 <a id="awu"></a>
 ### AWU *expr*  {C,P}
@@ -512,17 +498,6 @@ La commande *decimal* définie la base numérique pour l'affichage des entiers �
     -10
 
 [index](#index)
-<a id="dir"></a>
-### DIR {C,P}
-La commande *directory*  affiche la liste des fichiers sauvegardés en mémoire flash.
-
-    >dir
-    table1   66
-    hello   21
-    blink   52
-    3 files
-
-[index](#index)
 <a id="do"></a>
 ### DO {C,P}
 Mot réservé qui débute une boucle **DO ... UNTIL** Les instructions entre  **DO** et **UNTIL**  s'exécutent en boucle aussi longtemps que l'expression qui suit **UNTIL** est fausse.  Voir **UNTIL**. 
@@ -655,28 +630,6 @@ Exemple de boucle FOR...NEXT dans un programme.
   15  30  45  60  75  90 105 120 135 150 165 180 195 210 225 240 255
   16  32  48  64  80  96 112 128 144 160 176 192 208 224 240 256 272
   17  34  51  68  85 102 119 136 153 170 187 204 221 238 255 272 289
-
->
-```
-
-[index](#index)
-<a id="forget"></a>
-### FORGET ["file"] {C,P}
-Cette commande sert à supprimer un fichier sauvegardé dans la mémoire flash. 
-**Tous les fichiers qui suivent celui nommé sont aussi supprimés. Si aucun fichier n'est nommé tous les fichiers sont supprimés.**
-```
->dir
-table1   66
-hello   21
-blink   52
-   3 files
-
->forget "blink"
-
->dir
-table1   66
-hello   21
-   2 files
 
 >
 ```
@@ -863,6 +816,7 @@ Affecte une valeur à une variable. En Tiny BASIC il n'y a que 26 variables repr
 
 >
 ```
+La commande **LET** est facultative et n'est conservée que pour des raisons de compatibilité avec les programmes TinyBasic originaux. Le compilateur supprime cette commande. 
 
 [index](#index)
 <a id="list"></a>
@@ -883,34 +837,6 @@ Affiche le programme contenu dans la mémoire RAM à l'écran. Sans arguments to
 
 >
 
-```
-
-[index](#index)
-<a id="load"></a>
-### LOAD *string*  {C}
-Charge un fichier sauvegardé dans la mémoire flash vers la mémoire RAM dans le but de l'exécuter. *string* est le nom du fichier à charger.
-```
->save "fibonacci"
-  86
->new
-
->li
-
->load "fibonacci"
-  86
->load "fibo"
- 100
->li
-   10 'Fibonacci
-   20 A =1:B =1
-   30 IF B >100:END 
-   40 PRINT B ,
-   50 C =A +B :A =B :B =C 
-   60 GOTO 30
-
->run
-   1   2   3   5   8  13  21  34  55  89
->
 ```
 
 [index](#index)
@@ -1230,29 +1156,6 @@ Cette fonction décale vers la droite *expr1* de *expr2* bits. Le bit le plus si
 Lance l'exécution du programme qui est chargé en mémoire RAM. Si aucun programme n'est chargé il ne se passe rien.
 
 [index](#index)
-<a id="save"></a>
-### SAVE *string* 
-Sauvegarde le programme qui est en mémoire RAM dans un fichier. La mémoire FLASH étendue qui n'est pas utilisée par Tiny BASIC est utilisée comme mémoire permanente pour un système de fichier rudimentaire où les programmes sont sauvegardés. *string* est le nom du fichier. Si un fichier avec ce nom existe déjà un message d'erreur s'affiche. À la fin de  la commande la taille du programme sauvegardé est affichée.
-```
->li
-    5 ? #6,"Suite de Fibonacci,'q'uitter, autre suivant"
-   10 a=1:b=1:f=1
-   12 ? f,
-   20 gosub 100
-   30 r=key:if r=asc("q"):end 
-   40 goto 20
-  100 'imprime terme, calcule suivant
-  110 ?f,
-  120 a=b:b=f:f=a+b
-  130 return
-
->save "fibo"
-duplicate name.
-save "fibo"
-           ^
->
-```
-[index](#index)
 <a id="show"></a>
 ### SHOW {C,P}
  Outil d'aide au débogage d'un programme. Cette commande affiche le contenu de la  pile. Peut-être insérée à l'intérieur d'un programme ou sur la ligne de commande en conjonction avec la commande **STOP**.
@@ -1526,12 +1429,12 @@ Dans cet exemple l'adresse $5131 correspond au registre UART1_DR et $5231 au UAR
 Affiche la liste de tous les mots qui sont dans le dictionnaire. Le dictionnaire est une liste chaînée des noms des commandes et fonctions de Tiny Basic en relation avec l'adresse d'exécution. 
 ```
 >words
-ABS ADCON ADCREAD AND ASC AUTORUN AWU BIT BRES BSET BTEST BTOGL BYE CHAR
-CRH CRL DATA DATALN DDR DEC DIR DO DREAD DWRITE END EEPROM FCPU FOR FORGET
-GOSUB GOTO GPIO HEX IDR IF INPUT INVERT IWDGEN IWDGREF KEY LET LIST LOAD
+ABS ADCON ADCREAD AND ASC AWU BIT BRES BSET BTEST BTOGL BYE CHAR
+CRH CRL DATA DATALN DDR DEC DO DREAD DWRITE END EEPROM FCPU FOR 
+GOSUB GOTO GPIO HEX IDR IF INPUT INVERT IWDGEN IWDGREF KEY LET LIST 
 LOG LSHIFT MULDIV NEXT NEW NOT ODR OR PAD PAUSE PMODE PEEK PINP POKE POUT
 PRINT PRTA PRTB PRTC PRTD PRTE PRTF PRTG PRTH PRTI QKEY READ REBOOT REMARK
-RESTORE RETURN RND RSHIFT RUN SAVE SHOW SIZE SLEEP SPIRD SPIEN SPISEL SPIWR
+RESTORE RETURN RND RSHIFT RUN SHOW SIZE SLEEP SPIRD SPIEN SPISEL SPIWR
 STEP STOP TICKS TIMER TIMEOUT TO TONE UBOUND UFLASH UNTIL USR WAIT WORDS
 WRITE XOR 
  100 words in dictionary
