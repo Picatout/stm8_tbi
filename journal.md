@@ -1,5 +1,57 @@
 #### 2022-04-27
 
+*  Déboguer:
+``` 
+>? peek($A904), 
+compile error, syntax error
+? peek($A904), 
+              ^
+```
+Le bogue était causé par une constante **COMMA** définie dans la commande **PRINT** du fichier [TinyBasic.asm](TinyBasic.asm) qui faisait interférence avec le même symbole utilisé dans [ascii.inc](ascii.inc)
+j'ai renommé la constante de **PRINT**  **CCOMMA**. 
+```
+; dans PRINT variable locale 
+;---------------------------------
+; BASIC: PRINT|? arg_list 
+; print values from argument list
+;----------------------------------
+	CCOMMA=1
+	VSIZE=1
+print:
+```
+```
+; dans get_token du compiler.asm
+; la valeur définie dans ascii.inc est attendue ici. 
+comma_tst:
+	_case COMMA sharp_tst 
+	ld a,#TK_COMMA
+	jp token_char
+sharp_tst:
+
+```
+Correction testée.
+```
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 1 .2 
+running application in FLASH at address: $A904 
+> ? char(peek($A900),char(peek($a901)
+BC
+
+>
+```
+
+*  Déboguer impression entier en base hexadecimal. Digit plus significatif manquant.
+
+* Crétion du fichier [app.asm](app.asm) qui doit-être le dernier lié car l'étiquette **app_space:** doit-être localisé complètement à la fin du code binaire. 
+
+* Réécriture du fichier [Makefile](Makefile)
+
+* Tester et doboguer commande **ERASE**. 
+
+* 9:39 commit 
+
+
 * __NOTE:__ <br>Lorsqu'une application en FLASH est interrompue les pointeurs BASIC **txtbgn** et **txtend** demeurent inchangés donc la commande LIST affiche le programme en FLASH et 
   la commande **RUN** redémarre le programme en FLASH. Il faut faire la commande **NEW** pour ramener  **txtbgn** et **txtend** en mémoire RAM et pouvoir écrire un nouveau programme.
 

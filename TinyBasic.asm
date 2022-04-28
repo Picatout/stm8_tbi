@@ -448,7 +448,7 @@ do_programming:
 
 ;-----------------------------------
 ; erase flash or EEPROM block
-; a blow is 128 bytes 
+; a block is 128 bytes 
 ; input:
 ;   farptr  address row begin
 ; output:
@@ -981,7 +981,7 @@ is_alnum::
 ;-------------------------------------
 	MAJOR=1
 	MINOR=2 
-software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2020\nversion "
+software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
 cold_start:
 ;set stack 
 	ldw x,#STACK_EMPTY
@@ -1051,11 +1051,18 @@ cold_start:
 	call warm_init
 ; check for application in flash memory 
 	ldw x,app_sign 
-	cpw x,#0x4243
+	cpw x,#0x4243 ; signature "BC" 
 	jreq 3$
 	jp cmd_line 
 3$:	 
-	ldw x,#app 
+	ldw x,#running 
+	call puts 
+;	jra 4$
+	ldw x,#app
+	mov base,#16 
+	call print_int
+	mov base,#10  
+4$:	ldw x,#app  
 	ldw basicptr,x
 	ldw txtbgn,x 
 	ld a,(2,x)
@@ -1067,6 +1074,8 @@ cold_start:
 	ldw txtend,x  
 	jp interp_loop 
     jra .  
+
+running: .asciz "\nrunning application in FLASH at address: " 
 
 warm_init:
 	clr flags 
@@ -1309,7 +1318,7 @@ print_int:
 	ldw acc16,x 
 	btjf acc16,#7,prti24
 	cpl acc24 
-
+	
 ;------------------------------------
 ; print integer in acc24 
 ; input:
@@ -1357,8 +1366,9 @@ itoa::
 	addw x,#TIB_SIZE
 	decw x 
 	clr (x)
+	decw x 
 	ld a,#32
-	ld (x),a 
+	ld (x),a
 	inc (LEN,sp)
 itoa_loop:
     ld a,base
@@ -1390,7 +1400,7 @@ itoa_loop:
 ; in hexadecimal to avoid '-' sign 
 ; extend display 	
 8$: ld a,(LEN,sp) 
-	cp a,#5 
+	cp a,#6 
 	jrmi 81$
 	incw x
 	dec (LEN,sp)
@@ -2604,12 +2614,12 @@ prt_basic_line:
 ; BASIC: PRINT|? arg_list 
 ; print values from argument list
 ;----------------------------------
-	COMMA=1
+	CCOMMA=1
 	VSIZE=1
 print:
 	_vars VSIZE 
 reset_comma:
-	clr (COMMA,sp)
+	clr (CCOMMA,sp)
 prt_loop:
 	call next_token
 	cp a,#CMD_END 
@@ -2638,7 +2648,7 @@ prt_loop:
 	call putc
 	jra reset_comma 
 4$: ; set comma state 
-	cpl (COMMA,sp)
+	cpl (CCOMMA,sp)
 	jra prt_loop   
 5$: ; # character must be followed by an integer   
 	call next_token
@@ -2658,7 +2668,7 @@ prt_loop:
     call print_int 
 	jra reset_comma 
 print_exit:
-	tnz (COMMA,sp)
+	tnz (CCOMMA,sp)
 	jrne 9$
 	ld a,#CR 
     call putc 
@@ -3544,29 +3554,19 @@ incr_farptr:
 ; scan block for non zero byte 
 ; block are 128 bytes 
 ; input:
-;     X     block# 
+;    farptr     address block  
 ; output:
-;     A     0 clean, other not clean 
+;     A     0 cleared, other not cleared  
 ;-----------------------------------
-	COUNT=1 
-	VSIZE=1
 scan_block:
-	ld a, #128 ;COUNT 
-	push a  
-	clr acc24 
-	ldw acc16,x 
-	call mulu24_8  ; block address  
-	mov farptr,acc24 
-	ldw x,acc16 
-	ldw farptr+1,x 
-	ldw x,#1  ; farptr increment 
-1$: ldf a,[farptr]
+	clrw x 
+1$: ldf a,([farptr],x) 
 	jrne 2$
-	call incr_farptr
-	dec (COUNT,sp)
-	jrne 1$ 
-2$:	_drop VSIZE 
-	ret 
+	incw x 
+	cpw x,#BLOCK_SIZE 
+	jrult 1$ 
+2$:	ret 
+
 
 
 ;-----------------------------------
@@ -3575,31 +3575,25 @@ scan_block:
 ;  'app_space' to RAM end (0x20000)
 ; that contains a non zero byte.  
 ;-----------------------------------
-	BLOCK=1  ;block to delete 
-	VSIZE=2
 erase:
- ; operation done from RAM  
+ ; operation done from RAM
+ ; copy code to RAM in tib   
 	call move_erase_to_ram
-	_vars VSIZE 
-	ldw x,#app_space 
-	ld a,#128 
-	div x,a 
-1$:	ldw (BLOCK,sp),x 
+	; first block 
+	clr farptr 
+	ldw x,#app_space
+	ldw farptr+1,x
+1$:	 
     call scan_block 
-	jrne 3$ 
+	jreq 2$
+	call block_erase   
 ; this block is clean, next  
-2$:	ldw x,(BLOCK,sp)
-	incw x 
-	cpw x,#1024 ; maximum block count 
+2$:	ldw x,#BLOCK_SIZE
+	call incr_farptr
+	ld a,farptr
+	cp a,#2 
 	jrult 1$ 
-	jra 9$ ; done  
-3$: ; acc24 still contains block address
-	mov farptr,acc24			
-	ldw x,acc16 
-	ldw farptr+1,x 
-	call block_erase 
-	jra 2$
-9$: _drop VSIZE 
+9$: 
 	 ret 
 
 
@@ -4992,15 +4986,6 @@ code_addr::
 	.word wait,words,write,bit_xor ; 96..99
 	.word 0 
 
-	.bndry 128 ; align on FLASH block.
-; space for user application  
-app_space:
-app_sign: .ascii "BC"  ; signature 
-app_size:  .word 41
-app: ;  BASIC byte code for blink.bas application.
-; 10 do btogl $500a,32 pause 250 until qkey bres $500a,32 end 
-.byte 0,10,41,128,0,38,128,0,20,132,80,10,9,132,0,32,128,0,98,132
-.byte 0,250,128,0,180,129,0,130,128,0,14,132,80,10,9,132,0,32,128,0,46,0
 
 
 

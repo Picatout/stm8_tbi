@@ -29,12 +29,12 @@
 
     .module TERMINAL
 
-    .nlist
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "tbi_macros.inc" 
+;    .nlist
+;	.include "inc/nucleo_8s208.inc"
+;	.include "inc/stm8s208.inc"
+;	.include "inc/ascii.inc"
+;	.include "inc/gen_macros.inc" 
+;	.include "tbi_macros.inc" 
     .list 
 
 
@@ -51,10 +51,10 @@
     ARROW_LEFT=128
     ARROW_RIGHT=129
     HOME=130
-    END=131
+    KEY_END=131
     SUP=132 
 
-convert_table: .byte 'C',ARROW_RIGHT,'D',ARROW_LEFT,'H',HOME,'F',END,'3',SUP,0,0
+convert_table: .byte 'C',ARROW_RIGHT,'D',ARROW_LEFT,'H',HOME,'F',KEY_END,'3',SUP,0,0
 
 ;--------------------------------
 ; receive ANSI ESC 
@@ -261,12 +261,12 @@ spaces::
 ;   Y       updated Y 
 ;-------------------------
 	IPOS=1
-	CHAR=2 
+	KCHAR=2 
     LLEN=3 
 	VSISE=3 
 insert_char: 
 	_vars VSIZE 
-    ld (CHAR,sp),a 
+    ld (KCHAR,sp),a 
     ld a,xh 
 	ld (IPOS,sp),a
     ld a,xl 
@@ -283,7 +283,7 @@ insert_char:
     ld a,(IPOS,sp)
     ld acc8,a 
     addw y,acc16 
-    ld a,(CHAR,sp)
+    ld a,(KCHAR,sp)
     ld (y),a
     incw y  
     ld a,(IPOS,sp)
@@ -363,7 +363,7 @@ delete_line:
 ;    CTRL_R  répète dernière ligne saisie
 ;    CTRL_D  supprime ligne 
 ;    HOME  va au début de la ligne 
-;    END  va à la fin de la ligne 
+;    KEY_END  va à la fin de la ligne 
 ;    ARROW_LEFT  un caractère vers la gauche 
 ;    ARROW_RIGHT  un caractère vers la droite 
 ;    CTRL_O  commute entre insert/overwrite
@@ -514,9 +514,9 @@ readln_loop:
 	clr (CPOS,sp)
     ldw y,#tib 
 	jp readln_loop  
-9$: cp a,#END  
+9$: cp a,#KEY_END  
 	jrne 10$
-; END 
+; KEY_END 
 	ld a,(CPOS,sp)
 	cp a,(LL,sp)
 	jrne 91$

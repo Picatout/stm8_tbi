@@ -24,13 +24,13 @@
 
     .module DECOMPILER 
 
-    .nlist
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "tbi_macros.inc" 
-	.include "cmd_index.inc"
+;    .nlist
+;	.include "inc/nucleo_8s208.inc"
+;	.include "inc/stm8s208.inc"
+;	.include "inc/ascii.inc"
+;	.include "inc/gen_macros.inc" 
+;	.include "tbi_macros.inc" 
+;	.include "cmd_index.inc"
     .list 
 
 

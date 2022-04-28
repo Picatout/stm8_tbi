@@ -11,8 +11,5 @@
 -l stm8
 -l stm8
 build/TinyBasic.rel
-build/terminal.rel
-build/compiler.rel
-build/decompiler.rel
 
 -e
