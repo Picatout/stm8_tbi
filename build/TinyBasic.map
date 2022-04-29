@@ -7,17 +7,17 @@ Area                                    Addr        Size        Decimal Bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     FFFFFFFF  s_SSEG                          
      00000000  .__.ABS.                           STM8_TBI
      00000000  l_SSEG                          
      00000000  l__CODE                         
+     00000000  s_SSEG                          
      00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
      00000064  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
-     000028AE  l_CODE                          
+     00002A23  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -45,7 +45,7 @@ DATA                                00000001    00000064 =         100. bytes (R
      0000001C  txtend                             STM8_TBI
      00000021  flags                              STM8_TBI
      00000022  tab_width                          STM8_TBI
-     00000031  vars                               STM8_TBI
+     0000002D  vars                               STM8_TBI
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
 Hexadecimal  [32-Bits]
@@ -73,48 +73,48 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    000028AE =       10414. bytes (REL,CON)
+CODE                                00008080    00002A23 =       10787. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008332  putc                               STM8_TBI
-     00008332  uart1_putc                         STM8_TBI
-     0000833B  qgetc                              STM8_TBI
-     0000833B  uart1_qgetc                        STM8_TBI
-     00008342  getc                               STM8_TBI
-     00008342  uart1_getc                         STM8_TBI
-     0000840C  strlen                             STM8_TBI
-     00008428  strcpy                             STM8_TBI
-     00008436  move                               STM8_TBI
-     00008486  is_alpha                           STM8_TBI
-     00008497  is_digit                           STM8_TBI
-     000084A0  is_alnum                           STM8_TBI
-     000087A6  syntax_error                       STM8_TBI
-     000087A8  tb_error                           STM8_TBI
-     00008895  next_token                         STM8_TBI
-     0000890C  itoa                               STM8_TBI
-     000089FC  to_upper                           STM8_TBI
-     00008A08  atoi24                             STM8_TBI
-     00008BEF  search_dict                        STM8_TBI
-     00008E83  let                                STM8_TBI
-     00009040  remark                             STM8_TBI
-     000092A0  beep_1khz                          STM8_TBI
-     000094F0  qkey                               STM8_TBI
-     00009E10  kword_dict                         STM8_TBI
-     00009E18  code_addr                          STM8_TBI
-     00009F0C  puts                               STM8_TBI
-     00009F79  spaces                             STM8_TBI
-     0000A011  readln                             STM8_TBI
-     0000A1D2  print_hex                          STM8_TBI
-     0000A1E9  to_hex_char                        STM8_TBI
-     0000A1F4  search_lineno                      STM8_TBI
-     0000A337  escaped                            STM8_TBI
-     0000A42B  get_token                          STM8_TBI
-     0000A5EA  compile                            STM8_TBI
-     0000A689  right_align                        STM8_TBI
-     0000A6DC  var_name                           STM8_TBI
-     0000A705  decompile                          STM8_TBI
-     0000A900  app_space                          STM8_TBI
+     00008341  putc                               STM8_TBI
+     00008341  uart1_putc                         STM8_TBI
+     0000834A  qgetc                              STM8_TBI
+     0000834A  uart1_qgetc                        STM8_TBI
+     00008351  getc                               STM8_TBI
+     00008351  uart1_getc                         STM8_TBI
+     0000841B  strlen                             STM8_TBI
+     00008437  strcpy                             STM8_TBI
+     00008445  move                               STM8_TBI
+     00008495  is_alpha                           STM8_TBI
+     000084A6  is_digit                           STM8_TBI
+     000084AF  is_alnum                           STM8_TBI
+     000087B9  syntax_error                       STM8_TBI
+     000087BB  tb_error                           STM8_TBI
+     000088A8  next_token                         STM8_TBI
+     0000891F  itoa                               STM8_TBI
+     00008A0F  to_upper                           STM8_TBI
+     00008A1B  atoi24                             STM8_TBI
+     00008C02  search_dict                        STM8_TBI
+     00008E6F  let                                STM8_TBI
+     00009097  remark                             STM8_TBI
+     000092FA  beep_1khz                          STM8_TBI
+     0000963E  qkey                               STM8_TBI
+     00009F74  kword_dict                         STM8_TBI
+     00009F7C  code_addr                          STM8_TBI
+     0000A074  puts                               STM8_TBI
+     0000A0E1  spaces                             STM8_TBI
+     0000A179  readln                             STM8_TBI
+     0000A33A  print_hex                          STM8_TBI
+     0000A351  to_hex_char                        STM8_TBI
+     0000A35C  search_lineno                      STM8_TBI
+     0000A49F  escaped                            STM8_TBI
+     0000A593  get_token                          STM8_TBI
+     0000A752  compile                            STM8_TBI
+     0000A7F1  right_align                        STM8_TBI
+     0000A844  var_name                           STM8_TBI
+     0000A86D  decompile                          STM8_TBI
+     0000AA80  app_space                          STM8_TBI
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 
@@ -128,6 +128,5 @@ User Base Address Definitions
 
 HOME = 0x8000
 DATA = 0x0001
-SSEG = 0xffffffff
 
 

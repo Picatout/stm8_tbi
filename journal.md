@@ -1,5 +1,7 @@
 #### 2022-04-27
 
+* Ajout de la commande **FLASHAPP**  à déboguer 
+
 *  Déboguer:
 ``` 
 >? peek($A904), 
