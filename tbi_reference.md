@@ -1,4 +1,4 @@
-# référence du langage Tiny BASIC pour STM8
+# référence du langage Tiny BASIC pour STM8 V2.0
 
 <a id="index-princ"></a>
 ## index principal 
@@ -204,8 +204,10 @@ nom|abrévation
 [DO](#do)|DO
 [DREAD](#dread)|DR
 [DWRITE](#dwrite)|DW
+[EDIT](#edit)|ED
 [EEPROM](#eeprom)|EE
 [END](#end)|EN
+[ERASE](#erase)|ER 
 [FCPU](#fcpu)|FC 
 [FOR](#for)|FO
 [FREE](#free)|FR
@@ -256,7 +258,9 @@ nom|abrévation
 [RND](#rnd)|RN
 [RSHIFT](#rshift)|RS
 [RUN](#run)|RU
+[SAVE](#save)|SA 
 [SHOW](#show)|SH
+[SIZE](#size)|SI 
 [SLEEP](#sleep)|SL
 [SPIEN](#spien)|SPIE
 [SPIRD](#spird)|SPIR
@@ -278,6 +282,7 @@ nom|abrévation
 [WRITE](#write)|WR
 [XOR](#xor)|XO
 
+[index principal](#index-princ)
 <hr>
 
 <a id="abs"></a>
@@ -532,6 +537,35 @@ Le connecteur **CN8**  de la carte **NUCLEO** indentifie les broches selon la co
 ```
 
 [index](#index)
+<a id="edit></a>
+### EDIT {C}
+Copie le programme sauvegardé en mémoire FLASH dans la RAM pour modification.
+```
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2 .0 
+running application at address: $AA84 479 
+
+>size
+program address: $AA84 program size: 106 bytes
+
+>edit
+
+>list
+program size: 106 bytes
+  10  ' ceci est un test de performance 
+  20  T=TICKS
+  30  FOR I=1 TO 10000 GOSUB 100 NEXT I
+  40  PRINT TICKS-T
+  50  END
+ 100  RETURN
+
+>size
+program address: $80 program size: 106 bytes
+
+>
+```
+[index](#index)
 <a id="eeprom"></a>
 ### EEPROM {C,P}
 Retourne l'adresse du début de la mémoire EEPROM.
@@ -568,6 +602,10 @@ Cette commande arrête l'exécution d'un programme et retourne le contrôle à l
    2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63  64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79  80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96  97  98  99 100 101
 >
 ```
+[index](#index)
+<a id=erase></a>
+### ERASE {C}
+Cette commande efface le programme qui a été sauvegardé en mémoire FLASH pour la rendre prête pour un autre [SAVE](#save). 
 
 [index](#index)
 <a id="fcpu"></a>
@@ -1156,6 +1194,11 @@ Cette fonction décale vers la droite *expr1* de *expr2* bits. Le bit le plus si
 Lance l'exécution du programme qui est chargé en mémoire RAM. Si aucun programme n'est chargé il ne se passe rien.
 
 [index](#index)
+<a id="save"></a>
+### SAVE {C}
+Cette commande copie le programme qui est en mémoire RAM dans la mémoire FLASH le rendant ainsi persistant. Ce programme va par la suite s'exécuter automatiquement au démarrage du MCU. 
+
+[index](#index)
 <a id="show"></a>
 ### SHOW {C,P}
  Outil d'aide au débogage d'un programme. Cette commande affiche le contenu de la  pile. Peut-être insérée à l'intérieur d'un programme ou sur la ligne de commande en conjonction avec la commande **STOP**.
@@ -1181,6 +1224,11 @@ break point, RUN to resume.
 Dans cet exemple la commande **STOP** a été insérée au milieu d'une boucle **FOR...NEXT**. Donc à chaque itération de la boucle on retombe sur la ligne de commande où la commande **SHOW** est utilisée pour afficher le contenu des piles. Sur *dstack* on aperçoit les paramètres de la boucle **FOR...NEXT**. **39** est l'adresse de la variable de contrôle **A**, **10** est la limite de la boucle et **1** l'incrément.  
 
 À la deuxième itération la commande **END** est utilisée pour arrêter l'exécution. 
+
+[index](#index)
+<a id="size"></a>
+### SIZE {C}
+Cett commande affiche l'adresse du programme et sa taille. Il peut s'agit du programme en mémoire FLASH ou de celui en mémoire RAM. Celui qui a été le dernier exécuté.
 
 [index](#index)
 <a id="sleep"></a>
