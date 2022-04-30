@@ -1,3 +1,11 @@
+#### 2022-04-29 
+
+* Renommé **FLASHAPP** en **SAVE** 
+
+* Ajout de la commande **EDIT** .
+
+* Débogage 
+
 #### 2022-04-27
 
 * Ajout de la commande **FLASHAPP**  à déboguer 

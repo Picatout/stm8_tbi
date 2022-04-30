@@ -1,13 +1,13 @@
 ## 2022-04-21 version 2.0
 
-J'ai décidé de travailler sur une version 2.0 de TinyBASIC plutôt que d'essayer d'améliorer le code de la version 1.0.  Comme le code sera remanié de façon majeur, je préfère créer un nouveau dépôt git et de laisser celui de la version 1 dans l'état actuel.
+J'ai décidé de laisser tomber le système de fichier en mémoire flash étendue. Un seul programme est sauvegardé en mémoire FLASH et il s'exécute automatiquement au démarrage du MCU. Les commandes suivante sont donc disparues 
+de la version 2.0: **DIR**,**FORGET** et **LOAD** 
 
-* Objectifs:  
-    * Améliorer la performance ce l'interpréteur en modifiant le format du bytecode. Comme en Forth chaque token sera associé à un code machine exécutable. Le compilateur va convertir le texte source en format RPN (Reverse Polish Notation) pour améliorer la performance. Cependant contrairement à une machine virtuelelle Forth il n'y aura qu'une seule pile soit celle pointée par **SP** du STM8. Le jeu d'instruction du STM8 étant optimisé pour effecter les opérations ALU entre la pile et les registres **A**,**X** et **Y**.
+La commande **SAVE** ne prend aucun argument et sauvegarde le programme en mémoire RAM dans la mémoire FLASH. Ce programme devient alors l'application qui s'exécute à l'initialisation de la carte. 
 
-    * Réduire la taille du code idéalement à moins de 8Ko. 
+La nouvelle commande **ERASE \E|\F** Efface la mémoire EEPROM ou la mémoire FLASH en conservant seulement le système TinyBASIC. 
 
-Le décompilateur sera plus complexe à réaliser et le bytecode décompilé ne sera probablement pas parfaitement identique au code source original bien qu'il devra être syntaxiquement correct et sémantiquement identique. Je ne suis pas certain d'atteindre l'objectif #2 étant la complexité accrue.
+La nouvelle commande **EDIT** copie le programme qui a été sauvegardé avec la commande **SAVE** vers la mémoire RAM pour modification.
 
 <hr>
 

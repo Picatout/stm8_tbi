@@ -72,9 +72,10 @@ rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
 
 vars:: .blkw 26 ; BASIC variables A-Z, keep it as but last .
+	.area BTXT (ABS)
+	.org 0x7C  
 ; keep 'free_ram' as last variable 
 ; basic code compiled here. 
-	.bndry 16
 rsign: .blkw 1 ; "BC" 
 rsize: .blkw 1 ; code size 	 
 free_ram: ; from here RAM free for BASIC text 
@@ -434,14 +435,7 @@ write_row:
 	cpw x,#app_space  
 	jruge to_flash 
 to_eeprom:
-	ldw x,#EEPROM_BASE 
-	cpw x,farptr+1 
-	jruge 1$
-	ret ; bad address 
-1$: ldw x,#EEPROM_END 
-	jrule 2$ 
-	ret ; bad address 
-2$:	call unlock_eeprom
+	call unlock_eeprom
 	jra do_programming
 to_flash:
 	call unlock_flash
@@ -464,13 +458,13 @@ do_programming:
 block_erase:
 	ldw x,farptr+1
 	cpw x,#app_space 
-	jrpl erase_flash 
+	jruge erase_flash 
 ; erase eeprom block
 	cpw x,#EEPROM_BASE 
 	jruge 1$
 	ret ; bad address 
-1$: ldw x,#EEPROM_END 
-	jrule 2$ 
+1$: cpw x,#EEPROM_END 
+	jrult 2$ 
 	ret ; bad address 
 2$:	call unlock_eeprom 
 	call tib 
@@ -987,8 +981,8 @@ is_alnum::
 ;-------------------------------------
 ;  program initialization entry point 
 ;-------------------------------------
-	MAJOR=1
-	MINOR=2 
+	MAJOR=2
+	MINOR=0 
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
 cold_start:
 ;set stack 
@@ -1058,33 +1052,36 @@ cold_start:
 2$:	
 	call warm_init
 ; check for application in flash memory 
-	call qsign ; app in flash?
-	jreq run_app ; yes 
-	jp cmd_line 
+	ldw x,app_sign 
+	cpw x,SIGNATURE 
+	jreq run_app
+	jp cmd_line
 run_app:
-; run application in FLASH 
+; run application in FLASH|EEPROM 
+	ldw x,app_size  
+	pushw x 
+	ldw x,#app 
+	ldw txtbgn,x
+	ldw basicptr,x 
+	addw x,(1,sp) ; x+size 
+	_drop 2 
+	ldw txtend,x 
 	ldw x,#RUNNING 
-	call puts 
-	ldw x,#app
+	call puts
+	ldw x,basicptr    
 	mov base,#16 
 	call print_int
 	mov base,#10  
-4$:	ldw x,#app  
-	ldw basicptr,x
-	ldw txtbgn,x 
+	ldw x, basicptr 
 	ld a,(2,x)
 	ld count,a 
-	ld a,#3 
-	ld in,a 
-	ldw x,app_size 
-	addw x,txtbgn 
-	ldw txtend,x
+	mov in,#3 
 	bset flags,#FRUN
 	call ubound   
 	jp interpreter  
     jra .  
 
-RUNNING: .asciz "\nrunning application in FLASH at address: " 
+RUNNING: .asciz "\nrunning application at address: " 
 
 warm_init:
 	clr flags 
@@ -2461,6 +2458,31 @@ free:
 2$:	ld a,#TK_INTGR
 	ret 
 
+;------------------------------
+; BASIC: SIZE 
+; command that print 
+; program start addres and size 
+;------------------------------
+cmd_size:
+	push base 
+	ldw x,#PROG_ADDR 
+	call puts 
+	ldw x,txtbgn     
+	mov base,#16 
+	call print_int
+	pop base 
+	ldw x,#PROG_SIZE 
+	call puts 
+	ldw x,txtend 
+	subw x,txtbgn 
+	call print_int
+	ldw x,#STR_BYTES 
+	call puts  
+	ret 
+
+PROG_ADDR: .asciz "program address: "
+PROG_SIZE: .asciz "program size: "
+STR_BYTES: .asciz "bytes\n" 
 
 ;------------------------
 ; BASIC: UBOUND  
@@ -2599,28 +2621,30 @@ list_exit:
 
 
 ;--------------------------
-; BASIC: EDIT 
+; BASIC: EDIT \E | \F
 ;  copy program in FLASH 
 ;  to RAM for edition 
 ;-------------------------
 edit:
 	call qsign 
-	jreq 1$
-	ldw x,#NO_FLASH_APP 
+	jreq 1$ 
+	ldw x,#NOT_SAVED 
 	call puts 
 	ret 
-1$: ldw x,app_size 
-	ldw acc16,x 
-	ldw y,#app 
-	ldw x,#free_ram
+1$: 
+	ldw y,#app_sign ; source address 
+    ldw x,app_size  
+	addw x,#4 
+	ldw acc16,x  ; bytes to copy 
+	ldw x,#rsign ; destination address 
 	call move  
 	ldw x,#free_ram 
 	ldw txtbgn,x 
-	addw x,app_size 
+	addw x,rsize  
 	ldw txtend,x 
 	ret 
 
-NO_FLASH_APP: .asciz "No application stored in FLASH!"
+NOT_SAVED: .asciz "No application saved.\n"
 
 ;--------------------------
 ; decompile line from token list
@@ -3284,8 +3308,7 @@ run:
 	ldw x,#err_no_prog
 	call puts 
 	mov in,count
-	popw x 
-	jp run_app  
+	ret 
 run_it:	 
     call ubound 
 	_drop 2 ; drop return address 
@@ -3608,30 +3631,62 @@ scan_block:
 
 
 ;-----------------------------------
-; BASIC: ERASE
+; BASIC: ERASE \E | \F 
 ; erase all block in range from 
-;  'app_space' to RAM end (0x20000)
+;  'app_space' to FLASH end (0x20000)
+;  or all EEPROM 
 ; that contains a non zero byte.  
 ;-----------------------------------
+	LIMIT=1 
+	VSIZE = 3 
 erase:
+	clr farptr 
+	_vars VSIZE 
+	call next_token 
+	cp a,#TK_CHAR 
+	jreq 0$ 
+	jp syntax_error
+0$: ld a,xl 
+	and a,#0XDF 
+	cp a,#'E
+	jrne 1$
+	ldw x,#EEPROM_BASE 
+	ldw farptr+1,x 
+	ldw x,#EEPROM_END
+	clr a 
+	jra 3$ 
+1$: cp a,#'F 
+	jreq 2$
+	ldw x,#err_bad_value
+	jp tb_error
+2$:
+	ldw x,#app_sign 
+	ldw farptr+1,x 
+	ld a,#(FLASH_END>>16)&0XFF 
+	ldw x,#FLASH_END&0xffff
+3$:
+	ld (LIMIT,sp),a 
+	ldw (LIMIT+1,sp),x 
  ; operation done from RAM
  ; copy code to RAM in tib   
 	call move_erase_to_ram
-	; first block 
-	clr farptr 
-	ldw x,#app_space
-	ldw farptr+1,x
-1$:	 
+4$:	 
     call scan_block 
-	jreq 2$
+	jreq 5$  ; block already erased 
+    ld a,#'E 
+    call putc 
 	call block_erase   
 ; this block is clean, next  
-2$:	ldw x,#BLOCK_SIZE
+5$:	ldw x,#BLOCK_SIZE
 	call incr_farptr
-	ld a,farptr
-	cp a,#2 
-	jrult 1$ 
+; check limit, 24 bit substraction  	
+	ld a,(LIMIT,sp)
+	ldw x,(LIMIT+1,sp)
+	subw x,farptr+1
+	sbc a,farptr 
+	jrugt 4$ 
 9$: call clear_basic
+	_drop VSIZE 
 	ret 
 	
 
@@ -3643,20 +3698,19 @@ erase:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 qsign: 
 	ldw x,app_sign 
-	cpw x,#0x4243 ; "BC" 
+	cpw x,SIGNATURE ; "BC" 
 	ret 
 
-
 ;---------------------------------------
-; BASIC: FLASHAPP  	
-; write application in RAM to FLASH 
+; BASIC: SAVE
+; write application in RAM to FLASH
 ;--------------------------------------
-flash_app:
-	call qsign
+save_app:
+	call qsign 
 	jrne 1$
 	ldw x,#CANT_DO 
 	call puts 
-	jra 9$
+	jp 9$
 1$: 
 	ldw x,txtbgn
 	cpw x,txtend 
@@ -3665,27 +3719,26 @@ flash_app:
 	call puts 
 	jra 9$
 2$: 
-; PRG flash
+; block programming flash
 ; must be done from RAM 
 	call move_prg_to_ram
-	call unlock_flash 
 ; initialize farptr 
 	clr farptr 
 	ldw x,#app_sign 
-	ldw farptr+1,x
+	ldw farptr+1,x 
 ; write signature
-	ldw x,#0x4243 ; "BC" 
+	ldw x,SIGNATURE ; "BC" 
 	ldw rsign,x 
 	ldw x,txtend 
 	subw x,txtbgn 
 	ldw rsize,x   
-; copy block to flash 
+;copy block to flash
 	ldw x,#rsign  
 	ldw (1,sp),x   
 3$:	ldw x,(1,sp)
 	call write_row 
-ld a,#'. 
-call putc 
+    ld a,#'. 
+    call putc 
 	ldw x,(1,sp)
 	addw x,#BLOCK_SIZE
 	ldw (1,sp),x  
@@ -3696,21 +3749,11 @@ call putc
 	jra 3$ 
 8$:	
 	_drop 2   
-	ldw x, #PROG_SIZE
-	call puts 
-	ldw x,txtend 
-	subw x,txtbgn 
-	call print_int
-	ldw x,#STR_BYTES
-	call puts
-	btjf UART1_SR,#UART_SR_TC,.	
-	.byte 0x71 ; reset mcu 
 9$: ret 
 
+SIGNATURE: .ascii "BC"
 CANT_DO: .asciz "Can't flash application, already one in FLASH\nuse ERASE before"
 NO_APP: .asciz "No application in RAM"
-PROG_SIZE: .asciz "program size: "
-STR_BYTES: .asciz "bytes\n" 
 
 ;---------------------
 ; BASIC: WRITE expr1,expr2[,expr]* 
@@ -5006,7 +5049,9 @@ kword_end:
 	_dict_entry,5+F_IFUNC,SPIRD,SPIRD_IDX; spi_read 
 	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
 	_dict_entry,5,SLEEP,SLEEP_IDX;sleep 
-    _dict_entry,4,SHOW,SHOW_IDX;show 
+    _dict_entry,4,SIZE,SIZE_IDX; cmd_size 
+	_dict_entry,4,SHOW,SHOW_IDX;show 
+	_dict_entry,4,SAVE,SAVE_IDX ;save_app 
 	_dict_entry 3,RUN,RUN_IDX;run
 	_dict_entry,6+F_IFUNC,RSHIFT,RSHIFT_IDX;rshift
 	_dict_entry,3+F_IFUNC,RND,RND_IDX;random 
@@ -5056,7 +5101,6 @@ kword_end:
 	_dict_entry,5,GOSUB,GOSUB_IDX;gosub 
 	_dict_entry,4+F_IFUNC,FREE,FREE_IDX;free
 	_dict_entry,3,FOR,FOR_IDX;for 
-	_dict_entry,8,FLASHAPP,FLASHAPP_IDX ;flash_app 
 	_dict_entry,4,FCPU,FCPU_IDX;fcpu 
 	_dict_entry,5,ERASE,ERASE_IDX; erase 
 	_dict_entry,3,END,END_IDX;cmd_end  
@@ -5091,7 +5135,7 @@ code_addr::
 	.word abs,power_adc,analog_read,bit_and,ascii,awu,bitmask ; 0..7
 	.word bit_reset,bit_set,bit_test,bit_toggle,bye,char,const_cr2  ; 8..15
 	.word const_cr1,data,data_line,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
-	.word edit,const_eeprom_base,cmd_end,erase,fcpu,flash_app,for,gosub,goto,gpio ; 24..31 
+	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto,gpio ; 24..31 
 	.word hex_base,const_idr,if,input_var,invert,enable_iwdg,refresh_iwdg,key ; 32..39 
 	.word let,list,log2,lshift,muldiv,next,new ; 40..47
 	.word func_not,const_odr,bit_or,pad_ref,pause,pin_mode,peek,const_input ; 48..55
@@ -5100,7 +5144,7 @@ code_addr::
 	.word restore,return, random,rshift,run,show,free ; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
-	.word wait,words,write,bit_xor ; 96..99
+	.word wait,words,write,bit_xor,cmd_size ; 96..99
 	.word 0 
 
 
