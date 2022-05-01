@@ -158,9 +158,10 @@ AWUHandler:
 
 ;--------------------------
 ; UART1 receive character
-; CTRL-C (ASCII 3)
+; CTRL+C (ASCII 3)
 ; cancel program execution
 ; and fall back to command line
+; CTRL+X reboot system 
 ;--------------------------
 Uart1RxHandler: ; console receive char 
 	btjf UART1_SR,#UART_SR_RXNE,5$
@@ -173,19 +174,18 @@ Uart1RxHandler: ; console receive char
 	cp a,#CAN ; CTRL_X 
 	jrne 3$
 	jp cold_start 	
-3$:	ldw x,#rx1_queue  
-	push a 
-	ld a,xl 
+3$:	push a 
+	ld a,#rx1_queue 
 	add a,rx1_tail 
-	ld xl,a
-	pop a  
-	ld (x),a
-	inc rx1_tail 
-	ld a,#RX_QUEUE_SIZE-1
-	and a,rx1_tail 
-	ld rx1_tail,a  
-5$:
-	iret 
+	clrw x 
+	ld xl,a 
+	pop a 
+	ld (x),a 
+	ld a,rx1_tail 
+	inc a 
+	and a,#RX_QUEUE_SIZE-1
+	ld rx1_tail,a 
+5$:	iret 
 
 ;------------------------------------
 ; software interrupt handler  
@@ -216,7 +216,6 @@ Timer4UpdateHandler:
 	ldw timer,x 
 1$:	
 	iret 
-
 
 ;------------------------------------
 ; Triggered by pressing USER UserButton 
@@ -349,6 +348,8 @@ unlock_flash:
 ; input:
 ;-----------------------------
 row_erase:
+	push a 
+	pushw y 
 	mov FLASH_CR2,#(1<<FLASH_CR2_ERASE) 
 	mov FLASH_NCR2,#~(1<<FLASH_CR2_ERASE)
 	clr a 
@@ -361,17 +362,23 @@ row_erase:
     incw y
 	ldf ([farptr],y),a
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,. ; wait end of operation 
+	popw y 
+	pop a 
 	ret
 row_erase_end:
 
 ; copy erase_start in RAM 
 move_erase_to_ram:
+	pushw x 
+	pushw y 
 	ldw x,#row_erase_end 
 	subw x,#row_erase
 	ldw acc16,x 
 	ldw x,#tib 
 	ldw y,#row_erase 
-	call move 
+	call move
+	popw y
+	popw x
 	ret 
 
 ;-----------------------------------
@@ -388,6 +395,8 @@ move_erase_to_ram:
 ;----------------------------------
 	BCNT=1 
 program_row:
+	push a 
+	pushw y 
 	push #BLOCK_SIZE  
 ;enable block programming 
 	bset FLASH_CR2,#FLASH_CR2_PRG 
@@ -404,6 +413,8 @@ program_row:
 ; wait EOP bit 
 	btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,. ; wait end of operation 
 	_drop 1 
+	popw y 
+	pop a 
 	ret 
 program_row_end:
 
@@ -412,12 +423,16 @@ program_row_end:
 ; at txtubound address 
 ;------------------------
 move_prg_to_ram:
+	pushw x 
+	pushw y 
 	ldw x,#program_row_end 
 	subw x,#program_row 
 	ldw acc16,x ; bytes to move 
 	ldw x,#tib ; destination address 
 	ldw y,#program_row ; source address 
-	call move 
+	call move
+	popw y 
+	popw x  
 	ret 
 
 
@@ -456,25 +471,22 @@ do_programming:
 ;   none
 ;--------------------------------------
 block_erase:
+	pushw x 
 	ldw x,farptr+1
 	cpw x,#app_space 
 	jruge erase_flash 
 ; erase eeprom block
-	cpw x,#EEPROM_BASE 
-	jruge 1$
-	ret ; bad address 
-1$: cpw x,#EEPROM_END 
-	jrult 2$ 
-	ret ; bad address 
-2$:	call unlock_eeprom 
+	call unlock_eeprom 
 	call tib 
 	bres FLASH_IAPSR,#FLASH_IAPSR_DUL
-	ret 
+	jra erase_exit  
 ; erase flash block:
 erase_flash:
 	call unlock_flash 
 	call tib 
     bres FLASH_IAPSR,#FLASH_IAPSR_PUL
+erase_exit: 
+	popw x 
 	ret 
 
 
@@ -561,12 +573,13 @@ write_exit:
 ;   Y 		after last byte read 
 ;  farptr   point after block
 ;---------------------------------------------
-	_argofs 2 
+	_argofs 3 
 	_arg BSIZE 1  ; block size
 	; local var 
 	XSAVE=1 
 	VSIZE=2 
 write_block:
+	push a 
 	_vars VSIZE
 	ldw (XSAVE,sp),x 
 	ldw x,(BSIZE,sp) 
@@ -585,6 +598,7 @@ write_block:
 	ldw x,(XSAVE,sp)
 	call incr_farptr
 	_drop VSIZE
+	pop a 
 	ret 
 
 
@@ -610,6 +624,7 @@ uart1_init:
 ; enable UART1 clock
 	bset CLK_PCKENR1,#CLK_PCKENR1_UART1	
 uart1_set_baud: 
+	push a 
 ; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
 ; 1) check clock source, HSI at 16Mhz or HSE at 8Mhz  
 	ld a,#CLK_SWR_HSI
@@ -628,7 +643,8 @@ uart1_set_baud:
 	bset UART1_CR2,#UART_CR2_SBK
     btjf UART1_SR,#UART_SR_TC,.
     clr rx1_head 
-	clr rx1_tail 
+	clr rx1_tail
+	pop a  
 	ret
 
 ;---------------------------------
@@ -670,18 +686,19 @@ uart1_getc::
 	call uart1_qgetc
 	jreq uart1_getc 
 	pushw x 
-	ldw x,#rx1_queue
-	ld a,xl 
+;; rx1_queue must be in page 0 	
+	ld a,#rx1_queue
 	add a,rx1_head 
+	clrw x  
 	ld xl,a 
 	ld a,(x)
-	popw x
 	push a
-	inc rx1_head 
-	ld a,#RX_QUEUE_SIZE-1 
-	and a,rx1_head 
+	ld a,rx1_head 
+	inc a 
+	and a,#RX_QUEUE_SIZE-1
 	ld rx1_head,a 
 	pop a  
+	popw x
 	ret 
 
 ;----------------------
@@ -774,6 +791,7 @@ row_loop:
 	TABW=4
 	VSIZE=4   
 hex_dump:
+	push a 
 	_vars VSIZE
 	ld a,base
 	ld (BASE,sp),a 
@@ -798,6 +816,7 @@ hex_dump:
 	ld a,(TABW,sp)
 	ld tab_width,a 
 	_drop VSIZE
+	pop a 
 	ret 
 
 ;-------------------------------------
@@ -852,6 +871,7 @@ strcmp:
 ;   X 		dest 
 ;----------------------------------
 strcpy::
+	push a 
 	pushw x 
 1$: ld a,(y)
 	jreq 9$ 
@@ -861,6 +881,7 @@ strcpy::
 	jra 1$ 
 9$:	clr (x)
 	popw x 
+	pop a 
 	ret 
 
 ;---------------------------------------
@@ -876,6 +897,7 @@ strcpy::
 	LB=2 ; increament low byte 
 	VSIZE=2
 move::
+	push a 
 	_vars VSIZE 
 	clr (INCR,sp)
 	clr (LB,sp)
@@ -910,6 +932,7 @@ move_loop:
 	jra move_loop
 move_exit:
 	_drop VSIZE
+	pop a 
 	ret 	
 
 ;------------------------------------
@@ -920,12 +943,16 @@ move_exit:
 ;	none
 ;------------------------------------
 clear_vars:
+	pushw x 
+	pushw y 
 	ldw x,#vars 
 	ldw y,#2*26 
 1$:	clr (x)
 	incw x 
 	decw y 
 	jrne 1$
+	popw y 
+	popw x 
 	ret 
 
 ;-------------------------------------
@@ -1100,12 +1127,14 @@ warm_init:
 ; and clear variables 
 ;---------------------------
 clear_basic:
+	pushw x 
 	clr count
 	clr in  
 	ldw x,#free_ram 
 	ldw txtbgn,x 
 	ldw txtend,x 
 	call clear_vars 
+	popw x
 	ret 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

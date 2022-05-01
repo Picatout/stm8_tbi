@@ -1,3 +1,8 @@
+#### 2022-04-30
+
+* Optimisation de next_token 
+
+
 #### 2022-04-29 
 
 * Renommé **FLASHAPP** en **SAVE** 
