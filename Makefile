@@ -10,16 +10,18 @@ CFLAGS=-mstm8 -lstm8 -L$(LIB_PATH) -I../inc
 INC=../inc/
 INCLUDES=$(INC)stm8s208.inc $(INC)ascii.inc $(INC)gen_macros.inc $(INC)nucleo_8s208.inc cmd_idx.inc tbi_macros.inc 
 BUILD=build/
-SRC=$(NAME).asm terminal.asm compiler.asm decompiler.asm app.asm 
+SRC=hardware_init.asm flash_prog.asm terminal.asm compiler.asm decompiler.asm $(NAME).asm app.asm 
 OBJECT=$(BUILD)$(NAME).rel
+OBJECTS=$(BUILD)$(SRC:.asm=.rel)
 LIST=$(BUILD)$(NAME).lst
 FLASH=stm8flash
 BOARD=stm8s208rb
 PROGRAMMER=stlinkv21
 
+
 .PHONY: all
 
-all: clean $(SRC)
+all: clean 
 	@echo
 	@echo "**********************"
 	@echo "compiling $(NAME)       "
@@ -43,7 +45,15 @@ clean: build
 build:
 	mkdir build
 
-.PHONY: test 
+separate: clean $(SRC)
+	$(SDAS) -g -l -o $(BUILD)hardware_init.rel hardware_init.asm  
+	$(SDAS) -g -l -o $(BUILD)flash_prog.rel flash_prog.asm  
+	$(SDAS) -g -l -o $(BUILD)terminal.rel terminal.asm  
+	$(SDAS) -g -l -o $(BUILD)compiler.rel compiler.asm  
+	$(SDAS) -g -l -o $(BUILD)decompiler.rel decompiler.asm  
+	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm  
+	$(SDAS) -g -l -o $(BUILD)app.rel app.asm  
+
 
 flash: $(LIB)
 	@echo

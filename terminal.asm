@@ -29,17 +29,154 @@
 
     .module TERMINAL
 
-;    .nlist
-;	.include "inc/nucleo_8s208.inc"
-;	.include "inc/stm8s208.inc"
-;	.include "inc/ascii.inc"
-;	.include "inc/gen_macros.inc" 
-;	.include "tbi_macros.inc" 
-    .list 
+    .include "config.inc"
+
+.if SEPARATE
+	.include "inc/nucleo_8s208.inc"
+	.include "inc/stm8s208.inc"
+	.include "inc/ascii.inc"
+	.include "inc/gen_macros.inc" 
+	.include "tbi_macros.inc" 
+.endif 
+
+;    .list 
 
 
     .area CODE 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;   UART1 subroutines
+;;   used for user interface 
+;;   communication channel.
+;;   settings: 
+;;		115200 8N1 no flow control
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Uart1 intterrupt handler 
+;;; on receive 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;--------------------------
+; UART1 receive character
+; CTRL+C (ASCII 3)
+; cancel program execution
+; and fall back to command line
+; CTRL+X reboot system 
+;--------------------------
+Uart1RxHandler: ; console receive char 
+	btjf UART1_SR,#UART_SR_RXNE,5$
+	ld a,UART1_DR 
+	cp a,#CTRL_C 
+	jrne 2$
+	call putc 
+	jp user_interrupted
+2$:
+	cp a,#CAN ; CTRL_X 
+	jrne 3$
+	jp cold_start 	
+3$:	push a 
+	ld a,#rx1_queue 
+	add a,rx1_tail 
+	clrw x 
+	ld xl,a 
+	pop a 
+	ld (x),a 
+	ld a,rx1_tail 
+	inc a 
+	and a,#RX_QUEUE_SIZE-1
+	ld rx1_tail,a 
+5$:	iret 
+
+;---------------------------------------------
+; initialize UART1, 115200 8N1
+; input:
+;	none
+; output:
+;   none
+;---------------------------------------------
+uart1_init:
+    bset PA_DDR,#UART1_TX_PIN
+    bset PA_CR1,#UART1_TX_PIN 
+    bset PA_CR2,#UART1_TX_PIN 
+; enable UART1 clock
+	bset CLK_PCKENR1,#CLK_PCKENR1_UART1	
+uart1_set_baud: 
+	push a 
+; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
+; 1) check clock source, HSI at 16Mhz or HSE at 8Mhz  
+	ld a,#CLK_SWR_HSI
+	cp a,CLK_CMSR 
+	jreq 2$ 
+1$: ; 8 Mhz 	
+	mov UART1_BRR2,#0x05 ; must be loaded first
+	mov UART1_BRR1,#0x4
+	jra 3$
+2$: ; 16 Mhz 	
+	mov UART1_BRR2,#0x0b ; must be loaded first
+	mov UART1_BRR1,#0x08
+3$:
+    clr UART1_DR
+	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
+	bset UART1_CR2,#UART_CR2_SBK
+    btjf UART1_SR,#UART_SR_TC,.
+    clr rx1_head 
+	clr rx1_tail
+	pop a  
+	ret
+
+;---------------------------------
+; uart1_putc
+; send a character via UART1
+; input:
+;    A  	character to send
+;---------------------------------
+putc:: ; console output always on UART1
+uart1_putc:: 
+	btjf UART1_SR,#UART_SR_TXE,.
+	ld UART1_DR,a 
+	ret 
+
+
+;---------------------------------
+; Query for character in rx1_queue
+; input:
+;   none 
+; output:
+;   A     0 no charcter available
+;   Z     1 no character available
+;---------------------------------
+qgetc::
+uart1_qgetc::
+	ld a,rx1_head 
+	sub a,rx1_tail 
+	ret 
+
+;---------------------------------
+; wait character from UART1 
+; input:
+;   none
+; output:
+;   A 			char  
+;--------------------------------	
+getc:: ;console input
+uart1_getc::
+	call uart1_qgetc
+	jreq uart1_getc 
+	pushw x 
+;; rx1_queue must be in page 0 	
+	ld a,#rx1_queue
+	add a,rx1_head 
+	clrw x  
+	ld xl,a 
+	ld a,(x)
+	push a
+	ld a,rx1_head 
+	inc a 
+	and a,#RX_QUEUE_SIZE-1
+	ld rx1_head,a 
+	pop a  
+	popw x
+	ret 
 
 ;-----------------------------
 ;  constants replacing 

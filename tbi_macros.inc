@@ -42,7 +42,7 @@
 
 	RX_QUEUE_SIZE=8 
 
-
+        TIM2_CLK_FREQ=62500
 
 	TIB_SIZE=80
         PAD_SIZE=128

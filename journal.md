@@ -1,3 +1,13 @@
+#### 2022-05-01
+
+* Réorganisation de code. 
+	
+	* Déplacé code d'initialisation mcu dans [hardware_init.asm](hardware_init.asm).
+
+	* Déplacé routines programmation **IAP** dans [flash_prog.asm](flash_prog.asm)
+
+	* Déplacé code d'initialisation et routines dans [terminal.asm](terminal.asm) 
+
 #### 2022-04-30
 
 * Optimisation de next_token 

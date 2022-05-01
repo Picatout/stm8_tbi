@@ -7,20 +7,20 @@ Area                                    Addr        Size        Decimal Bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00000000  .__.ABS.                           STM8_TBI
+     00000000  .__.ABS.                           HW_INIT
      00000000  l_BTXT                          
      00000000  l_SSEG                          
      00000000  l__CODE                         
      00000000  s_BTXT                          
-     00000000  s_BTXT0                         
+     00000000  s_BTXT1                         
      00000000  s_SSEG                          
-     00000000  s_SSEG1                         
+     00000000  s_SSEG0                         
      00000000  s__CODE                         
      00000001  s_DATA                          
-     00000004  l_BTXT0                         
+     00000004  l_BTXT1                         
      00000060  l_DATA                          
      00000080  l_HOME                          
-     00000170  l_SSEG1                         
+     00000170  l_SSEG0                         
      00002A04  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
@@ -30,49 +30,14 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-DATA                                00000001    00000060 =          96. bytes (REL,CON)
+SSEG0                               00000000    00000170 =         368. bytes (ABS,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00000001  in.w                               STM8_TBI
-     00000002  in                                 STM8_TBI
-     00000003  in.saved                           STM8_TBI
-     00000004  count                              STM8_TBI
-     00000005  basicptr                           STM8_TBI
-     0000000B  base                               STM8_TBI
-     0000000C  acc24                              STM8_TBI
-     0000000D  acc16                              STM8_TBI
-     0000000E  acc8                               STM8_TBI
-     00000011  timer                              STM8_TBI
-     00000018  ptr16                              STM8_TBI
-     0000001A  txtbgn                             STM8_TBI
-     0000001C  txtend                             STM8_TBI
-     00000021  flags                              STM8_TBI
-     00000022  tab_width                          STM8_TBI
-     0000002D  vars                               STM8_TBI
-
+     00001690  tib                                HW_INIT
+     000016E0  pad                                HW_INIT
+     00001760  stack_full                         HW_INIT
 ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
-Hexadecimal  [32-Bits]
-
-Area                                    Addr        Size        Decimal Bytes (Attributes)
---------------------------------        ----        ----        ------- ----- ------------
-BTXT0                               00000000    00000004 =           4. bytes (ABS,CON)
-
-      Value  Global                              Global Defined In Module
-      -----  --------------------------------   ------------------------
-ASxxxx Linker V03.00 + NoICE + sdld,  page 4.
-Hexadecimal  [32-Bits]
-
-Area                                    Addr        Size        Decimal Bytes (Attributes)
---------------------------------        ----        ----        ------- ----- ------------
-SSEG1                               00000000    00000170 =         368. bytes (ABS,CON)
-
-      Value  Global                              Global Defined In Module
-      -----  --------------------------------   ------------------------
-     00001690  tib                                STM8_TBI
-     000016E0  pad                                STM8_TBI
-     00001760  stack_full                         STM8_TBI
-ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
@@ -81,7 +46,7 @@ HOME                                00008000    00000080 =         128. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
+ASxxxx Linker V03.00 + NoICE + sdld,  page 4.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
@@ -90,50 +55,85 @@ CODE                                00008080    00002A04 =       10756. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008341  putc                               STM8_TBI
-     00008341  uart1_putc                         STM8_TBI
-     0000834A  qgetc                              STM8_TBI
-     0000834A  uart1_qgetc                        STM8_TBI
-     00008351  getc                               STM8_TBI
-     00008351  uart1_getc                         STM8_TBI
-     00008419  strlen                             STM8_TBI
-     00008435  strcpy                             STM8_TBI
-     00008445  move                               STM8_TBI
-     0000849D  is_alpha                           STM8_TBI
-     000084AE  is_digit                           STM8_TBI
-     000084B7  is_alnum                           STM8_TBI
-     000087C1  syntax_error                       STM8_TBI
-     000087C3  tb_error                           STM8_TBI
-     000088B0  next_token                         STM8_TBI
-     0000891A  itoa                               STM8_TBI
-     00008A0A  to_upper                           STM8_TBI
-     00008A16  atoi24                             STM8_TBI
-     00008BFD  search_dict                        STM8_TBI
-     00008EBF  let                                STM8_TBI
-     000090E1  remark                             STM8_TBI
-     00009341  beep_1khz                          STM8_TBI
-     00009692  qkey                               STM8_TBI
-     00009FCD  kword_dict                         STM8_TBI
-     00009FD5  code_addr                          STM8_TBI
-     0000A0CF  puts                               STM8_TBI
-     0000A13C  spaces                             STM8_TBI
-     0000A1D4  readln                             STM8_TBI
-     0000A395  print_hex                          STM8_TBI
-     0000A3AC  to_hex_char                        STM8_TBI
-     0000A3B7  search_lineno                      STM8_TBI
-     0000A4FA  escaped                            STM8_TBI
-     0000A5EE  get_token                          STM8_TBI
-     0000A7AD  compile                            STM8_TBI
-     0000A84C  right_align                        STM8_TBI
-     0000A89F  var_name                           STM8_TBI
-     0000A8C8  decompile                          STM8_TBI
-     0000AA80  app_space                          STM8_TBI
+     00008341  putc                               HW_INIT
+     00008341  uart1_putc                         HW_INIT
+     0000834A  qgetc                              HW_INIT
+     0000834A  uart1_qgetc                        HW_INIT
+     00008351  getc                               HW_INIT
+     00008351  uart1_getc                         HW_INIT
+     0000839E  puts                               HW_INIT
+     0000840B  spaces                             HW_INIT
+     000084A3  readln                             HW_INIT
+     00008664  print_hex                          HW_INIT
+     0000867B  to_hex_char                        HW_INIT
+     00008686  search_lineno                      HW_INIT
+     000087C9  escaped                            HW_INIT
+     000088BD  get_token                          HW_INIT
+     00008A7C  compile                            HW_INIT
+     00008B1B  right_align                        HW_INIT
+     00008B6E  var_name                           HW_INIT
+     00008B97  decompile                          HW_INIT
+     00008DE4  strlen                             HW_INIT
+     00008E00  strcpy                             HW_INIT
+     00008E10  move                               HW_INIT
+     00008E68  is_alpha                           HW_INIT
+     00008E79  is_digit                           HW_INIT
+     00008E82  is_alnum                           HW_INIT
+     0000918C  syntax_error                       HW_INIT
+     0000918E  tb_error                           HW_INIT
+     0000927B  next_token                         HW_INIT
+     000092E5  itoa                               HW_INIT
+     000093D5  to_upper                           HW_INIT
+     000093E1  atoi24                             HW_INIT
+     000095C8  search_dict                        HW_INIT
+     0000988A  let                                HW_INIT
+     00009AAC  remark                             HW_INIT
+     00009D0C  beep_1khz                          HW_INIT
+     0000A05D  qkey                               HW_INIT
+     0000A998  kword_dict                         HW_INIT
+     0000A9A0  code_addr                          HW_INIT
+     0000AA80  app_space                          HW_INIT
 
+ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+DATA                                00000001    00000060 =          96. bytes (REL,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
+     00000001  in.w                               HW_INIT
+     00000002  in                                 HW_INIT
+     00000003  in.saved                           HW_INIT
+     00000004  count                              HW_INIT
+     00000005  basicptr                           HW_INIT
+     0000000B  base                               HW_INIT
+     0000000C  acc24                              HW_INIT
+     0000000D  acc16                              HW_INIT
+     0000000E  acc8                               HW_INIT
+     00000011  timer                              HW_INIT
+     00000018  ptr16                              HW_INIT
+     0000001A  txtbgn                             HW_INIT
+     0000001C  txtend                             HW_INIT
+     00000021  flags                              HW_INIT
+     00000022  tab_width                          HW_INIT
+     0000002D  vars                               HW_INIT
+
+ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
+Hexadecimal  [32-Bits]
+
+Area                                    Addr        Size        Decimal Bytes (Attributes)
+--------------------------------        ----        ----        ------- ----- ------------
+BTXT1                               00000000    00000004 =           4. bytes (ABS,CON)
+
+      Value  Global                              Global Defined In Module
+      -----  --------------------------------   ------------------------
 ASxxxx Linker V03.00 + NoICE + sdld,  page 7.
 
 Files Linked                              [ module(s) ]
 
-build/TinyBasic.rel                       [ STM8_TBI ]
+build/TinyBasic.rel                       [ HW_INIT ]
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 8.
 
