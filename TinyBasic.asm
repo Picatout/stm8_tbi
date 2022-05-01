@@ -1303,38 +1303,38 @@ next_token::
 0$: 
 	mov in.saved,in ; in case "_unget_token" needed 
 	ldw y,basicptr 
-	ld a,([in.w],y)
-	inc in  
+	addw y,in.w 
+	ld a,(y)
+	incw y   
 	tnz a 
-	jrmi 6$
+	jrmi 4$
 	cp a,#TK_ARRAY
-	jrpl 9$  ; no attribute for these
+	jrpl 7$  ; no attribute for these
 1$: ; 
 	cp a,#TK_CHAR
 	jrne 2$
 	exg a,xl
-	ld a,([in.w],y)
-	inc in 
+	ld a,(y)
 	exg a,xl  
-	jra 9$ 
+	jra 6$ 
 2$:	cp a,#TK_QSTR 
-	jrne 9$
+	jrne 7$
 	ldw x,y 
-	addw x,in.w ; pointer to string 
 ; move pointer after string 
-3$:	tnz ([in.w],y)
-	jreq 8$
-	inc in 
+3$:	tnz (y)
+	jreq 6$
+	incw y 
 	jra 3$
-6$: 
-	addw y,in.w 
-	ldw y,(y)
+4$: 
+	ldw x,y 
+	ldw x,(x)
 	cp a,#TK_INTGR
-	jrpl 7$
-	ldw y,(code_addr,y) 
-7$:	exgw x,y 
-	inc in
-8$:	inc in 
+	jrpl 5$
+	ldw x,(code_addr,x) 
+5$:	incw y 
+6$:	incw y 
+7$:	subw y,basicptr 
+	ldw in.w,y 
 9$: 
 	ret	
 
