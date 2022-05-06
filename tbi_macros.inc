@@ -69,8 +69,10 @@
         TK_INTGR=132
         TK_VAR=133
         TK_NONE=0       ; not a token 
-        TK_QSTR=2     ; quoted string  
+        TK_LABEL=1      ; used for defined, constants, variables
+        TK_QSTR=2       ; quoted string  
         TK_CHAR=3       ; ASCII character 
+        TK_TARGET=4     ; symbolic target for GOSUB|GOTO  
         TK_ARRAY=6     ; array variable '@' 
         TK_LPAREN=7     ; left parenthesis '('
         TK_RPAREN=8     ; right parenthesis ')'

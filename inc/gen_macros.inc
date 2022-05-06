@@ -24,7 +24,7 @@
 ;--------------------------------------
 
     ; reserve space on stack
-    ; for local variabls
+    ; for local variables
     .macro _vars n 
     sub sp,#n 
     .endm 

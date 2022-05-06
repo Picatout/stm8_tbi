@@ -1,3 +1,24 @@
+#### 2022-05-05
+
+* À faire:
+	
+
+	* Ajouter la possibilié de créer des variables et constantes  symboliques. 
+
+	* Support pour symbole comme cible des **GOTO** et **GOSUB** 
+
+	* Ajout commande **RENUM** pour renuméroté le programme en mémoire RAM. 
+
+
+* Modifié  parse_keyword pour extraire parse_symbol dans le fichier [compiler.asm](compiler.asm)	
+
+* Déplacé les sous-routines  *is_alpha*, *is_digit*, *is_alnum*  dans le fichier [compiler.asm](compiler.asm). 
+
+* Ajouter commande  &nbsp; **ON** *expr* &nbsp; **GOTO|GOSUB**. 
+
+* Corrigé bogue dans commande **INPUT** qui n'acceptait pas les entiers négatifs. 
+
+
 #### 2022-05-01
 
 * Réorganisation de code. 

@@ -121,4 +121,6 @@
     WRITE_IDX=WORDS_IDX+2
     XOR_IDX=WRITE_IDX+2
     SIZE_IDX=XOR_IDX+2 
-    
+    ON_IDX=SIZE_IDX+2 
+        
+

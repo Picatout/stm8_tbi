@@ -68,6 +68,8 @@ tab_width:: .blkb 1 ; print colon width (default 6)
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
+free_eeprom: .blkw 1 ; start address of free eeprom 
+
 
 vars:: .blkw 26 ; BASIC variables A-Z, keep it as but last .
 	.area BTXT (ABS)
@@ -335,56 +337,6 @@ clear_vars:
 	ret 
 
 ;-------------------------------------
-; check if A is a letter 
-; input:
-;   A 			character to test 
-; output:
-;   C flag      1 true, 0 false 
-;-------------------------------------
-is_alpha::
-	cp a,#'A 
-	ccf 
-	jrnc 9$ 
-	cp a,#'Z+1 
-	jrc 9$ 
-	cp a,#'a 
-	ccf 
-	jrnc 9$
-	cp a,#'z+1
-9$: ret 	
-
-;------------------------------------
-; check if character in {'0'..'9'}
-; input:
-;    A  character to test
-; output:
-;    Carry  0 not digit | 1 digit
-;------------------------------------
-is_digit::
-	cp a,#'0
-	jrc 1$
-    cp a,#'9+1
-	ccf 
-1$:	ccf 
-    ret
-
-;-------------------------------------
-; return true if character in  A 
-; is letter or digit.
-; input:
-;   A     ASCII character 
-; output:
-;   A     no change 
-;   Carry    0 false| 1 true 
-;--------------------------------------
-is_alnum::
-	call is_digit
-	jrc 1$ 
-	call is_alpha
-1$:	ret 
-
-
-;-------------------------------------
 ;  program initialization entry point 
 ;-------------------------------------
 	MAJOR=2
@@ -613,6 +565,12 @@ cmd_line: ; user interface
 	tnz count 
 	jreq cmd_line
 	call compile
+;;; test 
+; ldw x,txtbgn 
+; ldw y,#16 
+; call hex_dump
+;;; end test
+
 ; if text begin with a line number
 ; the compiler set count to zero    
 ; so code is not interpreted
@@ -659,9 +617,19 @@ interp_loop:
 	jra interp_loop
 3$:	
 	cp a,#TK_COLON 
-	jreq interp_loop 
-	jp syntax_error 
+	jreq interp_loop
+4$: cp a,#TK_LABEL 
+	jrne 5$
+	call skip_label
+	jra interp_loop 
+5$:	jp syntax_error 
 
+; skip label at beginning of line 
+skip_label:
+	ld a,#4 
+	add a,in 
+	ld in,a 
+	ret 
 		
 ;--------------------------
 ; extract next token from
@@ -1888,6 +1856,7 @@ cmd_size:
 	call puts  
 	ret 
 
+
 PROG_ADDR: .asciz "program address: "
 PROG_SIZE: .asciz "program size: "
 STR_BYTES: .asciz "bytes\n" 
@@ -2234,8 +2203,14 @@ input_loop:
 	call get_token
 	cp a,#TK_INTGR
 	jreq 3$ 
+	cp a,#TK_MINUS
+	call get_token 
+	cp a,#TK_INTGR 
+	jreq 22$
 	call rest_context 
 	jp syntax_error
+22$:
+	negw x 	
 3$: ldw y,(VAR_ADDR,sp) 
 	ldw (y),x 
 	call rest_context
@@ -2608,9 +2583,10 @@ loop_done:
 get_target_line:
 	call relation 
 	cp a,#TK_INTGR
-	jreq 1$
+	jreq get_target_line_2 
 	jp syntax_error
-1$:	clr a
+get_target_line_2:
+	clr a
 	ldw y,basicptr 
 	ldw y,(y)
 	pushw y 
@@ -2626,6 +2602,77 @@ get_target_line:
 	jp tb_error 
 2$:	ret 
 
+;--------------------------------
+; BASIC: ON expr GOTO|GOSUB line# [,line#]*
+; selective goto or gosub 
+;--------------------------------
+	RET_ADDR=3
+	RET_INW=5
+	VSIZE=4  
+cmd_on:
+	btjt flags,#FRUN,0$ 
+	ld a,#ERR_RUN_ONLY
+	jp tb_error 
+0$:	call expression 
+	cp a,#TK_INTGR
+	jreq 1$
+	jp syntax_error
+1$: cpw x,#1 
+	jrslt 9$
+	cpw x,#16 ; no more than 16 arguments 
+	jrugt 9$
+	ld a,xl 
+	push a  ; selector  
+	call next_token ; should be GOTO|GOSUB 
+	cp a,#TK_CMD 
+	jreq 2$ 
+	jp syntax_error 
+2$: cpw x,#goto 
+	jreq 4$
+	cpw x,#gosub 
+	jreq 4$ 
+	jp syntax_error 
+4$: pop a 
+	pushw x ; save routine address 	
+	push a  ; -- code_addr selector  
+5$: call next_token 
+	cp a,#TK_INTGR 
+	jreq 52$
+	jp syntax_error 
+52$: ; got a line number 
+	dec (1,sp) ; decrement selector 
+	jreq 58$ ; this is the selected one 
+	call next_token ; try for the next one 
+	cp a,#TK_COMMA 
+	jreq 5$ 
+; arg list exhausted, selector to big 
+; continue execution on next line 
+	_drop 3 ; drop selector and GOTO|GOSUB address 
+	jra 9$
+58$: ;found line# in list 
+	_drop 1 ; discard selector 
+	mov in,count ; skip to end of this line. 
+; here only the routine address of GOTO|GOSUB is on stack 
+;   X contain target line number 
+8$:	call get_target_line_2
+	popw y ; routine address GOTO|GOSUB  
+	cpw y,#goto 
+	jreq jp_to_target 
+	popw y 
+	_vars VSIZE 
+	pushw y 
+	ldw y,basicptr 
+	mov in,count 
+	addw y,in.w 
+	ldw (RET_ADDR,sp),y 
+	ldw y,#3 
+	ldw (RET_INW,sp),y
+	jra jp_to_target
+9$: ; expr out of range skip to next line 
+	mov in,count
+	clr a  
+	ret 
+
 ;------------------------
 ; BASIC: GOTO line# 
 ; jump to line# 
@@ -2635,7 +2682,6 @@ goto:
 	btjt flags,#FRUN,0$ 
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
-	ret 
 0$:	call get_target_line
 jp_to_target:
 	ldw basicptr,x 
@@ -4487,6 +4533,7 @@ kword_end:
 	_dict_entry,5,PAUSE,PAUSE_IDX;pause 
 	_dict_entry,3+F_IFUNC,PAD,PAD_IDX;pad_ref 
 	_dict_entry,2+F_IFUNC,OR,OR_IDX;bit_or
+	_dict_entry,2,ON,ON_IDX; cmd_on 
 	_dict_entry,3+F_IFUNC,ODR,ODR_IDX;const_odr 
 	_dict_entry,3+F_IFUNC,NOT,NOT_IDX;func_not 
 	_dict_entry,4,NEXT,NEXT_IDX;next 
@@ -4552,7 +4599,7 @@ code_addr::
 	.word restore,return, random,rshift,run,show,free ; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
-	.word wait,words,write,bit_xor,cmd_size ; 96..99
+	.word wait,words,write,bit_xor,cmd_size,cmd_on ; 96..99
 	.word 0 
 
 

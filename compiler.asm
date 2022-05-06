@@ -389,6 +389,135 @@ bin_exit:
 	_drop VSIZE 
 	ret
 
+;-------------------------------------
+; check if A is a letter 
+; input:
+;   A 			character to test 
+; output:
+;   C flag      1 true, 0 false 
+;-------------------------------------
+is_alpha::
+	cp a,#'A 
+	ccf 
+	jrnc 9$ 
+	cp a,#'Z+1 
+	jrc 9$ 
+	cp a,#'a 
+	ccf 
+	jrnc 9$
+	cp a,#'z+1
+9$: ret 	
+
+;------------------------------------
+; check if character in {'0'..'9'}
+; input:
+;    A  character to test
+; output:
+;    Carry  0 not digit | 1 digit
+;------------------------------------
+is_digit::
+	cp a,#'0
+	jrc 1$
+    cp a,#'9+1
+	ccf 
+1$:	ccf 
+    ret
+
+;-------------------------------------
+; return true if character in  A 
+; is letter or digit.
+; input:
+;   A     ASCII character 
+; output:
+;   A     no change 
+;   Carry    0 false| 1 true 
+;--------------------------------------
+is_alnum::
+	call is_digit
+	jrc 1$ 
+	call is_alpha
+1$:	ret 
+
+;-----------------------------
+; check if character in A 
+; is a valid symbol character 
+; input:
+;    A   character to validate
+; output:
+;    Carry   set if valid 
+;----------------------------
+is_symbol_char: 
+	cp a,#'_ 
+	jrne 1$
+	scf 
+	jra 9$ 
+1$:	call is_alpha 
+9$: ret 
+
+;---------------------------
+;  when lexical unit begin 
+;  with a letter a symbol 
+;  is expected.
+; input:
+;   A   first character of symbol 
+;	X   point to output buffer 
+;   Y   point to input text 
+; output:
+;	X   after symbol 
+;   Y   point after lexical unit 
+;---------------------------
+parse_symbol:
+symb_loop: 
+; symbol are converted to upper case 
+	call to_upper  
+	ld (x), a 
+	incw x
+	ld a,([in.w],y)
+	inc in 
+	call is_symbol_char 
+	jrc symb_loop 
+	clr (x)
+	dec in  
+	ret 
+
+;-------------------------------
+; compress a 6 letters 
+; symbol to uint32 
+; input:
+;	X   *symbol 
+;	SYMB,sp   stack reserved by caller 4 bytes  
+; output: 
+;   (SYMB,sp)  compressed symbol 
+;-------------------------------
+	_argofs 0
+	_arg SYMB,1
+compress_symbol:
+	mov acc16, #6 ; 6 letters maximum  
+0$: 
+	ld a,(x)
+	jreq 8$ 
+	incw x 
+	sub a,'A' 
+	cp a,#'Z' 
+	jrule 1$
+	sub a,#4
+; SYMB*32+a
+1$: mov acc8,#5 
+2$:	ccf
+	rlc (SYMB+3,sp) 
+	rlc (SYMB+2,sp) 
+	rlc (SYMB+1,sp)
+	rlc (SYMB,sp)
+	dec acc8 
+	jrne 2$
+	add a,(SYMB+3,sp)
+	ld (SYMB+3,sp),a 
+	dec acc16
+	jrne 0$ 
+8$:
+	ret 
+
+
 ;---------------------------
 ;  token begin with a letter,
 ;  is keyword or variable. 	
@@ -404,17 +533,8 @@ bin_exit:
 	XFIRST=1
 	VSIZE=2
 parse_keyword: 
-	pushw x 
-kw_loop:	
-	call to_upper 
-	ld (x),a 
-	incw x 
-	ld a,([in.w],y)
-	inc in 
-	call is_alpha 
-	jrc kw_loop
-	dec in   
-1$: clr (x)
+	pushw x ; preserve *symbol 
+	call parse_symbol
 	ldw x,(XFIRST,sp) 
 	ld a,(1,x)
 	jrne 2$
@@ -435,7 +555,25 @@ kw_loop:
 	call search_dict
 	tnz a
 	jrne 4$ 
-	jp syntax_error
+; not in dictionary
+; compile it as TK_LABEL
+    ldw x,(XFIRST,sp)
+	clrw y 
+	pushw y 
+	pushw y  
+	call compress_symbol
+	ldw y,(XFIRST+4,sp)
+	ld a,#TK_LABEL 
+	ld (y),a 
+	incw y
+	mov acc8,#4  
+3$:	
+	pop a 
+	ld (y),a 
+	incw y 
+	dec acc8 
+	jrne 3$ 
+	jra 5$ 
 4$:	
 	ldw y,(XFIRST,sp)
 	cpw x,#LET_IDX 
