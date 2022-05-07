@@ -49,6 +49,7 @@ data_ptr:  .blkw 1  ; point to DATA address
 data_ofs:  .blkb 1  ; index to next data item 
 data_len:  .blkb 1  ; length of data line 
 base::  .blkb 1 ; nemeric base used to print integer 
+acc32:  .blkb 1 ; 32 bit accumulator most signicant byte 
 acc24:: .blkb 1 ; 24 bit accumulator upper-byte 
 acc16:: .blkb 1 ; 16 bit accumulator, acc24 high-byte
 acc8::  .blkb 1 ;  8 bit accumulator, acc24 low-byte  
@@ -624,12 +625,6 @@ interp_loop:
 	jra interp_loop 
 5$:	jp syntax_error 
 
-; skip label at beginning of line 
-skip_label:
-	ld a,#4 
-	add a,in 
-	ld in,a 
-	ret 
 		
 ;--------------------------
 ; extract next token from
@@ -2581,9 +2576,11 @@ loop_done:
 ; to get target line number 
 ;---------------------------
 get_target_line:
-	call relation 
+	call next_token  
 	cp a,#TK_INTGR
 	jreq get_target_line_2 
+	cp a,#TK_LABEL 
+	jreq look_target_symbol 
 	jp syntax_error
 get_target_line_2:
 	clr a
@@ -2601,6 +2598,48 @@ get_target_line_2:
 	ld a,#ERR_NO_LINE 
 	jp tb_error 
 2$:	ret 
+
+; the GOTO|GOSUB target is a symbol.
+look_target_symbol:
+	clr acc16 
+	ldw y,txtbgn 
+1$:	ld a,(3,y) ; first TK_ID on line 
+	cp a,#TK_LABEL 
+	jreq 3$ 
+2$:	ld a,(2,y); line length 
+	ld acc8,a 
+	addw y,acc16 ;point to next line 
+	cpw y,txtend 
+	jrult 1$
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+3$: ; found a TK_LABEL 
+	; compare with GOTO|GOSUB target 
+	pushw y 
+	addw y,#4 ; label string 
+	ldw x,basicptr 
+	addw x,in.w 
+	call strcmp
+	jrne 4$
+	popw y 
+	jra 2$ 
+4$: ; target found 
+	call skip_label 
+	popw x 
+	ret
+
+;--------------------------------
+;  skip label string in BASIC 
+;  text.
+;-------------------------------
+skip_label:
+	ldw x,basicptr 
+1$:	ld a,([in.w],x)
+	inc in 
+	tnz a 
+	jrne 1$
+	ret 
+
 
 ;--------------------------------
 ; BASIC: ON expr GOTO|GOSUB line# [,line#]*
@@ -2790,6 +2829,26 @@ cmd_end:
 	ldw x,#STACK_EMPTY
 	ldw sp,x 
 	jp warm_start
+
+;---------------------------
+; BASIC: GET var 
+; receive a key in variable 
+; don't wait 
+;---------------------------
+cmd_get:
+	call next_token 
+	cp a,#TK_VAR 
+	jreq 0$
+	jp syntax_error 
+0$: ldw ptr16,x 
+	call qgetc 
+	jreq 2$
+	call getc  
+2$: clr [ptr16]
+	inc ptr8 
+	ld [ptr16],a 
+	ret 
+
 
 ;-----------------
 ; 1 Khz beep 
@@ -4554,6 +4613,7 @@ kword_end:
 	_dict_entry,4+F_IFUNC,GPIO,GPIO_IDX;gpio 
 	_dict_entry,4,GOTO,GOTO_IDX;goto 
 	_dict_entry,5,GOSUB,GOSUB_IDX;gosub 
+	_dict_entry,3,GET,GET_IDX; cmd_get 
 	_dict_entry,4+F_IFUNC,FREE,FREE_IDX;free
 	_dict_entry,3,FOR,FOR_IDX;for 
 	_dict_entry,4,FCPU,FCPU_IDX;fcpu 
@@ -4599,7 +4659,7 @@ code_addr::
 	.word restore,return, random,rshift,run,show,free ; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
-	.word wait,words,write,bit_xor,cmd_size,cmd_on ; 96..99
+	.word wait,words,write,bit_xor,cmd_size,cmd_on,cmd_get ; 96..99
 	.word 0 
 
 

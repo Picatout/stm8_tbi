@@ -190,12 +190,13 @@ get_cmd_idx:
 	popw y 
 	ret
 
+
 ;-------------------------------------
 ; decompile tokens list 
 ; to original text line 
 ; input:
 ;   [basicptr]  pointer at line 
-;   Y           destination buffer
+;   Y           output buffer
 ; output:
 ;   A           length 
 ;   Y           after string  
@@ -239,8 +240,9 @@ decomp_loop:
 	tnz a  
 	jrne 1$
 	jp 20$
-1$:	jrpl 6$
-;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR
+1$:	jrmi 2$
+	jp 6$
+2$: ;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR
 	cp a,#TK_VAR 
 	jrne 3$
 ;; TK_VAR 
@@ -268,8 +270,7 @@ decomp_loop:
 	addw y,(1,sp)
 	_drop 2 
 	jra decomp_loop
-;; dictionary keyword 
-4$:	
+4$: ; dictionary keyword 
 	call get_cmd_idx 
 	cpw x,#REM_IDX
 	jrne 5$
@@ -279,18 +280,19 @@ decomp_loop:
 	ld a,#''
 	ld (y),a 
 	incw y 
-41$:
+46$:
 	ld a,([in.w],x)
 	inc in  
 	ld (y),a 
 	incw y 
 	ld a,in 
 	cp a,count 
-	jrmi 41$
-	jra 20$  
+	jrmi 46$
+	jp 20$  
 5$: cpw x,#LET_IDX 
-	jreq decomp_loop ; down display LET 	
-; insert command name 
+	jrne 51$
+	jp decomp_loop ; down display LET 	
+51$: ; insert command name 
 	call add_space  
 	pushw y
 	call cmd_name
@@ -298,6 +300,28 @@ decomp_loop:
 	call cpy_cmd_name
 	jp decomp_loop 
 6$:
+; label?
+	cp a,#TK_LABEL 
+	jrne 64$
+; copy label string to output buffer   	
+	ld a,#32 
+	ld (y),a 
+	incw y 
+	ldw x,basicptr 
+61$:
+	ld a,([in.w],x)
+	inc in 
+	tnz a 
+	jreq 62$
+	ld (y),a 
+	incw y 
+	jra 61$ 
+62$: 
+	ld a,#32 
+	ld (y),a 
+	incw y 
+	jp decomp_loop
+64$:
 	cp a,#TK_QSTR 
 	jrne 7$
 ;; TK_QSTR

@@ -1,3 +1,11 @@
+#### 2022-05-06
+
+* Ajout de la commande **GET** *var* qui vérifie s'il y a un caractère de reçu. Si c'est le cas la valeur ASCII du caractère est assignée à la varable sinon **0**. **GET** n'attend pas la réception d'un caractère. 
+
+* Modifié les compilateur et décompilateur pour tenir compte type TK_LABEL.
+
+* Ajouté et testé  cible symboliques pour les commandes **GOTO** et **GOSUB** voir test [BASIC/target.bas](BASIC/target.bas)
+
 #### 2022-05-05
 
 * À faire:

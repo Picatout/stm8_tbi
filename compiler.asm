@@ -441,6 +441,7 @@ is_alnum::
 ;-----------------------------
 ; check if character in A 
 ; is a valid symbol character 
+; valid: Upper case LETTER,DIGIT,'_' 
 ; input:
 ;    A   character to validate
 ; output:
@@ -451,7 +452,7 @@ is_symbol_char:
 	jrne 1$
 	scf 
 	jra 9$ 
-1$:	call is_alpha 
+1$:	call is_alnum 
 9$: ret 
 
 ;---------------------------
@@ -467,6 +468,7 @@ is_symbol_char:
 ;   Y   point after lexical unit 
 ;---------------------------
 parse_symbol:
+	incw x ; keep space for TK_ID 
 symb_loop: 
 ; symbol are converted to upper case 
 	call to_upper  
@@ -479,44 +481,6 @@ symb_loop:
 	clr (x)
 	dec in  
 	ret 
-
-;-------------------------------
-; compress a 6 letters 
-; symbol to uint32 
-; input:
-;	X   *symbol 
-;	SYMB,sp   stack reserved by caller 4 bytes  
-; output: 
-;   (SYMB,sp)  compressed symbol 
-;-------------------------------
-	_argofs 0
-	_arg SYMB,1
-compress_symbol:
-	mov acc16, #6 ; 6 letters maximum  
-0$: 
-	ld a,(x)
-	jreq 8$ 
-	incw x 
-	sub a,'A' 
-	cp a,#'Z' 
-	jrule 1$
-	sub a,#4
-; SYMB*32+a
-1$: mov acc8,#5 
-2$:	ccf
-	rlc (SYMB+3,sp) 
-	rlc (SYMB+2,sp) 
-	rlc (SYMB+1,sp)
-	rlc (SYMB,sp)
-	dec acc8 
-	jrne 2$
-	add a,(SYMB+3,sp)
-	ld (SYMB+3,sp),a 
-	dec acc16
-	jrne 0$ 
-8$:
-	ret 
-
 
 ;---------------------------
 ;  token begin with a letter,
@@ -536,10 +500,10 @@ parse_keyword:
 	pushw x ; preserve *symbol 
 	call parse_symbol
 	ldw x,(XFIRST,sp) 
-	ld a,(1,x)
+	ld a,(2,x)
 	jrne 2$
 ; one letter variable name 
-	ld a,(x) 
+	ld a,(1,x) 
 	sub a,#'A 
 	sll a 
 	push a 
@@ -552,27 +516,24 @@ parse_keyword:
 2$: ; check for keyword, otherwise syntax error.
 	_ldx_dict kword_dict ; dictionary entry point
 	ldw y,(XFIRST,sp) ; name to search for
+	incw y 
 	call search_dict
 	tnz a
 	jrne 4$ 
 ; not in dictionary
 ; compile it as TK_LABEL
-    ldw x,(XFIRST,sp)
-	clrw y 
-	pushw y 
-	pushw y  
-	call compress_symbol
-	ldw y,(XFIRST+4,sp)
+	ldw y,(XFIRST,sp)
 	ld a,#TK_LABEL 
 	ld (y),a 
 	incw y
-	mov acc8,#4  
-3$:	
-	pop a 
-	ld (y),a 
+24$:	
+    ld a,(y)
+	jreq 3$
 	incw y 
-	dec acc8 
-	jrne 3$ 
+	jra 24$ 
+3$: incw y 
+	ld a,#TK_LABEL 
+	clrw x 	
 	jra 5$ 
 4$:	
 	ldw y,(XFIRST,sp)

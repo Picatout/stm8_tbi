@@ -122,5 +122,6 @@
     XOR_IDX=WRITE_IDX+2
     SIZE_IDX=XOR_IDX+2 
     ON_IDX=SIZE_IDX+2 
+    GET_IDX=ON_IDX+2 
         
 
