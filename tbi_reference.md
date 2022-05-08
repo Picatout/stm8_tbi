@@ -198,7 +198,6 @@ nom|abrévation
 [CRH](#chr)|CRH
 [CRL](#crl)|CRL
 [DATA](#data)|DATA
-[DATALN](#dataln)|DATAL
 [DDR](#ddr)|DD
 [DEC](#dec)|DE
 [DO](#do)|DO
@@ -460,29 +459,6 @@ Cette directive permet de définir des données dans un programme. L'interpréte
    30 DATA 392,250,349,250,349,250,392,250,440,250,440,375,392,125
    40 DATA 392,500
    50 FOR I =1TO 15:TONE READ ,READ :NEXT I 
-```
-
-[index](#index)
-<a id="dataln"></a>
-### DATALN *expr* {P}
-Cette commande initialise le pointeur de données au début de la ligne **DATA** correspondant 
-au numéro de ligne fourni par *expr*. 
-```
->list
-    5 ' joue 4 mesures de l'hymne a la joie
-   10 DATALN 20  ' initialise le pointeur a la ligne 20 
-   20 DATA 440,250,440,250,466,250,523,250,523,250,466,250,440,250
-   30 DATA 392,250,349,250,349,250,392,250,440,250,440,375,392,125
-   40 DATA 392,500
-   50 FOR I =1TO 15:TONE READ ,READ :NEXT I 
-```
-Si le numéro de ligne fourni n'existe pas ou n'est pas une ligne de data l'exécution du programme s'arrête avec un message d'erreur. 
-```
->dataln 20
-invalid line number.
-    0 DATALN 20
-
->
 ```
 
 [index](#index)
@@ -1176,8 +1152,8 @@ La commande **REM**  sert à insérer des commentaires (*remark*) dans un progra
 ```
 [index](#index)
 <a id="restore"></a>
-### RESTORE {p}
-Cette commande initialise le pointeur de [DATA](#data) au début de la première ligne de données. Il peut être invoqué à l'intérieur d'une boucle si on veut relire les même données plusieurs fois. Pour un exemple d'utilisation voir la fonction [READ](#read). 
+### RESTORE [line#] {p}
+Cette commande initialise le pointeur de [DATA](#data) au début de la première ligne de données. Il peut être invoqué à l'intérieur d'une boucle si on veut relire les même données plusieurs fois. Pour un exemple d'utilisation voir la fonction [READ](#read). La commande peut accepter optionnellment un numéro de ligne  comme argument. Dans ce cas le pointeur [DATA](#data) sera placé sur cette ligne. Si cette ligne n'existe pas ou n'est pas une ligne de données le programme est interrompu avec un message d'erreur.  
 
 [index](#index)
 <a id="return"></a>

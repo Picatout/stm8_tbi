@@ -626,12 +626,12 @@ interp_loop:
 next_token::
 	clrw x 
 	ld a,in 
+	ld in.saved,a ; in case "_unget_token" needed 
 ; don't replace sub by "cp a,count" 
 ; if end of line must return with A=0   	
 	sub a,count 
 	jreq 9$ ; end of line 
 0$: 
-	mov in.saved,in ; in case "_unget_token" needed 
 	ldw y,basicptr 
 	addw y,in.w 
 	ld a,(y)
@@ -4380,17 +4380,25 @@ data:
 	mov in,count 
 	ret 
 
+;------------------------------
+; check if it is a DATA line 
+; input: 
+;    X    line address 
+; output:
+;    Z    set if DATA line 
+;----------------------------
+is_data_line:
+	ldw x,(4,x)
+	ldw x,(code_addr,x)
+	cpw x,#data 
+	ret 
+
 ;---------------------------
-; BASIC: DATLN  *expr*
 ; set DATA pointer at line# 
-; specified by *expr* 
+; specified by X 
 ;---------------------------
 data_line:
-	call expression
-	cp a,#TK_INTGR
-	jreq 1$
-	jp syntax_error  
-1$: clr a 
+    clr a 
 	call search_lineno
 	tnzw x 
 	jrne 3$
@@ -4398,9 +4406,9 @@ data_line:
 	jp tb_error
 3$: ; check if valid data line 
     ldw y,x 
-	ldw x,(4,x)
-	cpw x,#data 
+	call is_data_line 
 	jrne 2$ 
+set_data_ptr: 	
 	ldw data_ptr,y
 	ld a,(2,y)
 	ld data_len,a 
@@ -4408,42 +4416,44 @@ data_line:
 	ret
 
 ;---------------------------------
-; BASIC: RESTORE 
+; BASIC: RESTORE [line#]
 ; set data_ptr to first data line
-; if not DATA found pointer set to
-; zero 
+; if no DATA found pointer set to
+; zero.
+; if a line# is given as argument 
+; a data line with that number 
+; is searched and the data pointer 
+; is set to it. If there is no 
+; data line with that number 
+; the program is interrupted. 
 ;---------------------------------
 restore:
 	clr data_ptr 
 	clr data_ptr+1
 	clr data_ofs 
 	clr data_len
+	call next_token 
+	cp a,#TK_INTGR
+	jreq data_line
+	_unget_token 
 	ldw x,txtbgn
+; search first DATA line 
 data_search_loop: 	
 	cpw x,txtend
-	jruge 9$
+	jruge restore_error 
 	ldw y,x 
-	ldw x,(4,x)
-	addw x,#code_addr
-	ldw x,(x)
-	cpw x,#data 
-	jrne try_next_line 
-	ldw data_ptr,y 
-	ld a,(2,y)
-	ld data_len,a 
-	mov data_ofs,#FIRST_DATA_ITEM
-9$:	tnz data_len 
-    jrne 10$
-	ld a,#ERR_NO_DATA 
-	jp tb_error 
-10$:ret
-try_next_line:
+	call is_data_line 
+	jreq set_data_ptr
+try_next_line: 
 	ldw x,y 
 	ld a,(2,x)
 	ld acc8,a 
 	clr acc16 
 	addw x,acc16 
 	jra data_search_loop
+restore_error:	
+    ld a,#ERR_NO_DATA 
+	jp tb_error 
 
 
 ;---------------------------------
@@ -4725,7 +4735,6 @@ kword_end:
 	_dict_entry,2,DO,DO_IDX;do_loop
 	_dict_entry,3,DEC,DEC_IDX;dec_base
 	_dict_entry,3+F_IFUNC,DDR,DDR_IDX;const_ddr 
-	_dict_entry,6,DATALN,DATALN_IDX;data_line  
 	_dict_entry,4,DATA,DATA_IDX;data  
 	_dict_entry,3+F_IFUNC,CRL,CRL_IDX;const_cr1 
 	_dict_entry,3+F_IFUNC,CRH,CRH_IDX;const_cr2 
@@ -4748,7 +4757,7 @@ kword_dict::
 code_addr::
 	.word abs,power_adc,analog_read,bit_and,ascii,awu,bitmask ; 0..7
 	.word bit_reset,bit_set,bit_test,bit_toggle,bye,char,const_cr2  ; 8..15
-	.word const_cr1,data,data_line,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
+	.word const_cr1,data,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
 	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto,gpio ; 24..31 
 	.word hex_base,const_idr,if,input_var,invert,enable_iwdg,refresh_iwdg,key ; 32..39 
 	.word let,list,log2,lshift,muldiv,next,new ; 40..47

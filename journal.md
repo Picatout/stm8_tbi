@@ -1,5 +1,37 @@
 #### 2022-05-07
 
+* Corrigé bogue dans *next_token*. Lorsque qu'un TK_NONE était retourné et que la routine appellante faisait un *_unget_token* le programme entrait dans une boucle infinie. J'ai déplacé la sauvegarde  avant le test de
+fin de ligne. 
+
+original:
+```
+next_token::
+	clrw x 
+	ld a,in 
+; don't replace sub by "cp a,count" 
+; if end of line must return with A=0   	
+	sub a,count 
+	jreq 9$ ; end of line 
+0$: 
+	mov in.saved,in ; in case "_unget_token" needed 
+```
+
+corrigé: 
+```
+next_token:: 
+	clrw x 
+	ld a,in
+	ld in.saved,a ; in case "_unget_token" needed  
+; don't replace sub by "cp a,count" 
+; if end of line must return with A=0   	
+	sub a,count 
+	jreq 9$ ; end of line 
+0$: 
+	ldw y,basicptr 
+```
+
+* Supprimer la commande **DATALN** et modifié la commande **RESTORE** pour lui permettre d'accepter un numéro de ligne comme argument. La commande agit alors comme **DATALN**
+
 * Mise à jour de [tbi_reference.md](tbi_reference.md)
 
 * Renommé  *write_row* en *write_buffer* dans le fichier [flash_prog.asm](flash_prog.asm)
@@ -31,8 +63,6 @@
 	* Ajouter la possibilié de créer des variables et constantes  symboliques. 
 
 	* Support pour symbole comme cible des **GOTO** et **GOSUB** 
-
-	* Ajout commande **RENUM** pour renuméroté le programme en mémoire RAM. 
 
 
 * Modifié  parse_keyword pour extraire parse_symbol dans le fichier [compiler.asm](compiler.asm)	
