@@ -211,6 +211,7 @@ nom|abrévation
 [FCPU](#fcpu)|FC 
 [FOR](#for)|FO
 [FREE](#free)|FR
+[GET](#get)|GE 
 [GOSUB](#gosub)|GOS
 [GOTO](#goto)|GOT
 [GPIO](#gpio)|GP
@@ -231,6 +232,7 @@ nom|abrévation
 [NEXT](#next)|NEX
 [NOT](#not)|NO
 [ODR](#odr)|OD
+[ON](#on)|ON 
 [OR](#or)|OR
 [PAD](#pad)|PA
 [PAUSE](#pause)|PA
@@ -687,6 +689,16 @@ Cette commande retourne le nombre d'octets libre dans la mémoire RAM
 ```
 
 [index](#index)
+<a id="get"></a>
+### GET *var* 
+Cette commande fait la lecture d'un caractère en provenance du terminal et place sa valeur ACII dans la variable *var*. **GET** contrairement à [KEY](#key) n'attend pas la réception d'un caractère. Si aucun caractère n'est disponible la valeur 0 est placé dans la variable et le programme continu après cette commande. 
+```
+10 PRINT "Enfoncez une touche pour arrêter le programme\n"  PAUSE 400 
+20 DO ? "hello ",  GET A UNTIL A 
+
+```
+
+[index](#index)
 <a id="gosub"></a>
 ### GOSUB *expr* {P}
 Appel de sous-routine. *expr* doit résulté en un numéro de ligne existant sinon le programme arrête avec un message d'erreur.
@@ -964,6 +976,33 @@ qu'on définirait en 'C' par __uint8_t gpio[5]__. Les fonctions **ODR**,**IDR**,
 >
 ``` 
 Dans cette exemple la LED2 est allumée puis éteinte. La LED est branchée sur le bit 5 du port **C**. **32=(1&lt;&lt;5)** donc ce masque affecte seulement le bit 5.  
+
+[index](#index)
+<a id="on"></a>
+### ON *expr* GOTO|GOSUB liste_destination
+Cette commande permet de sélectionner la destination d'un [GOTO](#goto) ou [GOSUB](#gosub) en fonction de la valeur d'une expression. *liste_destination* est une liste de numéros de lignes dont un élément sera sélection comme destination. Les numéros sont séparés par une virgule. Si la valeur de l'expression est plus petite que **1** ou plus grande que le nombre d'élément de la liste, l'exécution se poursuit sur la ligne suivante.
+```
+   5  ? "testing ON expr GOTO line#,line#,..."
+   7  INPUT "select 1-4"A 
+  10  ON A GOTO 100,200,300,500  
+  14  ? "Woops! selector out of range." : END  
+  20  GOTO 500 
+ 100  PRINT 100 :GOTO 500
+ 200  PRINT 200 :GOTO 500
+ 300  PRINT 300 :GOTO 500 
+ 500 ? "testing ON expr GOSUB line#,line#..." 
+ 505 INPUT "select 1-6"B
+ 510 A=1 ON A*B GOSUB 600,700,800,900,1000,1100 
+ 520 IF (B>6) GOTO 14 
+ 522 if B<1 GOTO 14 
+ 524 GOTO 5  
+ 600 ? 600 : RETURN 
+ 700 ? 700 : RETURN 
+ 800 ? 800 : RETURN 
+ 900 ? 900 : RETURN 
+ 1000 ? 1000 : RETURN 
+ 1100 ? 1100 : RETURN 
+```  
 
 [index](#index)
 <a id="or"></a>

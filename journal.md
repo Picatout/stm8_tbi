@@ -1,8 +1,25 @@
+#### 2022-05-07
+
+* Mise à jour de [tbi_reference.md](tbi_reference.md)
+
+* Renommé  *write_row* en *write_buffer* dans le fichier [flash_prog.asm](flash_prog.asm)
+
+* Modifié  *save_app*  et déboguer.
+
+* Modifié  *clear_vars*. Utilisation du registre **A** au lieu du registre **Y** comme compteur de boucle. 
+
+* Modifié  *run_it* pour ajouter un appel à *clear_vars* avant d'exécuter le programme. 
+
+* Modifié  *run_app* dans *cold_start*  pour faire un saut à *run_it_02*  pour éviter la redoncance de code.
+
+* Création routine **program_info** appellée par la commande **LIST** et par *run_app* in *cold_start*. 
+
+
 #### 2022-05-06
 
 * Ajout de la commande **GET** *var* qui vérifie s'il y a un caractère de reçu. Si c'est le cas la valeur ASCII du caractère est assignée à la varable sinon **0**. **GET** n'attend pas la réception d'un caractère. 
 
-* Modifié les compilateur et décompilateur pour tenir compte type TK_LABEL.
+* Modifié les compilateur et décompilateur pour tenir compte du type TK_LABEL.
 
 * Ajouté et testé  cible symboliques pour les commandes **GOTO** et **GOSUB** voir test [BASIC/target.bas](BASIC/target.bas)
 

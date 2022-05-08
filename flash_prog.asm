@@ -127,8 +127,6 @@ program_row:
 ;enable block programming 
 	bset FLASH_CR2,#FLASH_CR2_PRG 
 	bres FLASH_NCR2,#FLASH_CR2_PRG
-;	mov FLASH_CR2,#(1<<FLASH_CR2_PRG) 
-;	mov FLASH_NCR2,#~(1<<FLASH_CR2_PRG)
 	clrw y 
 1$:	ld a,(x)
 	ldf ([farptr],y),a
@@ -163,12 +161,12 @@ move_prg_to_ram:
 
 
 ;-----------------------------
-; write a row in FLASH/EEPROM 
+; write a buffer in FLASH/EEPROM 
 ; input:
 ;    farptr   destination address 
-;    x        source address 
+;    x        buffer address 
 ;-----------------------------
-write_row:
+write_buffer:
 	pushw x 
 	tnz farptr 
 	jrne to_flash 

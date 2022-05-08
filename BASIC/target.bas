@@ -25,5 +25,4 @@ NEW
   250 ? TICKS-T   " msec"
   260 END  
 
-RUN 
 

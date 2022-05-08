@@ -326,14 +326,14 @@ move_exit:
 ;------------------------------------
 clear_vars:
 	pushw x 
-	pushw y 
+	push a  
 	ldw x,#vars 
-	ldw y,#2*26 
+	ld a,#2*26 
 1$:	clr (x)
 	incw x 
-	decw y 
+	dec a 
 	jrne 1$
-	popw y 
+	pop a 
 	popw x 
 	ret 
 
@@ -417,30 +417,18 @@ cold_start:
 	jp cmd_line
 run_app:
 ; run application in FLASH|EEPROM 
-	ldw x,app_size  
-	pushw x 
 	ldw x,#app 
 	ldw txtbgn,x
-	ldw basicptr,x 
-	addw x,(1,sp) ; x+size 
-	_drop 2 
+	addw x,app_size 
 	ldw txtend,x 
-	ldw x,#RUNNING 
-	call puts
-	ldw x,basicptr    
-	mov base,#16 
-	call print_int
-	mov base,#10  
-	ldw x, basicptr 
-	ld a,(2,x)
-	ld count,a 
-	mov in,#3 
-	bset flags,#FRUN
-	call ubound   
-	jp interpreter  
+	ldw x,#AUTO_RUN 
+	call puts 
+	call program_info 
+	jp run_it_02  
     jra .  
 
-RUNNING: .asciz "\nrunning application at address: " 
+AUTO_RUN: .asciz " auto run program\n"
+
 
 warm_init:
 	clr flags 
@@ -1852,10 +1840,6 @@ cmd_size:
 	ret 
 
 
-PROG_ADDR: .asciz "program address: "
-PROG_SIZE: .asciz "program size: "
-STR_BYTES: .asciz "bytes\n" 
-
 ;------------------------
 ; BASIC: UBOUND  
 ; return array variable size 
@@ -1911,6 +1895,40 @@ prog_size:
 	ret 
 
 ;----------------------------
+; print program information 
+;---------------------------
+program_info: 
+	ldw x,#PROG_ADDR 
+	call puts 
+	ldw x,txtbgn 
+	mov base,#16 
+	call print_int
+	mov base,#10  
+	ldw x,#PROG_SIZE
+	call puts 
+	call prog_size 
+	call print_int 
+	ldw x,#STR_BYTES 
+	call puts
+	ldw x,txtbgn
+	cpw x,#app 
+	jrult 2$
+	ldw x,#FLASH_MEM 
+	jra 3$
+2$: ldw x,#RAM_MEM 	 
+3$:	call puts 
+	ld a,#CR 
+	call putc
+	ret 
+
+PROG_ADDR: .asciz "program address: "
+PROG_SIZE: .asciz ", program size: "
+STR_BYTES: .asciz "bytes" 
+FLASH_MEM: .asciz " in FLASH memory" 
+RAM_MEM:   .asciz " in RAM memory" 
+
+
+;----------------------------
 ; BASIC: LIST [[start][,end]]
 ; list program lines 
 ; form start to end 
@@ -1922,19 +1940,14 @@ prog_size:
 	LN_PTR=5
 	VSIZE=6 
 list:
-	ldw x,txtbgn 
-	cpw x,txtend 
-	jrmi 1$
+	btjf flags,#FRUN,0$
+	ld a,#ERR_CMD_ONLY
+	jp tb_error
+0$:	 
+	call prog_size 
+	jrugt 1$
 	ret 
-1$:	
-	ldw x,#PROG_SIZE
-	call puts 
-	ldw x,txtend 
-	subw x,txtbgn 
-	call print_int 
-	ldw x,#STR_BYTES 
-	call puts 
-	_vars VSIZE
+1$: _vars VSIZE
 	ldw x,txtbgn 
 	ldw (LN_PTR,sp),x 
 	ldw x,(x) 
@@ -1989,6 +2002,7 @@ list_exit:
 	ldw x,#pad 
 	ldw basicptr,x 
 	_drop VSIZE 
+	call program_info 
 	ret
 
 
@@ -2803,8 +2817,10 @@ run:
 	mov in,count
 	ret 
 run_it:	 
-    call ubound 
 	_drop 2 ; drop return address 
+run_it_02: 
+    call ubound 
+	call clear_vars 
 ; clear data pointer 
 	clrw x 
 	ldw data_ptr,x 
@@ -3214,11 +3230,64 @@ qsign:
 	cpw x,SIGNATURE ; "BC" 
 	ret 
 
+;--------------------------------------
+;  fill write buffer 
+;  input:
+;    y  point to output buffer 
+;    x  point to source 
+;    a  bytes to write in buffer 
+;  output:
+;    y   += A 
+;    X   += A 
+;    A   0 
+;---------------------------------------
+fill_write_buffer:
+	push a 
+	tnz a 
+	jreq 9$ 
+1$: ld a,(x)
+	incw x 
+	ld (y),a 
+	incw y 
+	dec (1,sp) 
+	jrne 1$ 
+9$:	pop a 
+    ret 	
+
+;--------------------------------------
+;  fill pad buffer with zero 
+;  input:
+;	none 
+;  output:
+;    y     buffer address  
+;--------------------------------------
+clear_block_buffer:
+	push a 
+	ldw y,#block_buffer 
+	pushw y
+	ld a,#BLOCK_SIZE   
+1$:	clr (y)
+	incw y
+	dec a  
+	jrne 1$ 	
+9$: popw y 
+	pop a 			
+	ret 
+
+
 ;---------------------------------------
 ; BASIC: SAVE
-; write application in RAM to FLASH
+; write application from RAM to FLASH
 ;--------------------------------------
+	XTEMP=1
+	COUNT=3  ; last count bytes written 
+	CNT_LO=4 ; count low byte 
+	TOWRITE=5 ; how bytes left to write  
+	VSIZE=6 
 save_app:
+	pushw x 
+	pushw y 
+	_vars VSIZE
 	call qsign 
 	jrne 1$
 	ldw x,#CANT_DO 
@@ -3230,42 +3299,72 @@ save_app:
 	jrult 2$ 
 	ldw x,#NO_APP
 	call puts 
-	jra 9$
+	jp 9$
 2$: 
 ; block programming flash
-; must be done from RAM 
+; must be done from RAM
+; moved in tib  
 	call move_prg_to_ram
 ; initialize farptr 
+; to app_sign address 
 	clr farptr 
 	ldw x,#app_sign 
-	ldw farptr+1,x 
+	ldw farptr+1,x
+; initialize local variables 
+	call prog_size
+	ldw (TOWRITE,sp),x
+	clr (COUNT,sp)
+; first bock 
+; containt signature 2 bytes 
+; and size 	2 bytes 
+; use Y as pointer to block_buffer
+	call clear_block_buffer ; -- y=*block_buffer	
 ; write signature
 	ldw x,SIGNATURE ; "BC" 
-	ldw rsign,x 
-	ldw x,txtend 
-	subw x,txtbgn 
-	ldw rsize,x   
-;copy block to flash
-	ldw x,#rsign  
-	ldw (1,sp),x   
-3$:	ldw x,(1,sp)
-	call write_row 
-    ld a,#'. 
-    call putc 
-	ldw x,(1,sp)
-	addw x,#BLOCK_SIZE
-	ldw (1,sp),x  
-	cpw x,txtend 
-	jruge 8$
+	ldw (y),x 
+	addw y,#2
+	ldw x,(TOWRITE,sp)
+	ldw (y),x
+	addw y,#2   
+	ld a,#(BLOCK_SIZE-4)
+	ld (CNT_LO,sp),a 
+	cpw x,#(BLOCK_SIZE-4) 
+	jrugt 3$
+	ld a,xl 
+3$:	ld (CNT_LO,sp),a   
+	ldw x,txtbgn 
+	ldw (XTEMP,sp),x 
+32$: 
+	ldw x,(XTEMP,sp)
+	ld a,(CNT_LO,sp)
+	call fill_write_buffer 
+	ldw (XTEMP,sp),x 
+	ldw x,#block_buffer
+	call write_buffer
 	ldw x,#BLOCK_SIZE 
-	call incr_farptr
-	jra 3$ 
-8$:	
-	_drop 2   
-9$: ret 
+	call incr_farptr  
+; following blocks 
+	ldw x,(XTEMP,sp)
+	cpw x,txtend 
+	jruge 9$ 
+	ldw x,(TOWRITE,sp)
+	subw x,(COUNT,sp)
+	ldw (TOWRITE,sp),x 
+	ld a,#BLOCK_SIZE 
+	cpw x,#BLOCK_SIZE 
+	jruge 4$ 
+	ld a,xl 
+4$:	ld (CNT_LO,sp),a 
+	call clear_block_buffer 
+	jra 32$ 
+9$:	_drop VSIZE 
+    popw y 
+	popw x 
+	ret 
+
 
 SIGNATURE: .ascii "BC"
-CANT_DO: .asciz "Can't flash application, already one in FLASH\nuse ERASE before"
+CANT_DO: .asciz "Can't flash application, already one in FLASH\nuse ERASE \F before"
 NO_APP: .asciz "No application in RAM"
 
 ;---------------------

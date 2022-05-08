@@ -45,7 +45,7 @@
         TIM2_CLK_FREQ=62500
 
 	TIB_SIZE=80
-        PAD_SIZE=128
+        PAD_SIZE=BLOCK_SIZE 
 
 ;--------------------------------------
 ;   constantes related to Arduino 
