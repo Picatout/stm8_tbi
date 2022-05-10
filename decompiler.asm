@@ -307,12 +307,10 @@ decomp_loop:
 	ld a,#32 
 	ld (y),a 
 	incw y 
-	ldw x,basicptr 
 61$:
-	ld a,([in.w],x)
-	inc in 
-	tnz a 
-	jreq 62$
+	ld a,(x)
+	jreq 62$ 
+	incw x  
 	ld (y),a 
 	incw y 
 	jra 61$ 

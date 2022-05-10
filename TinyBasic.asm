@@ -66,10 +66,10 @@ loop_depth: .blkb 1 ; level of nested loop. Conformity check
 array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
 flags:: .blkb 1 ; various boolean flags
 tab_width:: .blkb 1 ; print colon width (default 6)
+free_eeprom: .blkw 1 ; start address of free eeprom 
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
-free_eeprom: .blkw 1 ; start address of free eeprom 
 
 
 vars:: .blkw 26 ; BASIC variables A-Z, keep it as but last .
@@ -226,7 +226,7 @@ strlen::
 ;   X 		char* first string 
 ;   Y       char* second string 
 ; output:
-;   A 		0|1 
+;   A 		0 not == |1 ==  
 ;-------------------------------------
 strcmp:
 	ld a,(x)
@@ -384,28 +384,12 @@ cold_start:
 ; activate PE_4 (user button interrupt)
     bset PE_CR2,#USR_BTN_BIT 
 ; display system information
-	ldw x,#software 
-	call puts 
-	ld a,#MAJOR 
-	ld acc8,a 
-	clrw x 
-	ldw acc24,x
-	clr tab_width  
-	mov base, #10 
-	call prti24 
-	ld a,#'.
-	call putc 
-	ld a,#MINOR 
-	ld acc8,a 
-	clrw x 
-	ldw acc24,x 
-	call prti24
-	ld a,#CR 
-	call putc
-	rim 
+	call system_information
+	rim ; enable interrupts 
 	inc seedy+1 
 	inc seedx+1 
 	call clear_basic
+	call func_eefree 
 	call ubound 
 	call beep_1khz  
 2$:	
@@ -428,6 +412,32 @@ run_app:
     jra .  
 
 AUTO_RUN: .asciz " auto run program\n"
+
+
+;-----------------------
+;  display system 
+;  information 
+;-----------------------
+system_information:
+	ldw x,#software 
+	call puts 
+	ld a,#MAJOR 
+	ld acc8,a 
+	clrw x 
+	ldw acc24,x
+	clr tab_width  
+	mov base, #10 
+	call prti24 
+	ld a,#'.
+	call putc 
+	ld a,#MINOR 
+	ld acc8,a 
+	clrw x 
+	ldw acc24,x 
+	call prti24
+	ld a,#CR 
+	call putc
+	ret
 
 
 warm_init:
@@ -608,9 +618,7 @@ interp_loop:
 	cp a,#TK_COLON 
 	jreq interp_loop
 4$: cp a,#TK_LABEL 
-	jrne 5$
-	call skip_label
-	jra interp_loop 
+	jreq interp_loop 
 5$:	jp syntax_error 
 
 		
@@ -648,7 +656,10 @@ next_token::
 	exg a,xl  
 	jra 6$ 
 2$:	cp a,#TK_QSTR 
-	jrne 7$
+	jreq 22$
+	cp a,#TK_LABEL 
+	jrne 7$ 
+22$:
 	ldw x,y 
 ; move pointer after string 
 3$:	tnz (y)
@@ -1886,6 +1897,172 @@ let_var:
 	ldw (x),y   
 	ret 
 
+
+;--------------------------
+; BASIC: EEFREE 
+; eeprom_free 
+; search end of data  
+; in EEPROM 
+; input:
+;    none 
+; output:
+;    X     address free
+;    A     TK_INTGR  
+;-------------------------
+func_eefree:
+	ldw x,#EEPROM_BASE 
+1$:	mov acc8,#8 ; count 8 consecutive zeros
+    cpw x,#EEPROM_BASE+EEPROM_SIZE-8
+	jruge 8$ ; no free space 
+2$: ld a,(x)
+	jrne 3$
+	incw x 
+	dec acc8 
+	jrne 2$
+	subw x,#8 
+	jra 9$  
+3$: ld a,(x)
+	incw x
+	tnz a  
+	jrne 3$
+	decw x   
+	jra 1$ 
+8$: clrw x ; no free space 
+9$:
+	ldw free_eeprom,x ; save in system variable 
+	ld a,#TK_INTGR
+	ret 
+
+;--------------------------
+; search constant name 
+; format of constant record  
+;   .byte record length 
+;         = strlen(name)+5 
+;   .asciz name (variable length)
+;   .word value (2 bytes )
+; a constant record use 6+ bytes
+; constants are saved in EEPROM  
+; input:
+;    X     *name
+;    A     record length  
+; output:
+;    X     address|0
+; use:
+;   A,Y, acc16 
+;-------------------------
+	NAMEPTR=1 ; target name pointer 
+	EEPTR=3   ; walking pointer in EEPROM
+	RECLEN=5  ; record length of targer 
+	VSIZE=5
+search_const:
+	pushw y 
+	_vars VSIZE
+	clr acc16 
+	ld (RECLEN,sp),a    
+	ldw (NAMEPTR,sp),x
+	ldw y,#EEPROM_BASE 
+1$:	ldw x,(NAMEPTR,sp)
+	ldw (EEPTR,sp),y
+	cpw y, free_eeprom 
+	jruge 7$ ; no match found 
+	ld a,(y)
+	cp a,(RECLEN,sp)
+	jrne 2$ 
+	incw y 
+	call strcmp
+	jrne 8$ ; match found 
+2$: ; skip this one 	
+	ldW Y,(EEPTR,sp)
+	ld a,(y)
+	ld acc8,a 
+	addw y,acc16 
+	jra 1$  
+7$: ; no match found 
+	clr (EEPTR,sp)
+	clr (EEPTR+1,sp)
+8$: ; match found 
+	ldw x,(EEPTR,sp) ; record address 
+9$:	_DROP VSIZE
+	 popw y 
+	 ret 
+
+
+;--------------------------------------------
+; BASIC: CONST name=value [, name=value]*
+; define constant(s) saved in EEPROM
+;--------------------------------------------
+	CNAME=1 
+	BUFPTR=3
+	RECLEN=5
+	VSIZE=5
+cmd_const:
+	_vars VSIZE 
+10$:
+	call next_token 
+	cp a,#TK_LABEL 
+	jreq 0$ 
+	jp syntax_error 
+0$: 
+	ldw (CNAME,sp),x ; *const_name
+	ldw x,(CNAME,sp)
+	call strlen 
+	add a,#4 
+	ld (RECLEN,sp),a 
+	call search_const 
+	tnzw x 
+	jreq 1$
+	ld a,#ERR_DUPLICATE
+	jp tb_error 
+1$:	; copy name in buffer  
+	ldw y,(CNAME,sp) 
+	ldw x,#tib  
+	ld a,(RECLEN,sp)
+	ld (x),a 
+	incw x 
+	call strcpy 
+	ldw (BUFPTR,sp),x
+	call strlen
+	inc a 
+	add a,(BUFPTR+1,sp)
+	ld (BUFPTR+1,sp),a 
+	jrnc 11$
+    inc (BUFPTR,sp) 
+11$:
+	ld a,#TK_EQUAL 
+	call expect 
+	call expression 
+	cp a,#TK_INTGR 
+	jreq 2$ 
+	jp syntax_error 
+2$:	ldw y,x 
+	ldw x,(BUFPTR,sp)
+	ld a,yh 
+	ld (x),a 
+	incw x 
+	ld a,yl 
+	ld (x),a 
+;	record completed 
+	clr farptr 
+	ldw x,free_eeprom  
+	ldw farptr+1,x 
+	ldw x,#tib 
+	ld a,(RECLEN,sp)
+	call write_nbytes
+; update free_eeprom 
+	ld a,(RECLEN,sp)
+	ld xl,a 
+	addw x,free_eeprom 
+	ldw free_eeprom,x
+	call next_token 
+	cp a,#TK_COMMA 
+	jrne 8$
+	jp 10$ 
+8$: 
+	_unget_token    
+9$: _drop VSIZE 
+	ret 
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; return program size 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2615,6 +2792,7 @@ get_target_line_2:
 
 ; the GOTO|GOSUB target is a symbol.
 look_target_symbol:
+	pushw x 
 	clr acc16 
 	ldw y,txtbgn 
 1$:	ld a,(3,y) ; first TK_ID on line 
@@ -2631,28 +2809,15 @@ look_target_symbol:
 	; compare with GOTO|GOSUB target 
 	pushw y 
 	addw y,#4 ; label string 
-	ldw x,basicptr 
-	addw x,in.w 
+	ldw x,(3,sp) ; target string 
 	call strcmp
 	jrne 4$
 	popw y 
 	jra 2$ 
 4$: ; target found 
-	call skip_label 
-	popw x 
+	popw x ;  address line target  
+	_drop 2 ; target string 
 	ret
-
-;--------------------------------
-;  skip label string in BASIC 
-;  text.
-;-------------------------------
-skip_label:
-	ldw x,basicptr 
-1$:	ld a,([in.w],x)
-	inc in 
-	tnz a 
-	jrne 1$
-	ret 
 
 
 ;--------------------------------
@@ -3215,6 +3380,11 @@ erase:
 	sbc a,farptr 
 	jrugt 4$ 
 9$: call clear_basic
+	ldw x,(LIMIT+1,sp)
+	cpw x,#EEPROM_END
+	jrne 10$
+	call func_eefree 
+10$:
 	_drop VSIZE 
 	ret 
 	
@@ -4729,6 +4899,7 @@ kword_end:
 	_dict_entry,5,ERASE,ERASE_IDX; erase 
 	_dict_entry,3,END,END_IDX;cmd_end  
 	_dict_entry,6+F_IFUNC,EEPROM,EEPROM_IDX;const_eeprom_base   
+	_dict_entry,6+F_IFUNC,EEFREE,EEFREE_IDX; func_eefree 
 	_dict_entry,4,EDIT,EDIT_IDX ; edit 
 	_dict_entry,6+F_CMD,DWRITE,DWRITE_IDX;digital_write
 	_dict_entry,5+F_IFUNC,DREAD,DREAD_IDX;digital_read
@@ -4738,6 +4909,7 @@ kword_end:
 	_dict_entry,4,DATA,DATA_IDX;data  
 	_dict_entry,3+F_IFUNC,CRL,CRL_IDX;const_cr1 
 	_dict_entry,3+F_IFUNC,CRH,CRH_IDX;const_cr2 
+	_dict_entry,5,CONST,CONST_IDX; cmd_const 
 	_dict_entry,4+F_CFUNC,CHAR,CHAR_IDX;char
 	_dict_entry,3,BYE,BYE_IDX;bye 
 	_dict_entry,5,BTOGL,BTOGL_IDX;bit_toggle
@@ -4767,8 +4939,8 @@ code_addr::
 	.word restore,return, random,rshift,run,show,free ; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
-	.word wait,words,write,bit_xor,cmd_size,cmd_on,cmd_get ; 96..99
-	.word 0 
+	.word wait,words,write,bit_xor,cmd_size,cmd_on,cmd_get,cmd_const ; 96..99
+	.word func_eefree,0 
 
 
 

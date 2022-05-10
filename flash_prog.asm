@@ -287,6 +287,8 @@ write_exit:
 
 ;--------------------------------------------
 ; write a data block to eeprom or flash 
+; the block must be erased before 
+; using this routine.
 ; input:
 ;   Y        source address   
 ;   X        array index  destination  farptr[x]
@@ -326,50 +328,32 @@ write_block::
 	ret 
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  scan_free_eeprom
-;;  return free address in eeprom 
-;;  input:
-;;     none
-;;  output:
-;;     X    address free 
-;;          if full return 0
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-scan_free_eeprom::
-    push a
-    _vars 2  
-    ldw x,#EEPROM_BASE  
-1$: ; expect a string here 
-    ld a,(x)
-    jreq 8$ ; free address 
-    ldw (1,sp),x 
-    clrw x 
-    ld xl,a 
-    addw x,(1,sp) ; skip name 
-    addw x,#5 ; skip terminal 0 and value
-    cpw x,#EEPROM_END 
-    jrult 1$
-    clrw x  
-8$: _drop 2  
-    pop a 
-    ret 
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  eefree 
-;;  return free bytes in eeprom 
-;;  input:
-;;     none 
-;;  output:
-;;     X     size 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-eefree:
-    call scan_free_eeprom 
-    ldw free_eeprom,x 
-    tnzw x 
-    jreq 9$ 
-    pushw x 
-    ldw x,#EEPROM_BASE+EEPROM_SIZE 
-    subw x,(1,sp)
-    _drop 2  
-9$: ret 
-
+;------------------------------------
+; write n bytes to flash | eeprom 
+; if the number of bytes is 
+; >=128 it is faster to 
+; use write_block
+; the bytes are written one by 
+; one and auto erased if required. 
+; input:
+;    farptr    dest address 
+;    X         src address 
+;    A         count 
+; output:
+;    none   
+;----------------------------------
+write_nbytes:
+	pushw y
+	push a 
+	ldw y,x
+	clrw x 
+1$:  
+	ld a,(y)
+	incw y
+	call write_byte 
+	incw x 
+	dec (1,sp)  
+	jrne 1$ 
+9$: pop a 
+	popw y 
+	ret 

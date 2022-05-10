@@ -1,3 +1,17 @@
+#### 2022-05-09
+
+* Création des fichiers [dbg_macros.inc](dbg_macros.inc) et [debug.asm](debug.asm).  
+
+* Débogué commande **CONST** . 
+
+*  Debogué  *search_const*. 
+
+* Modifié *next_token* qui maintenant saute par dessus la chaîne des **TK_LABEL* et renvoie le pointeur sur la chaîne dans X. *skip_label* devenu inutile a été supprimé. *Décompile*, *interp_loop* ont étés modifié pour tenir compte de la modification à TK_LABEL 
+
+#### 2022-05-08
+
+* Ajout de la commande **CONST** qui permet de définir des constantes qui sont sauvegardées dans la mémoire EEPROM.
+
 #### 2022-05-07
 
 * Corrigé bogue dans *next_token*. Lorsque qu'un TK_NONE était retourné et que la routine appellante faisait un *_unget_token* le programme entrait dans une boucle infinie. J'ai déplacé la sauvegarde  avant le test de

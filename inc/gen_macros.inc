@@ -48,3 +48,9 @@
     .macro _arg name ofs 
     name=ARG_OFS+ofs 
     .endm 
+
+    ; software reset 
+    .macro _swreset
+    mov WWDG_CR,#0X80
+    .endm 
+

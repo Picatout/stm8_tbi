@@ -30,9 +30,8 @@
 	.include "inc/gen_macros.inc" 
 	.include "tbi_macros.inc" 
 	.include "cmd_index.inc"
+	.include "dbg_macros.inc" 
   
-
-;_dbg 
 
 ;;-----------------------------------
     .area SSEG (ABS)
@@ -89,16 +88,13 @@ stack_unf: ; stack underflow ; control_stack bottom
 ;---------------------------------------
     .area CODE
 ;---------------------------------------
-.if DEBUG
-.asciz "STM8_TBI" ; I like to put module name here.
-.endif 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; non handled interrupt 
 ; reset MCU
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 NonHandledInterrupt:
-    .byte 0x71  ; invalid opcode reinitialize MCU
+	_swreset 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; auto wakeup from halt
