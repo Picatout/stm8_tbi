@@ -33,6 +33,7 @@
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 
 	FAUTORUN=6; auto start program running 
+        FUPDATE=7 ; update constant flag 
 
 	AUTORUN_NAME=0x4000 ; address in EEPROM where auto run file name is saved 
 
@@ -73,11 +74,11 @@
         TK_LABEL=3      ; used for defined, constants, variables
         TK_CHAR=4       ; ASCII character 
         TK_ARRAY=5     ; array variable '@' 
-        TK_LPAREN=7     ; left parenthesis '('
-        TK_RPAREN=8     ; right parenthesis ')'
-        TK_COMMA=9     ; item separator ',' 
-        TK_SHARP=0xa     ; print colon width '#' 
-        TK_COLON=0xb      ; command separator ':' 
+        TK_LPAREN=6     ; left parenthesis '('
+        TK_RPAREN=7     ; right parenthesis ')'
+        TK_COMMA=8     ; item separator ',' 
+        TK_SHARP=9     ; print colon width '#' 
+        TK_COLON=0xa      ; command separator ':' 
         
         TK_PLUS=0x10    ; addition operator '+'
         TK_MINUS=0x11   ; subtraction operator '-'

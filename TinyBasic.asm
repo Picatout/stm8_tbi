@@ -1580,15 +1580,24 @@ factor:
 	jra 18$
 6$:
 	cp a,#TK_ARRAY
-	jrne 10$
+	jrne 7$
 	call get_array_element
 	ldw x,(x)
 	jra 18$ 
-10$:
+7$:
 	cp a,#TK_VAR 
-	jrne 12$
+	jrne 8$
 	ldw x,(x)
 	jra 18$
+8$:
+	cp a,#TK_LABEL 
+	jrne 12$ 
+	call search_const 
+	clr a 
+	tnzw x 
+	jreq 16$
+	call get_const_value 
+	jra 20$ 
 12$:			
 	cp a,#TK_LPAREN
 	jrne 16$
@@ -1899,6 +1908,71 @@ let_var:
 
 
 ;--------------------------
+; return constant value 
+; from it's record address
+; input:
+;	X	*const record 
+; output:
+;   X    const  value
+;   A    TK_INTGR
+;--------------------------
+get_const_value:
+	ld a,(x)
+	sub a,#2 
+	push a 
+	push #0 
+	addw x,(1,sp)
+	ldw x,(x)
+	_drop 2 
+	ld a,#TK_INTGR
+	ret 
+
+
+;--------------------------
+; list constants in EEPROM 
+; call when using LIST \C 
+;-------------------------
+	COUNT=1
+	YTEMP=3
+	VSIZE=4 
+list_const:
+	_vars 4 
+	clrw x 
+	ldw (COUNT,sp),x  
+	ldw Y,#EEPROM_BASE 
+1$:	cpw y,free_eeprom 
+	jruge 9$
+	incw y 
+	ldw x,y
+	ldw (YTEMP,sp),y 
+	call puts 
+	incw x 
+	ldw (YTEMP,sp),x 
+	ld a,#'= 
+	call putc 
+	ldw x,(YTEMP,sp)
+	ldw x,(x)
+	call print_int
+	ld a,#CR 
+	call putc  
+	ldw x, (COUNT,sp)
+	incw x 
+	ldw (COUNT,sp),x 
+	ldw Y,(YTEMP,sp)
+	addw y,#2 
+	jra 1$ 
+
+9$:	ldw x,(COUNT,sp)
+	call print_int 
+	ldw x,#CONST_COUNT 
+	call puts 
+	_drop VSIZE 
+	ret 
+
+CONST_COUNT: .asciz "constants in EEPROM\n"
+
+
+;--------------------------
 ; BASIC: EEFREE 
 ; eeprom_free 
 ; search end of data  
@@ -1944,7 +2018,6 @@ func_eefree:
 ; constants are saved in EEPROM  
 ; input:
 ;    X     *name
-;    A     record length  
 ; output:
 ;    X     address|0
 ; use:
@@ -1958,6 +2031,8 @@ search_const:
 	pushw y 
 	_vars VSIZE
 	clr acc16 
+	call strlen 
+	add a,#4 
 	ld (RECLEN,sp),a    
 	ldw (NAMEPTR,sp),x
 	ldw y,#EEPROM_BASE 
@@ -1997,53 +2072,69 @@ search_const:
 	VSIZE=5
 cmd_const:
 	_vars VSIZE 
-10$:
+	bres flags,#FUPDATE 
 	call next_token 
+	cp a,#TK_CHAR 
+	jrne 1$
+	ld a,xl
+	and a,#0xDF 
+	cp a,#'U 
+	jrne 2$
+	bset flags,#FUPDATE 
+0$:
+	call next_token 
+1$:	
 	cp a,#TK_LABEL 
-	jreq 0$ 
+	jreq 3$
+2$:	 
 	jp syntax_error 
-0$: 
+3$: 
 	ldw (CNAME,sp),x ; *const_name
 	ldw x,(CNAME,sp)
 	call strlen 
 	add a,#4 
 	ld (RECLEN,sp),a 
-	call search_const 
-	tnzw x 
-	jreq 1$
-	ld a,#ERR_DUPLICATE
-	jp tb_error 
-1$:	; copy name in buffer  
+; copy name in buffer  
 	ldw y,(CNAME,sp) 
 	ldw x,#tib  
 	ld a,(RECLEN,sp)
 	ld (x),a 
-	incw x 
+	incw x  
 	call strcpy 
 	ldw (BUFPTR,sp),x
-	call strlen
-	inc a 
+	ld a,(RECLEN,sp)
+	sub a,#3 
 	add a,(BUFPTR+1,sp)
 	ld (BUFPTR+1,sp),a 
-	jrnc 11$
+	jrnc 4$
     inc (BUFPTR,sp) 
-11$:
+4$:
 	ld a,#TK_EQUAL 
 	call expect 
 	call expression 
 	cp a,#TK_INTGR 
-	jreq 2$ 
+	jreq 5$ 
 	jp syntax_error 
-2$:	ldw y,x 
+5$:	ldw y,x 
 	ldw x,(BUFPTR,sp)
 	ld a,yh 
 	ld (x),a 
 	incw x 
 	ld a,yl 
 	ld (x),a 
-;	record completed 
+; record completed in buffer 
+; check if constant already exist 
+; if so update value if different 
 	clr farptr 
+	ldw x,(CNAME,sp)
+	call search_const 
+	tnzw x 
+	jreq 6$ ; new constant  
+	btjf flags,#FUPDATE,8$
+	jra 7$	
+6$:	
 	ldw x,free_eeprom  
+7$:	
 	ldw farptr+1,x 
 	ldw x,#tib 
 	ld a,(RECLEN,sp)
@@ -2053,13 +2144,15 @@ cmd_const:
 	ld xl,a 
 	addw x,free_eeprom 
 	ldw free_eeprom,x
+8$:
 	call next_token 
 	cp a,#TK_COMMA 
-	jrne 8$
-	jp 10$ 
-8$: 
+	jrne 9$
+	jp 0$ 
+9$: 
 	_unget_token    
-9$: _drop VSIZE 
+10$: 
+	_drop VSIZE 
 	ret 
 
 
@@ -2121,10 +2214,21 @@ list:
 	ld a,#ERR_CMD_ONLY
 	jp tb_error
 0$:	 
-	call prog_size 
-	jrugt 1$
+	call next_token 
+	cp a,#TK_CHAR 
+	jrne 2$
+	ld a,xl 
+	and a,#0xDF 
+	cp a,#'C 
+	jrne 1$
+	call list_const
 	ret 
-1$: _vars VSIZE
+1$: jp syntax_error 
+2$:	_unget_token 
+	call prog_size 
+	jrugt 3$
+	ret 
+3$: _vars VSIZE
 	ldw x,txtbgn 
 	ldw (LN_PTR,sp),x 
 	ldw x,(x) 

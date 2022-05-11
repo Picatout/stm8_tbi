@@ -21,7 +21,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000063  l_DATA                          
      00000080  l_HOME                          
      00000170  l_SSEG0                         
-     00002D84  l_CODE                          
+     00002E04  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -53,7 +53,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00002D84 =       11652. bytes (REL,CON)
+CODE                                00008080    00002E04 =       11780. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -89,13 +89,13 @@ CODE                                00008080    00002D84 =       11652. bytes (R
      00009464  to_upper                           HW_INIT
      00009470  atoi24                             HW_INIT
      00009657  search_dict                        HW_INIT
-     000098F1  let                                HW_INIT
-     00009C86  remark                             HW_INIT
-     00009FD1  beep_1khz                          HW_INIT
-     0000A387  qkey                               HW_INIT
-     0000ACC9  kword_dict                         HW_INIT
-     0000ACD1  code_addr                          HW_INIT
-     0000AE00  app_space                          HW_INIT
+     00009901  let                                HW_INIT
+     00009D38  remark                             HW_INIT
+     0000A083  beep_1khz                          HW_INIT
+     0000A439  qkey                               HW_INIT
+     0000AD7B  kword_dict                         HW_INIT
+     0000AD83  code_addr                          HW_INIT
+     0000AE80  app_space                          HW_INIT
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
 Hexadecimal  [32-Bits]
 

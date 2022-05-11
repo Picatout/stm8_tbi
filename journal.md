@@ -1,4 +1,20 @@
+#### 2022-05-10
+
+* Mettre à jour [tbi_reference.md](tbi_reference.md). 
+
+
+*  Modifié commmande **LIST** pour accepter l'argument optionel **\C** qui affiche la liste des constantes en EEPROM plutôt que le programme. 
+
+*  Modifié  **CONST** pour accepter l'argument **\U** qui permet la mise à jour d'une constante. Sans cette option si la constante exite déjà la commande est ignorée. l'indicateur booléen **FUPDATE** a été ajouté dans la variable sytème *flags*. 
+
+
+*  Ajouter sous-routine *get_const_value* 
+
+*  Modifié routine *factor* pour accepter les *TK_LABEL*. 
+
 #### 2022-05-09
+
+* À faire:  Modifié le compilateur pour qu'il remplace les TK_LABEL qui sont des constantes par leur valeur. 
 
 * Création des fichiers [dbg_macros.inc](dbg_macros.inc) et [debug.asm](debug.asm).  
 

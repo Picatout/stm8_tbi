@@ -195,6 +195,7 @@ nom|abrévation
 [BTOGL](#btogl)|BTO
 [BYE](#bye)|BY
 [CHAR](#char)|CH
+[CONST](#const)|CO 
 [CRH](#chr)|CRH
 [CRL](#crl)|CRL
 [DATA](#data)|DATA
@@ -435,6 +436,29 @@ La fonction *character* retourne le caractère ASCII correspondant aux 7 bits le
     >for a=32 to 126:? char(a),:next a 
      !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
     > 
+
+
+[index](#index)
+<a id="const"></a>
+### CONST [\U] nom=valeur [,nom=valeur] {C,P}
+Cette commande sert à créer des constantes qui sont conservées en permanance dans la mémoire EEPROM.
+ * L'option **\U**  permet de mettre à jour une constante déjà existante. Sans cette option la commande de créer une constante avec un nom déjà existant est ignorée. 
+ * **nom** est le nom de la constante. 
+ * **valeur** est la valeur de cette constante. Il peut s'agit d'une expression. 
+ * Plusieurs constantes peuvent-être définies dans la même commande en les séparant par une virgule.
+ ```
+ NEW 
+5 ' test vitesse d'utilisation d'une constante symbolique par rapport
+6 ' a une constante numerique. 
+7  CONST TEST=1024
+10 T=TICKS FOR I=1 TO 10000 A=$500A NEXT I ? TICKS-T "MSEC."
+20 T=TICKS FOR I=1 TO 10000 A=TEST NEXT I ? TICKS-T "MSEC."
+
+>run
+338 MSEC.
+478 MSEC.
+
+ ```
 
 [index](#index)
 <a id="chr"></a>
@@ -846,24 +870,42 @@ La commande **LET** est facultative et n'est conservée que pour des raisons de 
 
 [index](#index)
 <a id="list"></a>
-### LIST [*expr1*][,*expr2*] {C}
-Affiche le programme contenu dans la mémoire RAM à l'écran. Sans arguments toutes les lignes sont affichées. Avec un argument la liste débute à la ligne dont le numéro est **&gt;=expr1**. Avec 2 arguments la liste se termine au numéro **&lt;=expr2**. 
-```
->list
-   10 'Fibonacci
-   20 A =1:B =1
-   30 IF B >100:END 
-   40 PRINT B ,
-   50 C =A +B :A =B :B =C 
-   60 GOTO 30
+### LIST [\C] | [*expr1*][,*expr2*] {C}
 
->run
-   1   2   3   5   8  13  21  34  55  89
->list 20,40
+Cette commande a 2 fonctions afficher le programme en mémoire ou bien afficher la liste des constantes définie en mémoire **EEPROM**. 
+
+* [\C] Cette option affiche la liste des constantes définies dans la mémoire **EEPROM**  et s'utilise à l'exclusion du listage de programme. 
+
+```
+>list \c
+LED2=20490 
+TEST=1024 
+  2 constants in EEPROM
+
+>
+```
+
+* Affiche le programme contenu dans la mémoire RAM à l'écran. Sans arguments toutes les lignes sont affichées. Avec un argument la liste débute à la ligne dont le numéro est **&gt;=expr1**. Avec 2 arguments la liste se termine au numéro **&lt;=expr2**. 
+```
+>li
+   5  ' suite de fibonacci 
+  10  A=0 :B=1 :C=1 
+  20  PRINT A,
+  30  C=A:A=B:B=B+C
+  40  IF A<0 :END
+  50  GOTO 20 
+program address: $80 , program size: 119 bytes in RAM memory
+
+>li 30,51
+  30  C=A:A=B:B=B+C
+  40  IF A<0 :END
+  50  GOTO 20 
+program address: $80 , program size: 119 bytes in RAM memory
 
 >
 
 ```
+Si le dernier programme exécuté était celui sauvegardé en mémoire **FLASH** avec la commande [SAVE](#save) alors le listing sera celui du programme ne mémoire **FLASH*** l'adresse du programme ainsi que sa taille sont indiqués à la fin du listing.
 
 [index](#index)
 <a id="log"></a>
