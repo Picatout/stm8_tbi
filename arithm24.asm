@@ -1,0 +1,420 @@
+;;
+; Copyright Jacques Deschênes 2019,2020,2021,2022  
+; This file is part of stm8_tbi 
+;
+;     stm8_tbi is free software: you can redistribute it and/or modify
+;     it under the terms of the GNU General Public License as published by
+;     the Free Software Foundation, either version 3 of the License, or
+;     (at your option) any later version.
+;
+;     stm8_tbi is distributed in the hope that it will be useful,
+;     but WITHOUT ANY WARRANTY; without even the implied warranty of
+;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;     GNU General Public License for more details.
+;
+;     You should have received a copy of the GNU General Public License
+;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
+;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;    24 bits arithmetic 
+;;  format in registers: A:X 
+;;      A  bits 23..16 
+;;      X  bits 15..0 
+;;  acc24 variable used for 
+;;  computation 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+    .area CODE 
+
+;-------------------------------
+; add24 A:X+acc24 
+; add 24 bits integers 
+;------------------------------
+add24: ; ( i1 i2 -- i1 + i2 )
+    _xpop 
+    pushw x  
+    push a  
+    _xpop 
+    addw x,(2,sp)
+    adc a, (1,sp)
+    _xpush 
+    _drop 3 
+    ret 
+
+;-------------------------------
+; sub24 A:X-acc24 
+; subtract 24 bits integers 
+;------------------------------
+sub24: ; (i1 i2 -- i1-i2 ) 
+    _xpop 
+    pushw x 
+    push  a
+    _at_top  
+    subw x,(2,sp) 
+    sbc a, (1,sp)
+    _store_top  
+    _drop 3 
+    ret 
+
+;------------------------------
+; cp24 
+; compare acc24 with A:X 
+;-------------------------------
+cp24:
+    cp a,acc24 
+    jrne 9$ 
+    cpw x,acc16
+9$: 
+    ret 
+
+
+;-------------------------------
+; abs24 
+; abolute value of top  
+;-------------------------------
+abs24: ; ( i -- u )
+    ld a,(y)
+    cp a,#0x80 
+    jrpl neg24 ; negative integer
+    ret  
+
+;----------------------------
+;  one's compleement 
+;----------------------------
+cpl24:  ; i -- ~i 
+    _at_top 
+    cpl a 
+    cplw x 
+    _store_top 
+    ret 
+
+;----------------------------    
+; two'2 complement of top  
+;---------------------------
+neg24: ; (i -- -i )
+    _at_top
+    cpl  a  
+    cplw x 
+    addw x,#1
+    adc a,#0
+    _store_top  
+9$: ret 
+
+;-----------------------------
+; negate integer in A:X 
+;----------------------------
+neg_ax:
+    cpl  a  
+    cplw x 
+    addw x,#1
+    adc a,#0
+    ret 
+
+;------------------------------------
+;  two's complement of acc24 
+;-------------------------------------
+neg_acc24: ; 
+    push a 
+	pushw x
+	ld a,acc24 
+	ldw x,acc16
+	cpl a 
+	cplw x 
+	addw x,#1 
+	adc a,#0  
+	ld acc24,a 
+	ldw acc16,x 
+	popw x 
+	pop a 
+	ret
+
+;--------------------------------------
+; unsigned multiply uint24_t by uint8_t
+; input:
+;	acc24	uint24_t 
+;   A		uint8_t
+; output:
+;   acc24   A*acc24
+;      A    overflow, bits 31..24 
+;-------------------------------------
+; local variables offset  on sp
+	U8   = 1   ; A pushed on stack
+	VSIZE = 1 
+mulu24_8:
+	pushw x    ; save X
+	; local variable
+	push a     ; U8
+	clr acc32 
+; multiply bits 7..0 * U8   	
+	ld xl,a 
+	ld a,acc8 
+	mul x,a 
+	ld a, acc16 
+	ldw acc16,x
+; multiply middle byte, bits 15..8 * U8  	
+	ld xl,a 
+	ld a,(U8,sp)
+	mul x,a 
+	ld a,acc24
+	clr acc24  
+	addw x,acc24
+	ldw acc24,x 
+; multiply  MSB, bits 23..16 * U8 
+	ld xl,a 
+	ld a,(U8,sp)
+	mul x,a
+	addw x,acc32  
+	ldw acc32,x 
+	ld a,xh 
+	_drop VSIZE  
+	popw x 
+	ret 
+
+
+;-------------------------------
+; mul24 i1 i2 -- i1*i2  
+; multiply 24 bits integers 
+;------------------------------
+    PROD=1 
+    N1=4
+    N2=7
+    PROD_SIGN=10
+    VSIZE=10 
+mul24:
+    _vars VSIZE
+    _xpop 
+    ld acc24,a 
+    ldw acc16,x 
+    _at_top 
+    clr (PROD_SIGN,sp)
+    tnz a 
+    jrpl 1$ 
+    cpl (PROD_SIGN,sp) 
+    call neg24
+1$:
+    ld (N2,sp),a 
+    ldw (N2+1,sp),x
+    ld a,acc24 
+    ldw x,acc16
+    tnz a 
+    jrpl 2$ 
+    cpl (PROD_SIGN,sp) 
+    call neg24 
+2$: 
+    ld (N1,sp),a 
+    ldw (N1+1,sp),x
+    ld acc24,a 
+    ldw acc16,x 
+    ld a,(N2+2,sp); least byte     
+    jreq 4$
+    call mulu24_8
+    tnz a 
+    jrne 8$ ; overflow 
+    ldw x,acc16  
+    ld a,acc24
+    jrmi 8$ ; overflow  
+    ld (PROD,sp),a
+    ldw (PROD+1,sp),x 
+4$:
+    ld a,(N1,sp) 
+    ldw x,(N1+1,sp)
+    ld acc24,a 
+    ldw acc16,x 
+    ld a,(N2+1,sp); middle byte     
+    jreq 5$
+    call mulu24_8
+    tnz a 
+    jrne 8$ ; overflow 
+    ld a,acc24 
+    jrne 8$  ; overflow 
+    ldw x,acc16  
+    addw x,(PROD,sp)
+    jrv 8$ ; overflow
+    ldw (PROD,sp),x 
+    ld a,(N1,sp)
+    ldw x,(N1+1,sp)
+    ld acc24,a 
+    ldw acc16,x 
+5$:
+    ld a,(N2,sp) ; high byte 
+    jreq 6$
+    call mulu24_8
+    tnz a 
+    jrne 8$ ; overflow 
+    ldw x,acc24 
+    jrne 8$ ; overflow 
+    ld a,acc8 
+    jrmi 8$ ; overflow 
+    add a,(PROD,sp)
+    ld (PROD,sp),a 
+    jrv 8$ ; overflow 
+6$:
+    ld a,(PROD,sp)
+    ldw x,(PROD+1,sp)
+    tnz (PROD_SIGN,sp)
+    jreq 7$
+    call neg24 
+7$:
+    rcf ; C=0 means no overflow 
+    jra 9$
+8$: ; overflow 
+    clr a 
+    clrw x 
+    scf ; C=1 means overflow 
+9$:    
+    _store_top 
+    _drop VSIZE 
+    ret 
+
+;-------------------------------------
+; divide uint24_t by uint8_t
+; input:
+;	acc24	dividend
+;   A 		divisor
+; output:
+;   acc24	quotient
+;   A		remainder
+;------------------------------------- 
+; offset  on sp of arguments and locals
+	U8   = 1   ; divisor on stack
+	VSIZE =1
+divu24_8:
+	pushw x ; save x
+	push a 
+	; ld dividend UU:MM bytes in X
+	ld a, acc24
+	ld xh,a
+	ld a,acc16
+	ld xl,a
+	ld a,(U8,SP) ; divisor
+	div x,a ; UU:MM/U8
+	push a  ;save remainder
+	ld a,xh
+	ld acc24,a
+	ld a,xl
+	ld acc16,a
+	pop a
+	ld xh,a
+	ld a,acc24+2
+	ld xl,a
+	ld a,(U8,sp) ; divisor
+	div x,a  ; R:LL/U8
+	ld (U8,sp),a ; save remainder
+	ld a,xl
+	ld acc24+2,a
+	pop a
+	popw x
+	ret
+
+
+;-------------------------------
+; div24 N/T   
+; divide 24 bits integers
+;  i1 i2 -- i1/i2 
+;------------------------------
+    DIVISOR=1
+    CNTR=4
+    QSIGN=5
+    RSIGN=6 
+    VSIZE=6 
+div24:
+    _vars VSIZE 
+    clr (RSIGN,sp)
+    clr (QSIGN,sp)
+    _xpop 
+    tnz a 
+    jrpl 0$ 
+    cpl (QSIGN,sp)
+    call neg24 
+0$:
+    ld  (DIVISOR,sp),a
+    ldw (DIVISOR+1,sp),x
+    or a,(DIVISOR+1,sp)
+    or a,(DIVISOR+2,sp)
+    jrne 1$ 
+    ld a,#ERR_DIV0 
+    jp tb_error 
+1$: 
+    _at_top 
+    ld acc24,a 
+    ldw acc16,x 
+    ld a,#24 
+    ld (CNTR,sp),a
+    ld a,(DIVISOR,sp)
+    tnz acc24 
+    jrpl 2$ 
+    cpl (QSIGN,sp)
+    cpl (RSIGN,sp)
+    call neg_acc24
+2$:
+    call cp24 ; A:X-acc24 ?
+    jrule 22$ 
+; quotient=0, remainder=0     
+    clr a 
+    clrw x
+    ld acc24,a 
+    ldw acc16,x  
+    jra 9$
+22$:     
+    clr a 
+    clrw x 
+    rcf  
+3$: 
+    rlc acc8 
+    rlc acc16
+    rlc acc24 
+    rlcw x  
+    rlc a
+4$: subw x,(DIVISOR+1,sp) 
+    sbc a,(DIVISOR,sp)
+    jrnc 5$
+    addw x,(DIVISOR+1,sp)
+    adc a,(DIVISOR,sp)
+5$: ; shift carry in QUOTIENT 
+    ccf
+    dec (CNTR,sp)
+    jrne 3$ 
+    rlc acc8 
+    rlc acc16 
+    rlc acc32 
+    ld (DIVISOR,sp),a 
+    ldw (DIVISOR+1,sp),x 
+    ld a,acc24 
+    ldw x,acc16 
+    tnz (QSIGN,sp)
+    jreq 8$
+    cpl  a  
+    cplw x 
+    addw x,#1
+    adc a,#0
+8$: 
+    _store_top 
+    ld a,(DIVISOR,sp)
+    ldw x,(DIVSOR+1,sp)
+    tnz (RSIGN,sp)
+    jreq 9$      
+    cpl  a  
+    cplw x 
+    addw x,#1
+    adc a,#0
+9$: _drop VSIZE 
+    ret 
+
+
+;-------------------------------
+; mod24 A:X % acc24 
+; remainder 24 bits integers 
+; input:
+;    acc24   dividend 
+;    A:X     divisor 
+; output:
+;    acc24   acc24 % A:X 
+;------------------------------
+mod24:
+    call div24 
+    _store_top  ; replace quotient by remainder 
+    ret 
+
+

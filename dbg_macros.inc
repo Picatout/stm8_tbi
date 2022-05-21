@@ -23,31 +23,32 @@
 ;-------------------------------
 ;  macros used to help debugging
 ;-------------------------------
-    DEBUG=0
     
-    .macro _dbg 
-    DEBUG=1
-    .endm
-
-    .macro _nodbg
-    DEBUG=0
-    .endm 
-
-    DBG_CC=6
-    DBG_A=5 
-    DBG_X=3 
-    DBG_Y=1 
+    DBG_CC=9
+    DBG_A=8 
+    DBG_X=6 
+    DBG_Y=4 
     .macro _dbg_save_regs 
-    .if DEBUG
-    push cc ; (6,sp)
-    push a   ; (5,sp)
-    pushw x  ; (3,sp)
-    pushw y  ; (1,sp)
+    .if DEBUG 
+    push cc ; (9,sp)
+    push a   ; (8,sp)
+    pushw x  ; (6,sp)
+    pushw y  ; (4,sp)
+    ; save acc24 
+    ld a,acc24 
+    ldw x,acc16 
+    pushw x 
+    push a 
     .endif 
     .endm 
 
     .macro _dbg_restore_regs 
+    ; restore acc24 
     .if DEBUG 
+    pop a 
+    popw x 
+    ld acc24,a 
+    ldw acc16,x 
     popw y 
     popw x 
     pop a 
@@ -55,25 +56,25 @@
     .endif 
     .endm 
 
-    .macro _dbg_getc 
-    .if DEBUG 
+    .macro _dbg_getc
+    .if DEBUG  
     _dbg_save_regs 
     call getc
     ld (DBG_A,sp),a 
-    _dbg_restore_regs  
-    .endif
+    _dbg_restore_regs
+    .endif   
     .endm 
 
-    .macro _dbg_putc 
-    .if DEBUG
+    .macro _dbg_putc
+    .if DEBUG  
     push cc 
     call putc 
     pop cc 
     .endif 
     .endm 
 
-    .macro _dbg_puts 
-    .if DEBUG 
+    .macro _dbg_puts
+    .if DEBUG  
     _dbg_save_regs
     call puts 
     _dbg_restore_regs
@@ -85,17 +86,17 @@
     _dbg_save_regs
     call prti24 
     _dbg_restore_regs
-    .endif
-    .endm 
-
-    .macro _dbg_prt_regs
-    .if DEBUG
-    call prt_regs 
     .endif 
     .endm 
 
+    .macro _dbg_prt_regs
+    .if DEBUG 
+    call print_registers
+    .endif  
+    .endm 
+
     .macro _dbg_peek addr 
-    .if DEBUG
+    .if DEBUG 
     _dbg_save_regs 
     ldw x,addr 
     call peek     
@@ -108,7 +109,7 @@
     _dbg_save_regs
     call parser_init 
     _dbg_restore_regs
-    .endif
+    .endif 
     .endm
 
     .macro _dbg_readln
@@ -116,7 +117,7 @@
     _dbg_save_regs
     call readln
     _dbg_restore_regs
-    .endif
+    .endif 
     .endm
 
     .macro _dbg_number
@@ -124,7 +125,7 @@
     _dbg_save_regs
     call number 
     _dbg_restore_regs
-    .endif
+    .endif 
     .endm  
 
     .macro _dbg_nextword
@@ -132,7 +133,7 @@
     _dbg_save_regs
     call get_token   
     _dbg_restore_regs
-    .endif
+    .endif 
     .endm  
 
     .macro _dbg_dots 
@@ -144,10 +145,8 @@
     .endm 
 
     .macro _dbg_trap
-    .if DEBUG 
     bset flags,#FTRAP 
     trap 
-    .endif 
     .endm 
 
     .macro _dbg_mark n  
@@ -163,7 +162,7 @@
     .endm 
     
     .macro _dbg_prt_var var 
-    .if DEBUG
+    .if DEBUG 
     _dbg_save_regs 
     ldw x,var 
     ldw acc16,x 
@@ -173,16 +172,16 @@
     call prti24
     ld a,#CR 
     call putc  
-    _dbg_restore_regs 
-    .endif 
+    _dbg_restore_regs
+    .endif  
     .endm 
 
-    .macro _dbg_show 
-    .if DEBUG 
+    .macro _dbg_show
+    .if DEBUG  
     _dbg_save_regs 
     call show 
     _dbg_restore_regs
-    .endif
+    .endif 
     .endm 
 
 

@@ -1,3 +1,50 @@
+#### 2022-05-20
+
+
+#### 2022-05-19
+
+* Modification de *next_token* pour simplifier et améliorer la performance. Maintenant retourne seulement la constant TK_ID dans A et l'adresse de sa valeur dans X. La récupération de la valeur et la mise à jour de **in.w** est à la charge du client. 
+
+* conversion rendue à **LOG**. 
+
+* Bogue  
+
+#### 2022-05-18
+
+* Création du fichier [arithm24.asm](arithm24.asm) transféré les routines arithmétiques sur entier 24 bits dans ce fichier. 
+
+* Écris et testé  routine *div24*. 
+
+* Transféré opération arithmétiques 16/32 bits dans [arithm16.asm](arithm16.asm).
+
+* Débuter la transformation du code pour opérer avec des entiers 24 bits. 
+
+	* Ajout d'une pile pour les expressions.  *xstack*  avec la variable pointeur *xsp* pour cette pile.
+
+
+#### 2022-05-17
+
+* Réécriture de la sous-routine  *mulu24_8* dans [TinyBasic.asm](TinyBasic.asm). 
+
+* Travail sur test arithmétique sur entiers 24 bits [test.asm](test.asm)
+
+#### 2022-05-15
+
+* Modification de *itoa* dans [TinyBasic.asm](TinyBasic.asm). 
+	
+	* Enlevé espace à la fin de la chaîne.
+
+	* Ajouté paramètre d'entrée dans A pour convesion signée **A&lt;&gt;0** ou non signée **A=0**. 
+
+#### 2022-05-13 
+
+* Création du fichier [float.asm](float.asm) dans le but d'ajouter les opérations arithmétiques sur le type float32 au format [IEEE-754](https://fr.wikipedia.org/wiki/IEEE_754).
+
+#### 2022-05-11
+
+* 8:30   la branche V2 a été fusionné à la branche master.  Retour à la branche V2 pour le développement.
+
+
 #### 2022-05-10
 
 * Mettre à jour [tbi_reference.md](tbi_reference.md). 

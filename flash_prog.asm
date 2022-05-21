@@ -357,3 +357,57 @@ write_nbytes:
 9$: pop a 
 	popw y 
 	ret 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;  flash memory operations
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;--------------------------
+; align farptr to BLOCK_SIZE 
+;---------------------------
+row_align:
+	ld a,#0x7f 
+	and a,farptr+2 
+	jreq 1$ 
+	ldw x,farptr+1 
+	addw x,#BLOCK_SIZE 
+	jrnc 0$
+	inc farptr 
+0$: ld a,xl 
+	and a,#0x80
+	ld xl,a
+	ldw farptr+1,x  	
+1$:	ret
+
+;--------------------
+; input:
+;   X     increment 
+; output:
+;   farptr  incremented 
+;---------------------
+incr_farptr:
+	addw x,farptr+1 
+	jrnc 1$
+	inc farptr 
+1$:	ldw farptr+1,x  
+	ret 
+
+;-----------------------------------
+; scan block for non zero byte 
+; block are 128 bytes 
+; input:
+;    farptr     address block  
+; output:
+;     A     0 cleared, other not cleared  
+;-----------------------------------
+scan_block:
+	clrw x 
+1$: ldf a,([farptr],x) 
+	jrne 2$
+	incw x 
+	cpw x,#BLOCK_SIZE 
+	jrult 1$ 
+2$:	ret 
+
+
+

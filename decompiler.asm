@@ -217,6 +217,7 @@ decompile::
 	mov tab_width,#5
 	clr acc24 
 	ldw acc16,x
+	clr a ; unsigned conversion 
 	call itoa  
 	call right_align 
 	push a 
@@ -255,10 +256,12 @@ decomp_loop:
 	cp a,#TK_INTGR
 	jrne 4$
 ;; TK_INTGR
-	call add_space
-	clr acc24 
+	call get_int24 
+	ld acc24,a 
 	ldw acc16,x 
+	call add_space
 	pushw y 
+	ld a,#255 ; signed conversion 
 	call itoa  
 	ldw y,(1,sp) 
 	push a 

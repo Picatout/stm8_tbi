@@ -20,16 +20,10 @@
 ;;  debug support
 ;;;;;;;;;;;;;;;;;;;;
 
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-    .include tbi_macros.inc
+.if DEBUG 
 
     .area CODE
 
-;;;;;;;;;;;;;
-.if DEBUG 
 ;---------------------------------
 ;; print actual registers states 
 ;; as pushed on stack 
@@ -86,21 +80,18 @@ regs_state: .asciz "\nregisters state\n--------------------\n"
 ;--------------------	
 prt_peek::
 	pushw x 
-	ldw acc16,x 
-	clr acc24 
-	clrw x 
-	ld a,#16 
-	call prti24 
+	mov base,#16 
+	call prt_i16  
 	ld a,#': 
 	call putc 
 	ld a,#SPACE 
 	call putc 
 	popw x 
 	ld a,(x)
-	ld acc8,a 
 	clrw x 
-	ld a,#16 
-	call prti24
+	ld xl,a 
+	mov base,#10 
+	call prt_i16 
 	ret 
 
 ;----------------------------------------
@@ -143,17 +134,16 @@ prt_reg8:
 	push a 
 	call puts 
 	ld a,(1,sp) 
-	ld acc8,a 
 	clrw x 
 	ld xl,a 
 	mov base,#16
-	call print_int 
+	call prt_i16  
 	call left_paren 
 	pop a 
 	clrw x 
 	ld xl,a 
 	mov base,#10 
-	call print_int  
+	call prt_i16  
 	ld a,#') 
 	call putc
 	ret
@@ -171,11 +161,11 @@ prt_reg16:
 	call puts 
 	ldw x,(1,sp) 
 	mov base,#16 
-	call print_int  
+	call prt_i16  
 	call left_paren 
 	popw x 
 	mov base,#10 
-	call print_int  
+	call prt_i16  
 	ld a,#') 
 	call putc
 	ret 
@@ -198,7 +188,7 @@ print_registers:
 	ld acc24,a
 	clrw x  
 	ld a,#16
-	call prti24  
+	call prt_acc24  
 ; print X
 	ldw x,#REG_X
 	ldw y,(5,sp)
@@ -311,7 +301,7 @@ peek_byte:
 	clrw x 
 	ldw acc24,x 
 	ld a,#16+128
-	call prti24
+	call prt_acc24
 	popw x 
 	dec (PSIZE,sp)
 	jrne 1$ 
@@ -338,7 +328,7 @@ print_farptr:
 	ldw acc24,x 
 	clrw x 
 	ld a,#16 
-	call prti24
+	call prt_acc24
 	ld a,#SPACE 
 	call putc 
 	call putc 
@@ -374,4 +364,86 @@ number:
 	jp syntax_error
 1$:	ret
 
+
+;---------------------
+; display n bytes row 
+; from memory.
+; input:
+;   A   bytes to print 
+;	X   start address 
+; output:
+;   X   address after last shown  
+;---------------------
+	CNT=1 
+	ADR=2 
+	VSIZE=3 
+show_row:
+	tnz a 
+	jrne 1$
+	ret 
+1$:	
+	pushw x  
+	push a 
+	mov tab_width,#4 
+	call prt_i16 
+	ld a,#SPACE  
+	call putc
+row_loop:
+	ldw x,(ADR,sp)
+	ld a,(x)
+	clrw x 
+	ld xl,a 
+	call prt_i16 
+	ldw x,(ADR,sp)
+	incw x 
+	ldw (ADR,sp),x 
+	dec (CNT,sp)
+	jrne row_loop
+	_drop VSIZE  		
+	mov tab_width,#4
+	ld a,#CR 
+	call putc 
+	ret 
+
+;--------------------------
+; print memory content 
+; in hexadecimal format
+;  input:
+;    X    start address 
+;    Y    count 
+;--------------------------
+	BCNT=1
+	BASE=3
+	TABW=4
+	VSIZE=4   
+hex_dump:
+	push a 
+	_vars VSIZE
+	ld a,base
+	ld (BASE,sp),a 
+	mov base,#16
+	ld a,tab_width 
+	ld (TABW,sp),a
+	ld a,#CR 
+	call putc 
+1$: ldw (BCNT,sp),y
+	ld a,#16
+	cpw y,#16
+	jrpl 2$
+	ld a,yl
+2$: 	
+	call show_row 
+	ldw y,(BCNT,sp) 
+	subw y,#16 
+	cpw y,#1
+	jrpl 1$
+	ld a,(BASE,sp)
+	ld base,a
+	ld a,(TABW,sp)
+	ld tab_width,a 
+	_drop VSIZE
+	pop a 
+	ret 
+
 .endif ; DEBUG 
+

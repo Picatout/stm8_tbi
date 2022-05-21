@@ -335,11 +335,14 @@ parse_integer: ; { -- n }
     clr (x)
 	ldw x,(XSAVE,sp)
 	call atoi24
-	ldw y,x 
+	ldw y,x
+	ld a,acc24 
+	ld (y),a 
+	addw y,#1  
 	ldw x,acc16 
-	ld a,#TK_INTGR
 	ldw (y),x 
 	addw y,#2
+	ld a,#TK_INTGR
 	_drop VSIZE  
 	ret 	
 
@@ -505,12 +508,9 @@ parse_keyword:
 ; one letter variable name 
 	ld a,(1,x) 
 	sub a,#'A 
-	sll a 
-	push a 
-	push #0
-	ldw x,#vars 
-	addw x,(1,sp) ; X=var address 
-	_drop 2 
+	ldw x,#3 
+	mul x,a 
+	addw x,#vars 
 	ld a,#TK_VAR 
 	jra 4$ 
 2$: ; check for keyword, otherwise syntax error.
@@ -809,6 +809,7 @@ token_exit:
 	XSAVE=1
 	VSIZE=2
 compile::
+	pushw y 
 	_vars VSIZE 
 	mov basicptr,txtbgn
 	bset flags,#FCOMP 
@@ -856,5 +857,6 @@ compile::
 11$:
 	_drop VSIZE 
 	bres flags,#FCOMP 
+	popw y 
 	ret 
 

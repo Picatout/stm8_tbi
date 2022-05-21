@@ -23,6 +23,27 @@
 ;   DATE: 2019-12-17
 ;
 ;--------------------------------------------------
+;     implementation information
+;
+; *  integer are 24 bits in registers they are 
+;    kept as A:X   (A being most signifant byte)
+; *  an expression stack is used *xstack* 
+;    register Y is used as xstack pointer 
+; 
+;    IMPORTANT: when a routine use Y it must preserve 
+;               its content and restore it at exit.
+;               This hold only wheb BASIC is running  
+;
+; *  BASIC function return their value registers 
+;    A for character 
+;	 X for address 
+;	 A:X for integer 
+; 
+;  * variables return their value in A:X 
+;
+;  * relation, expression return value on xstack 
+;    and A=TK_INTGR or else if no expression.
+;--------------------------------------------------- 
 
     .module STM8_TBI
 
@@ -49,10 +70,10 @@ data_ptr:  .blkw 1  ; point to DATA address
 data_ofs:  .blkb 1  ; index to next data item 
 data_len:  .blkb 1  ; length of data line 
 base::  .blkb 1 ; nemeric base used to print integer 
-acc32:  .blkb 1 ; 32 bit accumulator most signicant byte 
-acc24:: .blkb 1 ; 24 bit accumulator upper-byte 
-acc16:: .blkb 1 ; 16 bit accumulator, acc24 high-byte
-acc8::  .blkb 1 ;  8 bit accumulator, acc24 low-byte  
+acc32:: .blkb 1 ; 32 bit accumalator upper-byte 
+acc24:: .blkb 1 ; 24 bits accumulator upper-byte 
+acc16:: .blkb 1 ; 16 bits accumulator, acc24 high-byte
+acc8::  .blkb 1 ;  8 bits accumulator, acc24 low-byte  
 ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
 timer:: .blkw 1 ;  milliseconds count down timer 
 seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
@@ -70,9 +91,9 @@ free_eeprom: .blkw 1 ; start address of free eeprom
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
+; 24 bits integer variables 
+vars:: .blkb 3*26 ; BASIC variables A-Z,
 
-
-vars:: .blkw 26 ; BASIC variables A-Z, keep it as but last .
 	.area BTXT (ABS)
 	.org 0x7C  
 ; keep 'free_ram' as last variable 
@@ -83,123 +104,6 @@ free_ram: ; from here RAM free for BASIC text
 
 	.area CODE 
 
-;----------------------
-; print token id && value
-; input:
-;   A     token id 
-;   X     token value 
-;---------------------
-	BSAVE=1
-	AREG=2
-	XREG=3
-	VSIZE=4
-prt_tok:
-	_vars VSIZE 
-	ld (AREG,sp),a 
-	ldw (XREG,sp),x 
-	ld a, base
-	ld (BSAVE,sp),a 
-	mov base,#16  
-	ldw x,#token_msg
-	call puts 
-	clrw x 
-	ld a,(AREG,sp)
-	ld xl,a 
-	call print_int 
-	ld a,#SPACE
-	call putc 
-	ldw x,(XREG,sp)
-	call print_int 
-	ld a,#CR 
-	call putc 
-	ld a,(BSAVE,sp)
-	ld base,a 
-	ld a,(AREG,sp)
-	ldw x,(XREG,sp)
-	_drop VSIZE 
-	ret 
-token_msg: .asciz "token: "
-
-
-;---------------------
-; display n bytes row 
-; from memory.
-; input:
-;   A   bytes to print 
-;	X   start address 
-; output:
-;   X   address after last shown  
-;---------------------
-	CNT=1 
-	ADR=2 
-	VSIZE=3 
-show_row:
-	tnz a 
-	jrne 1$
-	ret 
-1$:	
-	pushw x  
-	push a 
-	mov tab_width,#4 
-	call print_int 
-	ld a,#SPACE  
-	call putc
-row_loop:
-	ldw x,(ADR,sp)
-	ld a,(x)
-	clrw x 
-	ld xl,a 
-	call print_int 
-	ldw x,(ADR,sp)
-	incw x 
-	ldw (ADR,sp),x 
-	dec (CNT,sp)
-	jrne row_loop
-	_drop VSIZE  		
-	mov tab_width,#4
-	ld a,#CR 
-	call putc 
-	ret 
-
-;--------------------------
-; print memory content 
-; in hexadecimal format
-;  input:
-;    X    start address 
-;    Y    count 
-;--------------------------
-	BCNT=1
-	BASE=3
-	TABW=4
-	VSIZE=4   
-hex_dump:
-	push a 
-	_vars VSIZE
-	ld a,base
-	ld (BASE,sp),a 
-	mov base,#16
-	ld a,tab_width 
-	ld (TABW,sp),a
-	ld a,#CR 
-	call putc 
-1$: ldw (BCNT,sp),y
-	ld a,#16
-	cpw y,#16
-	jrpl 2$
-	ld a,yl
-2$: 	
-	call show_row 
-	ldw y,(BCNT,sp) 
-	subw y,#16 
-	cpw y,#1
-	jrpl 1$
-	ld a,(BASE,sp)
-	ld base,a
-	ld a,(TABW,sp)
-	ld tab_width,a 
-	_drop VSIZE
-	pop a 
-	ret 
 
 ;-------------------------------------
 ; retrun string length
@@ -328,7 +232,7 @@ clear_vars:
 	pushw x 
 	push a  
 	ldw x,#vars 
-	ld a,#2*26 
+	ld a,#CELL_SIZE*26 
 1$:	clr (x)
 	incw x 
 	dec a 
@@ -337,87 +241,15 @@ clear_vars:
 	popw x 
 	ret 
 
-;-------------------------------------
-;  program initialization entry point 
-;-------------------------------------
-	MAJOR=2
-	MINOR=0 
-software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
-cold_start:
-;set stack 
-	ldw x,#STACK_EMPTY
-	ldw sp,x   
-; clear all ram 
-0$: clr (x)
-	decw x 
-	jrne 0$
-; activate pull up on all inputs 
-	ld a,#255 
-	ld PA_CR1,a 
-	ld PB_CR1,a 
-	ld PC_CR1,a 
-	ld PD_CR1,a 
-	ld PE_CR1,a 
-	ld PF_CR1,a 
-	ld PG_CR1,a 
-	ld PI_CR1,a
-; set LD2 pin as output 
-    bset PC_CR1,#LED2_BIT
-    bset PC_CR2,#LED2_BIT
-    bset PC_DDR,#LED2_BIT
-	bres PC_ODR,#LED2_BIT 
-; disable schmitt triggers on Arduino CN4 analog inputs
-	mov ADC_TDRL,0x3f
-; disable peripherals clocks
-;	clr CLK_PCKENR1 
-;	clr CLK_PCKENR2
-	clr AWU_TBR 
-	bset CLK_PCKENR2,#CLK_PCKENR2_AWU ; enable LSI for AWU 
-; select internal clock no divisor: 16 Mhz 	
-	ld a,#CLK_SWR_HSI 
-	clrw x  
-    call clock_init 
-	call timer4_init
-	call timer2_init
-; UART1 at 115200 BAUD
-	call uart1_init
-; activate PE_4 (user button interrupt)
-    bset PE_CR2,#USR_BTN_BIT 
-; display system information
-	call system_information
-	rim ; enable interrupts 
-	inc seedy+1 
-	inc seedx+1 
-	call clear_basic
-	call func_eefree 
-	call ubound 
-	call beep_1khz  
-2$:	
-	call warm_init
-; check for application in flash memory 
-	ldw x,app_sign 
-	cpw x,SIGNATURE 
-	jreq run_app
-	jp cmd_line
-run_app:
-; run application in FLASH|EEPROM 
-	ldw x,#app 
-	ldw txtbgn,x
-	addw x,app_size 
-	ldw txtend,x 
-	ldw x,#AUTO_RUN 
-	call puts 
-	call program_info 
-	jp run_it_02  
-    jra .  
-
-AUTO_RUN: .asciz " auto run program\n"
-
 
 ;-----------------------
 ;  display system 
 ;  information 
 ;-----------------------
+	MAJOR=2
+	MINOR=0 
+software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
+
 system_information:
 	ldw x,#software 
 	call puts 
@@ -427,20 +259,21 @@ system_information:
 	ldw acc24,x
 	clr tab_width  
 	mov base, #10 
-	call prti24 
+	call prt_acc24 
 	ld a,#'.
 	call putc 
 	ld a,#MINOR 
 	ld acc8,a 
 	clrw x 
 	ldw acc24,x 
-	call prti24
+	call prt_acc24
 	ld a,#CR 
 	call putc
+;call test 
 	ret
 
-
 warm_init:
+	ldw y,#XSTACK_EMPTY  
 	clr flags 
 	clr loop_depth 
 	mov tab_width,#TAB_WIDTH 
@@ -450,7 +283,6 @@ warm_init:
 	ldw in.w,x 
 	clr count
 	ret 
-
 
 ;---------------------------
 ; reset BASIC text variables 
@@ -474,6 +306,7 @@ err_msg:
 	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
 	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
 	.word err_no_access,err_no_data,err_no_prog,err_no_fspace,err_buf_full    
+	.word err_overflow 
 
 err_mem_full: .asciz "Memory full\n" 
 err_syntax: .asciz "syntax error\n" 
@@ -490,6 +323,7 @@ err_no_data: .asciz "No data found.\n"
 err_no_prog: .asciz "No program in RAM!\n"
 err_no_fspace: .asciz "File system full.\n" 
 err_buf_full: .asciz "Buffer full\n"
+err_overflow: .asciz "overflow\n" 
 
 rt_msg: .asciz "\nrun time error, "
 comp_msg: .asciz "\ncompile error, "
@@ -524,7 +358,7 @@ tb_error::
 	ld a,(x)
 	clrw x 
 	ld xl,a 
-	call print_int
+	call prt_i16
 	btjf flags,#FAUTORUN ,6$
 	jra 6$
 1$:	
@@ -550,6 +384,7 @@ tb_error::
 	call putc 
 6$: ldw x,#STACK_EMPTY 
     ldw sp,x
+
 warm_start:
 	call warm_init
 ;----------------------------
@@ -564,18 +399,13 @@ cmd_line: ; user interface
 	tnz count 
 	jreq cmd_line
 	call compile
-;;; test 
-; ldw x,txtbgn 
-; ldw y,#16 
-; call hex_dump
-;;; end test
 
 ; if text begin with a line number
 ; the compiler set count to zero    
 ; so code is not interpreted
 	tnz count 
 	jreq cmd_line
-
+	
 ; if direct command 
 ; it's ready to interpret 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -602,6 +432,7 @@ interp_loop:
 	jreq next_line 
 	cp a,#TK_CMD
 	jrne 1$
+	call get_code_addr
 	call (x) 
 	jra interp_loop 
 1$:	 
@@ -617,11 +448,11 @@ interp_loop:
 3$:	
 	cp a,#TK_COLON 
 	jreq interp_loop
-4$: cp a,#TK_LABEL 
+4$: cp a,#TK_LABEL
+	call skip_string 
 	jreq interp_loop 
 5$:	jp syntax_error 
 
-		
 ;--------------------------
 ; extract next token from
 ; token list 
@@ -629,7 +460,7 @@ interp_loop:
 ; in  -> offset in list array 
 ; output:
 ;   A 		token attribute
-;   X 		token value if there is one
+;   X 		*token_value 
 ;----------------------------------------
 next_token::
 	clrw x 
@@ -640,60 +471,105 @@ next_token::
 	sub a,count 
 	jreq 9$ ; end of line 
 0$: 
-	ldw y,basicptr 
-	addw y,in.w 
-	ld a,(y)
-	incw y   
-	tnz a 
-	jrmi 4$
-	cp a,#TK_ARRAY
-	jrpl 7$  ; no attribute for these
-1$: ; 
-	cp a,#TK_CHAR
-	jrne 2$
-	exg a,xl
-	ld a,(y)
-	exg a,xl  
-	jra 6$ 
-2$:	cp a,#TK_QSTR 
-	jreq 22$
-	cp a,#TK_LABEL 
-	jrne 7$ 
-22$:
-	ldw x,y 
-; move pointer after string 
-3$:	tnz (y)
-	jreq 6$
-	incw y 
-	jra 3$
-4$: 
-	ldw x,y 
+	ldw x,basicptr 
+	addw x,in.w 
+	ld a,(x)
+	incw x
+	inc in   
+9$: ret 
+
+;------------------------
+; get cmd and function 
+; code address 
+; input:
+;    X   * cmd|func index 
+;        in code_addr table 
+;------------------------
+get_code_addr:
 	ldw x,(x)
-	cp a,#TK_INTGR
-	jrpl 5$
-	ldw x,(code_addr,x) 
-5$:	incw y 
-6$:	incw y 
-7$:	subw y,basicptr 
-	ldw in.w,y 
-9$: 
-	ret	
+	ldw x,(code_addr,x)
+skip_2_bytes:
+	ld a,#2 ; *_IDX size 
+	add a,in  
+	ld in,a 
+	ret
+
+;-------------------------
+;  skip .asciz in BASIC line 
+;  name 
+;  input:
+;     x		* string 
+;  output:
+;     none 
+;-------------------------
+skip_string:
+	ld a,(x)
+	incw x 
+	jrne skip_string
+	subw x,basicptr 
+	ldw in.w,x 
+	ret 
+
+;---------------------
+; extract 16 bits  
+; address from BASIC
+; code 
+; input:
+;    X    *address
+; output:
+;    X    address 
+;-------------------- 
+get_addr:
+	ldw x,(x)
+	jra skip_2_bytes ; adjust in.w index 
+
+
+;--------------------
+; extract int24_t  
+; value from BASIC 
+; code 
+; input:
+;    X   *integer 
+; output:
+;    A:X   int24  
+;--------------------
+get_int24:
+	ld a,(x)
+	ldw x,(1,x)
+; skip 3 bytes 
+	inc in 
+	inc in 
+	inc in 
+	ret 
+
+;-------------------------
+; get character from 
+; BASIC code 
+; input:
+;    X   *char 
+; output:
+;    A    char 
+;-------------------------
+get_char:
+	ld a,(x)
+	inc in  
+    ret 
 
 ;-----------------------------------
 ; print a 16 bit integer 
 ; using variable 'base' as conversion
 ; format.
 ; input:
-;   X       integer to print 
+;    X       integer to print 
 ;   'base'    conversion base 
 ; output:
-;   none 
+;   terminal  
 ;-----------------------------------
-print_int:
+prt_i16:
 	clr acc24 
 	ldw acc16,x 
-	btjf acc16,#7,prti24
-	cpl acc24 
+	btjf acc16,#7,prt_acc24
+	cpl acc24 ; sign extend 
 	
 ;------------------------------------
 ; print integer in acc24 
@@ -701,10 +577,12 @@ print_int:
 ;	acc24 		integer to print 
 ;	'base' 		numerical base for conversion 
 ;   'tab_width' field width 
+;    A 			signed||unsigned conversion
 ;  output:
 ;    A          string length
 ;------------------------------------
-prti24:
+prt_acc24:
+	ld a,#255  ; signed conversion  
     call itoa  ; conversion entier en  .asciz
 	call right_align  
 	push a 
@@ -712,11 +590,22 @@ prti24:
 	pop a 
     ret	
 
+;---------------------------------------
+;  print value at xstack top 
+;---------------------------------------
+print_top: 
+	_xpop 
+	ld acc24,a 
+	ldw acc16,x 
+	jra prt_acc24 
+
+
 ;------------------------------------
 ; convert integer in acc24 to string
 ; input:
 ;   'base'	conversion base 
 ;	acc24	integer to convert
+;   A       0=unsigned, else signed 
 ; output:
 ;   X  		pointer to first char of string
 ;   A       string length
@@ -729,6 +618,8 @@ itoa::
 	_vars VSIZE
 	clr (LEN,sp) ; string length  
 	clr (SIGN,sp)    ; sign
+	tnz A
+	jreq 1$ ; unsigned conversion  
 	ld a,base 
 	cp a,#10
 	jrne 1$
@@ -742,10 +633,6 @@ itoa::
 	addw x,#TIB_SIZE
 	decw x 
 	clr (x)
-	decw x 
-	ld a,#32
-	ld (x),a
-	inc (LEN,sp)
 itoa_loop:
     ld a,base
 	ldw (PSTR,sp),x 
@@ -791,127 +678,6 @@ itoa_loop:
 	_drop VSIZE
 	ret
 
-;-------------------------------------
-; divide uint24_t by uint8_t
-; used to convert uint24_t to string
-; input:
-;	acc24	dividend
-;   A 		divisor
-; output:
-;   acc24	quotient
-;   A		remainder
-;------------------------------------- 
-; offset  on sp of arguments and locals
-	U8   = 1   ; divisor on stack
-	VSIZE =1
-divu24_8:
-	pushw x ; save x
-	push a 
-	; ld dividend UU:MM bytes in X
-	ld a, acc24
-	ld xh,a
-	ld a,acc24+1
-	ld xl,a
-	ld a,(U8,SP) ; divisor
-	div x,a ; UU:MM/U8
-	push a  ;save remainder
-	ld a,xh
-	ld acc24,a
-	ld a,xl
-	ld acc24+1,a
-	pop a
-	ld xh,a
-	ld a,acc24+2
-	ld xl,a
-	ld a,(U8,sp) ; divisor
-	div x,a  ; R:LL/U8
-	ld (U8,sp),a ; save remainder
-	ld a,xl
-	ld acc24+2,a
-	pop a
-	popw x
-	ret
-
-;--------------------------------------
-; unsigned multiply uint24_t by uint8_t
-; use to convert numerical string to uint24_t
-; input:
-;	acc24	uint24_t 
-;   A		uint8_t
-; output:
-;   acc24   A*acc24
-;-------------------------------------
-; local variables offset  on sp
-	U8   = 3   ; A pushed on stack
-	OVFL = 2  ; multiplicaton overflow low byte
-	OVFH = 1  ; multiplication overflow high byte
-	VSIZE = 3
-mulu24_8:
-	pushw x    ; save X
-	; local variables
-	push a     ; U8
-	clrw x     ; initialize overflow to 0
-	pushw x    ; multiplication overflow
-; multiply low byte.
-	ld a,acc24+2
-	ld xl,a
-	ld a,(U8,sp)
-	mul x,a
-	ld a,xl
-	ld acc24+2,a
-	ld a, xh
-	ld (OVFL,sp),a
-; multipy middle byte
-	ld a,acc24+1
-	ld xl,a
-	ld a, (U8,sp)
-	mul x,a
-; add overflow to this partial product
-	addw x,(OVFH,sp)
-	ld a,xl
-	ld acc24+1,a
-	clr a
-	adc a,#0
-	ld (OVFH,sp),a
-	ld a,xh
-	ld (OVFL,sp),a
-; multiply most signficant byte	
-	ld a, acc24
-	ld xl, a
-	ld a, (U8,sp)
-	mul x,a
-	addw x, (OVFH,sp)
-	ld a, xl
-	ld acc24,a
-    addw sp,#VSIZE
-	popw x
-	ret
-
-;------------------------------------
-;  two's complement acc24
-;  input:
-;		acc24 variable
-;  output:
-;		acc24 variable
-;-------------------------------------
-neg_acc24:
-	cpl acc24+2
-	cpl acc24+1
-	cpl acc24
-	ld a,#1
-	add a,acc24+2
-	ld acc24+2,a
-	clr a
-	adc a,acc24+1
-	ld acc24+1,a 
-	clr a 
-	adc a,acc24 
-	ld acc24,a 
-	ret
-
-
-
-
 ;------------------------------------
 ; convert alpha to uppercase
 ; input:
@@ -931,7 +697,7 @@ to_upper::
 ;------------------------------------
 ; convert pad content in integer
 ; input:
-;    x		.asciz to convert
+;    x		* .asciz to convert
 ; output:
 ;    acc24      int24_t
 ;------------------------------------
@@ -1001,366 +767,6 @@ atoi_exit:
 ;;   commands and functions 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;  Arithmetic operators
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;debug support
-DEBUG_PRT=1
-.if DEBUG_PRT 
-	REGA=1
-	SAVEB=2
-	REGX=3
-	REGY=5
-	ACC24=7
-	VSIZE=9 
-printxy:
-	_vars VSIZE 
-	ld (REGA,sp),a 
-	ld a,base 
-	ld (SAVEB,sp),a
-	ldw (REGX,sp),x
-	ldw (REGY,sp),y
-	ldw x,acc24 
-	ld a,acc8 
-	ldw (ACC24,sp),x 
-	ld (ACC24+2,sp),a 
-	mov base,#16 
-	clrw x 
-	ld a,(REGA,sp)
-	ld xl,a 
-	call print_int
-	ld a,#SPACE 
-	call putc  
-	ldw x,(REGX,sp)
-	call print_int 
-	ld a,#SPACE 
-	call putc  
-	ldw x,(REGY,sp)
-	call print_int 
-	ld a,#CR 
-	call putc 
-	ld a,(ACC24+2,sp)
-	ldw x,(ACC24,sp)
-	ldw acc24,x 
-	ld acc8,a
-	ld a,(SAVEB,sp)
-	ld base,a 
-	ld a,(REGA,sp)
-	ldw x,(REGX,sp)
-	ldw y,(REGY,sp)
-	_drop VSIZE 
-	ret 
-.endif 
-
-
-;--------------------------------------
-;  multiply 2 uint16_t return uint32_t
-;  input:
-;     x       uint16_t 
-;     y       uint16_t 
-;  output:
-;     x       product bits 15..0
-;     y       product bits 31..16 
-;---------------------------------------
-		U1=1  ; uint16_t 
-		DBL=3 ; uint32_t
-		VSIZE=6
-umstar:
-	_vars VSIZE 
-	ldw (U1,sp),x 
-;initialize bits 31..16 of 
-;product to zero 
-	clr (DBL,sp)
-	clr (DBL+1,sp)
-; produc U1L*U2L 
-	ld a,yl 
-	mul x,a 
-	ldw (DBL+2,sp),x
-; product U1H*U2L 
-	ld a,(U1,sp) ; xh 
-	ldw x,y
-	mul x,a 
-	clr a 
-	addw x,(DBL+1,sp) 
-	clr a 
-	adc a,(DBL,sp) 
-	ld (DBL,sp),a ; bits 23..17 
-	ldw (DBL+1,sp),x ; bits 15..0 
-; product U1L*U2H
-	swapw y 
-	ldw x,y
-	ld a,(U1+1,sp)
-	mul x,a
-	addw x,(DBL+1,sp)
-	clr a 
-	adc a,(DBL,sp)
-	ld (DBL,sp),a 
-	ldw (DBL+1,sp),x 
-; product U1H*U2H 	
-	ld a,(U1,sp)
-	ldw x,y  
-	mul x,a 
-	addw x,(DBL,sp)
-	ldw y,x 
-	ldw x,(DBL+2,sp)
-	_drop VSIZE 
-	ret
-
-
-;-------------------------------------
-; multiply 2 integers
-; input:
-;  	x       n1 
-;   y 		n2 
-; output:
-;	X        N1*N2 bits 15..0
-;   Y        N1*N2 bits 31..16 
-;-------------------------------------
-	SIGN=1
-	VSIZE=1
-multiply:
-	_vars VSIZE 
-	clr (SIGN,sp)
-	ld a,xh 
-	and a,#0x80
-	jrpl 1$
-	cpl (SIGN,sp)
-	negw x 
-1$:	
-	ld a,yh
-	and a,#0x80  
-	jrpl 2$ 
-	cpl (SIGN,sp)
-	negw y 
-2$:	
-	call umstar
-	ld a,(SIGN,sp)
-	jreq 3$
-	call dneg 
-3$:	
-	_drop VSIZE 
-	ret
-
-;--------------------------------------
-; divide uint32_t/uint16_t
-; return:  quotient and remainder 
-; quotient expected to be uint16_t 
-; input:
-;   DBLDIVDND    on stack 
-;   X            divisor 
-; output:
-;   X            quotient 
-;   Y            remainder 
-;---------------------------------------
-	VSIZE=3
-	_argofs VSIZE 
-	_arg DBLDIVDND 1
-	; local variables 
-	DIVISOR=1 
-	CNTR=3 
-udiv32_16:
-	_vars VSIZE 
-	ldw (DIVISOR,sp),x	; save divisor 
-	ldw x,(DBLDIVDND+2,sp)  ; bits 15..0
-	ldw y,(DBLDIVDND,sp) ; bits 31..16
-	tnzw y
-	jrne long_division 
-	ldw y,(DIVISOR,sp)
-	divw x,y
-	_drop VSIZE 
-	ret
-long_division:
-	exgw x,y ; hi in x, lo in y 
-	ld a,#17 
-	ld (CNTR,sp),a
-1$:
-	cpw x,(DIVISOR,sp)
-	jrmi 2$
-	subw x,(DIVISOR,sp)
-2$:	ccf 
-	rlcw y 
-	rlcw x 
-	dec (CNTR,sp)
-	jrne 1$
-	exgw x,y 
-	_drop VSIZE 
-	ret
-
-;-----------------------------
-; negate double int.
-; input:
-;   x     bits 15..0
-;   y     bits 31..16
-; output: 
-;   x     bits 15..0
-;   y     bits 31..16
-;-----------------------------
-dneg:
-	cplw x 
-	cplw y 
-	addw x,#1 
-	jrnc 1$
-	incw y 
-1$: ret 
-
-
-;--------------------------------
-; sign extend single to double
-; input:
-;   x    int16_t
-; output:
-;   x    int32_t bits 15..0
-;   y    int32_t bits 31..16
-;--------------------------------
-dbl_sign_extend:
-	clrw y
-	ld a,xh 
-	and a,#0x80 
-	jreq 1$
-	cplw y
-1$: ret 	
-
-
-;----------------------------------
-;  euclidian divide dbl/n1 
-;  ref: https://en.wikipedia.org/wiki/Euclidean_division
-; input:
-;    dbl    int32_t on stack 
-;    x 		n1   int16_t  disivor  
-; output:
-;    X      dbl/x  int16_t 
-;    Y      remainder int16_t 
-;----------------------------------
-	VSIZE=8
-	_argofs VSIZE 
-	_arg DIVDNDHI 1 
-	_arg DIVDNDLO 3
-	; local variables
-	DBLHI=1
-	DBLLO=3 
-	SDIVSR=5 ; sign divisor
-	SQUOT=6 ; sign dividend 
-	DIVISR=7 ; divisor 
-div32_16:
-	_vars VSIZE 
-	clr (SDIVSR,sp)
-	clr (SQUOT,sp)
-; copy arguments 
-	ldw y,(DIVDNDHI,sp)
-	ldw (DBLHI,sp),y
-	ldw y,(DIVDNDLO,sp)
-	ldw (DBLLO,sp),y 
-; check for 0 divisor
-	tnzw x 
-    jrne 0$
-	ld a,#ERR_DIV0 
-	jp tb_error 
-; check divisor sign 	
-0$:	ld a,xh 
-	and a,#0x80 
-	jreq 1$
-	cpl (SDIVSR,sp)
-	cpl (SQUOT,sp)
-	negw x
-1$:	ldw (DIVISR,sp),x
-; check dividend sign 	 
- 	ld a,(DBLHI,sp) 
-	and a,#0x80 
-	jreq 2$ 
-	cpl (SQUOT,sp)
-	ldw x,(DBLLO,sp)
-	ldw y,(DBLHI,sp)
-	call dneg 
-	ldw (DBLLO,sp),x 
-	ldw (DBLHI,sp),y 
-2$:	ldw x,(DIVISR,sp)
-	call udiv32_16
-	tnzw y 
-	jreq 3$ 
-; x=quotient 
-; y=remainder 
-; if SDIVSR XOR SQUOT increment quotient and remainder.
-	ld a,(SQUOT,sp)
-	xor a,(SDIVSR,sp)
-	jreq 3$
-	incw x 
-	ldw acc16,y 
-	ldw y,(DIVISR,sp)
-	subw y,acc16
-; sign quotient
-3$:	ld a,(SQUOT,sp)
-	jreq 4$
-	negw x 
-4$:	
-	_drop VSIZE 
-	ret 
-
-
-
-;----------------------------------
-; division x/y 
-; input:
-;    X       dividend
-;    Y       divisor 
-; output:
-;    X       quotient
-;    Y       remainder 
-;-----------------------------------
-	VSIZE=4 
-	; local variables 
-	DBLHI=1
-	DBLLO=3
-divide: 
-	_vars VSIZE 
-	ldw acc16,y
-	call dbl_sign_extend
-	ldw (DBLLO,sp),x 
-	ldw (DBLHI,sp),y 
-	ldw x,acc16 
-	call div32_16 
-	_drop VSIZE 
-	ret
-
-
-;----------------------------------
-;  remainder resulting from euclidian 
-;  division of x/y 
-; input:
-;   x   	dividend int16_t 
-;   y 		divisor int16_t
-; output:
-;   X       n1%n2 
-;----------------------------------
-modulo:
-	call divide
-	ldw x,y 
-	ret 
-
-;----------------------------------
-; BASIC: MULDIV(expr1,expr2,expr3)
-; return expr1*expr2/expr3 
-; product result is int32_t and 
-; divisiont is int32_t/int16_t
-;----------------------------------
-	DBL_SIZE=4 
-muldiv:
-	call func_args 
-	cp a,#3 
-	jreq 1$
-	jp syntax_error
-1$: 
-	ldw x,(5,sp) ; expr1
-	ldw y,(3,sp) ; expr2
-	call multiply 
-	ldw (5,sp),x  ;int32_t 15..0
-	ldw (3,sp),y  ;int32_t 31..16
-	popw x        ; expr3 
-	call div32_16 ; int32_t/expr3 
-	_drop DBL_SIZE
-	ret 
-
-
 ;---------------------------------
 ; dictionary search 
 ; input:
@@ -1376,7 +782,6 @@ muldiv:
 	VSIZE=5 
 search_dict::
 	_vars VSIZE 
-
 	ldw (YSAVE,sp),y 
 search_next:
 	ldw (XSAVE,sp),x 
@@ -1425,7 +830,7 @@ str_match:
 	srl a 
 	add a,#128
 search_exit: 
-	_drop VSIZE 	 
+	_drop VSIZE 
 	ret 
 
 ;---------------------
@@ -1458,30 +863,24 @@ func_args:
 ;-------------------------------
 ; parse embedded BASIC routines 
 ; arguments list.
-; arg_list::=  rel[','rel]*
-; all arguments are of integer type
+; arg_list::=  expr[','expr]*
+; all arguments are of int24_t type
 ; and pushed on stack 
 ; input:
 ;   none
 ; output:
-;   stack{n}   arguments pushed on stack
-;   A 	number of arguments pushed on stack  
+;   xstack{n}   arguments pushed on xstack
+;   A 	number of arguments pushed on xstack  
 ;--------------------------------
 arg_list:
 	push #0  
-1$: call relation
+1$: call expression
 	cp a,#TK_NONE 
 	jreq 5$
 	cp a,#TK_INTGR
 	jrne 4$
 3$: 
-; swap return address with argument
-	pop a ; arg_count
-	popw y ; return address 
-	pushw x ; new argument 
-	pushw y 
-    inc a
-	push a 
+	inc (1,sp)
 	call next_token 
 	cp a,#TK_COMMA 
 	jreq 1$ 
@@ -1517,7 +916,6 @@ arg_list:
 ; input:
 ;   A 		TK_ARRAY
 ; output:
-;   A 		TK_INTGR
 ;	X 		element address 
 ;----------------------
 get_array_element:
@@ -1525,7 +923,8 @@ get_array_element:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: popw x 
+1$: _xpop 
+    ; ignore A, index < 65536 in any case 
 	; check for bounds 
 	cpw x,array_size 
 	jrule 3$
@@ -1534,12 +933,13 @@ get_array_element:
 	jp tb_error 
 3$: tnzw  x
 	jreq 2$ 
-	sllw x 
 	pushw x 
-	ldw x,#tib
+	sllw x 
+	addw x,(1,sp) ; index*size_of(int24)
+	ldw (1,sp),x  
+	ldw x,#tib ; array is below tib 
 	subw x,(1,sp)
 	_drop 2   
-	ld a,#TK_INTGR
 	ret 
 
 
@@ -1551,61 +951,74 @@ get_array_element:
 ;			 integer | function |
 ;			 '('relation')' 
 ; output:
-;   A    token attribute 
-;   X 	 integer
+;   A       token attribute 
+;   xstack  value  
 ; ---------------------------------
 	NEG=1
 	VSIZE=1
 factor:
 	_vars VSIZE 
+	clr (NEG,sp)
 	call next_token
 	cp a,#CMD_END  
 	jrult 16$
-1$:	ld (NEG,sp),a 
-	and a,#TK_GRP_MASK
-	cp a,#TK_GRP_ADD 
+1$:	cp a,#TK_PLUS 
 	jreq 2$
-	ld a,(NEG,sp)
+	cp a,#TK_MINUS 
+	jrne 4$ 
+	cpl (NEG,sp)
 	jra 4$  
 2$:	
 	call next_token 
 4$:	
 	cp a,#TK_IFUNC 
 	jrne 5$ 
-	call (x) 
+	call get_code_addr 
+	call (x); result in A:X  
 	jra 18$ 
 5$:
 	cp a,#TK_INTGR
 	jrne 6$
+	call get_int24 
 	jra 18$
 6$:
 	cp a,#TK_ARRAY
 	jrne 7$
 	call get_array_element
-	ldw x,(x)
-	jra 18$ 
+    jra 71$
 7$:
 	cp a,#TK_VAR 
 	jrne 8$
-	ldw x,(x)
+	call get_addr 
+71$:
+	ld a,(x)
+	ldw x,(1,x)
 	jra 18$
 8$:
 	cp a,#TK_LABEL 
-	jrne 12$ 
+	jrne 9$ 
 	call search_const 
 	clr a 
 	tnzw x 
 	jreq 16$
 	call get_const_value 
-	jra 20$ 
+	jra 18$
+9$: 
+	cp a,#TK_CFUNC 
+	jrne 12$
+	call get_code_addr 
+	call(x)
+	clrw x 
+	rlwa x 
+	jra 18$ 	 
 12$:			
 	cp a,#TK_LPAREN
 	jrne 16$
-	call relation
-	pushw x 
+	call expression
+	_xpush  
 	ld a,#TK_RPAREN 
 	call expect
-	popw x 
+	_xpop 
 	jra 18$	
 16$:
 	tnz a 
@@ -1614,32 +1027,30 @@ factor:
 	clr a 
 	jra 20$ 
 18$: 
-	ld a,#TK_MINUS 
-	cp a,(NEG,sp)
-	jrne 19$
-	negw x
-19$:
-	ld a,#TK_INTGR
+	tnz (NEG,sp)
+	jreq 19$
+	call neg_ax   
+19$: _xpush 
+     ld a,#TK_INTGR
 20$:
 	_drop VSIZE
 	ret
+
 
 ;-----------------------------------
 ; term ::= factor [['*'|'/'|'%'] factor]* 
 ; output:
 ;   A    	token attribute 
-;	X		integer
+;	xstack		value 
 ;-----------------------------------
-	N1=1   ; int16_t
-	MULOP=3
-	VSIZE=3
+	MULOP=1
+	VSIZE=1
 term:
 	_vars VSIZE
 	call factor
 	tnz a 
 	jreq term_exit 
 term01:	 ; check for  operator 
-	ldw (N1,sp),x  ; save first factor 
 	call next_token
 	ld (MULOP,sp),a
 	cp a,#CMD_END
@@ -1653,23 +1064,22 @@ term01:	 ; check for  operator
 	cp a,#TK_INTGR
 	jreq 2$
 	jp syntax_error
-2$:	ldw y,x 
-	ldw x,(N1,sp)
+2$:	
 	ld a,(MULOP,sp) 
 	cp a,#TK_MULT 
 	jrne 3$
-	call multiply 
+	call mul24 
 	jra term01
 3$: cp a,#TK_DIV 
 	jrne 4$ 
-	call divide 
+	call div24 
 	jra term01 
-4$: call modulo
+4$: call mod24
 	jra term01 
 8$: ld a,(MULOP,sp)
 	jreq 9$ 
 	_unget_token
-9$: ldw x,(N1,sp)
+9$: 
 	ld a,#TK_INTGR 	
 term_exit:
 	_drop VSIZE 
@@ -1680,18 +1090,16 @@ term_exit:
 ;  result range {-32768..32767}
 ;  output:
 ;   A    token attribute 
-;   X	 integer   
+;   xstack	 result    
 ;-------------------------------
-	N1=1
-	N2=3 
-	OP=5 
-	VSIZE=5 
+	OP=1 
+	VSIZE=1 
 expression:
 	_vars VSIZE 
 	call term
 	tnz a 
 	jreq expr_exit 
-1$:	ldw (N1,sp),x 
+1$:	
 	call next_token
 	ld (OP,sp),a 
 	cp a,#CMD_END 
@@ -1705,19 +1113,19 @@ expression:
 	cp a,#TK_INTGR
 	jreq 3$
 	jp syntax_error
-3$:	ldw (N2,sp),x 
-	ldw x,(N1,sp)
+3$:	
 	ld a,(OP,sp)
 	cp a,#TK_PLUS 
 	jrne 4$
-	addw x,(N2,sp)
+	call add24
 	jra 1$ 
-4$:	subw x,(N2,sp)
+4$:	
+	call sub24
 	jra 1$
 8$: ld a,(OP,sp)
 	jreq 9$ 
 	_unget_token	
-9$: ldw x,(N1,sp)
+9$: 
 	ld a,#TK_INTGR	
 expr_exit:
 	_drop VSIZE 
@@ -1729,17 +1137,17 @@ expr_exit:
 ;  relation return  integer , zero is false 
 ;  output:
 ;    A 		token attribute  
-;	 X		integer 
+;	 xstack		value  
 ;---------------------------------------------
-	N1=1
-	RELOP=3
-	VSIZE=3 
+	RELOP=1
+	VSIZE=1 
 relation: 
 	_vars VSIZE
 	call expression
 	tnz a 
-	jreq rel_exit
-	ldw (N1,sp),x 
+	jrne 1$
+	jp rel_exit
+1$:	
 ; expect rel_op or leave 
 	call next_token 
 	ld (RELOP,sp),a 
@@ -1751,9 +1159,8 @@ relation:
 	cp a,#TK_INTGR
 	jreq 3$
 	jp syntax_error 
-3$:	ldw acc16,x 
-	ldw x,(N1,sp) 
-	subw x,acc16
+3$:	
+	call sub24 
 	jrne 4$
 	mov acc8,#2 ; n1==n2
 	jra 6$ 
@@ -1767,15 +1174,13 @@ relation:
 	clrw x 
 	ld a, acc8  
 	and a,(RELOP,sp)
-	tnz a 
-	jreq 10$
-	incw x 
+	jreq 7$
+	incw x
+7$:	_store_top   
 	jra 10$  	
 8$: ld a,(RELOP,sp)
-	jreq 9$
+	jreq 10$
 	_unget_token
-9$: 
-	ldw x,(N1,sp)
 10$:
 	ld a,#TK_INTGR
 rel_exit:
@@ -1787,19 +1192,44 @@ rel_exit:
 ; print stack content in hexadecimal bytes 
 ; 16 bytes per row 
 ;--------------------------------
+	DEPTH=1
+	CNTR=2
+	VSIZE=2
 show:
+	_vars VSIZE 
+	clr (CNTR,sp)
 	ldw x,#cstk_prompt
 	call puts 
-	ldw x,sp 
-	addw x,#3 ; ignore return address
-	ldw y,#RAM_SIZE  
+	pushw y 
+	ldw x,#XSTACK_EMPTY
+	subw x,(1,sp)
+	_drop 2
+	ld a,#CELL_SIZE 
+	div x,a  
+	ld a,xl  
+    ld (DEPTH,sp),a 
+	ldw ptr16,y 
+1$: 
+	ld a,[ptr16]
+	inc ptr8 
+	ldw x,[ptr16]
+	inc ptr8 
+	inc ptr8 
+	ld acc24,a 
 	ldw acc16,x 
-	subw y,acc16
-	call hex_dump
-	clr a 
+	call prt_acc24
+	ld a,#SPACE 
+	call putc 
+	inc (CNTR,sp)
+	ld a,(CNTR,sp)
+	cp a,(DEPTH,sp)
+	jrmi 1$
+	ld a,#CR 
+	call putc  
+	_drop VSIZE 
 	ret
 
-cstk_prompt: .asciz "\ncontent of stack from top to bottom:\n"
+cstk_prompt: .asciz "\ncontent of expression stack from top to bottom:\n"
 
 
 ;--------------------------------------------
@@ -1822,10 +1252,11 @@ dec_base:
 ; BASIC: FREE 
 ; return free size in RAM 
 ; output:
-;   A 		TK_INTGR
-;   X 	    size integer
+;   A:x		size 
 ;--------------------------
 free:
+	pushw y 
+	clr a 
 	ldw x,#tib 
 	ldw y,txtbgn 
 	cpw y,#app_space
@@ -1833,8 +1264,8 @@ free:
 	subw x,#free_ram 
 	jra 2$ 
 1$:	
-	subw x,txtend 
-2$:	ld a,#TK_INTGR
+	subw x,txtend
+2$:	popw y 
 	ret 
 
 ;------------------------------
@@ -1848,13 +1279,13 @@ cmd_size:
 	call puts 
 	ldw x,txtbgn     
 	mov base,#16 
-	call print_int
+	call prt_i16
 	pop base 
 	ldw x,#PROG_SIZE 
 	call puts 
 	ldw x,txtend 
 	subw x,txtbgn 
-	call print_int
+	call prt_i16
 	ldw x,#STR_BYTES 
 	call puts  
 	ret 
@@ -1863,15 +1294,16 @@ cmd_size:
 ;------------------------
 ; BASIC: UBOUND  
 ; return array variable size 
+; and set 'array_size' variable 
 ; output:
-;   A 		TK_INTGR
-;   X 	    array size 
+;   A:X 	array_size
 ;--------------------------
 ubound:
 	call free 
-	srlw x 
+	ld a,#CELL_SIZE 
+	mul x,a 
 	ldw array_size,x
-	ld a,#TK_INTGR
+	clr a 
 	ret 
 
 ;-----------------------------
@@ -1889,21 +1321,26 @@ let::
 	jp syntax_error
 let_array:
 	call get_array_element
+	jra let_eval 
 let_var:
-	pushw x  
+	call get_addr
+let_eval:
+	ldw ptr16,x  ; variable address 
 	call next_token 
 	cp a,#TK_EQUAL
 	jreq 1$
 	jp syntax_error
 1$:	
-	call relation   
+	call expression    
 	cp a,#TK_INTGR 
 	jreq 2$
 	jp syntax_error
 2$:	
-	ldw y,x 
-	popw x   
-	ldw (x),y   
+	_xpop ; value 
+3$:
+	ld [ptr16],a
+	inc ptr8  
+	ldw [ptr16],x 
 	ret 
 
 
@@ -1913,18 +1350,17 @@ let_var:
 ; input:
 ;	X	*const record 
 ; output:
-;   X    const  value
-;   A    TK_INTGR
+;   A:X   const  value
 ;--------------------------
-get_const_value:
-	ld a,(x)
-	sub a,#2 
+get_const_value: ; -- i 
+	ld a,(x) ; record size 
+	sub a,#3 ; * value 
 	push a 
 	push #0 
 	addw x,(1,sp)
-	ldw x,(x)
-	_drop 2 
-	ld a,#TK_INTGR
+	ld a,(x)
+	ldw x,(1,x)
+	_drop 2
 	ret 
 
 
@@ -1936,37 +1372,40 @@ get_const_value:
 	YTEMP=3
 	VSIZE=4 
 list_const:
+	pushw y 
 	_vars 4 
 	clrw x 
 	ldw (COUNT,sp),x  
 	ldw Y,#EEPROM_BASE 
 1$:	cpw y,free_eeprom 
 	jruge 9$
-	incw y 
+    ldw (YTEMP,sp),y 
 	ldw x,y
-	ldw (YTEMP,sp),y 
-	call puts 
 	incw x 
-	ldw (YTEMP,sp),x 
+	call puts  
 	ld a,#'= 
 	call putc 
 	ldw x,(YTEMP,sp)
-	ldw x,(x)
-	call print_int
-	ld a,#CR 
-	call putc  
-	ldw x, (COUNT,sp)
+	call get_const_value 
+	ld acc24,a 
+	ldw acc16,x 
+	call prt_acc24
+	ldw x,(COUNT,sp)
 	incw x 
 	ldw (COUNT,sp),x 
-	ldw Y,(YTEMP,sp)
-	addw y,#2 
+	clr acc16 
+	ldw y,(YTEMP,sp)
+	ld a,(y)
+	ld acc8,a
+	addw y,acc16 
 	jra 1$ 
-
-9$:	ldw x,(COUNT,sp)
-	call print_int 
+9$:	
+	ldw x,(COUNT,sp)
+	call prt_i16 
 	ldw x,#CONST_COUNT 
 	call puts 
 	_drop VSIZE 
+	popw y 
 	ret 
 
 CONST_COUNT: .asciz "constants in EEPROM\n"
@@ -1980,8 +1419,7 @@ CONST_COUNT: .asciz "constants in EEPROM\n"
 ; input:
 ;    none 
 ; output:
-;    X     address free
-;    A     TK_INTGR  
+;    A:X     address free
 ;-------------------------
 func_eefree:
 	ldw x,#EEPROM_BASE 
@@ -2002,19 +1440,19 @@ func_eefree:
 	decw x   
 	jra 1$ 
 8$: clrw x ; no free space 
-9$:
+9$: clr a 
 	ldw free_eeprom,x ; save in system variable 
-	ld a,#TK_INTGR
 	ret 
 
+CONST_REC_MIN_BYTES=5 
 ;--------------------------
 ; search constant name 
 ; format of constant record  
 ;   .byte record length 
 ;         = strlen(name)+5 
 ;   .asciz name (variable length)
-;   .word value (2 bytes )
-; a constant record use 6+ bytes
+;   .int24 value (3 bytes )
+; a constant record use 7+ bytes
 ; constants are saved in EEPROM  
 ; input:
 ;    X     *name
@@ -2025,14 +1463,14 @@ func_eefree:
 ;-------------------------
 	NAMEPTR=1 ; target name pointer 
 	EEPTR=3   ; walking pointer in EEPROM
-	RECLEN=5  ; record length of targer 
+	RECLEN=5  ; record length of target
 	VSIZE=5
 search_const:
 	pushw y 
 	_vars VSIZE
 	clr acc16 
 	call strlen 
-	add a,#4 
+	add a,#CONST_REC_MIN_BYTES 
 	ld (RECLEN,sp),a    
 	ldw (NAMEPTR,sp),x
 	ldw y,#EEPROM_BASE 
@@ -2071,6 +1509,7 @@ search_const:
 	RECLEN=5
 	VSIZE=5
 cmd_const:
+	pushw y 
 	_vars VSIZE 
 	bres flags,#FUPDATE 
 	call next_token 
@@ -2092,7 +1531,7 @@ cmd_const:
 	ldw (CNAME,sp),x ; *const_name
 	ldw x,(CNAME,sp)
 	call strlen 
-	add a,#4 
+	add a,#CONST_REC_MIN_BYTES 
 	ld (RECLEN,sp),a 
 ; copy name in buffer  
 	ldw y,(CNAME,sp) 
@@ -2101,10 +1540,13 @@ cmd_const:
 	ld (x),a 
 	incw x  
 	call strcpy 
-	ldw (BUFPTR,sp),x
+	ldw (BUFPTR,sp),x 
+; x not updated by strcpy 
+; BUFPTR must be incremented 
+; to point after name 
 	ld a,(RECLEN,sp)
-	sub a,#3 
-	add a,(BUFPTR+1,sp)
+	sub a,#CONST_REC_MIN_BYTES-1
+	add a,(BUFPTR+1,sp) ; 
 	ld (BUFPTR+1,sp),a 
 	jrnc 4$
     inc (BUFPTR,sp) 
@@ -2115,16 +1557,13 @@ cmd_const:
 	cp a,#TK_INTGR 
 	jreq 5$ 
 	jp syntax_error 
-5$:	ldw y,x 
-	ldw x,(BUFPTR,sp)
-	ld a,yh 
-	ld (x),a 
-	incw x 
-	ld a,yl 
-	ld (x),a 
+5$:	ldw y,(BUFPTR,sp)
+	_xpop ; get value from xstack 
+	ld (y),a 
+	ldw (1,y),x 
 ; record completed in buffer 
 ; check if constant already exist 
-; if so update value if different 
+; if so update value if \U option set 
 	clr farptr 
 	ldw x,(CNAME,sp)
 	call search_const 
@@ -2140,6 +1579,7 @@ cmd_const:
 	ld a,(RECLEN,sp)
 	call write_nbytes
 ; update free_eeprom 
+	clrw x 
 	ld a,(RECLEN,sp)
 	ld xl,a 
 	addw x,free_eeprom 
@@ -2153,6 +1593,7 @@ cmd_const:
 	_unget_token    
 10$: 
 	_drop VSIZE 
+	popw y 
 	ret 
 
 
@@ -2172,12 +1613,12 @@ program_info:
 	call puts 
 	ldw x,txtbgn 
 	mov base,#16 
-	call print_int
+	call prt_i16
 	mov base,#10  
 	ldw x,#PROG_SIZE
 	call puts 
 	call prog_size 
-	call print_int 
+	call prt_i16 
 	ldw x,#STR_BYTES 
 	call puts
 	ldw x,txtbgn
@@ -2217,7 +1658,7 @@ list:
 	call next_token 
 	cp a,#TK_CHAR 
 	jrne 2$
-	ld a,xl 
+	call get_char 
 	and a,#0xDF 
 	cp a,#'C 
 	jrne 1$
@@ -2288,7 +1729,7 @@ list_exit:
 
 
 ;--------------------------
-; BASIC: EDIT \E | \F
+; BASIC: EDIT 
 ;  copy program in FLASH 
 ;  to RAM for edition 
 ;-------------------------
@@ -2313,6 +1754,7 @@ edit:
 
 NOT_SAVED: .asciz "No application saved.\n"
 
+
 ;--------------------------
 ; decompile line from token list
 ; and print it. 
@@ -2323,6 +1765,7 @@ NOT_SAVED: .asciz "No application saved.\n"
 ;   none 
 ;--------------------------	
 prt_basic_line:
+	pushw y 
 	ld count,a 
 	ld a,(2,x)
 	cp a,count 
@@ -2334,6 +1777,7 @@ prt_basic_line:
 	call puts 
 	ld a,#CR 
 	call putc 
+	popw y 
 	ret 
 
 
@@ -2365,14 +1809,17 @@ prt_loop:
 	jra 7$ 
 1$:	; print string 
 	call puts
+	incw x
+	subw x,basicptr 
+	ldw in.w,x  
 	jra reset_comma
 2$:	; print character 
-	ld a,xl 
+	call get_char 
 	call putc 
 	jra reset_comma 
 3$: ; print character function value  	
+	call get_code_addr 
 	call (x)
-	ld a,xl 
 	call putc
 	jra reset_comma 
 4$: ; set comma state 
@@ -2384,16 +1831,17 @@ prt_loop:
 	jreq 6$
 	jp syntax_error 
 6$: ; set tab width
+	call get_int24 
 	ld a,xl 
 	and a,#15 
 	ld tab_width,a 
 	jra reset_comma 
 7$:	
 	_unget_token 
-	call relation 
+	call expression  
 	cp a,#TK_INTGR 
 	jrne print_exit 
-    call print_int 
+    call print_top 
 	jra reset_comma 
 print_exit:
 	tnz (CCOMMA,sp)
@@ -2460,6 +1908,7 @@ rest_context:
 	VAR_ADDR=6
 	VSIZE=7
 input_var:
+	pushw y 
 	_vars VSIZE 
 input_loop:
 	clr (SKIP,sp)
@@ -2500,9 +1949,12 @@ input_loop:
 	call rest_context 
 	jp syntax_error
 22$:
-	negw x 	
+	call neg_acc24	
 3$: ldw y,(VAR_ADDR,sp) 
-	ldw (y),x 
+	ld a,acc24 
+	ldw x,acc16 
+	ld (y),a 
+	ldw (1,y),x 
 	call rest_context
 	call next_token 
 	cp a,#TK_COMMA 
@@ -2514,11 +1966,12 @@ input_loop:
 	jp syntax_error 
 input_exit:
 	_drop VSIZE 
+	popw y 
 	ret 
 
 
 ;---------------------
-; BASIC: REMARK | ' 
+; BASIC: REM | ' 
 ; skip comment to end of line 
 ;---------------------- 
 remark::
@@ -2548,13 +2001,13 @@ wait:
 	jp syntax_error 
 0$:	cp a,#3
 	jrult 1$
-	popw x 
-	ld a,xl
-	ld (XMASK,sp),a 
-1$: popw x ; mask 
+	_xpop  ; xor mask 
 	ld a,xl 
+	ld (XMASK,sp),a 
+1$: _xpop ; mask
+    ld a,xl  
 	ld (MASK,sp),a 
-	popw x ; address 
+	_xpop ; address 
 2$:	ld a,(x)
 	and a,(MASK,sp)
 	xor a,(XMASK,sp)
@@ -2578,9 +2031,11 @@ bit_set:
 	jreq 1$ 
 	jp syntax_error
 1$: 
-	popw x ; mask 
-	ld a,xl 
-	popw x ; addr  
+	_xpop ; mask 
+	ld a,xl
+	push a  
+	_xpop ; addr  
+	pop a 
 	or a,(x)
 	ld (x),a
 	ret 
@@ -2601,10 +2056,12 @@ bit_reset:
 	jreq 1$ 
 	jp syntax_error
 1$: 
-	popw x ; mask 
+	_xpop ; mask 
 	ld a,xl 
-	cpl a 
-	popw x ; addr  
+	cpl a
+	push a  
+	_xpop ; addr  
+	pop a 
 	and a,(x)
 	ld (x),a 
 	ret 
@@ -2624,9 +2081,11 @@ bit_toggle:
 	cp a,#2 
 	jreq 1$ 
 	jp syntax_error
-1$: popw x ; mask 
-	ld a,xl 
-	popw x ; addr  
+1$: _xpop ; mask 
+	ld a,xl
+	push a 
+	_xpop  ; addr  
+	pop a 
 	xor a,(x)
 	ld (x),a 
 	ret 
@@ -2640,7 +2099,7 @@ bit_toggle:
 ; 	addr 		memory address RAM|PERIPHERAL 
 ;   bit 	    bit position {0..7}  
 ; output:
-;	none 
+;	A:X       bit value  
 ;--------------------------
 bit_test:
 	call func_args 
@@ -2648,7 +2107,7 @@ bit_test:
 	jreq 0$
 	jp syntax_error
 0$:	
-	popw x 
+	_xpop 
 	ld a,xl 
 	and a,#7
 	push a   
@@ -2658,16 +2117,16 @@ bit_test:
 	sll a 
 	dec (1,sp)
 	jra 1$
-2$: _drop 1 
-	popw x 
+2$: ld (1,sp),a  
+	_xpop ; address  
+	pop a 
 	and a,(x)
 	jreq 3$
 	ld a,#1 
 3$:	clrw x 
-	ld xl,a 
-	ld a,#TK_INTGR
+	ld xl,a
+	clr a  
 	ret
-
 
 ;--------------------
 ; BASIC: POKE addr,byte
@@ -2679,9 +2138,11 @@ poke:
 	jreq 1$
 	jp syntax_error
 1$:	
-	popw x  
+	_xpop ; byte   
     ld a,xl 
-	popw x 
+	push a 
+	_xpop ; address 
+	pop a 
 	ld (x),a 
 	ret 
 
@@ -2698,11 +2159,11 @@ peek:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error
-1$: popw x 
+1$: _xpop ; address  
 	ld a,(x)
 	clrw x 
 	ld xl,a 
-	ld a,#TK_INTGR
+	clr a 
 	ret 
 
 ;---------------------------
@@ -2715,9 +2176,9 @@ if:
 	cp a,#TK_INTGR
 	jreq 1$ 
 	jp syntax_error
-1$:	clr a 
+1$:	_xpop 
 	tnzw x 
-	jrne 9$  
+	jrne 9$ 
 ;skip to next line
 	mov in,count
 9$:	ret 
@@ -2732,29 +2193,29 @@ if:
 	RETL1=1 ; return address  
 	FSTEP=3  ; variable increment
 	LIMIT=5 ; loop limit 
-	CVAR=7   ; control variable 
-	INW=9   ;  in.w saved
-	BPTR=11 ; baseptr saved
-	VSIZE=10  
+	CVAR=8   ; control variable 
+	INW=10   ;  in.w saved
+	BPTR=12 ; baseptr saved
+	VSIZE=12  
 for: ; { -- var_addr }
 	popw x ; call return address 
 	_vars VSIZE 
 	pushw x  ; RETL1 
 	ld a,#TK_VAR 
 	call expect
+	pushw x 
+	call get_addr
 	ldw (CVAR,sp),x  ; control variable 
+	popw x 
 	call let_var 
 	bset flags,#FLOOP 
-; open space on stack for loop data 
-	clrw x 
-	ldw (BPTR,sp),x 
-	ldw (INW,sp),x 
 	call next_token 
 	cp a,#TK_CMD 
 	jreq 1$
 	jp syntax_error
 1$:  
-	cpw x,#to 
+	call get_code_addr
+	cpw x,#to   
 	jreq to
 	jp syntax_error 
 
@@ -2767,17 +2228,19 @@ for: ; { -- var_addr }
 to: ; { var_addr -- var_addr limit step }
 	btjt flags,#FLOOP,1$
 	jp syntax_error
-1$: call relation  
+1$: call expression   
 	cp a,#TK_INTGR 
 	jreq 2$ 
 	jp syntax_error
-2$: ldw (LIMIT,sp),x
-;	ldw x,in.w 
+2$: _xpop
+	ld (LIMIT,sp),a 
+	ldw (LIMIT+1,sp),x
 	call next_token
 	cp a,#TK_NONE  
 	jreq 4$ 
 	cp a,#TK_CMD
 	jrne 3$
+	call get_code_addr
 	cpw x,#step 
 	jreq step
 3$:	
@@ -2796,11 +2259,13 @@ to: ; { var_addr -- var_addr limit step }
 step: ; {var limit -- var limit step}
 	btjt flags,#FLOOP,1$
 	jp syntax_error
-1$: call relation
+1$: call expression 
 	cp a,#TK_INTGR
 	jreq 2$
 	jp syntax_error
-2$:	ldw (FSTEP,sp),x ; step
+2$:	
+	_xpop 
+	ldw (FSTEP,sp),x ; step
 ; leave loop back entry point on cstack 
 ; cstack is 1 call deep from interpreter
 store_loop_addr:
@@ -2828,25 +2293,37 @@ next: ; {var limit step retl1 -- [var limit step ] }
 1$: 
 	ld a,#TK_VAR 
 	call expect
+	call get_addr 
 ; check for good variable after NEXT 	 
 	cpw x,(CVAR,sp)
 	jreq 2$  
 	jp syntax_error ; not the good one 
-2$: ; increment variable 
-	ldw x,(x)  ; get var value 
+2$: 
+	ldw ptr16,x 
+	; increment variable 
+	ld a,(x)
+	ldw x,(1,x)  ; get var value 
 	addw x,(FSTEP,sp) ; var+step 
-	ldw y,(CVAR,sp)
-	ldw (y),x ; save var new value 
+	adc a,#0  
+	ld [ptr16],a
+	inc ptr8  
+	ldw [ptr16],x 
+	ld acc24,a 
+	ldw acc16,x 
 ; check sign of STEP  
 	ld a,#0x80
 	bcp a,(FSTEP,sp)
 	jrpl 4$
-;negative step 
-	cpw x,(LIMIT,sp)
+;negative step
+	ld a,(LIMIT,sp)
+	ldw x,(LIMIT+1,sp)
+	call cp24 
 	jrslt loop_done
 	jra loop_back 
 4$: ; positive step
-	cpw x,(LIMIT,sp)
+	ld a,(LIMIT,sp)
+	ldw x,(LIMIT+1,sp)
+	call cp24
 	jrsgt loop_done
 loop_back:
 	ldw x,(BPTR,sp)
@@ -2862,8 +2339,6 @@ loop_done:
 	popw x
 	_drop VSIZE 
 	dec loop_depth 
-;	pushw x 
-;	ret 
 	jp (x)
 
 ;----------------------------
@@ -2878,12 +2353,14 @@ get_target_line:
 	jreq look_target_symbol 
 	jp syntax_error
 get_target_line_2:
+	pushw y 
+	call get_int24 
 	clr a
 	ldw y,basicptr 
 	ldw y,(y)
 	pushw y 
 	cpw x,(1,sp)
-	addw sp,#2 
+	_drop 2  
 	jrult 11$
 	inc a 
 11$:	
@@ -2892,10 +2369,12 @@ get_target_line_2:
 	jrne 2$ 
 	ld a,#ERR_NO_LINE 
 	jp tb_error 
-2$:	ret 
+2$:	popw y 
+	ret 
 
 ; the GOTO|GOSUB target is a symbol.
 look_target_symbol:
+	pushw y 
 	pushw x 
 	clr acc16 
 	ldw y,txtbgn 
@@ -2911,7 +2390,7 @@ look_target_symbol:
 	jp tb_error 
 3$: ; found a TK_LABEL 
 	; compare with GOTO|GOSUB target 
-	pushw y 
+	pushw y ; line address 
 	addw y,#4 ; label string 
 	ldw x,(3,sp) ; target string 
 	call strcmp
@@ -2921,6 +2400,7 @@ look_target_symbol:
 4$: ; target found 
 	popw x ;  address line target  
 	_drop 2 ; target string 
+	popw y 
 	ret
 
 
@@ -2932,6 +2412,7 @@ look_target_symbol:
 	RET_INW=5
 	VSIZE=4  
 cmd_on:
+	pushw y 
 	btjt flags,#FRUN,0$ 
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
@@ -2939,8 +2420,11 @@ cmd_on:
 	cp a,#TK_INTGR
 	jreq 1$
 	jp syntax_error
-1$: cpw x,#1 
-	jrslt 9$
+1$: _xpop 
+	cpw x,#1 
+	jrsge 11$
+	jp 9$ 
+11$:	
 	cpw x,#16 ; no more than 16 arguments 
 	jrugt 9$
 	ld a,xl 
@@ -2949,7 +2433,8 @@ cmd_on:
 	cp a,#TK_CMD 
 	jreq 2$ 
 	jp syntax_error 
-2$: cpw x,#goto 
+2$: call get_code_addr
+	cpw x,#goto 
 	jreq 4$
 	cpw x,#gosub 
 	jreq 4$ 
@@ -2962,6 +2447,7 @@ cmd_on:
 	jreq 52$
 	jp syntax_error 
 52$: ; got a line number 
+	call get_int24  
 	dec (1,sp) ; decrement selector 
 	jreq 58$ ; this is the selected one 
 	call next_token ; try for the next one 
@@ -2989,10 +2475,12 @@ cmd_on:
 	ldw (RET_ADDR,sp),y 
 	ldw y,#3 
 	ldw (RET_INW,sp),y
+	popw y 
 	jra jp_to_target
 9$: ; expr out of range skip to next line 
 	mov in,count
-	clr a  
+	clr a 
+	popw y  
 	ret 
 
 ;------------------------
@@ -3125,11 +2613,14 @@ cmd_get:
 	cp a,#TK_VAR 
 	jreq 0$
 	jp syntax_error 
-0$: ldw ptr16,x 
+0$: call get_addr 
+	ldw ptr16,x 
 	call qgetc 
 	jreq 2$
 	call getc  
 2$: clr [ptr16]
+	inc ptr8 
+	clr [ptr16]
 	inc ptr8 
 	ld [ptr16],a 
 	ret 
@@ -3157,12 +2648,15 @@ tone:
 	jreq 1$
 	jp syntax_error 
 1$: 
-	popw x ; duration
-	popw y ; frequency 
+	_xpop 
+	pushw x ; duration 
+	_xpop ; frequency
+	ldw y,x ; frequency 
+	popw x  ; duration 
 beep:  
 	pushw x 
 	ldw x,#TIM2_CLK_FREQ
-	divw x,y 
+	divw x,y ; cntr=Fclk/freq 
 ; round to nearest integer 
 	cpw y,#TIM2_CLK_FREQ/2
 	jrmi 2$
@@ -3202,12 +2696,14 @@ power_adc:
 	cp a,#1 
 	jreq 0$ 
 	jp syntax_error 
-0$: ldw x,#0
-	pushw x  ; divisor 
-1$: ldw x,(ONOFF,sp)
+0$:	clr a 
+	clrw x
+	_xpush   ; divisor  
+1$: _at_next 
 	tnzw x 
 	jreq 2$ 
-	ldw x,(DIVSOR,sp) ; divisor 
+	_xpop
+	_xdrop  
 	ld a,xl
 	and a,#7
 	swap a 
@@ -3218,7 +2714,7 @@ power_adc:
 	jra 3$
 2$: bres ADC_CR1,#ADC_CR1_ADON
 	bres CLK_PCKENR2,#CLK_PCKENR2_ADC
-3$:	_drop VSIZE 
+3$:	
 	ret
 
 ;-----------------------------
@@ -3233,7 +2729,7 @@ analog_read:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error
-1$: popw x 
+1$: _xpop 
 	cpw x,#5 
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
@@ -3267,7 +2763,7 @@ digital_read:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: popw x 
+1$: _xpop 
 	cpw x,#15 
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
@@ -3306,10 +2802,10 @@ digital_write:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: popw x 
+1$: _xpop 
 	ld a,xl 
 	ld (PINVAL,sp),a
-	popw x 
+	_xpop 
 	cpw x,#15 
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
@@ -3375,59 +2871,6 @@ new:
 	call clear_basic 
 	ret 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;  flash memory operations
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;--------------------------
-; align farptr to BLOCK_SIZE 
-;---------------------------
-row_align:
-	ld a,#0x7f 
-	and a,farptr+2 
-	jreq 1$ 
-	ldw x,farptr+1 
-	addw x,#BLOCK_SIZE 
-	jrnc 0$
-	inc farptr 
-0$: ld a,xl 
-	and a,#0x80
-	ld xl,a
-	ldw farptr+1,x  	
-1$:	ret
-
-;--------------------
-; input:
-;   X     increment 
-; output:
-;   farptr  incremented 
-;---------------------
-incr_farptr:
-	addw x,farptr+1 
-	jrnc 1$
-	inc farptr 
-1$:	ldw farptr+1,x  
-	ret 
-
-;-----------------------------------
-; scan block for non zero byte 
-; block are 128 bytes 
-; input:
-;    farptr     address block  
-; output:
-;     A     0 cleared, other not cleared  
-;-----------------------------------
-scan_block:
-	clrw x 
-1$: ldf a,([farptr],x) 
-	jrne 2$
-	incw x 
-	cpw x,#BLOCK_SIZE 
-	jrult 1$ 
-2$:	ret 
-
-
-
 ;-----------------------------------
 ; BASIC: ERASE \E | \F 
 ; erase all block in range from 
@@ -3444,7 +2887,7 @@ erase:
 	cp a,#TK_CHAR 
 	jreq 0$ 
 	jp syntax_error
-0$: ld a,xl 
+0$: call get_char 
 	and a,#0XDF 
 	cp a,#'E
 	jrne 1$
@@ -3651,34 +3094,31 @@ NO_APP: .asciz "No application in RAM"
 ; output:
 ;   none 
 ;---------------------
-	ADDR=1
-	VSIZ=2 
 write:
-	_vars VSIZE 
-	clr farptr ; expect 16 bits address 
 	call expression
 	cp a,#TK_INTGR 
 	jreq 0$
 	jp syntax_error
-0$: ldw (ADDR,sp),x 
+0$: _xpop 
+	ld farptr,a 
+	ldw ptr16,x 
+1$:	
 	call next_token 
 	cp a,#TK_COMMA 
-	jreq 1$ 
-	jra 9$ 
-1$:	call expression
+	jreq 2$ 
+	jra 9$ ; no more data 
+2$:	call expression
 	cp a,#TK_INTGR
-	jreq 2$
+	jreq 3$
 	jp syntax_error
-2$:	ld a,xl 
-	ldw x,(ADDR,sp) 
-	ldw farptr+1,x 
+3$:	_xpop 
+	ld a,xl 
 	clrw x 
 	call write_byte
-	ldw x,(ADDR,sp)
-	incw x 
-	jra 0$ 
+	ldw x,#1 
+	call incr_farptr 
+	jra 1$ 
 9$:
-	_drop VSIZE
 	ret 
 
 
@@ -3687,25 +3127,25 @@ write:
 ; évaluate expression 
 ; and take the 7 least 
 ; bits as ASCII character
-; return a TK_CHAR 
+; output: 
+; 	A char 
 ;---------------------
 char:
 	call func_args 
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$:	popw x 
-	ld a,xl 
+1$:	_xpop
+	ld a,xl
 	and a,#0x7f 
-	ld xl,a
-	ld a,#TK_CHAR
 	ret
 
 ;---------------------
 ; BASIC: ASC(string|char|TK_CFUNC)
 ; extract first character 
 ; of string argument 
-; return it as TK_INTGR 
+; output:
+;    A:X    int24 
 ;---------------------
 ascii:
 	ld a,#TK_LPAREN
@@ -3718,18 +3158,24 @@ ascii:
 	cp a,#TK_CFUNC 
 	jreq 0$
 	jp syntax_error
-0$: call (x)
-	jra 2$
-1$: 
-	ld a,(x) 
-	clrw x
-	ld xl,a 
-2$: 
-	pushw x 
+0$: ; cfunc 
+	call (x)
+	jra 3$
+1$: ; quoted string 
+	ld a,(x)
+	push a  
+	call skip_string
+	pop a  	
+	jra 3$ 
+2$: ; character 
+	call get_char 
+3$:	clrw x 
+	rlwa x   
+4$:	_xpush  
 	ld a,#TK_RPAREN 
 	call expect
-	popw x 
-	ld a,#TK_INTGR 
+9$:	
+	_xpop  
 	ret 
 
 ;---------------------
@@ -3739,13 +3185,10 @@ ascii:
 ; input:
 ;	none 
 ; output:
-;	X 		ASCII character 
+;	a	 character 
 ;---------------------
 key:
 	call getc 
-	clrw x 
-	ld xl,a 
-	ld a,#TK_INTGR
 	ret
 
 ;----------------------
@@ -3756,15 +3199,16 @@ key:
 ; input:
 ;  none 
 ; output:
-;   X 		0|-1 
+;   A     0|-1
 ;-----------------------
 qkey:: 
 	clrw x 
 	ld a,rx1_head
-	cp a,rx1_tail 
+	sub a,rx1_tail 
 	jreq 9$ 
-	cplw x 
-9$: ld a,#TK_INTGR
+	cplw x
+	ld a,#255    
+9$: 
 	ret 
 
 ;---------------------
@@ -3776,27 +3220,28 @@ qkey::
 ; output:
 ;   X 		gpio register address
 ;----------------------------
-	PORT=3
-	REG=1 
-	VSIZE=4 
+;	N=PORT
+;	T=REG 
 gpio:
 	call func_args 
 	cp a,#2
 	jreq 1$
 	jp syntax_error  
-1$:	
-	ldw x,(PORT,sp)
+1$:	_at_next 
+	tnzw x 
 	jrmi bad_port
 	cpw x,#9
 	jrpl bad_port
 	ld a,#5
 	mul x,a
 	addw x,#GPIO_BASE 
-	ldw (PORT,sp),x  
-	ldw x,(REG,sp) 
-	addw x,(PORT,sp)
+	pushw x 
+	_xpop
+	addw x,(1,sp)
+	_drop 2 
+	clr a 
+	_store_top 	
 	ld a,#TK_INTGR
-	_drop VSIZE 
 	ret
 bad_port:
 	ld a,#ERR_BAD_VALUE
@@ -3810,7 +3255,7 @@ bad_port:
 ;  none 
 ; output:
 ;	A		TK_INTGR
-;   X 		free address 
+;   xstack	free address 
 ;---------------------------
 uflash:
 	ldw x,app_sign
@@ -3820,7 +3265,7 @@ uflash:
 	addw x,#app
 	jra 2$
 1$:	ldw x,#app_space 
-2$:	ld a,#TK_INTGR 
+2$:	clr a 
 	ret 
 
 
@@ -3830,30 +3275,40 @@ uflash:
 ; in binary code.
 ; binary fonction should 
 ; return token attribute in A 
-; and value in X. 
+; and value in YL:X. 
 ; input:
 ;   addr	routine address 
 ;   arg 	is an optional argument 
 ; output:
 ;   A 		token attribute 
-;   X       returned value 
+;   xstack  returned value 
 ;---------------------
 usr:
+	pushw x 
 	pushw y 	
 	call func_args 
 	cp a,#1 
-	jreq 2$
+	jreq 1$
 	cp a,#2
-	jreq 2$  
+	jreq 1$  
 	jp syntax_error 
-2$: popw y  ; arg|addr 
-	cp a,#1
+1$: push a 
+	_xpop 
+	ldw y,x  ; arg|addr 
+    pop a 
+	cp a,#1 
 	jreq 3$
-	popw x ; addr
-	exgw x,y 
+	_xpop  ; x=code addr  
+	exgw x,y ; y=code addr, x=arg 
 3$: call (y)
+	push a 
+	ld a,yl  
+	_xpush 
+	pop a 
 	popw y 
+	popw x 
 	ret 
+
 
 ;------------------------------
 ; BASIC: BYE 
@@ -3889,13 +3344,15 @@ sleep:
 pause:
 	call expression
 	cp a,#TK_INTGR
-	jreq pause02 
+	jreq 1$ 
 	jp syntax_error
-pause02: 
-1$: tnzw x 
+1$: _xpop 
+pause02:
+	ldw timer,x 
+1$: ldw x,timer 
+	tnzw x 
 	jreq 2$
 	wfi 
-	decw x 
 	jrne 1$
 2$:	clr a 
 	ret 
@@ -3914,8 +3371,9 @@ pause02:
 awu:
   call expression
   cp a,#TK_INTGR
-  jreq awu02
+  jreq 1$
   jp syntax_error
+1$: _xpop 
 awu02:
   cpw x,#5120
   jrmi 1$ 
@@ -3964,10 +3422,10 @@ awu02:
 ;-------------------------------
 get_ticks:
 	ldw x,ticks 
+	clr a 
+	_xpush 
 	ld a,#TK_INTGR
 	ret 
-
-
 
 ;------------------------------
 ; BASIC: ABS(expr)
@@ -3975,7 +3433,7 @@ get_ticks:
 ; input:
 ;   none
 ; output:
-;   X     	positive integer
+;   xstack    positive int24 
 ;-------------------------------
 abs:
 	call func_args 
@@ -3983,12 +3441,8 @@ abs:
 	jreq 0$ 
 	jp syntax_error
 0$:  
-    popw x   
-	ld a,xh 
-	bcp a,#0x80 
-	jreq 2$ 
-	negw x 
-2$: ld a,#TK_INTGR 
+	call abs24 
+    ld a,#TK_INTGR 
 	ret 
 
 ;------------------------------
@@ -3999,19 +3453,23 @@ abs:
 ; 	A 		TK_INTGR
 ;   X 		result 
 ;------------------------------
-bit_and:
+bit_and: ; i1 i2 -- i1 & i2 
 	call func_args 
 	cp a,#2
 	jreq 1$
 	jp syntax_error 
-1$:	popw x 
-	ld a,xh 
+1$:	_xpop 
+    pushw x 
+	push  a 
+	_at_top 
 	and a,(1,sp)
-	ld xh,a 
-	ld a,xl
+	rlwa x 
 	and a,(2,sp)
-	ld xl,a 
-	_drop 2 
+	rlwa x 
+	and a,(3,sp)
+	rlwa x 
+	_drop 3 
+	_store_top 
 	ld a,#TK_INTGR
 	ret
 
@@ -4028,16 +3486,22 @@ bit_or:
 	cp a,#2
 	jreq 1$
 	jp syntax_error 
-1$: 
-	popw x 
-	ld a,xh 
+1$:	_xpop 
+    pushw x 
+	push  a 
+	_at_top 
 	or a,(1,sp)
+	ld yl,a 
+	ld a,xh 
+	or a,(2,sp)
 	ld xh,a 
 	ld a,xl 
-	or a,(2,sp)
+	or a,(3,sp)
 	ld xl,a 
-	_drop 2 
-	ld a,#TK_INTGR 
+	ld a,yl 
+	_drop 3 
+	_store_top 
+	ld a,#TK_INTGR
 	ret
 
 ;------------------------------
@@ -4053,17 +3517,23 @@ bit_xor:
 	cp a,#2
 	jreq 1$
 	jp syntax_error 
-1$: 
-	popw x 
-	ld a,xh 
+1$:	_xpop 
+    pushw x 
+	push  a 
+	_at_top 
 	xor a,(1,sp)
+	ld yl,a 
+	ld a,xh 
+	xor a,(2,sp)
 	ld xh,a 
 	ld a,xl 
-	xor a,(2,sp)
+	xor a,(3,sp)
 	ld xl,a 
-	_drop 2 
-	ld a,#TK_INTGR 
-	ret 
+	ld a,yl 
+	_drop 3 
+	_store_top 
+	ld a,#TK_INTGR
+	ret
 
 ;------------------------------
 ; BASIC: LSHIFT(expr1,expr2)
@@ -4078,14 +3548,17 @@ lshift:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: popw y   
-	popw x 
+1$: _xpop 
+    ldw y,x    
+	_at_top  ; T@ 
 	tnzw y 
 	jreq 4$
-2$:	sllw x 
+2$:	rcf 
+	rlcw x 
+	rlc a 
 	decw y 
 	jrne 2$
-4$:  
+4$: _store_top  ; T! 
 	ld a,#TK_INTGR
 	ret
 
@@ -4102,14 +3575,17 @@ rshift:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: popw y  
-	popw x
+1$: _xpop 
+    ldw y,x   
+	_at_top  ; T@  
 	tnzw y 
 	jreq 4$
-2$:	srlw x 
+2$:	rcf 
+	rrcw x
+	rrc a  
 	decw y 
 	jrne 2$
-4$:  
+4$: _store_top  ; T! 
 	ld a,#TK_INTGR
 	ret
 
@@ -4121,6 +3597,7 @@ rshift:
 fcpu:
 	ld a,#TK_INTGR
 	call expect 
+	call get_int24 
 	ld a,xl 
 	and a,#7 
 	ld CLK_CKDIVR,a 
@@ -4141,8 +3618,9 @@ pin_mode:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error 
-1$: popw y ; mode 
-	popw x ; Dx pin 
+1$: _xpop 
+	ldw y,x ; mode 
+	_xpop ; Dx pin 
 	call select_pin 
 	ld (PINNO,sp),a  
 	ld a,#1 
@@ -4228,7 +3706,7 @@ arduino_to_8s208:
 ; input:
 ; 	none 
 ; output:
-;	X 		random positive integer 
+;	xstack 	random positive integer 
 ;------------------------------
 random:
 	call func_args 
@@ -4236,6 +3714,9 @@ random:
 	jreq 1$
 	jp syntax_error
 1$:  
+	_xpop   
+	pushw x 
+	push a  
 	ld a,#0x80 
 	bcp a,(1,sp)
 	jreq 2$
@@ -4286,10 +3767,12 @@ random:
 	ld xh,a 
 	ldw seedy,x 
 ; return seedy modulo expr + 1 
-	popw y 
-	divw x,y 
-	ldw x,y 
-	incw x 
+	ld a,seedx+1 
+	_xpush 
+	pop a 
+	popw x 
+	_xpush 
+	call div24 
 10$:
 	ld a,#TK_INTGR
 	ret 
@@ -4338,7 +3821,7 @@ words:
 	clrw x 
 	ld a,(WCNT,sp)
 	ld xl,a 
-	call print_int 
+	call prt_i16 
 	ldw x,#words_count_msg
 	call puts 
 	_drop VSIZE 
@@ -4356,7 +3839,7 @@ set_timer:
 	jreq 1$
 	jp syntax_error
 1$: 
-	popw x 
+	_xpop  
 	ldw timer,x 
 	ret 
 
@@ -4367,11 +3850,14 @@ set_timer:
 timeout:
 	ldw x,timer 
 logical_complement:
+	ld a,#255 
 	cplw x 
 	cpw x,#-1
 	jreq 2$
-	clrw x 
-2$:	ld a,#TK_INTGR
+	clrw x
+	clr a 
+2$:	_xpush  
+	ld a,#TK_INTGR
 	ret 
 
 ;--------------------------------
@@ -4383,8 +3869,10 @@ func_not:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$:	popw x 
-	jra logical_complement
+1$:  
+	call cpl24 
+	ld a,#TK_INTGR
+	ret 
 
 
 
@@ -4399,7 +3887,7 @@ enable_iwdg:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error 
-1$: popw x 
+1$: _xpop  
 	push #0
 	mov IWDG_KR,#IWDG_KEY_ENABLE
 	ld a,xh 
@@ -4439,26 +3927,34 @@ refresh_iwdg:
 ; bit set. 
 ; input: 
 ; output:
-;   X     log2 
 ;   A     TK_INTGR 
+;   xstack log2 
 ;*********************************
 log2:
 	call func_args 
 	cp a,#1 
 	jreq 1$
 	jp syntax_error 
-1$: popw x 
+1$: _at_top   
 leading_one:
+	tnz a
+	jrne 2$ 
 	tnzw x 
-	jreq 4$
-	ld a,#15 
-2$: rlcw x 
-    jrc 3$
-	dec a 
-	jra 2$
-3$: clrw x 
-    ld xl,a
-4$:	ld a,#TK_INTGR
+	jrne 2$
+	inc a  
+	jra 9$
+2$:	push #24  
+3$: rlcw x 
+    rlc a 
+	jrc 4$
+	dec (1,sp) 
+	jrne 3$
+4$: clrw x 
+    pop a 
+	ld xl,a 
+	clr a 
+9$:	_store_top 
+	ld a,#TK_INTGR
 	ret 
 
 ;-----------------------------------
@@ -4513,8 +4009,8 @@ do_loop:
 	pushw x 
 	ldw y,basicptr 
 	ldw (DOLP_ADR,sp),y
-	ldw y,in.w 
-	ldw (DOLP_INW,sp),y
+	ldw x,in.w 
+	ldw (DOLP_INW,sp),x
 	inc loop_depth 
 	ret 
 
@@ -4533,7 +4029,10 @@ until:
 	jreq 2$
 	jp syntax_error
 2$: 
-	tnzw x 
+	_xpop
+	tnz a 
+	jrne 9$ 
+	tnzw x   
 	jrne 9$
 	ldw x,(DOLP_ADR,sp)
 	ldw basicptr,x 
@@ -4953,7 +4452,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,RND,RND_IDX;random 
 	_dict_entry,6,RETURN,RET_IDX;return 
 	_dict_entry,7,RESTORE,REST_IDX;restore 
-	_dict_entry 6,REMARK,REM_IDX;remark 
+	_dict_entry 3,REM,REM_IDX;remark 
 	_dict_entry,6,REBOOT,RBT_IDX;cold_start
 	_dict_entry,4+F_IFUNC,READ,READ_IDX;read  
 	_dict_entry,4+F_IFUNC,QKEY,QKEY_IDX;qkey  
@@ -4980,12 +4479,12 @@ kword_end:
 	_dict_entry,3+F_IFUNC,NOT,NOT_IDX;func_not 
 	_dict_entry,4,NEXT,NEXT_IDX;next 
 	_dict_entry,3,NEW,NEW_IDX;new
-	_dict_entry,6+F_IFUNC,MULDIV,MULDIV_IDX;muldiv 
+;	_dict_entry,6+F_IFUNC,MULDIV,MULDIV_IDX;muldiv 
 	_dict_entry,6+F_IFUNC,LSHIFT,LSHIFT_IDX;lshift
 	_dict_entry,3+F_IFUNC,LOG,LOG_IDX;log2 
 	_dict_entry 4,LIST,LIST_IDX;list
 	_dict_entry 3,LET,LET_IDX;let 
-	_dict_entry,3+F_IFUNC,KEY,KEY_IDX;key 
+	_dict_entry,3+F_CFUNC,KEY,KEY_IDX;key 
 	_dict_entry,7,IWDGREF,IWDGREF_IDX;refresh_iwdg
 	_dict_entry,6,IWDGEN,IWDGEN_IDX;enable_iwdg
 	_dict_entry,6+F_IFUNC,INVERT,INVERT_IDX;invert 
@@ -5036,7 +4535,7 @@ code_addr::
 	.word const_cr1,data,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
 	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto,gpio ; 24..31 
 	.word hex_base,const_idr,if,input_var,invert,enable_iwdg,refresh_iwdg,key ; 32..39 
-	.word let,list,log2,lshift,muldiv,next,new ; 40..47
+	.word let,list,log2,lshift,next,new ; 40..47
 	.word func_not,const_odr,bit_or,pad_ref,pause,pin_mode,peek,const_input ; 48..55
 	.word poke,const_output,print,const_porta,const_portb,const_portc,const_portd,const_porte ; 56..63
 	.word const_portf,const_portg,const_porth,const_porti,qkey,read,cold_start,remark ; 64..71 

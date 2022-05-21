@@ -24,8 +24,11 @@
         F_CFUNC=0x80 ; character function keyword
         F_CONST=0xC0 ; function keyword that return a constant
 
-	STACK_SIZE=160
+	STACK_SIZE=140
 	STACK_EMPTY=RAM_SIZE-1  
+        CELL_SIZE=3
+        XSTACK_SIZE=CELL_SIZE*20 ; 20 * int24
+        XSTACK_EMPTY=STACK_EMPTY-STACK_SIZE 
 	FRUN=0 ; flags run code in variable flags
 	FTRAP=1 ; inside trap handler 
 	FLOOP=2 ; FOR loop in preparation 
@@ -35,7 +38,6 @@
 	FAUTORUN=6; auto start program running 
         FUPDATE=7 ; update constant flag 
 
-	AUTORUN_NAME=0x4000 ; address in EEPROM where auto run file name is saved 
 
         FIRST_DATA_ITEM=6 ; first DATA item offset on line.
 
@@ -67,8 +69,9 @@
         TK_IFUNC=129    ; BASIC integer function
         TK_CFUNC=130    ; BASIC character function
         TK_CONST=131    ; BASIC constant 
-        TK_INTGR=132
+        TK_INTGR=132    ; 16 bits integer 
         TK_VAR=133
+        TK_FLOAT=134    ; float32 
         TK_NONE=0       ; not a token 
         TK_QSTR=2       ; quoted string  
         TK_LABEL=3      ; used for defined, constants, variables
@@ -125,15 +128,14 @@
     ERR_NO_PROG=13
     ERR_NO_FSPACE=14
     ERR_BUF_FULL=15
+    ERR_OVERFLOW=16 
 
 ;--------------------------------------
 ;   assembler flags 
 ;-------------------------------------
-    MATH_OVF=0 ; if 1 the stop on math overflow 
+;    MATH_OVF=0 ; if 1 the stop on math overflow 
 
-    CELL_SIZE=2 
-
-    .macro _usec_dly n 
+     .macro _usec_dly n 
     ldw x,#(16*n-2)/4
     decw x
     nop 
@@ -154,3 +156,53 @@
      mov in,in.saved  
     .endm
 
+
+;---------------------------------------
+;    xtack manipulation macros 
+;    Y is used as xstack pointer  
+;----------------------------------------
+    ; pop in A:X from XSTACK 
+    .macro _xpop 
+    ld a,(y)
+    ldw x,y 
+    ldw x,(1,x)
+    addw y,#CELL_SIZE 
+    .endm 
+
+    ; push A:X  to XSTACK 
+    .macro _xpush 
+    subw y,#CELL_SIZE
+    ld (y),a 
+    ldw (1,y),x 
+    .endm 
+
+    ; drop from XSTACK 
+    .macro _xdrop 
+    addw y,#CELL_SIZE 
+    .endm 
+
+    ; @T fetch top xstack 
+    .macro _at_top
+    ld a,(y)
+    ldw x,y 
+    ldw x,(1,x)
+    .endm 
+
+    ; @N  fetch next on xstack 
+    .macro _at_next 
+    ld a,(3,y)
+    ldw x,y 
+    ldw x,(4,x)
+    .endm 
+
+    ; !T put on top of xtack 
+    .macro _store_top 
+    ld (y),a 
+    ldw (1,y),x     
+    .endm 
+
+    ; !N put next on xstack 
+    .macro _store_next 
+    ld (3,y),a 
+    ldw (4,y),x 
+    .endm 

@@ -28,6 +28,7 @@
 	.include "inc/stm8s208.inc"
 	.include "inc/ascii.inc"
 	.include "inc/gen_macros.inc" 
+	.include "config.inc" 
 	.include "tbi_macros.inc" 
 	.include "cmd_index.inc"
 	.include "dbg_macros.inc" 
@@ -37,10 +38,12 @@
     .area SSEG (ABS)
 ;; working buffers and stack at end of RAM. 	
 ;;-----------------------------------
-    .org RAM_SIZE-STACK_SIZE-TIB_SIZE-PAD_SIZE 
+    .org RAM_SIZE-STACK_SIZE-XSTACK_SIZE-TIB_SIZE-PAD_SIZE 
 tib:: .ds TIB_SIZE             ; transaction input buffer
 block_buffer::                 ; use to write FLASH block (alias for pad )
 pad:: .ds PAD_SIZE             ; working buffer
+xstack_full:: .ds XSTACK_SIZE   ; expression stack 
+xstack_unf:: ; xstack underflow 
 stack_full:: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
 
@@ -48,6 +51,7 @@ stack_unf: ; stack underflow ; control_stack bottom
     .area HOME 
 ;; interrupt vector table at 0x8000
 ;;--------------------------------------
+
     int cold_start			; RESET vector 
 .if DEBUG
 	int TrapHandler 		;TRAP  software interrupt
@@ -114,7 +118,7 @@ AWUHandler:
 TrapHandler:
 	bset flags,#FTRAP 
 	call print_registers
-	call cmd_itf
+;	call cmd_itf
 	bres flags,#FTRAP 	
 	iret
 .endif 
@@ -222,4 +226,77 @@ timer4_init:
 	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
 	bset TIM4_IER,#TIM4_IER_UIE
 	ret
+
+;-------------------------------------
+;  initialization entry point 
+;-------------------------------------
+cold_start:
+;set stack 
+	ldw x,#STACK_EMPTY
+	ldw sp,x
+; clear all ram 
+0$: clr (x)
+	decw x 
+	jrne 0$
+; activate pull up on all inputs 
+	ld a,#255 
+	ld PA_CR1,a 
+	ld PB_CR1,a 
+	ld PC_CR1,a 
+	ld PD_CR1,a 
+	ld PE_CR1,a 
+	ld PF_CR1,a 
+	ld PG_CR1,a 
+	ld PI_CR1,a
+; set LD2 pin as output 
+    bset PC_CR1,#LED2_BIT
+    bset PC_CR2,#LED2_BIT
+    bset PC_DDR,#LED2_BIT
+	bres PC_ODR,#LED2_BIT 
+; disable schmitt triggers on Arduino CN4 analog inputs
+	mov ADC_TDRL,0x3f
+; disable peripherals clocks
+;	clr CLK_PCKENR1 
+;	clr CLK_PCKENR2
+	clr AWU_TBR 
+	bset CLK_PCKENR2,#CLK_PCKENR2_AWU ; enable LSI for AWU 
+; select internal clock no divisor: 16 Mhz 	
+	ld a,#CLK_SWR_HSI 
+	clrw x  
+    call clock_init 
+	call timer4_init
+	call timer2_init
+; UART1 at 115200 BAUD
+	call uart1_init
+; activate PE_4 (user button interrupt)
+    bset PE_CR2,#USR_BTN_BIT 
+; display system information
+	rim ; enable interrupts 
+	inc seedy+1 
+	inc seedx+1 
+	call func_eefree 
+	call ubound 
+	call clear_basic
+	call beep_1khz  
+	call system_information
+2$:	
+; check for application in flash memory 
+	ldw x,app_sign 
+	cpw x,SIGNATURE 
+	jreq run_app
+	jp warm_start 
+run_app:
+; run application in FLASH|EEPROM 
+	call warm_init
+	ldw x,#app 
+	ldw txtbgn,x
+	addw x,app_size 
+	ldw txtend,x 
+	ldw x,#AUTO_RUN 
+	call puts 
+	call program_info 
+	jp run_it_02  
+    jra .  
+
+AUTO_RUN: .asciz " auto run program\n"
 
