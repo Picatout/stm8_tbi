@@ -116,19 +116,16 @@ neg_ax:
 ;  two's complement of acc24 
 ;-------------------------------------
 neg_acc24: ; 
-    push a 
-	pushw x
-	ld a,acc24 
-	ldw x,acc16
-	cpl a 
-	cplw x 
-	addw x,#1 
-	adc a,#0  
-	ld acc24,a 
-	ldw acc16,x 
-	popw x 
-	pop a 
-	ret
+    cpl acc24 
+    cpl acc16 
+    cpl acc8
+    inc acc8 
+    jrne 9$
+    inc acc16 
+    jrne 9$
+    inc acc24 
+9$: ret 
+
 
 ;--------------------------------------
 ; unsigned multiply uint24_t by uint8_t
@@ -184,30 +181,26 @@ mulu24_8:
     VSIZE=10 
 mul24:
     _vars VSIZE
-    _xpop 
-    ld acc24,a 
-    ldw acc16,x 
-    _at_top 
     clr (PROD_SIGN,sp)
+    _xpop 
     tnz a 
-    jrpl 1$ 
-    cpl (PROD_SIGN,sp) 
-    call neg24
-1$:
-    ld (N2,sp),a 
-    ldw (N2+1,sp),x
-    ld a,acc24 
-    ldw x,acc16
+    jrpl 0$
+    cpl (PROD_SIGN,sp)
+    call neg_ax 
+0$:    
+    ld (N1,sp),a 
+    ldw (N1+1,sp),x
+    _at_top 
     tnz a 
     jrpl 2$ 
     cpl (PROD_SIGN,sp) 
-    call neg24 
+    call neg_ax
+    ld (N2,sp),a 
+    ldw (N2+1,sp),x   
 2$: 
-    ld (N1,sp),a 
-    ldw (N1+1,sp),x
     ld acc24,a 
     ldw acc16,x 
-    ld a,(N2+2,sp); least byte     
+    ld a,(N1+2,sp); least byte     
     jreq 4$
     call mulu24_8
     tnz a 
@@ -218,11 +211,11 @@ mul24:
     ld (PROD,sp),a
     ldw (PROD+1,sp),x 
 4$:
-    ld a,(N1,sp) 
-    ldw x,(N1+1,sp)
+    ld a,(N2,sp) 
+    ldw x,(N2+1,sp)
     ld acc24,a 
     ldw acc16,x 
-    ld a,(N2+1,sp); middle byte     
+    ld a,(N1+1,sp); middle byte     
     jreq 5$
     call mulu24_8
     tnz a 
@@ -233,12 +226,12 @@ mul24:
     addw x,(PROD,sp)
     jrv 8$ ; overflow
     ldw (PROD,sp),x 
-    ld a,(N1,sp)
-    ldw x,(N1+1,sp)
+    ld a,(N2,sp)
+    ldw x,(N2+1,sp)
     ld acc24,a 
     ldw acc16,x 
 5$:
-    ld a,(N2,sp) ; high byte 
+    ld a,(N1,sp) ; high byte 
     jreq 6$
     call mulu24_8
     tnz a 
@@ -255,7 +248,7 @@ mul24:
     ldw x,(PROD+1,sp)
     tnz (PROD_SIGN,sp)
     jreq 7$
-    call neg24 
+    call neg_ax 
 7$:
     rcf ; C=0 means no overflow 
     jra 9$
@@ -284,26 +277,20 @@ divu24_8:
 	pushw x ; save x
 	push a 
 	; ld dividend UU:MM bytes in X
-	ld a, acc24
-	ld xh,a
-	ld a,acc16
-	ld xl,a
+	ldw x,acc24
 	ld a,(U8,SP) ; divisor
 	div x,a ; UU:MM/U8
 	push a  ;save remainder
-	ld a,xh
-	ld acc24,a
-	ld a,xl
-	ld acc16,a
+    ldw acc24,x ; quotient 
 	pop a
 	ld xh,a
-	ld a,acc24+2
+	ld a,acc8
 	ld xl,a
 	ld a,(U8,sp) ; divisor
 	div x,a  ; R:LL/U8
 	ld (U8,sp),a ; save remainder
 	ld a,xl
-	ld acc24+2,a
+	ld acc8,a
 	pop a
 	popw x
 	ret
@@ -327,7 +314,7 @@ div24:
     tnz a 
     jrpl 0$ 
     cpl (QSIGN,sp)
-    call neg24 
+    call neg_ax
 0$:
     ld  (DIVISOR,sp),a
     ldw (DIVISOR+1,sp),x
@@ -337,26 +324,28 @@ div24:
     ld a,#ERR_DIV0 
     jp tb_error 
 1$: 
-    _at_top 
+    _at_top
+    tnz a 
+    jrpl 2$
+    call neg_ax
+    cpl (QSIGN,sp)
+    cpl (RSIGN,sp)
+2$: 
     ld acc24,a 
     ldw acc16,x 
     ld a,#24 
     ld (CNTR,sp),a
     ld a,(DIVISOR,sp)
-    tnz acc24 
-    jrpl 2$ 
-    cpl (QSIGN,sp)
-    cpl (RSIGN,sp)
-    call neg_acc24
-2$:
+    ldw x,(DIVISOR+1,sp)
     call cp24 ; A:X-acc24 ?
     jrule 22$ 
-; quotient=0, remainder=0     
-    clr a 
-    clrw x
-    ld acc24,a 
-    ldw acc16,x  
-    jra 9$
+; quotient=0, remainder=divisor      
+    ld a,acc24 
+    ldw x,acc16 
+    clr acc24 
+    clr acc16 
+    clr acc8 
+    jra 6$
 22$:     
     clr a 
     clrw x 
@@ -379,26 +368,22 @@ div24:
     rlc acc8 
     rlc acc16 
     rlc acc32 
+6$:    
     ld (DIVISOR,sp),a 
     ldw (DIVISOR+1,sp),x 
     ld a,acc24 
     ldw x,acc16 
     tnz (QSIGN,sp)
     jreq 8$
-    cpl  a  
-    cplw x 
-    addw x,#1
-    adc a,#0
+    call neg_ax 
 8$: 
     _store_top 
     ld a,(DIVISOR,sp)
     ldw x,(DIVSOR+1,sp)
+81$:
     tnz (RSIGN,sp)
-    jreq 9$      
-    cpl  a  
-    cplw x 
-    addw x,#1
-    adc a,#0
+    jreq 9$
+    call neg_ax       
 9$: _drop VSIZE 
     ret 
 

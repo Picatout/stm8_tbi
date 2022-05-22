@@ -1,6 +1,59 @@
+#### 2022-05-21
+
+* Corrigé bogue dans *mul24* et *div24* du fichier [arithm24.asm](arithm24.asm).
+
+* bogue dans expression:
+```
+>? (4*-3)
+   0 
+
+>? 4*-3
+   0 
+
+>? 4*(-3)
+   0 
+
+>? (-3)*4
+  -3 
+
+>
+```
+
+* Corrigé bogue dans commande **INPUT**.
+
+bogue à corrigé, programme est  [on.bas](BASIC/on.bas)
+```
+>run
+testing ON expr GOTO line#,line#,...
+select 1-4
+run time error, syntax error
+
+ $AC   $0  $7 $15 $80  $0 $44  $2 $73
+    7 INPUT "select 1-4"A
+last token id:    0
+>
+```
+
+* Corrigé bogue dans routine *factor*. ne reconnaissait pas les nombres négatifs.
+
+* Corrigé *skip_string* 
+
+* corrigé bogue dans *inerp_loop* 
+
 #### 2022-05-20
 
+* bogue 
+```
+>? invert(-171)
+run time error, syntax error
 
+>? invert(171)
+-172
+
+>? -171
+
+run time error, syntax error
+```
 #### 2022-05-19
 
 * Modification de *next_token* pour simplifier et améliorer la performance. Maintenant retourne seulement la constant TK_ID dans A et l'adresse de sa valeur dans X. La récupération de la valeur et la mise à jour de **in.w** est à la charge du client. 

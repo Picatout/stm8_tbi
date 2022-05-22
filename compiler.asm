@@ -299,7 +299,7 @@ escaped:: .asciz "abtnvfr"
 ;   Y 		point to tib 
 ;   A 	    first digit|'$' 
 ; output:  
-;   X 		integer 
+;   X 		integer bits 15..0 
 ;   A 		TK_INTGR
 ;   acc24   24 bits integer 
 ;-------------------------

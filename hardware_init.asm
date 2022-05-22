@@ -169,10 +169,6 @@ UBTN_Handler_exit:
     ldw x,#STACK_EMPTY 
     ldw sp,x
 	rim 
-	ldw x,txtbgn 
-	cpw x,#app_space 
-	jrugt 5$
-	call clear_basic 
 5$:	jp warm_start
 
 USER_ABORT: .asciz "\nProgram aborted by user.\n"

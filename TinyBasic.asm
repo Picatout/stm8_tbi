@@ -346,6 +346,11 @@ tb_error::
 	addw x,acc16 
 	ldw x,(x)
 	call puts
+	ldw x,basicptr 
+ld a,count 
+clrw y 
+rlwa y  
+call hex_dump
 	ldw x,basicptr
 	ld a,in 
 	call prt_basic_line
@@ -399,7 +404,13 @@ cmd_line: ; user interface
 	tnz count 
 	jreq cmd_line
 	call compile
-
+;pushw y 
+;ldw x,txtbgn  
+;ldw y,txtend
+;ldw acc16,x   
+;subw y,acc16 
+;call hex_dump
+;popw y 
 ; if text begin with a line number
 ; the compiler set count to zero    
 ; so code is not interpreted
@@ -426,7 +437,7 @@ next_line:
 	ld a,(2,x)
 	ld count,a 
 	mov in,#3 ; skip first 3 bytes of line 
-interp_loop: 
+interp_loop:
 	call next_token
 	cp a,#TK_NONE 
 	jreq next_line 
@@ -450,7 +461,7 @@ interp_loop:
 	jreq interp_loop
 4$: cp a,#TK_LABEL
 	call skip_string 
-	jreq interp_loop 
+	jra interp_loop 
 5$:	jp syntax_error 
 
 ;--------------------------
@@ -489,9 +500,8 @@ get_code_addr:
 	ldw x,(x)
 	ldw x,(code_addr,x)
 skip_2_bytes:
-	ld a,#2 ; *_IDX size 
-	add a,in  
-	ld in,a 
+	inc in 
+	inc in 
 	ret
 
 ;-------------------------
@@ -504,8 +514,10 @@ skip_2_bytes:
 ;-------------------------
 skip_string:
 	ld a,(x)
+	jreq 1$
 	incw x 
-	jrne skip_string
+	jra skip_string 
+1$: incw x 	
 	subw x,basicptr 
 	ldw in.w,x 
 	ret 
@@ -521,8 +533,9 @@ skip_string:
 ;-------------------- 
 get_addr:
 	ldw x,(x)
-	jra skip_2_bytes ; adjust in.w index 
-
+	inc in 
+	inc in 
+	ret 
 
 ;--------------------
 ; extract int24_t  
@@ -597,8 +610,10 @@ print_top:
 	_xpop 
 	ld acc24,a 
 	ldw acc16,x 
-	jra prt_acc24 
-
+	call prt_acc24 
+	ld a,#SPACE
+	call putc 
+	ret 
 
 ;------------------------------------
 ; convert integer in acc24 to string
@@ -635,9 +650,9 @@ itoa::
 	clr (x)
 itoa_loop:
     ld a,base
-	ldw (PSTR,sp),x 
+;	ldw (PSTR,sp),x 
     call divu24_8 ; acc24/A 
-	ldw x,(PSTR,sp)
+;	ldw x,(PSTR,sp)
     add a,#'0  ; remainder of division
     cp a,#'9+1
     jrmi 2$
@@ -659,16 +674,7 @@ itoa_loop:
     jreq 10$
     ld a,#'-
 	jra 9$ 
-; don't print more than 4 digits
-; in hexadecimal to avoid '-' sign 
-; extend display 	
-8$: ld a,(LEN,sp) 
-	cp a,#6 
-	jrmi 81$
-	incw x
-	dec (LEN,sp)
-	jra 8$
-81$:	
+8$:	
 	ld a,#'$ 
 9$: decw x
     ld (x),a
@@ -967,7 +973,6 @@ factor:
 	cp a,#TK_MINUS 
 	jrne 4$ 
 	cpl (NEG,sp)
-	jra 4$  
 2$:	
 	call next_token 
 4$:	
@@ -1015,7 +1020,6 @@ factor:
 	cp a,#TK_LPAREN
 	jrne 16$
 	call expression
-	_xpush  
 	ld a,#TK_RPAREN 
 	call expect
 	_xpop 
@@ -1634,7 +1638,7 @@ program_info:
 
 PROG_ADDR: .asciz "program address: "
 PROG_SIZE: .asciz ", program size: "
-STR_BYTES: .asciz "bytes" 
+STR_BYTES: .asciz " bytes" 
 FLASH_MEM: .asciz " in FLASH memory" 
 RAM_MEM:   .asciz " in RAM memory" 
 
@@ -1841,7 +1845,7 @@ prt_loop:
 	call expression  
 	cp a,#TK_INTGR 
 	jrne print_exit 
-    call print_top 
+    call print_top
 	jra reset_comma 
 print_exit:
 	tnz (CCOMMA,sp)
@@ -1905,8 +1909,7 @@ rest_context:
 	CX_IN=3
 	CX_CNT=4
 	SKIP=5
-	VAR_ADDR=6
-	VSIZE=7
+	VSIZE=5
 input_var:
 	pushw y 
 	_vars VSIZE 
@@ -1916,12 +1919,16 @@ input_loop:
 	cp a,#TK_QSTR 
 	jrne 1$ 
 	call puts 
+	incw x 
+	subw x,basicptr 
+	ldw in.w,x 
 	cpl (SKIP,sp)
 	call next_token 
 1$: cp a,#TK_VAR  
 	jreq 2$ 
 	jp syntax_error
-2$:	ldw (VAR_ADDR,sp),x 
+2$:	call get_addr
+	ldw ptr16,x 
 	tnz (SKIP,sp)
 	jrne 21$ 
 	call var_name 
@@ -1950,15 +1957,18 @@ input_loop:
 	jp syntax_error
 22$:
 	call neg_acc24	
-3$: ldw y,(VAR_ADDR,sp) 
+3$: 
 	ld a,acc24 
 	ldw x,acc16 
-	ld (y),a 
-	ldw (1,y),x 
+	ld [ptr16],a
+	inc ptr8  
+	ldw [ptr16],x 
 	call rest_context
 	call next_token 
-	cp a,#TK_COMMA 
-	jreq input_loop
+	cp a,#TK_COMMA
+	jrne 4$ 
+	jp input_loop
+4$:
 	cp a,#TK_NONE 
 	jreq input_exit  
 	cp a,#TK_COLON 
@@ -2191,8 +2201,8 @@ if:
 ; FLOOP bit in 'flags'
 ;-----------------
 	RETL1=1 ; return address  
-	FSTEP=3  ; variable increment
-	LIMIT=5 ; loop limit 
+	FSTEP=3  ; variable increment, int16
+	LIMIT=5 ; loop limit, int24  
 	CVAR=8   ; control variable 
 	INW=10   ;  in.w saved
 	BPTR=12 ; baseptr saved
@@ -2203,11 +2213,9 @@ for: ; { -- var_addr }
 	pushw x  ; RETL1 
 	ld a,#TK_VAR 
 	call expect
-	pushw x 
 	call get_addr
 	ldw (CVAR,sp),x  ; control variable 
-	popw x 
-	call let_var 
+	call let_eval 
 	bset flags,#FLOOP 
 	call next_token 
 	cp a,#TK_CMD 
@@ -2269,8 +2277,16 @@ step: ; {var limit -- var limit step}
 ; leave loop back entry point on cstack 
 ; cstack is 1 call deep from interpreter
 store_loop_addr:
-	ldw x,basicptr  
+	ldw x,basicptr
+	ld a,in 
+	cp a,count 
+	jrmi 3$
+	addw x,in.w 
 	ldw (BPTR,sp),x 
+	ldw x,#3 
+	ldw (INW,sp),x 
+	ret 
+3$:	ldw (BPTR,sp),x 
 	ldw x,in.w 
 	ldw (INW,sp),x   
 	bres flags,#FLOOP 
@@ -2310,20 +2326,21 @@ next: ; {var limit step retl1 -- [var limit step ] }
 	ldw [ptr16],x 
 	ld acc24,a 
 	ldw acc16,x 
+	ld a,(LIMIT,sp)
+	ldw x,(LIMIT+1,sp)
+	subw x,acc16 
+	sbc a,acc24
+	push cc  
 ; check sign of STEP  
 	ld a,#0x80
 	bcp a,(FSTEP,sp)
 	jrpl 4$
 ;negative step
-	ld a,(LIMIT,sp)
-	ldw x,(LIMIT+1,sp)
-	call cp24 
+	pop cc 
 	jrslt loop_done
 	jra loop_back 
 4$: ; positive step
-	ld a,(LIMIT,sp)
-	ldw x,(LIMIT+1,sp)
-	call cp24
+	pop cc 
 	jrsgt loop_done
 loop_back:
 	ldw x,(BPTR,sp)
@@ -2344,17 +2361,21 @@ loop_done:
 ;----------------------------
 ; called by goto/gosub
 ; to get target line number 
+; output:
+;    x    line address 
 ;---------------------------
 get_target_line:
 	call next_token  
 	cp a,#TK_INTGR
-	jreq get_target_line_2 
+	jreq get_target_line_addr 
 	cp a,#TK_LABEL 
 	jreq look_target_symbol 
 	jp syntax_error
-get_target_line_2:
+; the target is a line number 
+; search it. 
+get_target_line_addr:
 	pushw y 
-	call get_int24 
+	call get_int24 ; line # 
 	clr a
 	ldw y,basicptr 
 	ldw y,(y)
@@ -2363,13 +2384,13 @@ get_target_line_2:
 	_drop 2  
 	jrult 11$
 	inc a 
-11$:	
+11$: ; scan program for this line# 	
 	call search_lineno  
-	tnzw x 
+	tnzw x ; 0| line# address 
 	jrne 2$ 
 	ld a,#ERR_NO_LINE 
 	jp tb_error 
-2$:	popw y 
+2$:	popw y  
 	ret 
 
 ; the GOTO|GOSUB target is a symbol.
@@ -2408,11 +2429,7 @@ look_target_symbol:
 ; BASIC: ON expr GOTO|GOSUB line# [,line#]*
 ; selective goto or gosub 
 ;--------------------------------
-	RET_ADDR=3
-	RET_INW=5
-	VSIZE=4  
 cmd_on:
-	pushw y 
 	btjt flags,#FRUN,0$ 
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
@@ -2420,68 +2437,70 @@ cmd_on:
 	cp a,#TK_INTGR
 	jreq 1$
 	jp syntax_error
-1$: _xpop 
-	cpw x,#1 
-	jrsge 11$
-	jp 9$ 
-11$:	
-	cpw x,#16 ; no more than 16 arguments 
-	jrugt 9$
-	ld a,xl 
+1$: _xpop
+; the selector is the element indice 
+; in the list of arguments. {1..#elements} 
+	ld a,xl ; keep only bits 7..0
+	jreq 9$ ; element # begin at 1. 
 	push a  ; selector  
-	call next_token ; should be GOTO|GOSUB 
+	call next_token
 	cp a,#TK_CMD 
 	jreq 2$ 
 	jp syntax_error 
 2$: call get_code_addr
+;; must be a GOTO or GOSUB 
 	cpw x,#goto 
 	jreq 4$
 	cpw x,#gosub 
 	jreq 4$ 
 	jp syntax_error 
-4$: pop a 
+4$: 
+	pop a 
 	pushw x ; save routine address 	
-	push a  ; -- code_addr selector  
-5$: call next_token 
+	push a  ; selector  
+5$: ; skip elements in list until selector==0 
+	dec (1,sp)
+	jreq 6$ 
+; can be a line# or a label 
+	call next_token 
 	cp a,#TK_INTGR 
 	jreq 52$
+	cp a,#TK_LABEL 
+	jreq 54$
 	jp syntax_error 
 52$: ; got a line number 
-	call get_int24  
-	dec (1,sp) ; decrement selector 
-	jreq 58$ ; this is the selected one 
-	call next_token ; try for the next one 
+	ld a,in ; skip over int24 value 
+	add a,#CELL_SIZE ; integer size  
+	ld in,a 
+	jra 56$
+54$: call skip_string ; skip over label 	
+56$: ; if another element comma present 
+	call next_token
 	cp a,#TK_COMMA 
 	jreq 5$ 
 ; arg list exhausted, selector to big 
 ; continue execution on next line 
 	_drop 3 ; drop selector and GOTO|GOSUB address 
 	jra 9$
-58$: ;found line# in list 
-	_drop 1 ; discard selector 
-	mov in,count ; skip to end of this line. 
-; here only the routine address of GOTO|GOSUB is on stack 
-;   X contain target line number 
-8$:	call get_target_line_2
-	popw y ; routine address GOTO|GOSUB  
-	cpw y,#goto 
-	jreq jp_to_target 
-	popw y 
-	_vars VSIZE 
-	pushw y 
-	ldw y,basicptr 
-	mov in,count 
-	addw y,in.w 
-	ldw (RET_ADDR,sp),y 
-	ldw y,#3 
-	ldw (RET_INW,sp),y
-	popw y 
+6$: ;at selected position  
+	_drop 1 ; discard selector
+; here only the routine address 
+; of GOTO|GOSUB is on stack 
+    call get_target_line
+	ldw ptr16,x 	
+	mov in,count ; move to end of line  
+	popw x ; cmd address, GOTO||GOSUB 
+	cpw x,#goto 
+	jrne 7$ 
+	ldw x,ptr16 
 	jra jp_to_target
-9$: ; expr out of range skip to next line 
+7$: 
+	jra gosub_2 ; target in ptr16 
+9$: ; expr out of range skip to end of line
+    ; this will force a fall to next line  
 	mov in,count
-	clr a 
-	popw y  
 	ret 
+
 
 ;------------------------
 ; BASIC: GOTO line# 
@@ -2489,10 +2508,11 @@ cmd_on:
 ; here cstack is 2 call deep from interpreter 
 ;------------------------
 goto:
-	btjt flags,#FRUN,0$ 
+	btjt flags,#FRUN,goto_1  
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
-0$:	call get_target_line
+goto_1:
+	call get_target_line
 jp_to_target:
 	ldw basicptr,x 
 	ld a,(2,x)
@@ -2508,31 +2528,40 @@ jp_to_target:
 ; are saved on cstack
 ; here cstack is 2 call deep from interpreter 
 ;--------------------
-	RET_ADDR=3
-	RET_INW=5
+	TARGET=1   ; target address 
+	RET_ADDR=3 ; subroutine return address 
+	RET_BPTR=5 ; basicptr return point 
+	RET_INW=7  ; in.w return point 
 	VSIZE=4  
 gosub:
-	btjt flags,#FRUN,0$ 
+	btjt flags,#FRUN,gosub_1 
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
 	ret 
-0$:	popw x 
+gosub_1:
+	call get_target_line 
+	ldw ptr16,x 
+gosub_2: 
+	popw x 
 	_vars VSIZE  
-	pushw x 
+	pushw x ; RET_ADDR 
+	ldw x,ptr16 
+	pushw x ; TARGET
+; save BASIC subroutine return point.   
 	ldw x,basicptr
-	ldw (RET_ADDR,sp),x 
-	call get_target_line  
-	pushw x 
+	ldw (RET_BPTR,sp),x 
 	ldw x,in.w 
-	ldw (RET_INW+2,sp),x
+	ldw (RET_INW,sp),x
 	popw x 
 	jra jp_to_target
 
 ;------------------------
 ; BASIC: RETURN 
-; exit from a subroutine 
-; 
+; exit from BASIC subroutine 
 ;------------------------
+	RET_BPTR=3 ; basicptr return point 
+	RET_INW=5  ; in.w return point 
+	VSIZE=4  
 return:
 	btjt flags,#FRUN,0$ 
 	ld a,#ERR_RUN_ONLY
@@ -2548,7 +2577,6 @@ return:
 	_drop VSIZE 
 	pushw x
 	ret  
-
 
 ;----------------------------------
 ; BASIC: RUN
@@ -3969,7 +3997,7 @@ bitmask:
 	cp a,#1
 	jreq 1$
 	jp syntax_error 
-1$: popw x 
+1$: _xpop 
 	ld a,xl 
 	and a,#15
 	clrw x 
@@ -3978,8 +4006,8 @@ bitmask:
 	jreq 3$
 	slaw x 
 	dec a 
-	jra 2$ 
-3$: ld a,#TK_INTGR
+	jrne 2$ 
+3$: 
 	ret 
 
 ;------------------------------
@@ -3991,9 +4019,9 @@ invert:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error
-1$: popw x  
+1$: _xpop 
+	cpl a 
 	cplw x 
-	ld a,#TK_INTGR 
 	ret 
 
 ;------------------------------

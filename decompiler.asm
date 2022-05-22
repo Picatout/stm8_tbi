@@ -73,8 +73,11 @@ add_space:
 	decw y 
 	ld a,(y)
 	incw y
+	cp a,#') 
+	jreq 0$
 	call is_alnum 
 	jrnc 1$
+0$: 
 	ld a,#SPACE 
 	ld (y),a 
 	incw y 
@@ -118,6 +121,9 @@ cpy_quote:
 	ld a,#'"
 	ld (y),a 
 	incw y 
+	pushw x 
+	call skip_string 
+	popw x 
 1$:	ld a,(x)
 	jreq 9$
 	incw x 
@@ -161,8 +167,9 @@ cpy_quote:
 ;--------------------------
 var_name::
 		subw x,#vars 
+		ld a,#3
+		div x,a 
 		ld a,xl 
-		srl a 
 		add a,#'A 
 		ret 
 
@@ -247,7 +254,8 @@ decomp_loop:
 	cp a,#TK_VAR 
 	jrne 3$
 ;; TK_VAR 
-	call add_space  
+	call add_space
+	call get_addr   
 	call var_name
 	ld (y),a 
 	incw y  
@@ -274,7 +282,9 @@ decomp_loop:
 	_drop 2 
 	jra decomp_loop
 4$: ; dictionary keyword 
-	call get_cmd_idx 
+	ldw x,(x)
+	inc in 
+	inc in 
 	cpw x,#REM_IDX
 	jrne 5$
 	ldw x,basicptr 
@@ -311,13 +321,17 @@ decomp_loop:
 	ld (y),a 
 	incw y 
 61$:
+	pushw x 
+	call skip_string 
+	popw x 
+62$:	
 	ld a,(x)
-	jreq 62$ 
+	jreq 63$ 
 	incw x  
 	ld (y),a 
 	incw y 
-	jra 61$ 
-62$: 
+	jra 62$ 
+63$: 
 	ld a,#32 
 	ld (y),a 
 	incw y 
@@ -326,6 +340,7 @@ decomp_loop:
 	cp a,#TK_QSTR 
 	jrne 7$
 ;; TK_QSTR
+	call add_space
 	call cpy_quote  
 	jp decomp_loop
 7$:
@@ -334,11 +349,10 @@ decomp_loop:
 ;; TK_CHAR 
 	ld a,#'\ 
 	ld (y),a 
-	incw y 
-	ld a,xl 
-	ld (y),a 
-	incw y 
-	jp decomp_loop
+	incw y
+	ld a,(x)
+	inc in  
+	jra 81$
 8$: cp a,#TK_COLON 
 	jrne 9$
 	ld a,#':
