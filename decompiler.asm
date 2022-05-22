@@ -346,7 +346,8 @@ decomp_loop:
 7$:
 	cp a,#TK_CHAR 
 	jrne 8$
-;; TK_CHAR 
+;; TK_CHAR
+	call add_space 
 	ld a,#'\ 
 	ld (y),a 
 	incw y

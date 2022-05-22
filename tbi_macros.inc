@@ -35,8 +35,6 @@
 	FSLEEP=3 ; halt produit par la commande SLEEP 
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 
-	FAUTORUN=6; auto start program running 
-        FUPDATE=7 ; update constant flag 
 
 
         FIRST_DATA_ITEM=6 ; first DATA item offset on line.

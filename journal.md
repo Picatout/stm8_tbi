@@ -1,3 +1,10 @@
+#### 2022-05-22
+
+* Corrigé bogue dans *cmd_const* 
+
+* Corrigé bogue dans *factor*
+
+
 #### 2022-05-21
 
 * Corrigé bogue dans *mul24* et *div24* du fichier [arithm24.asm](arithm24.asm).

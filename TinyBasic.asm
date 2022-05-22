@@ -351,7 +351,7 @@ ld a,count
 clrw y 
 rlwa y  
 call hex_dump
-	ldw x,basicptr
+ldw x,basicptr
 	ld a,in 
 	call prt_basic_line
 	ldw x,#tk_id 
@@ -364,8 +364,6 @@ call hex_dump
 	clrw x 
 	ld xl,a 
 	call prt_i16
-	btjf flags,#FAUTORUN ,6$
-	jra 6$
 1$:	
 	push a 
 	ldw x,#comp_msg
@@ -1002,6 +1000,9 @@ factor:
 8$:
 	cp a,#TK_LABEL 
 	jrne 9$ 
+	pushw x 
+	call skip_string
+	popw x 
 	call search_const 
 	clr a 
 	tnzw x 
@@ -1412,7 +1413,7 @@ list_const:
 	popw y 
 	ret 
 
-CONST_COUNT: .asciz "constants in EEPROM\n"
+CONST_COUNT: .asciz " constants in EEPROM\n"
 
 
 ;--------------------------
@@ -1448,7 +1449,7 @@ func_eefree:
 	ldw free_eeprom,x ; save in system variable 
 	ret 
 
-CONST_REC_MIN_BYTES=5 
+CONST_REC_XTRA_BYTES=5 
 ;--------------------------
 ; search constant name 
 ; format of constant record  
@@ -1474,7 +1475,7 @@ search_const:
 	_vars VSIZE
 	clr acc16 
 	call strlen 
-	add a,#CONST_REC_MIN_BYTES 
+	add a,#CONST_REC_XTRA_BYTES
 	ld (RECLEN,sp),a    
 	ldw (NAMEPTR,sp),x
 	ldw y,#EEPROM_BASE 
@@ -1511,31 +1512,34 @@ search_const:
 	CNAME=1 
 	BUFPTR=3
 	RECLEN=5
-	VSIZE=5
+	UPDATE=6
+	YSAVE=7
+	VSIZE=8 
 cmd_const:
 	pushw y 
 	_vars VSIZE 
-	bres flags,#FUPDATE 
+	clr (UPDATE,sp)
 	call next_token 
 	cp a,#TK_CHAR 
-	jrne 1$
-	ld a,xl
+	jrne 0$
+	call get_char 
 	and a,#0xDF 
 	cp a,#'U 
-	jrne 2$
-	bset flags,#FUPDATE 
-0$:
-	call next_token 
-1$:	
-	cp a,#TK_LABEL 
-	jreq 3$
-2$:	 
-	jp syntax_error 
-3$: 
+	jrne 1$
+	cpl (UPDATE,sp)
+	jra const_loop 
+0$: cp a,#TK_LABEL 
+	jreq cloop_1
+1$: jp syntax_error
+const_loop: 
+	ld a,#TK_LABEL 
+	call expect  
+cloop_1: 
 	ldw (CNAME,sp),x ; *const_name
+	call skip_string
 	ldw x,(CNAME,sp)
-	call strlen 
-	add a,#CONST_REC_MIN_BYTES 
+	call strlen  
+	add a,#CONST_REC_XTRA_BYTES 
 	ld (RECLEN,sp),a 
 ; copy name in buffer  
 	ldw y,(CNAME,sp) 
@@ -1548,32 +1552,34 @@ cmd_const:
 ; x not updated by strcpy 
 ; BUFPTR must be incremented 
 ; to point after name 
+	clrw x 
 	ld a,(RECLEN,sp)
-	sub a,#CONST_REC_MIN_BYTES-1
-	add a,(BUFPTR+1,sp) ; 
-	ld (BUFPTR+1,sp),a 
-	jrnc 4$
-    inc (BUFPTR,sp) 
-4$:
+	sub a,#CONST_REC_XTRA_BYTES-1
+	ld xl,a  
+	addw x,(BUFPTR,sp)
+	ldw (BUFPTR,sp),x 
 	ld a,#TK_EQUAL 
 	call expect 
+	ldw y,(YSAVE,sp) ; restore xstack pointer 
 	call expression 
 	cp a,#TK_INTGR 
 	jreq 5$ 
 	jp syntax_error 
-5$:	ldw y,(BUFPTR,sp)
-	_xpop ; get value from xstack 
+5$:	_xpop 
+	ldw (YSAVE,sp),y ; save xtack pointer 
+	ldw y,(BUFPTR,sp)
 	ld (y),a 
 	ldw (1,y),x 
 ; record completed in buffer 
 ; check if constant already exist 
-; if so update value if \U option set 
+; if exist and \U option then update  
 	clr farptr 
 	ldw x,(CNAME,sp)
 	call search_const 
 	tnzw x 
 	jreq 6$ ; new constant  
-	btjf flags,#FUPDATE,8$
+	tnz (UPDATE,sp)
+	jreq 8$ 
 	jra 7$	
 6$:	
 	ldw x,free_eeprom  
@@ -1588,16 +1594,16 @@ cmd_const:
 	ld xl,a 
 	addw x,free_eeprom 
 	ldw free_eeprom,x
-8$:
+8$: ; check for next constant 
 	call next_token 
 	cp a,#TK_COMMA 
-	jrne 9$
-	jp 0$ 
+	jrne 9$ ; no other constant 
+	jp const_loop 
 9$: 
 	_unget_token    
 10$: 
 	_drop VSIZE 
-	popw y 
+	popw y ; restore xstack pointer 
 	ret 
 
 
@@ -2191,6 +2197,8 @@ if:
 	jrne 9$ 
 ;skip to next line
 	mov in,count
+	_drop 2 
+	jp next_line
 9$:	ret 
 
 ;------------------------
@@ -2499,7 +2507,8 @@ cmd_on:
 9$: ; expr out of range skip to end of line
     ; this will force a fall to next line  
 	mov in,count
-	ret 
+	_drop 2
+	jp next_line  
 
 
 ;------------------------

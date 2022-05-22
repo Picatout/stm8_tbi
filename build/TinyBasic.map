@@ -82,22 +82,22 @@ CODE                                00008080    00003584 =       13700. bytes (R
      000091AD  right_align                        HW_INIT
      00009205  var_name                           HW_INIT
      00009230  decompile                          HW_INIT
-     00009409  strlen                             HW_INIT
-     00009425  strcpy                             HW_INIT
-     00009435  move                               HW_INIT
-     000096C5  syntax_error                       HW_INIT
-     000096C7  tb_error                           HW_INIT
-     000097CB  next_token                         HW_INIT
-     00009857  itoa                               HW_INIT
-     000098B0  to_upper                           HW_INIT
-     000098BC  atoi24                             HW_INIT
-     00009926  search_dict                        HW_INIT
-     00009C2D  let                                HW_INIT
-     0000A0CA  remark                             HW_INIT
-     0000A4FD  beep_1khz                          HW_INIT
-     0000A8EA  qkey                               HW_INIT
-     0000B35C  kword_dict                         HW_INIT
-     0000B364  code_addr                          HW_INIT
+     0000940C  strlen                             HW_INIT
+     00009428  strcpy                             HW_INIT
+     00009438  move                               HW_INIT
+     000096C8  syntax_error                       HW_INIT
+     000096CA  tb_error                           HW_INIT
+     000097C7  next_token                         HW_INIT
+     00009853  itoa                               HW_INIT
+     000098AC  to_upper                           HW_INIT
+     000098B8  atoi24                             HW_INIT
+     00009922  search_dict                        HW_INIT
+     00009C2E  let                                HW_INIT
+     0000A0D3  remark                             HW_INIT
+     0000A50F  beep_1khz                          HW_INIT
+     0000A8FC  qkey                               HW_INIT
+     0000B36E  kword_dict                         HW_INIT
+     0000B376  code_addr                          HW_INIT
      0000B600  app_space                          HW_INIT
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
