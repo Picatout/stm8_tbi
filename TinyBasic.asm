@@ -74,7 +74,7 @@ acc32:: .blkb 1 ; 32 bit accumalator upper-byte
 acc24:: .blkb 1 ; 24 bits accumulator upper-byte 
 acc16:: .blkb 1 ; 16 bits accumulator, acc24 high-byte
 acc8::  .blkb 1 ;  8 bits accumulator, acc24 low-byte  
-ticks: .blkw 1 ; milliseconds ticks counter (see Timer4UpdateHandler)
+ticks: .blkb 3 ; milliseconds ticks counter (see Timer4UpdateHandler)
 timer:: .blkw 1 ;  milliseconds count down timer 
 seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
 seedy: .blkw 1  ; xorshift 16 seed y  used by RND() funcion
@@ -347,11 +347,13 @@ tb_error::
 	ldw x,(x)
 	call puts
 	ldw x,basicptr 
+.if DEBUG 
 ld a,count 
 clrw y 
 rlwa y  
 call hex_dump
 ldw x,basicptr
+.endif 
 	ld a,in 
 	call prt_basic_line
 	ldw x,#tk_id 
@@ -364,6 +366,7 @@ ldw x,basicptr
 	clrw x 
 	ld xl,a 
 	call prt_i16
+	jra 6$
 1$:	
 	push a 
 	ldw x,#comp_msg
@@ -402,6 +405,8 @@ cmd_line: ; user interface
 	tnz count 
 	jreq cmd_line
 	call compile
+
+;;;;;;;;;;;;;;;;;;;;;;	
 ;pushw y 
 ;ldw x,txtbgn  
 ;ldw y,txtend
@@ -409,6 +414,8 @@ cmd_line: ; user interface
 ;subw y,acc16 
 ;call hex_dump
 ;popw y 
+;;;;;;;;;;;;;;;;;;;;;;
+
 ; if text begin with a line number
 ; the compiler set count to zero    
 ; so code is not interpreted
@@ -472,7 +479,7 @@ interp_loop:
 ;   X 		*token_value 
 ;----------------------------------------
 next_token::
-	clrw x 
+;	clrw x 
 	ld a,in 
 	ld in.saved,a ; in case "_unget_token" needed 
 ; don't replace sub by "cp a,count" 
@@ -579,6 +586,9 @@ get_char:
 prt_i16:
 	clr acc24 
 	ldw acc16,x 
+	ld a,#16
+	cp a,base
+	jreq prt_acc24  
 	btjf acc16,#7,prt_acc24
 	cpl acc24 ; sign extend 
 	
@@ -1165,12 +1175,14 @@ relation:
 	jreq 3$
 	jp syntax_error 
 3$:	
-	call sub24 
-	jrne 4$
+	call cp24 
+	_at_top 
+	tnz a 
+	jrmi 4$
+	jrne 5$
 	mov acc8,#2 ; n1==n2
 	jra 6$ 
 4$: 
-	jrsgt 5$  
 	mov acc8,#4 ; n1<2 
 	jra 6$
 5$:
@@ -1191,51 +1203,6 @@ relation:
 rel_exit:
 	_drop VSIZE
 	ret 
-
-;--------------------------------
-; BASIC: SHOW 
-; print stack content in hexadecimal bytes 
-; 16 bytes per row 
-;--------------------------------
-	DEPTH=1
-	CNTR=2
-	VSIZE=2
-show:
-	_vars VSIZE 
-	clr (CNTR,sp)
-	ldw x,#cstk_prompt
-	call puts 
-	pushw y 
-	ldw x,#XSTACK_EMPTY
-	subw x,(1,sp)
-	_drop 2
-	ld a,#CELL_SIZE 
-	div x,a  
-	ld a,xl  
-    ld (DEPTH,sp),a 
-	ldw ptr16,y 
-1$: 
-	ld a,[ptr16]
-	inc ptr8 
-	ldw x,[ptr16]
-	inc ptr8 
-	inc ptr8 
-	ld acc24,a 
-	ldw acc16,x 
-	call prt_acc24
-	ld a,#SPACE 
-	call putc 
-	inc (CNTR,sp)
-	ld a,(CNTR,sp)
-	cp a,(DEPTH,sp)
-	jrmi 1$
-	ld a,#CR 
-	call putc  
-	_drop VSIZE 
-	ret
-
-cstk_prompt: .asciz "\ncontent of expression stack from top to bottom:\n"
-
 
 ;--------------------------------------------
 ; BASIC: HEX 
@@ -1395,6 +1362,8 @@ list_const:
 	ld acc24,a 
 	ldw acc16,x 
 	call prt_acc24
+	ld a,#CR 
+	call putc 
 	ldw x,(COUNT,sp)
 	incw x 
 	ldw (COUNT,sp),x 
@@ -2176,7 +2145,9 @@ peek:
 	jreq 1$
 	jp syntax_error
 1$: _xpop ; address  
-	ld a,(x)
+	ld farptr,a 
+	ldw ptr16,x 
+	ldf a,[farptr]
 	clrw x 
 	ld xl,a 
 	clr a 
@@ -2209,12 +2180,12 @@ if:
 ; FLOOP bit in 'flags'
 ;-----------------
 	RETL1=1 ; return address  
-	FSTEP=3  ; variable increment, int16
-	LIMIT=5 ; loop limit, int24  
-	CVAR=8   ; control variable 
-	INW=10   ;  in.w saved
-	BPTR=12 ; baseptr saved
-	VSIZE=12  
+	FSTEP=3  ; variable increment int24
+	LIMIT=6 ; loop limit, int24  
+	CVAR=9   ; control variable 
+	INW=11   ;  in.w saved
+	BPTR=13 ; baseptr saved
+	VSIZE=13  
 for: ; { -- var_addr }
 	popw x ; call return address 
 	_vars VSIZE 
@@ -2262,8 +2233,9 @@ to: ; { var_addr -- var_addr limit step }
 3$:	
 	_unget_token   	 
 4$:	
+	clr (FSTEP,sp) 
 	ldw x,#1   ; default step  
-	ldw (FSTEP,sp),x 
+	ldw (FSTEP+1,sp),x 
 	jra store_loop_addr 
 
 
@@ -2281,20 +2253,22 @@ step: ; {var limit -- var limit step}
 	jp syntax_error
 2$:	
 	_xpop 
-	ldw (FSTEP,sp),x ; step
+	ld (FSTEP,sp),a 
+	ldw (FSTEP+1,sp),x ; step
+; if step < 0 decrement LIMIT 
+	tnz a
+	jrpl store_loop_addr 
+	ld a,(LIMIT,sp)
+	ldw x,(LIMIT+1,sp)
+	subw x,#1 
+	sbc a,#0 
+	ld (LIMIT,sp),a 
+	ldw (LIMIT+1,sp),x 
 ; leave loop back entry point on cstack 
 ; cstack is 1 call deep from interpreter
 store_loop_addr:
 	ldw x,basicptr
-	ld a,in 
-	cp a,count 
-	jrmi 3$
-	addw x,in.w 
 	ldw (BPTR,sp),x 
-	ldw x,#3 
-	ldw (INW,sp),x 
-	ret 
-3$:	ldw (BPTR,sp),x 
 	ldw x,in.w 
 	ldw (INW,sp),x   
 	bres flags,#FLOOP 
@@ -2327,8 +2301,8 @@ next: ; {var limit step retl1 -- [var limit step ] }
 	; increment variable 
 	ld a,(x)
 	ldw x,(1,x)  ; get var value 
-	addw x,(FSTEP,sp) ; var+step 
-	adc a,#0  
+	addw x,(FSTEP+1,sp) ; var+step 
+	adc a,(FSTEP,sp)
 	ld [ptr16],a
 	inc ptr8  
 	ldw [ptr16],x 
@@ -2338,18 +2312,19 @@ next: ; {var limit step retl1 -- [var limit step ] }
 	ldw x,(LIMIT+1,sp)
 	subw x,acc16 
 	sbc a,acc24
-	push cc  
+	xor a,(FSTEP,sp)
+	xor a,#0x80
+	jrmi loop_back  
+	jra loop_done   
 ; check sign of STEP  
-	ld a,#0x80
-	bcp a,(FSTEP,sp)
+	ld a,(FSTEP,sp)
 	jrpl 4$
 ;negative step
-	pop cc 
-	jrslt loop_done
-	jra loop_back 
+    ld a,acc8 
+	jrslt loop_back   
+	jra loop_done  
 4$: ; positive step
-	pop cc 
-	jrsgt loop_done
+	btjt acc8,#7,loop_done 
 loop_back:
 	ldw x,(BPTR,sp)
 	ldw basicptr,x 
@@ -2816,7 +2791,7 @@ digital_read:
 8$: and a,#1 
 	clrw x 
 	ld xl,a 
-	ld a,#TK_INTGR
+	clr a 
 	_drop VSIZE
 	ret
 
@@ -2938,7 +2913,7 @@ erase:
 	ldw x,#err_bad_value
 	jp tb_error
 2$:
-	ldw x,#app_sign 
+	ldw x,#app_space  
 	ldw farptr+1,x 
 	ld a,#(FLASH_END>>16)&0XFF 
 	ldw x,#FLASH_END&0xffff
@@ -3249,13 +3224,13 @@ qkey::
 	ret 
 
 ;---------------------
-; BASIC: GPIO(expr,reg)
-; return gpio address 
-; expr {0..8}
+; BASIC: GPIO(port,reg)
+; return gpio register address 
+; expr {PORTA..PORTI}
 ; input:
 ;   none 
 ; output:
-;   X 		gpio register address
+;   A:X 	gpio register address
 ;----------------------------
 ;	N=PORT
 ;	T=REG 
@@ -3265,20 +3240,15 @@ gpio:
 	jreq 1$
 	jp syntax_error  
 1$:	_at_next 
-	tnzw x 
+	cpw x,#PA_BASE 
 	jrmi bad_port
-	cpw x,#9
+	cpw x,#PI_BASE+1 
 	jrpl bad_port
-	ld a,#5
-	mul x,a
-	addw x,#GPIO_BASE 
 	pushw x 
 	_xpop
 	addw x,(1,sp)
 	_drop 2 
 	clr a 
-	_store_top 	
-	ld a,#TK_INTGR
 	ret
 bad_port:
 	ld a,#ERR_BAD_VALUE
@@ -3458,10 +3428,8 @@ awu02:
 ;	X 		TK_INTGR
 ;-------------------------------
 get_ticks:
-	ldw x,ticks 
-	clr a 
-	_xpush 
-	ld a,#TK_INTGR
+	ld a,ticks 
+	ldw x,ticks+1 
 	ret 
 
 ;------------------------------
@@ -3479,7 +3447,7 @@ abs:
 	jp syntax_error
 0$:  
 	call abs24 
-    ld a,#TK_INTGR 
+	_xpop 
 	ret 
 
 ;------------------------------
@@ -3777,11 +3745,12 @@ random:
 	ldw x,seedy 
 	ldw seedx,x  
 ; seedy=seedy^(seedy>>1)
-	srlw y 
-	ld a,yh 
+	ldw x,seedy 
+	srlw x 
+	ld a,xh 
 	xor a,seedy 
 	ld seedy,a  
-	ld a,yl 
+	ld a,xl 
 	xor a,seedy+1 
 	ld seedy+1,a 
 ; acc16>>3 
@@ -3792,26 +3761,28 @@ random:
 ; x=acc16^x 
 	ld a,xh 
 	xor a,acc16 
-	ld xh,a 
+	ld acc16,a 
 	ld a,xl 
 	xor a,acc8 
-	ld xl,a 
-; seedy=x^seedy 
+	ld acc8,a 
+; seedy=acc16^seedy 
 	xor a,seedy+1
 	ld xl,a 
-	ld a,xh 
+	ld a,acc16 
 	xor a,seedy
 	ld xh,a 
 	ldw seedy,x 
-; return seedy modulo expr + 1 
-	ld a,seedx+1 
+; return seedx_lo&0x7f:seedy modulo expr + 1 
+	ld a,seedx+1
+	and a,#127
 	_xpush 
 	pop a 
 	popw x 
 	_xpush 
-	call div24 
-10$:
-	ld a,#TK_INTGR
+	call mod24 
+	_xpop
+	addw x,#1 
+	adc a,#0  
 	ret 
 
 ;---------------------------------
@@ -3883,19 +3854,14 @@ set_timer:
 ;------------------------------
 ; BASIC: TIMEOUT 
 ; return state of timer 
+; output:
+;   A:X     0 not timeout 
+;   A:X     -1 timeout 
 ;------------------------------
 timeout:
 	ldw x,timer 
-logical_complement:
-	ld a,#255 
-	cplw x 
-	cpw x,#-1
-	jreq 2$
-	clrw x
 	clr a 
-2$:	_xpush  
-	ld a,#TK_INTGR
-	ret 
+	jra logical_not 
 
 ;--------------------------------
 ; BASIC NOT(expr) 
@@ -3906,11 +3872,18 @@ func_not:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$:  
-	call cpl24 
-	ld a,#TK_INTGR
+1$: _xpop 
+logical_not: 
+	tnz a 
+	jrne 2$
+	tnzw x 
+	jrne 2$  
+	cpl a 
+	cplw x  
 	ret 
-
+2$: clr a 
+	clrw x 
+	ret 
 
 
 ;-----------------------------------
@@ -3972,15 +3945,15 @@ log2:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error 
-1$: _at_top   
-leading_one:
+1$: 
+	_xpop    
 	tnz a
 	jrne 2$ 
 	tnzw x 
 	jrne 2$
-	inc a  
-	jra 9$
-2$:	push #24  
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+2$: push #24 
 3$: rlcw x 
     rlc a 
 	jrc 4$
@@ -3988,18 +3961,17 @@ leading_one:
 	jrne 3$
 4$: clrw x 
     pop a 
-	ld xl,a 
-	clr a 
-9$:	_store_top 
-	ld a,#TK_INTGR
+	dec a
+	rlwa x  
+9$:	
 	ret 
 
 ;-----------------------------------
 ; BASIC: BIT(expr) 
-; expr ->{0..15}
+; expr ->{0..23}
 ; return 2^expr 
 ; output:
-;    x    2^expr 
+;    A:X    2^expr 
 ;-----------------------------------
 bitmask:
     call func_args 
@@ -4008,16 +3980,19 @@ bitmask:
 	jp syntax_error 
 1$: _xpop 
 	ld a,xl 
-	and a,#15
-	clrw x 
-	incw x 
-2$: tnz a 
-	jreq 3$
+	ldw x,#1 
+	and a,#23
+	jreq 9$
+	push a 
+	clr a 
+2$: 
 	slaw x 
-	dec a 
+	rlc a 	
+	dec (1,sp)
 	jrne 2$ 
-3$: 
-	ret 
+4$:
+    _drop 1 
+9$:	ret 
 
 ;------------------------------
 ; BASIC: INVERT(expr)
@@ -4044,8 +4019,8 @@ do_loop:
 	popw x 
 	_vars VSIZE 
 	pushw x 
-	ldw y,basicptr 
-	ldw (DOLP_ADR,sp),y
+	ldw x,basicptr 
+	ldw (DOLP_ADR,sp),x
 	ldw x,in.w 
 	ldw (DOLP_INW,sp),x
 	inc loop_depth 
@@ -4085,46 +4060,45 @@ until:
 	jp (x)
 
 ;--------------------------
-; BASIC: PRTA...PRTI  
+; BASIC: PORTA...PORTI  
 ;  return constant value 
-;  PORT  offset in GPIO
-;  array
+;  PORT  base address 
 ;---------------------------
 const_porta:
-	ldw x,#0
-	ld a,#TK_INTGR 
+	ldw x,#PA_BASE 
+	clr a 
 	ret 
 const_portb:
-	ldw x,#1
-	ld a,#TK_INTGR 
+	ldw x,#PB_BASE 
+	clr a 
 	ret 
 const_portc:
-	ldw x,#2
-	ld a,#TK_INTGR 
+	ldw x,#PC_BASE 
+	clr a 
 	ret 
 const_portd:
-	ldw x,#3
-	ld a,#TK_INTGR 
+	ldw x,#PD_BASE 
+	clr a 
 	ret 
 const_porte:
-	ldw x,#4
-	ld a,#TK_INTGR 
+	ldw x,#PE_BASE 
+	clr a 
 	ret 
 const_portf:
-	ldw x,#5
-	ld a,#TK_INTGR 
+	ldw x,#PF_BASE 
+	clr a 
 	ret 
 const_portg:
-	ldw x,#6
-	ld a,#TK_INTGR 
+	ldw x,#PG_BASE 
+	clr a 
 	ret 
 const_porth:
-	ldw x,#7
-	ld a,#TK_INTGR 
+	ldw x,#PH_BASE 
+	clr a 
 	ret 
 const_porti:
-	ldw x,#8
-	ld a,#TK_INTGR 
+	ldw x,#PI_BASE 
+	clr a 
 	ret 
 
 ;-------------------------------
@@ -4132,23 +4106,23 @@ const_porti:
 ; related to GPIO register offset 
 ;---------------------------------
 const_odr:
-	ld a,#TK_INTGR 
+	clr a 
 	ldw x,#GPIO_ODR
 	ret 
 const_idr:
-	ld a,#TK_INTGR 
+	clr a 
 	ldw x,#GPIO_IDR
 	ret 
 const_ddr:
-	ld a,#TK_INTGR 
+	clr a
 	ldw x,#GPIO_DDR
 	ret 
 const_cr1:
-	ld a,#TK_INTGR 
+	clr a 
 	ldw x,#GPIO_CR1
 	ret 
 const_cr2:
-	ld a,#TK_INTGR 
+	clr a
 	ldw x,#GPIO_CR2
 	ret 
 ;-------------------------
@@ -4158,7 +4132,7 @@ const_cr2:
 ;  to set pin as output
 ;------------------------
 const_output:
-	ld a,#TK_INTGR 
+	clr a 
 	ldw x,#OUTP
 	ret 
 
@@ -4169,7 +4143,7 @@ const_output:
 ;  to set pin as input
 ;------------------------
 const_input:
-	ld a,#TK_INTGR 
+	clr a  
 	ldw x,#INP 
 	ret 
 	
@@ -4177,7 +4151,7 @@ const_input:
 ; memory area constants
 ;-----------------------
 const_eeprom_base:
-	ld a,#TK_INTGR 
+	clr a  
 	ldw x,#EEPROM_BASE 
 	ret 
 
@@ -4409,7 +4383,7 @@ spi_read:
 	call spi_rcv_byte 
 	clrw x 
 	ld xl,a 
-	ld a,#TK_INTGR 
+	clr a  
 	ret 
 
 ;------------------------------
@@ -4436,7 +4410,7 @@ cs_high:
 ;------------------------------
 pad_ref:
 	ldw x,#pad 
-	ld a,TK_INTGR
+	clr a
 	ret 
 
 
@@ -4482,7 +4456,6 @@ kword_end:
 	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
 	_dict_entry,5,SLEEP,SLEEP_IDX;sleep 
     _dict_entry,4,SIZE,SIZE_IDX; cmd_size 
-	_dict_entry,4,SHOW,SHOW_IDX;show 
 	_dict_entry,4,SAVE,SAVE_IDX ;save_app 
 	_dict_entry 3,RUN,RUN_IDX;run
 	_dict_entry,6+F_IFUNC,RSHIFT,RSHIFT_IDX;rshift
@@ -4493,15 +4466,15 @@ kword_end:
 	_dict_entry,6,REBOOT,RBT_IDX;cold_start
 	_dict_entry,4+F_IFUNC,READ,READ_IDX;read  
 	_dict_entry,4+F_IFUNC,QKEY,QKEY_IDX;qkey  
-	_dict_entry,4+F_IFUNC,PRTI,PRTI_IDX;const_porti 
-	_dict_entry,4+F_IFUNC,PRTH,PRTH_IDX;const_porth 
-	_dict_entry,4+F_IFUNC,PRTG,PRTG_IDX;const_portg 
-	_dict_entry,4+F_IFUNC,PRTF,PRTF_IDX;const_portf
-	_dict_entry,4+F_IFUNC,PRTE,PRTE_IDX;const_porte
-	_dict_entry,4+F_IFUNC,PRTD,PRTD_IDX;const_portd
-	_dict_entry,4+F_IFUNC,PRTC,PRTC_IDX;const_portc
-	_dict_entry,4+F_IFUNC,PRTB,PRTB_IDX;const_portb
-	_dict_entry,4+F_IFUNC,PRTA,PRTA_IDX;const_porta 
+	_dict_entry,5+F_IFUNC,PORTI,PRTI_IDX;const_porti 
+	_dict_entry,5+F_IFUNC,PORTH,PRTH_IDX;const_porth 
+	_dict_entry,5+F_IFUNC,PORTG,PRTG_IDX;const_portg 
+	_dict_entry,5+F_IFUNC,PORTF,PRTF_IDX;const_portf
+	_dict_entry,5+F_IFUNC,PORTE,PRTE_IDX;const_porte
+	_dict_entry,5+F_IFUNC,PORTD,PRTD_IDX;const_portd
+	_dict_entry,5+F_IFUNC,PORTC,PRTC_IDX;const_portc
+	_dict_entry,5+F_IFUNC,PORTB,PRTB_IDX;const_portb
+	_dict_entry,5+F_IFUNC,PORTA,PRTA_IDX;const_porta 
 	_dict_entry 5,PRINT,PRT_IDX;print 
 	_dict_entry,4+F_IFUNC,POUT,POUT_IDX;const_output
 	_dict_entry,4,POKE,POKE_IDX;poke 
@@ -4576,7 +4549,7 @@ code_addr::
 	.word func_not,const_odr,bit_or,pad_ref,pause,pin_mode,peek,const_input ; 48..55
 	.word poke,const_output,print,const_porta,const_portb,const_portc,const_portd,const_porte ; 56..63
 	.word const_portf,const_portg,const_porth,const_porti,qkey,read,cold_start,remark ; 64..71 
-	.word restore,return, random,rshift,run,show,free ; 72..79
+	.word restore,return, random,rshift,run,free ; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
 	.word wait,words,write,bit_xor,cmd_size,cmd_on,cmd_get,cmd_const ; 96..99

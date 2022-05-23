@@ -1,4 +1,35 @@
+#### 2022-05-23
+
+* Réparé bogue dans **NEXT** et modifié code dans **STEP** pour décrémenter la limite lorsque *step* est négatif. 
+
+* Réparé bogue dans **RND**. Appellais *div24* au lieu de *mod24*.   euh!!!!
+
 #### 2022-05-22
+
+* Travail sur **RND**  ne semble pas correct. 
+
+* Renommé  *cp24* en *cp24_ax* et créé *cp24*. 
+
+* Corrigé bogue dans **PEEK**, utilisati une instruction *ld a,(x)* ce qui ne permettait pas de lire la mémoire flash au delà de $ffff.
+
+* Corrigé bogue dans *do_loop*. Utilisait le registre y au lieu de x.
+
+* Renommé PRTA..PRTI en PORTA..PORTI. Maintenant retourne l'adresse de base plutôt que l'index dans le tableau. 
+
+* Ajouté un CRLF après chaque constante dans *list_const*.
+
+* variable *ticks* passée à 24 bits. 
+
+* Corrigé bogue dans *mul24*. la variable locale *PROD* n'était pas initialsée à 0 avant d'effectuer la multiplication. Ce qui donnait:
+```
+>? 4*0
+5828
+
+>? 0*4
+   0 
+``` 
+
+* Éliminé comamnde BASIC **SHOW**.
 
 * Corrigé bogue dans *cmd_const* 
 

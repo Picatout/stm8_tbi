@@ -118,7 +118,7 @@ AWUHandler:
 TrapHandler:
 	bset flags,#FTRAP 
 	call print_registers
-;	call cmd_itf
+	call cmd_itf
 	bres flags,#FTRAP 	
 	iret
 .endif 
@@ -127,14 +127,21 @@ TrapHandler:
 ; TIMER 4 is used to maintain 
 ; a milliseconds 'ticks' counter
 ; and decrement 'timer' varaiable
+; ticks range {0..2^23-1}
 ;--------------------------------
 Timer4UpdateHandler:
 	clr TIM4_SR 
-	ldw x,ticks
-	incw x
-	ldw ticks,x 
+	ld a,ticks 
+	ldw x,ticks+1
+	addw x,#1 
+	adc a,#0 
+	jrpl 0$
+; reset to 0 when negatif 
+	clr a 
+	clrw x 
+0$:	ld ticks,a 
+	ldw ticks+1,x 
 	ldw x,timer
-;	tnzw x 
 	jreq 1$
 	decw x 
 	ldw timer,x 
@@ -277,12 +284,12 @@ cold_start:
 	call system_information
 2$:	
 ; check for application in flash memory 
-	ldw x,app_sign 
-	cpw x,SIGNATURE 
+	call qsign 
 	jreq run_app
 	jp warm_start 
 run_app:
 ; run application in FLASH|EEPROM 
+	ldw y,XSTACK_EMPTY
 	call warm_init
 	ldw x,#app 
 	ldw txtbgn,x

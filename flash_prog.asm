@@ -196,6 +196,8 @@ do_programming:
 ;--------------------------------------
 block_erase:
 	pushw x 
+	ld a,farptr 
+	jrne erase_flash
 	ldw x,farptr+1
 	cpw x,#app_space 
 	jruge erase_flash 

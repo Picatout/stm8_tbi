@@ -36,10 +36,10 @@ add24: ; ( i1 i2 -- i1 + i2 )
     _xpop 
     pushw x  
     push a  
-    _xpop 
+    _at_top  
     addw x,(2,sp)
     adc a, (1,sp)
-    _xpush 
+    _store_top 
     _drop 3 
     ret 
 
@@ -59,10 +59,38 @@ sub24: ; (i1 i2 -- i1-i2 )
     ret 
 
 ;------------------------------
-; cp24 
+; cp24  i1 i2 -- -1|0|1
+;------------------------------
+cp24:
+    _xpop 
+    pushw x 
+    push a 
+    _at_top 
+    cp a,(1,sp)
+    jrsgt 1$
+    jreq 2$ 
+    cpw x,(2,sp)
+    jrsgt 1$
+    jreq 2$ 
+; i1<ì2 
+    ld a,#255 
+    ldw x,#0xffff 
+    jra 9$ 
+1$: ; i1 > i2 
+    ldw x,#1 
+    clr a 
+    jra 9$ 
+2$: ; i1 == i2 
+    clr a 
+    clrw x 
+9$:  _store_top 
+    _drop 3
+    ret 
+
+; cp24_ax 
 ; compare acc24 with A:X 
 ;-------------------------------
-cp24:
+cp24_ax:
     cp a,acc24 
     jrne 9$ 
     cpw x,acc16
@@ -182,6 +210,9 @@ mulu24_8:
 mul24:
     _vars VSIZE
     clr (PROD_SIGN,sp)
+    clr (PROD,sp)
+    clrw x 
+    ldw (PROD+1,sp),x
     _xpop 
     tnz a 
     jrpl 0$
@@ -247,15 +278,12 @@ mul24:
     ld a,(PROD,sp)
     ldw x,(PROD+1,sp)
     tnz (PROD_SIGN,sp)
-    jreq 7$
+    jreq 9$
     call neg_ax 
-7$:
-    rcf ; C=0 means no overflow 
-    jra 9$
-8$: ; overflow 
-    clr a 
-    clrw x 
-    scf ; C=1 means overflow 
+    jra 9$ 
+8$: ; overflow
+    ld a,#ERR_OVERFLOW
+    jp tb_error 
 9$:    
     _store_top 
     _drop VSIZE 
@@ -337,7 +365,7 @@ div24:
     ld (CNTR,sp),a
     ld a,(DIVISOR,sp)
     ldw x,(DIVISOR+1,sp)
-    call cp24 ; A:X-acc24 ?
+    call cp24_ax ; A:X-acc24 ?
     jrule 22$ 
 ; quotient=0, remainder=divisor      
     ld a,acc24 
