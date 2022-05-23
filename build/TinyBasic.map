@@ -96,8 +96,8 @@ CODE                                00008080    00003584 =       13700. bytes (R
      0000A0AC  remark                             HW_INIT
      0000A4FA  beep_1khz                          HW_INIT
      0000A8E6  qkey                               HW_INIT
-     0000B34C  kword_dict                         HW_INIT
-     0000B354  code_addr                          HW_INIT
+     0000B35A  kword_dict                         HW_INIT
+     0000B362  code_addr                          HW_INIT
      0000B600  app_space                          HW_INIT
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.

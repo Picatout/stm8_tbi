@@ -4182,7 +4182,8 @@ is_data_line:
 ; specified by X 
 ;---------------------------
 data_line:
-    clr a 
+	pushw y 
+	clr a 
 	call search_lineno
 	tnzw x 
 	jrne 3$
@@ -4197,6 +4198,7 @@ set_data_ptr:
 	ld a,(2,y)
 	ld data_len,a 
 	mov data_ofs,#FIRST_DATA_ITEM 
+	popw y 
 	ret
 
 ;---------------------------------
@@ -4218,9 +4220,13 @@ restore:
 	clr data_len
 	call next_token 
 	cp a,#TK_INTGR
-	jreq data_line
-	_unget_token 
+	jrne 0$
+	call get_int24 
+	jra data_line 
+0$:	
+	_unget_token  
 	ldw x,txtbgn
+	pushw y 
 ; search first DATA line 
 data_search_loop: 	
 	cpw x,txtend
@@ -4247,8 +4253,8 @@ restore_error:
 	CTX_BPTR=1 
 	CTX_IN=3 
 	CTX_COUNT=4 
-	XSAVE=5
-	VSIZE=6
+	INT24=5
+	VSIZE=7 
 read:
 	_vars  VSIZE 
 read01:	
@@ -4265,14 +4271,12 @@ read01:
 	jreq 1$ 
 	jp syntax_error 
 1$:
-	ldw (XSAVE,SP),x
 	call next_token ; skip comma
 	ldw x,basicptr 
 	ldw data_ptr,x 
 	mov data_ofs,in 
 	call rest_context
-	ldw x,(XSAVE,sp)
-	ld a,#TK_INTGR
+	_xpop 
 	_drop VSIZE 
 	ret 
 2$: ; end of line reached 

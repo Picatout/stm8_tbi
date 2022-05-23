@@ -1,5 +1,7 @@
 #### 2022-05-23
 
+* Réparé bogue dans **RESTORE** et **READ**. 
+
 * Réparé bogue dans **NEXT** et modifié code dans **STEP** pour décrémenter la limite lorsque *step* est négatif. 
 
 * Réparé bogue dans **RND**. Appellais *div24* au lieu de *mod24*.   euh!!!!
