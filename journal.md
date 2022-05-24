@@ -1,5 +1,7 @@
 #### 2022-05-24
 
+* Corrigé bogue dans *arg_list*
+
 * Corrigé bogue dans **PRINT**, *relation* et *cp24*. Réécris *cp24_ax*
 
 #### 2022-05-23

@@ -888,6 +888,14 @@ func_args:
 ;--------------------------------
 arg_list:
 	push #0  
+	call next_token 
+	cp a,#TK_CMD 
+	jreq 5$
+	cp a,#TK_NONE  
+	jrmi 6$
+	cp a,#TK_COLON 
+	jrmi 6$
+	_unget_token
 1$: call expression
 	cp a,#TK_NONE 
 	jreq 5$
@@ -898,12 +906,11 @@ arg_list:
 	call next_token 
 	cp a,#TK_COMMA 
 	jreq 1$ 
-	cp a,#TK_NONE 
-	jreq 5$ 
 4$:	cp a,#TK_RPAREN 
-	jreq 5$
+	jreq 6$
+5$:
 	_unget_token 
-5$:	pop a  
+6$:	pop a  
 	ret 
 
 ;--------------------------------
