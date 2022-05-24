@@ -59,42 +59,39 @@ sub24: ; (i1 i2 -- i1-i2 )
     ret 
 
 ;------------------------------
-; cp24  i1 i2 -- -1|0|1
+; cp24  i1 i2 -- 0x800000|0|0x010000
 ;------------------------------
 cp24:
     _xpop 
-    pushw x 
-    push a 
+    ld acc24,a 
+    ldw acc16,x
     _at_top 
-    cp a,(1,sp)
-    jrsgt 1$
-    jreq 2$ 
-    cpw x,(2,sp)
-    jrsgt 1$
-    jreq 2$ 
-; i1<ì2 
-    ld a,#255 
-    ldw x,#0xffff 
-    jra 9$ 
-1$: ; i1 > i2 
-    ldw x,#1 
+    subw x,acc16
+    sbc a,acc24
+    jrslt 1$
+    jrne 2$
+    tnzw x 
+    jrne 2$
     clr a 
     jra 9$ 
-2$: ; i1 == i2 
-    clr a 
-    clrw x 
-9$:  _store_top 
-    _drop 3
+1$: ; i1 < i2 
+    ld a,#255
+    jra 9$ 
+2$: ; i1 > i2 
+    ld a,#1 
+9$: clrw x
+     _store_top 
     ret 
 
+;-------------------------------
 ; cp24_ax 
 ; compare acc24 with A:X 
 ;-------------------------------
 cp24_ax:
-    cp a,acc24 
-    jrne 9$ 
-    cpw x,acc16
-9$: 
+    push a 
+    cpw x,acc16 
+    sbc a,acc24
+    pop a 
     ret 
 
 

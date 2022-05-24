@@ -974,8 +974,6 @@ factor:
 	_vars VSIZE 
 	clr (NEG,sp)
 	call next_token
-	cp a,#CMD_END  
-	jrult 16$
 1$:	cp a,#TK_PLUS 
 	jreq 2$
 	cp a,#TK_MINUS 
@@ -992,7 +990,7 @@ factor:
 5$:
 	cp a,#TK_INTGR
 	jrne 6$
-	call get_int24 
+	call get_int24 ; A:X
 	jra 18$
 6$:
 	cp a,#TK_ARRAY
@@ -1003,7 +1001,7 @@ factor:
 	cp a,#TK_VAR 
 	jrne 8$
 	call get_addr 
-71$:
+71$: ; put value in A:X
 	ld a,(x)
 	ldw x,(1,x)
 	jra 18$
@@ -1014,10 +1012,9 @@ factor:
 	call skip_string
 	popw x 
 	call search_const 
-	clr a 
 	tnzw x 
 	jreq 16$
-	call get_const_value 
+	call get_const_value ; in A:X 
 	jra 18$
 9$: 
 	cp a,#TK_CFUNC 
@@ -1025,7 +1022,7 @@ factor:
 	call get_code_addr 
 	call(x)
 	clrw x 
-	rlwa x 
+	rlwa x  ; char>int24 in A:X 
 	jra 18$ 	 
 12$:			
 	cp a,#TK_LPAREN
@@ -1036,18 +1033,13 @@ factor:
 	_xpop 
 	jra 18$	
 16$:
-	tnz a 
-	jreq 20$ 
-	_unget_token
-	clr a 
-	jra 20$ 
+	jp syntax_error
 18$: 
 	tnz (NEG,sp)
-	jreq 19$
+	jreq 20$
 	call neg_ax   
-19$: _xpush 
-     ld a,#TK_INTGR
 20$:
+	_xpush 
 	_drop VSIZE
 	ret
 
@@ -1062,10 +1054,9 @@ factor:
 	VSIZE=1
 term:
 	_vars VSIZE
+; first factor 	
 	call factor
-	tnz a 
-	jreq term_exit 
-term01:	 ; check for  operator 
+term01:	 ; check for  operator '*'|'/'|'%' 
 	call next_token
 	ld (MULOP,sp),a
 	cp a,#CMD_END
@@ -1075,27 +1066,26 @@ term01:	 ; check for  operator
 	jreq 1$
 	jra 8$
 1$:	; got *|/|%
+;second factor
 	call factor
-	cp a,#TK_INTGR
-	jreq 2$
-	jp syntax_error
-2$:	
+2$: ; select operation 	
 	ld a,(MULOP,sp) 
 	cp a,#TK_MULT 
 	jrne 3$
+; '*' operator
 	call mul24 
 	jra term01
 3$: cp a,#TK_DIV 
 	jrne 4$ 
+; '/' operator	
 	call div24 
 	jra term01 
-4$: call mod24
+4$: ; '%' operator
+	call mod24
 	jra term01 
-8$: ld a,(MULOP,sp)
-	jreq 9$ 
+8$: ; term end 
 	_unget_token
 9$: 
-	ld a,#TK_INTGR 	
 term_exit:
 	_drop VSIZE 
 	ret 
@@ -1111,10 +1101,9 @@ term_exit:
 	VSIZE=1 
 expression:
 	_vars VSIZE 
+; first term 	
 	call term
-	tnz a 
-	jreq expr_exit 
-1$:	
+1$:	; operator '+'|'-'
 	call next_token
 	ld (OP,sp),a 
 	cp a,#CMD_END 
@@ -1123,25 +1112,21 @@ expression:
 	cp a,#TK_GRP_ADD 
 	jreq 2$ 
 	jra 8$
-2$: 
+2$: ; second term 
 	call term
-	cp a,#TK_INTGR
-	jreq 3$
-	jp syntax_error
-3$:	
 	ld a,(OP,sp)
 	cp a,#TK_PLUS 
 	jrne 4$
+; '+' operator	
 	call add24
 	jra 1$ 
-4$:	
+4$:	; '-' operator 
 	call sub24
 	jra 1$
-8$: ld a,(OP,sp)
-	jreq 9$ 
+8$: ; end of expression 
 	_unget_token	
-9$: 
-	ld a,#TK_INTGR	
+9$: ; expression value on xstack 
+	ld a,#TK_INTGR 	
 expr_exit:
 	_drop VSIZE 
 	ret 
@@ -1159,10 +1144,6 @@ expr_exit:
 relation: 
 	_vars VSIZE
 	call expression
-	tnz a 
-	jrne 1$
-	jp rel_exit
-1$:	
 ; expect rel_op or leave 
 	call next_token 
 	ld (RELOP,sp),a 
@@ -1171,36 +1152,32 @@ relation:
 	jrne 8$
 2$:	; expect another expression
 	call expression
-	cp a,#TK_INTGR
-	jreq 3$
-	jp syntax_error 
-3$:	
 	call cp24 
-	_at_top 
+	_xpop  
 	tnz a 
 	jrmi 4$
 	jrne 5$
-	mov acc8,#2 ; n1==n2
+	mov acc8,#2 ; i1==i2
 	jra 6$ 
-4$: 
-	mov acc8,#4 ; n1<2 
+4$: ; i1<i2
+	mov acc8,#4 
 	jra 6$
-5$:
-	mov acc8,#1 ; n1>n2 
+5$: ; i1>i2
+	mov acc8,#1  
 6$:
 	clrw x 
 	ld a, acc8  
 	and a,(RELOP,sp)
-	jreq 7$
-	incw x
-7$:	_store_top   
-	jra 10$  	
+	jreq rel_exit
+	cplw x 
+	ld a,#255 
+	jra rel_exit   	
 8$: ld a,(RELOP,sp)
-	jreq 10$
+	jreq 10$ 
 	_unget_token
 10$:
-	ld a,#TK_INTGR
-rel_exit:
+	_xpop 
+rel_exit: 
 	_drop VSIZE
 	ret 
 
@@ -1760,7 +1737,6 @@ prt_basic_line:
 	ret 
 
 
-
 ;---------------------------------
 ; BASIC: PRINT|? arg_list 
 ; print values from argument list
@@ -1774,7 +1750,15 @@ reset_comma:
 prt_loop:
 	call next_token
 	cp a,#CMD_END 
-	jrult print_exit ; colon or end of line 
+	jrult 0$
+	cp a,#TK_COLON 
+	jreq 0$
+	cp a,#TK_CMD
+	jrne 10$
+0$:
+	_unget_token 
+	jra print_exit 
+10$:	
 	cp a,#TK_QSTR
 	jreq 1$
 	cp a,#TK_CHAR 
@@ -1818,8 +1802,6 @@ prt_loop:
 7$:	
 	_unget_token 
 	call expression  
-	cp a,#TK_INTGR 
-	jrne print_exit 
     call print_top
 	jra reset_comma 
 print_exit:
@@ -2160,11 +2142,7 @@ peek:
 ;----------------------------
 if: 
 	call relation 
-	cp a,#TK_INTGR
-	jreq 1$ 
-	jp syntax_error
-1$:	_xpop 
-	tnzw x 
+	tnz  a  
 	jrne 9$ 
 ;skip to next line
 	mov in,count
@@ -4037,11 +4015,6 @@ until:
 	jp syntax_error 
 1$: 
 	call relation 
-	cp a,#TK_INTGR
-	jreq 2$
-	jp syntax_error
-2$: 
-	_xpop
 	tnz a 
 	jrne 9$ 
 	tnzw x   

@@ -1,4 +1,19 @@
+#### 2022-05-24
+
+* Corrigé bogue dans **PRINT**, *relation* et *cp24*. Réécris *cp24_ax*
+
 #### 2022-05-23
+
+* bogue 
+```
+>a=1 do ? a, a=a+1 pause 100 until a>15
+   1    1 
+
+>
+
+```
+
+* Réparé bogue dans *cp24*. 
 
 * Réparé bogue dans **RESTORE** et **READ**. 
 
