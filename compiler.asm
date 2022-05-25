@@ -519,7 +519,20 @@ parse_keyword:
 	incw y 
 	call search_dict
 	tnz a
-	jrne 4$ 
+	jrne 4$
+; not in this dictionary 
+; search for operators dictionary 
+	ldw x,(XFIRST,sp)
+	incw x  ; *name to search for
+	call search_op_dict
+	tnz a
+	jreq 22$
+; operator 
+	ldw y,(XFIRST,sp)
+	ld (y),a 
+	incw y 
+	jra 5$
+22$:	 
 ; not in dictionary
 ; compile it as TK_LABEL
 	ldw y,(XFIRST,sp)

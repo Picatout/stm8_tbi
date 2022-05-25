@@ -11,8 +11,7 @@
  500 ? "testing ON expr GOSUB line#,line#..." 
  505 INPUT "select 1-7"B
  510 A=1 ON A*B GOSUB 600,700,800,900,1000,LBL2,EXIT  
- 520 IF B>6 GOTO 14 
- 522 if B<1 GOTO 14 
+ 520 IF B<1 OR B>7 GOTO 14 
  524 GOTO 5  
  600 ? "selected GOSUB 600" : RETURN 
  700 ? "selected GOSUB 700" : RETURN 

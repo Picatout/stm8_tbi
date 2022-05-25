@@ -70,6 +70,9 @@
         TK_INTGR=132    ; 16 bits integer 
         TK_VAR=133
         TK_FLOAT=134    ; float32 
+        TK_AND=135      ;
+        TK_OR=136       ;
+        TK_XOR=137      ; 
         TK_NONE=0       ; not a token 
         TK_QSTR=2       ; quoted string  
         TK_LABEL=3      ; used for defined, constants, variables

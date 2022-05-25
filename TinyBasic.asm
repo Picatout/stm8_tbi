@@ -892,16 +892,11 @@ arg_list:
 	cp a,#TK_CMD 
 	jreq 5$
 	cp a,#TK_NONE  
-	jrmi 6$
+	jreq 6$
 	cp a,#TK_COLON 
-	jrmi 6$
+	jreq 5$
 	_unget_token
 1$: call expression
-	cp a,#TK_NONE 
-	jreq 5$
-	cp a,#TK_INTGR
-	jrne 4$
-3$: 
 	inc (1,sp)
 	call next_token 
 	cp a,#TK_COMMA 
@@ -1183,10 +1178,78 @@ relation:
 	jreq 10$ 
 	_unget_token
 10$:
-	_xpop 
+	_xpop
 rel_exit: 
 	_drop VSIZE
 	ret 
+
+;--------------------------------------------
+; condition for IF and UNTIL 
+; operators: AND,OR,XOR 
+;--------------------------------------------
+	COND=1 
+	VSIZE=1 
+condition:
+	push #0 
+	call relation 
+	_xpush 
+	call next_token 
+	cp a,#TK_AND 
+	jrmi 8$ 
+	cp a,#TK_XOR+1 
+	jrpl 8$ 
+	ld (COND,sp),a ; TK_AND|TK_OR|TK_XOR 
+	call relation 
+	ld acc24,a 
+	ldw acc16,x 
+	_xpop
+	push a
+	ld a,(COND+1,sp)
+	cp a,#TK_XOR 
+	jreq 7$ 
+	cp a,#TK_OR 
+	jreq 6$
+; AND
+	ld a,(1,sp) 
+	and a,acc24
+	ld (1,sp),a 
+	ld a,xh  
+	and a,acc16 
+	ld xh,a 
+	ld a,xl 
+	and a,acc8 
+	ld xl,a 
+	pop a 
+	jra 9$
+6$: ; OR 
+	ld a,(1,sp) 
+	or a,acc24
+	ld (1,sp),a 
+	ld a,xh  
+	or a,acc16 
+	ld xh,a 
+	ld a,xl 
+	or a,acc8 
+	ld xl,a 
+	pop a 
+	jra 9$  
+7$: ; XOR 
+	ld a,(1,sp) 
+	xor a,acc24
+	ld (1,sp),a 
+	ld a,xh  
+	xor a,acc16 
+	ld xh,a 
+	ld a,xl 
+	xor a,acc8 
+	ld xl,a 
+	pop a 
+	jra 9$ 
+8$: _unget_token 
+	_xpop 
+9$:	_drop VSIZE 
+	ret 
+
 
 ;--------------------------------------------
 ; BASIC: HEX 
@@ -2148,7 +2211,7 @@ peek:
 ; execute instructions on same line. 
 ;----------------------------
 if: 
-	call relation 
+	call condition  
 	tnz  a  
 	jrne 9$ 
 ;skip to next line
@@ -4021,7 +4084,7 @@ until:
 	jrne 1$ 
 	jp syntax_error 
 1$: 
-	call relation 
+	call condition  
 	tnz a 
 	jrne 9$ 
 	tnzw x   
@@ -4399,6 +4462,79 @@ pad_ref:
 
 
 ;------------------------------
+; logical operators dictonary 
+; format:
+;    link: 2 bytes 
+;    name_length: 1 byte 
+;    op_name: 4 char max 
+;    op_id: # byte
+;-------------------------------
+	.macro _op_entry len,name,id 
+	.word OP_LINK 
+	OP_LINK=.
+name:
+	.byte len 
+	.asciz "name" 
+	.byte  id 
+	.endm 
+
+	OP_LINK=0 
+op_end:
+	_op_entry 3,XOR,TK_XOR 
+	_op_entry 2,OR,TK_OR 
+op_dict:	
+	_op_entry 3,AND,TK_AND 
+
+;------------------------------
+;  search operator dictonary 
+;  input:
+;     x    *name 
+;  output:
+;     A     op_id | 0 
+;-----------------------------
+	NLEN=1 
+	NAME=2
+	XSAVE=4
+	VSIZE=5 
+search_op_dict:
+	_vars VSIZE 
+	ldw (NAME,sp),x 
+	call strlen 
+	ld (NLEN,sp),a 
+	ldw x,#op_dict+2
+1$:	ldw (XSAVE,sp),x 
+	ld a,(x)
+	cp a,(NLEN,sp)
+	jreq 3$
+; skip over this one 	
+2$:	ldw x,(XSAVE,sp)
+	subw x,#2 
+	ldw x,(x) ; link 
+	jreq 8$ 
+	jra 1$
+3$: ; len good compare string 
+	incw x  
+	ldw y,(NAME,sp)
+	call strcmp 
+	jreq 2$ 
+; found 
+	ldw x,(XSAVE,sp)
+; skip to id field 
+	ld a,(x) ; len field 
+	add a,#2 ; len and 0 at end of string 
+	push a 
+	push #0 
+	addw x,(1,sp)
+	_drop 2 
+	ld a,(x)
+	jra 9$ 
+8$: ; not found 	
+	clr a 	
+9$:	_drop VSIZE 
+	ret 
+
+
+;------------------------------
 ;      dictionary 
 ; format:
 ;   link:   2 bytes 
@@ -4419,7 +4555,7 @@ name:
 ; respect alphabetic order for BASIC names from Z-A
 ; this sort order is for a cleaner WORDS cmd output. 	
 kword_end:
-	_dict_entry,3+F_IFUNC,XOR,XOR_IDX;bit_xor
+;	_dict_entry,3+F_IFUNC,XOR,XOR_IDX;bit_xor
 	_dict_entry,5,WRITE,WRITE_IDX;write  
 	_dict_entry,5,WORDS,WORDS_IDX;words 
 	_dict_entry 4,WAIT,WAIT_IDX;wait 
@@ -4467,7 +4603,7 @@ kword_end:
 	_dict_entry,4+F_IFUNC,PEEK,PEEK_IDX;peek 
 	_dict_entry,5,PAUSE,PAUSE_IDX;pause 
 	_dict_entry,3+F_IFUNC,PAD,PAD_IDX;pad_ref 
-	_dict_entry,2+F_IFUNC,OR,OR_IDX;bit_or
+;	_dict_entry,2+F_IFUNC,OR,OR_IDX;bit_or
 	_dict_entry,2,ON,ON_IDX; cmd_on 
 	_dict_entry,3+F_IFUNC,ODR,ODR_IDX;const_odr 
 	_dict_entry,3+F_IFUNC,NOT,NOT_IDX;func_not 
@@ -4516,7 +4652,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,BIT,BIT_IDX;bitmask
 	_dict_entry,3,AWU,AWU_IDX;awu 
 	_dict_entry,3+F_IFUNC,ASC,ASC_IDX;ascii
-	_dict_entry,3+F_IFUNC,AND,AND_IDX;bit_and
+;	_dict_entry,3+F_IFUNC,AND,AND_IDX;bit_and
 	_dict_entry,7+F_IFUNC,ADCREAD,ADCREAD_IDX;analog_read
 	_dict_entry,5,ADCON,ADCON_IDX;power_adc 
 kword_dict::
