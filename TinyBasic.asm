@@ -887,24 +887,14 @@ func_args:
 ;   A 	number of arguments pushed on xstack  
 ;--------------------------------
 arg_list:
-	push #0  
-	call next_token 
-	cp a,#TK_CMD 
-	jreq 5$
-	cp a,#TK_NONE  
-	jreq 6$
-	cp a,#TK_COLON 
-	jreq 5$
-	_unget_token
-1$: call expression
+	push #0
+1$:	call condition 
+	tnz a 
+	jreq 6$  
 	inc (1,sp)
 	call next_token 
 	cp a,#TK_COMMA 
 	jreq 1$ 
-4$:	cp a,#TK_RPAREN 
-	jreq 6$
-5$:
-	_unget_token 
 6$:	pop a  
 	ret 
 
@@ -976,14 +966,21 @@ factor:
 	_vars VSIZE 
 	clr (NEG,sp)
 	call next_token
+	tnz a 
+	jrne 1$ 
+	jp 22$ 
 1$:	cp a,#TK_PLUS 
 	jreq 2$
 	cp a,#TK_MINUS 
 	jrne 4$ 
 	cpl (NEG,sp)
 2$:	
-	call next_token 
-4$:	
+	call next_token
+4$:
+	tnz a 
+	jrne 41$ 
+	jp syntax_error  
+41$:	
 	cp a,#TK_IFUNC 
 	jrne 5$ 
 	call get_code_addr 
@@ -1035,13 +1032,17 @@ factor:
 	_xpop 
 	jra 18$	
 16$:
-	jp syntax_error
+	_unget_token 
+	clr a 
+	jra 22$ 
 18$: 
 	tnz (NEG,sp)
 	jreq 20$
 	call neg_ax   
 20$:
 	_xpush 
+	ld a,#TK_INTGR
+22$:
 	_drop VSIZE
 	ret
 
@@ -1058,18 +1059,23 @@ term:
 	_vars VSIZE
 ; first factor 	
 	call factor
+	tnz a 
+	jreq term_exit  
 term01:	 ; check for  operator '*'|'/'|'%' 
 	call next_token
 	ld (MULOP,sp),a
-	cp a,#CMD_END
-	jrult 8$
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_MULT
 	jreq 1$
-	jra 8$
+	ld a,#TK_INTGR
+	_unget_token 
+	jra term_exit 
 1$:	; got *|/|%
 ;second factor
 	call factor
+	tnz a 
+	jrne 2$ 
+	jp syntax_error 
 2$: ; select operation 	
 	ld a,(MULOP,sp) 
 	cp a,#TK_MULT 
@@ -1085,9 +1091,8 @@ term01:	 ; check for  operator '*'|'/'|'%'
 4$: ; '%' operator
 	call mod24
 	jra term01 
-8$: ; term end 
-	_unget_token
 9$: 
+	ld a,#TK_INTGR
 term_exit:
 	_drop VSIZE 
 	ret 
@@ -1105,17 +1110,23 @@ expression:
 	_vars VSIZE 
 ; first term 	
 	call term
+	tnz a 
+	jreq 9$
 1$:	; operator '+'|'-'
 	call next_token
 	ld (OP,sp),a 
-	cp a,#CMD_END 
-	jrult 8$ 
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_ADD 
 	jreq 2$ 
-	jra 8$
+	_unget_token 
+	ld a,#TK_INTGR
+	jra 9$ 
 2$: ; second term 
 	call term
+	tnz a 
+	jrne 3$
+	jp syntax_error
+3$:
 	ld a,(OP,sp)
 	cp a,#TK_PLUS 
 	jrne 4$
@@ -1125,11 +1136,7 @@ expression:
 4$:	; '-' operator 
 	call sub24
 	jra 1$
-8$: ; end of expression 
-	_unget_token	
-9$: ; expression value on xstack 
-	ld a,#TK_INTGR 	
-expr_exit:
+9$:
 	_drop VSIZE 
 	ret 
 
@@ -1138,7 +1145,6 @@ expr_exit:
 ; rel_op ::=  '=','<','>','>=','<=','<>','><'
 ;  relation return  integer , zero is false 
 ;  output:
-;    A 		token attribute  
 ;	 xstack		value  
 ;---------------------------------------------
 	RELOP=1
@@ -1146,14 +1152,23 @@ expr_exit:
 relation: 
 	_vars VSIZE
 	call expression
+	tnz a 
+	jreq 9$ 
 ; expect rel_op or leave 
 	call next_token 
 	ld (RELOP,sp),a 
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_RELOP 
-	jrne 8$
+	jreq 2$
+	ld a,#TK_INTGR 
+	_unget_token 
+	jra 9$ 
 2$:	; expect another expression
 	call expression
+	tnz a 
+	jrne 3$
+	jp syntax_error 
+3$: 
 	call cp24 
 	_xpop  
 	tnz a 
@@ -1166,87 +1181,136 @@ relation:
 	jra 6$
 5$: ; i1>i2
 	mov acc8,#1  
-6$:
+6$: ; 0=false, -1=true 
 	clrw x 
 	ld a, acc8  
 	and a,(RELOP,sp)
-	jreq rel_exit
+	jreq 7$
 	cplw x 
 	ld a,#255 
-	jra rel_exit   	
-8$: ld a,(RELOP,sp)
-	jreq 10$ 
-	_unget_token
-10$:
-	_xpop
-rel_exit: 
+7$:	_xpush 
+	ld a,#TK_INTGR
+9$: 
 	_drop VSIZE
 	ret 
 
+;-------------------------------------------
+;  AND factor:   relation | (condition)
+;  output:
+;     A      TK_INTGR|0
+;-------------------------------------------
+and_factor:
+	call next_token  
+	tnz a 
+	jreq 8$ 
+	cp a,#TK_LPAREN 
+	jrne 1$
+	call condition
+	ld a,#TK_RPAREN 
+	call expect
+	ret
+1$: _unget_token 
+	call relation 
+8$: ret 
+
+
+;--------------------------------------------
+;  AND operator as priority over OR||XOR 
+;  format: relation | (condition) [AND relation|(condition)]*
+;          
+;  output:
+;     A     TK_INTGR|0
+;    xtack   value 
+;--------------------------------------------
+and_cond:
+	call and_factor
+	tnz a 
+	jreq 9$  
+1$: call next_token 
+	tnz a 
+	jreq 6$ 
+	cp a,#TK_AND 
+	jreq 3$
+	_unget_token 
+	jra 6$ 
+3$:	call and_factor  
+	tnz a 
+	jrne 4$
+	jp syntax_error 
+4$:	
+	_xpop 
+	ld acc24,a 
+	ldw acc16,x
+	_xpop 
+	and a,acc24 
+	rlwa x 
+	and a,acc16 
+	rlwa x 
+	and a,acc8 
+	rlwa x
+	_xpush
+	jra 1$  
+6$: ld a,#TK_INTGR 
+9$:	ret 	 
+
+
 ;--------------------------------------------
 ; condition for IF and UNTIL 
-; operators: AND,OR,XOR 
+; operators: OR,XOR 
+; format:  and_cond [ OP and_cond ]* 
+; output:
+;    A        INTGR|0 
+;    xstack   value 
 ;--------------------------------------------
-	COND=1 
-	VSIZE=1 
+	ATMP=1
+	OP=2
+	VSIZE=2 
 condition:
-	push #0 
-	call relation 
-	_xpush 
-	call next_token 
-	cp a,#TK_AND 
-	jrmi 8$ 
-	cp a,#TK_XOR+1 
-	jrpl 8$ 
-	ld (COND,sp),a ; TK_AND|TK_OR|TK_XOR 
-	call relation 
+	_vars VSIZE 
+	call and_cond
+	tnz a 
+	jreq 9$ 
+1$:	call next_token 
+	cp a,#TK_OR 
+	jreq 2$
+	cp a,#TK_XOR
+	jreq 2$ 
+	_unget_token 
+	jra 8$ 
+2$:	ld (OP,sp),a ; TK_OR|TK_XOR 
+	call and_cond
+	cp a,#TK_INTGR 
+	jreq 3$
+	jp syntax_error 
+3$:	 
+	_xpop  ; rigth arg 
 	ld acc24,a 
 	ldw acc16,x 
-	_xpop
-	push a
-	ld a,(COND+1,sp)
+	_xpop  ; left arg  
+	ld (ATMP,sp),a 
+	ld a,(OP,sp)
 	cp a,#TK_XOR 
-	jreq 7$ 
-	cp a,#TK_OR 
-	jreq 6$
-; AND
-	ld a,(1,sp) 
-	and a,acc24
-	ld (1,sp),a 
-	ld a,xh  
-	and a,acc16 
-	ld xh,a 
-	ld a,xl 
-	and a,acc8 
-	ld xl,a 
-	pop a 
-	jra 9$
-6$: ; OR 
-	ld a,(1,sp) 
-	or a,acc24
-	ld (1,sp),a 
-	ld a,xh  
+	jreq 5$ 
+4$: ; A:X OR acc24   
+	ld a,(ATMP,sp)
+	or a,acc24 
+	rlwa x 
 	or a,acc16 
-	ld xh,a 
-	ld a,xl 
+	rlwa x 
 	or a,acc8 
-	ld xl,a 
-	pop a 
-	jra 9$  
-7$: ; XOR 
-	ld a,(1,sp) 
-	xor a,acc24
-	ld (1,sp),a 
-	ld a,xh  
+	rlwa x 
+	jra 6$  
+5$: ; A:X XOR acc24 
+	ld a,(ATMP,sp)
+	xor a,acc24 
+	rlwa x 
 	xor a,acc16 
-	ld xh,a 
-	ld a,xl 
+	rlwa x 
 	xor a,acc8 
-	ld xl,a 
-	pop a 
-	jra 9$ 
-8$: _unget_token 
-	_xpop 
+	rlwa x 
+6$: _xpush
+	jra 1$ 
+8$:	ld a,#TK_INTGR 
 9$:	_drop VSIZE 
 	ret 
 
@@ -1350,7 +1414,7 @@ let_eval:
 	jreq 1$
 	jp syntax_error
 1$:	
-	call expression    
+	call condition   
 	cp a,#TK_INTGR 
 	jreq 2$
 	jp syntax_error
@@ -1827,7 +1891,7 @@ prt_loop:
 	jrne 10$
 0$:
 	_unget_token 
-	jra print_exit 
+	jra 8$ 
 10$:	
 	cp a,#TK_QSTR
 	jreq 1$
@@ -1871,10 +1935,12 @@ prt_loop:
 	jra reset_comma 
 7$:	
 	_unget_token 
-	call expression  
+	call condition
+	tnz a 
+	jreq 8$    
     call print_top
 	jra reset_comma 
-print_exit:
+8$:
 	tnz (CCOMMA,sp)
 	jrne 9$
 	ld a,#CR 
@@ -2212,6 +2278,7 @@ peek:
 ;----------------------------
 if: 
 	call condition  
+	_xpop 
 	tnz  a  
 	jrne 9$ 
 ;skip to next line
@@ -3499,96 +3566,6 @@ abs:
 	ret 
 
 ;------------------------------
-; BASIC: AND(expr1,expr2)
-; Apply bit AND relation between
-; the 2 arguments, i.e expr1 & expr2 
-; output:
-; 	A 		TK_INTGR
-;   X 		result 
-;------------------------------
-bit_and: ; i1 i2 -- i1 & i2 
-	call func_args 
-	cp a,#2
-	jreq 1$
-	jp syntax_error 
-1$:	_xpop 
-    pushw x 
-	push  a 
-	_at_top 
-	and a,(1,sp)
-	rlwa x 
-	and a,(2,sp)
-	rlwa x 
-	and a,(3,sp)
-	rlwa x 
-	_drop 3 
-	_store_top 
-	ld a,#TK_INTGR
-	ret
-
-;------------------------------
-; BASIC: OR(expr1,expr2)
-; Apply bit OR relation between
-; the 2 arguments, i.e expr1 | expr2 
-; output:
-; 	A 		TK_INTGR
-;   X 		result 
-;------------------------------
-bit_or:
-	call func_args 
-	cp a,#2
-	jreq 1$
-	jp syntax_error 
-1$:	_xpop 
-    pushw x 
-	push  a 
-	_at_top 
-	or a,(1,sp)
-	ld yl,a 
-	ld a,xh 
-	or a,(2,sp)
-	ld xh,a 
-	ld a,xl 
-	or a,(3,sp)
-	ld xl,a 
-	ld a,yl 
-	_drop 3 
-	_store_top 
-	ld a,#TK_INTGR
-	ret
-
-;------------------------------
-; BASIC: XOR(expr1,expr2)
-; Apply bit XOR relation between
-; the 2 arguments, i.e expr1 ^ expr2 
-; output:
-; 	A 		TK_INTGR
-;   X 		result 
-;------------------------------
-bit_xor:
-	call func_args 
-	cp a,#2
-	jreq 1$
-	jp syntax_error 
-1$:	_xpop 
-    pushw x 
-	push  a 
-	_at_top 
-	xor a,(1,sp)
-	ld yl,a 
-	ld a,xh 
-	xor a,(2,sp)
-	ld xh,a 
-	ld a,xl 
-	xor a,(3,sp)
-	ld xl,a 
-	ld a,yl 
-	_drop 3 
-	_store_top 
-	ld a,#TK_INTGR
-	ret
-
-;------------------------------
 ; BASIC: LSHIFT(expr1,expr2)
 ; logical shift left expr1 by 
 ; expr2 bits 
@@ -4085,6 +4062,7 @@ until:
 	jp syntax_error 
 1$: 
 	call condition  
+	_xpop 
 	tnz a 
 	jrne 9$ 
 	tnzw x   
@@ -4555,7 +4533,6 @@ name:
 ; respect alphabetic order for BASIC names from Z-A
 ; this sort order is for a cleaner WORDS cmd output. 	
 kword_end:
-;	_dict_entry,3+F_IFUNC,XOR,XOR_IDX;bit_xor
 	_dict_entry,5,WRITE,WRITE_IDX;write  
 	_dict_entry,5,WORDS,WORDS_IDX;words 
 	_dict_entry 4,WAIT,WAIT_IDX;wait 
@@ -4603,13 +4580,11 @@ kword_end:
 	_dict_entry,4+F_IFUNC,PEEK,PEEK_IDX;peek 
 	_dict_entry,5,PAUSE,PAUSE_IDX;pause 
 	_dict_entry,3+F_IFUNC,PAD,PAD_IDX;pad_ref 
-;	_dict_entry,2+F_IFUNC,OR,OR_IDX;bit_or
 	_dict_entry,2,ON,ON_IDX; cmd_on 
 	_dict_entry,3+F_IFUNC,ODR,ODR_IDX;const_odr 
 	_dict_entry,3+F_IFUNC,NOT,NOT_IDX;func_not 
 	_dict_entry,4,NEXT,NEXT_IDX;next 
 	_dict_entry,3,NEW,NEW_IDX;new
-;	_dict_entry,6+F_IFUNC,MULDIV,MULDIV_IDX;muldiv 
 	_dict_entry,6+F_IFUNC,LSHIFT,LSHIFT_IDX;lshift
 	_dict_entry,3+F_IFUNC,LOG,LOG_IDX;log2 
 	_dict_entry 4,LIST,LIST_IDX;list
@@ -4652,7 +4627,6 @@ kword_end:
 	_dict_entry,3+F_IFUNC,BIT,BIT_IDX;bitmask
 	_dict_entry,3,AWU,AWU_IDX;awu 
 	_dict_entry,3+F_IFUNC,ASC,ASC_IDX;ascii
-;	_dict_entry,3+F_IFUNC,AND,AND_IDX;bit_and
 	_dict_entry,7+F_IFUNC,ADCREAD,ADCREAD_IDX;analog_read
 	_dict_entry,5,ADCON,ADCON_IDX;power_adc 
 kword_dict::
@@ -4660,19 +4634,19 @@ kword_dict::
 
 ;comands and fonctions address table 	
 code_addr::
-	.word abs,power_adc,analog_read,bit_and,ascii,awu,bitmask ; 0..7
+	.word abs,power_adc,analog_read,ascii,awu,bitmask ; 0..7
 	.word bit_reset,bit_set,bit_test,bit_toggle,bye,char,const_cr2  ; 8..15
 	.word const_cr1,data,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
 	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto,gpio ; 24..31 
 	.word hex_base,const_idr,if,input_var,invert,enable_iwdg,refresh_iwdg,key ; 32..39 
 	.word let,list,log2,lshift,next,new ; 40..47
-	.word func_not,const_odr,bit_or,pad_ref,pause,pin_mode,peek,const_input ; 48..55
+	.word func_not,const_odr,pad_ref,pause,pin_mode,peek,const_input ; 48..55
 	.word poke,const_output,print,const_porta,const_portb,const_portc,const_portd,const_porte ; 56..63
 	.word const_portf,const_portg,const_porth,const_porti,qkey,read,cold_start,remark ; 64..71 
 	.word restore,return, random,rshift,run,free ; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
-	.word wait,words,write,bit_xor,cmd_size,cmd_on,cmd_get,cmd_const ; 96..99
+	.word wait,words,write,cmd_size,cmd_on,cmd_get,cmd_const ; 96..99
 	.word func_eefree,0 
 
 

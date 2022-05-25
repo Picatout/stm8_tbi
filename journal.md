@@ -1,4 +1,29 @@
+#### 2022-05-25
+
+* commit 11:22
+
+* Travail sur les opérateurs AND|OR|XOR complété.
+
+	* Ajouter routine *and_factor*, *and_term*  
+
+	* priorité des opérateurs   AND a la précédence sur OR et XOR qui ont la même précédence. 
+
+	* Les opérateurs de précédenc
+
 #### 2022-05-24
+
+* Commit 
+
+* Début de la transformation des fonctions AND,OR et XOR en opérateurs. 
+	
+	* Création de la routine *condition*. 
+	
+	* Modification de la routine *parse_keyword*.
+
+	* Création du dictionnaire *op_dict*. 
+
+	* Création de la routine *search_op_dict*.
+	
 
 * Corrigé bogue dans *arg_list*
 
