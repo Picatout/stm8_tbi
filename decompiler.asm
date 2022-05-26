@@ -429,7 +429,7 @@ decomp_loop:
 single_char: .byte '@','(',')',',','#'
 add_char: .byte '+','-'
 mul_char: .byte '*','/','%'
-relop_str: .word gt,equal,ge,lt,le,ne 
+relop_str: .word gt,equal,ge,lt,ne,le 
 gt: .asciz ">"
 equal: .asciz "="
 ge: .asciz ">="

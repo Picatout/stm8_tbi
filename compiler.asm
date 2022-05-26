@@ -338,7 +338,7 @@ parse_integer: ; { -- n }
 	ldw y,x
 	ld a,acc24 
 	ld (y),a 
-	addw y,#1  
+	incw y  
 	ldw x,acc16 
 	ldw (y),x 
 	addw y,#2
@@ -383,9 +383,9 @@ bin_exit:
 	dec in 
 	ldw y,x
 	ld a,(BINARY,sp)
-	ld acc24,a 
+	ld (y),a 
+	incw y 
 	ldw x,(BINARY+1,sp)
-	ldw acc16,x
 	ldw (y),x 
 	addw y,#2  
 	ld a,#TK_INTGR 	

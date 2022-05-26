@@ -1,3 +1,56 @@
+#### 2022-05-26
+
+* Corrigé bogue dans *cmd_const*  lorsqu'on utilise l'option *\U*  la variable *free_eeprom* était incrémentée même s'il ne s'agissait pas d'une nouvelle constante.
+```
+	call write_nbytes
+	tnz (UPDATE,sp)
+	jrne 8$ ; not a new constant, don't update free_eeprom
+; update free_eeprom 
+```
+
+* Corrigé bogue dans le decompiler. l'ordre des addresses dans *relop_str* était incorrect. Le bon ordre est. 
+```
+relop_str: .word gt,equal,ge,lt,ne,le 
+```
+
+* Corrigé bogue dans **INPUT**.  Le saut conditionnel *jrne 22$* avait été oublié après le cp a,#TK_MINUS .
+
+
+* Corrigé bogue CTRL+R qui ne fonctionnait pas dans l'édition de ligne. Un test sur la valeur de **A** avait été oublié. Bogue présent dans version 1.1.
+
+
+* Bogue dans *readln*
+	
+	* le mode insertion fait planté le système.  Localisé bogue dans *insert_char* 
+	* Trouvé le bogue, une erreur de nom de VSISE au lieu de VSIZE en entête de routine. Vérification faite le bogue était déjà présent dans la version 1.1
+
+```
+	IPOS=1
+	KCHAR=2 
+    LLEN=3 
+	VSISE=3 
+insert_char: 
+
+```
+
+
+
+* Corrigé bogue dans *parse_binary*.
+
+* Travail de mise à jousr du fichier [tbi_reference.md](tbi_reference.md)
+
+* Suppression de la fonction **GPIO** puisque l'expression **PORTx+reg** retourne la même valeur.
+
+```
+>? gpio(portc,idr)
+20491 
+
+>? portc+idr
+20491 
+
+>
+```
+
 #### 2022-05-25
 
 * commit 20:06
@@ -228,6 +281,8 @@ run time error, syntax error
 
 #### 2022-05-07
 
+* bogue dans *decompile*  opérateur **&lt;&gt;** décompilé comme **&lt;=**. 
+
 * Corrigé bogue dans *next_token*. Lorsque qu'un TK_NONE était retourné et que la routine appellante faisait un *_unget_token* le programme entrait dans une boucle infinie. J'ai déplacé la sauvegarde  avant le test de
 fin de ligne. 
 
@@ -310,7 +365,7 @@ next_token::
 
 	* Déplacé routines programmation **IAP** dans [flash_prog.asm](flash_prog.asm)
 
-	* Déplacé code d'initialisation et routines dans [terminal.asm](terminal.asm) 
+	* Déplacé code d'initialisation UART1 et routines dans [terminal.asm](terminal.asm) 
 
 #### 2022-04-30
 
@@ -494,7 +549,7 @@ modifié:
 
 * Modifié la valeur de **TK_COLON** de **1** à **0xb** dans [bit_macros.inc](tbi_macros.inc) pour supprimer un test dans *next_token*. La commande **INPUT** a été mmodifiée en conséquence.   
 
-* Modifié *text_token* pour qu'il n'y est qu'un point de sortie à **9$:** 
+* Modifié *next_token* pour qu'il n'y est qu'un point de sortie à **9$:** 
 
 * Modifié version information in [TinyBasic.asm](TinyBasic.asm).
 

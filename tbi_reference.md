@@ -29,13 +29,13 @@
 
 <a id="data"></a>
 ### Type de données 
-Le seul type de donné numérique est l'entier 16 bits donc dans l'intervalle **-32768...32767**.  
+Le seul type de donné numérique est l'entier 24 bits donc dans l'intervalle **-8388607...8388607**.  
 
 Cependant pour des fins d'impression des chaînes de caractères entre guillemets sont disponibles. Seul les commandes **PRINT** et **INPUT** utilisent ces chaînes comme arguments. 
 
 Le type caractère est aussi disponible sous la forme **\c** i.e. un *backslash* suivit d'un caractère ASCII. 
 
-Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()**. Qui retourne un jeton de type **TK_CHAR**. Ce type de donnée ne peut-être sauvegardé dans une variable sauf en utilisant la fonction **ASC()** qui le convertie ent type **TK_INTGR** qui peut-être sauvegardé dans une variable ou utilisé dans un expression.  
+Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()**. Qui retourne un jeton de type **TK_CHAR**. Ce type de donnée ne peut-être sauvegardé dans une variable sauf en utilisant la fonction **ASC()** qui le convertie ent type **TK_INTGR** qui peut-être sauvegardé dans une variable ou utilisé dans une expression.  
 
 [index principal](#index-princ)
 
@@ -46,22 +46,23 @@ Le nombre des variables est limité à 26 et chacune d'elle est représentée pa
 
 ### Tableau 
 
-Il n'y a qu'un seul tableau appelé **@** et dont la taille dépend de la taille du programme. En effet ce tableau utilise la mémoire RAM laissée libre par le programme. Un programme peut connaître la taille de ce tableau en invoquant la fonction **UBOUND**. 
+Il n'y a qu'un seul tableau appelé **@** et dont la taille dépend de la taille du programme. En effet ce tableau utilise la mémoire RAM laissée libre par le programme. Un programme peut connaître la taille de ce tableau en invoquant la fonction **UBOUND**. Si le programme s'exécute à partir de la mémoire FLASH alors toute la RAM à l'exception de celle utilisée par le système BASIC est disponible pour le tableau **@**. 
 
 [index principal](#index-princ)
 <a id="expressions"></a>
 ### expression arithmétiques 
 
 Il y a 5 opérateurs arithmétiques par ordre de précédence:
+1. **'(' ')'** les expressions entre parenthèses ont la plus hautre priorité.  
 1. **'-'**  moins unaire, qui a la plus haute priorité.
 1.  __'*'__ mulitipliation, **'/'** division, **'%'** modulo 
 1. **'+'** addition, **'-'** soustraction.
 
-Notez que les opérations de division et de modulo réponde à la définition de la [division Euclidienne sur entiers relatif](https://fr.wikipedia.org/wiki/Division_euclidienne#Extension_aux_entiers_relatifs). Ce qui peut réserver des surprises aux non informés. Dans ce type de division le quotient est arrondie vers l'entier le plus petit et le reste (modulo) est toujours positif. Ainsi **-5/3=-2** et **-5%3=1** de sorte que __D=q*n+r__ où **D** est le dénominateur, **q** le quotient, **n** le diviseur et **r** le reste. Dans cet exemple on a donc __-5=-2*3+1__.  
+La division est tronquée vers le zéro et le quotient à le même signe que le dividende.
 
 ### opérateurs relationnels.
 
-Les opérateurs relationnels ont une priorités inférieure à celle des opérateurs arithmétiques. Le résultat d'une relation est **0|1** et ce résultat peut-être utilisé dans une expression arithmérique. Puisque les relations sont de moindre priorité elle doivent-être misent entre parenthèses lorsqu'elles sont utilisées dans une expression arithmétique.
+Les opérateurs relationnels ont une priorités inférieure à celle des opérateurs arithmétiques. Le résultat d'une relation est **0 si fuax et -1 si vrai**. Ce résultat peut-être utilisé dans une expression arithmérique. Puisque les relations sont de moindre priorité elle doivent-être misent entre parenthèses lorsqu'elles sont utilisées dans une expression arithmétique.
 
 1. **'&gt;'**   Retourne vrai si le premier terme est plus grand que le deuxième.
 1. **'&lt;'** Retourne vrai si le premier terme est plus petit que le second.
@@ -69,6 +70,28 @@ Les opérateurs relationnels ont une priorités inférieure à celle des opérat
 1. **'&lt;='** Retourne vrai si le premier terme est plus petit ou égal au second. 
 1. **'='** Retourne vrai si les 2 termes sont identiques. 
 1. **'&lt;&gt;'** ou **'&gt;&lt;'** Retourne vrai si les 2 termes sont différents. 
+
+### Opérateur binaire/conditionnel 
+
+Les opérateurs **AND**, **OR** et **XOR** effectuent des opérations bit à bit mais peuvent-être aussi utilisé comme opérateurs en logique combinatoire. Si ces opérateurs sont utilisés avec le résultat d'une relation alors le résultat est le même que pour un opérateur logique du même nom. C'est à dire que le résultat sera **0** ou **-1**.
+par exemple:
+```
+> ? 3 AND 5 
+   1  
+``` 
+Dans cet exemple le **AND** agit comme un opérateur bit à bit comme l'instruction machine du même nom. 
+```
+> a=3: if a>2 and a<4 ? a
+   3 
+```
+Dans ce 2ième exemple l'opérateur **AND** agit comme un  opérateur en logique combinatoire. 
+
+Ces opérateurs ont la plus faible priorité. Entre eux ils ont la priorité suivante.
+
+1. **AND**   plus haute priorité. 
+1. **OR** et **XOR**  même priorité. 
+
+Les opérateurs de priorité identiques sont évalués de gauche à droite. Les parenthèses peuvent-être utilisées pour modifier la priorité des relations combinatoire.
 
 [index principal](#index-princ)
 <a id="syntaxe"></a>
@@ -78,7 +101,7 @@ Le code utilisé pour le texte est le code [ASCII](https://fr.wikipedia.org/wiki
 
 Un programme débute par un numéro de ligne suivit d'une ou plusieurs commandes séparées par le caractère **':'**. Ce caractère est facultatif, l'espace entre les commandes est suffisant pour les distinguées.  Par exemple:
 ```
->t=ticks for i=1to10000 a=10 next i u=ticks-t ? u
+>t=ticks for i=1 to 10000 a=10 next i ? ticks-t
 333 
 ```
 fonctionne sans problème.

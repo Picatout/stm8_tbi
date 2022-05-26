@@ -320,7 +320,7 @@ send_parameter:
     jreq 2$
 	cp a,#9 
 	jrule 1$
-	ld a,#'9
+	ld a,#9
 1$:
 	add a,#'0 
 	call putc
@@ -395,12 +395,13 @@ spaces::
 ;   xh      insert position 
 ;   Y       line pointer 
 ; output:
-;   Y       updated Y 
+;   tib     updated 
+;   Y       updated  
 ;-------------------------
 	IPOS=1
 	KCHAR=2 
     LLEN=3 
-	VSISE=3 
+	VSIZE=3 
 insert_char: 
 	_vars VSIZE 
     ld (KCHAR,sp),a 
@@ -494,16 +495,16 @@ delete_line:
 
 ;------------------------------------
 ; read a line of text from terminal
-;  touches de contrôle
+;  control keys: 
 ;    BS   efface caractère à gauche 
-;    ln+CTRL_E  edit ligne# 'ln' 
-;    CTRL_R  répète dernière ligne saisie
-;    CTRL_D  supprime ligne 
-;    HOME  va au début de la ligne 
-;    KEY_END  va à la fin de la ligne 
-;    ARROW_LEFT  un caractère vers la gauche 
-;    ARROW_RIGHT  un caractère vers la droite 
-;    CTRL_O  commute entre insert/overwrite
+;    ln+CTRL_E  edit ligne# 'ln' line # 
+;    CTRL_R  edit previous line.
+;    CTRL_D  delete line  
+;    HOME  go to start of line  
+;    KEY_END  go to end of line 
+;    ARROW_LEFT  move cursor left 
+;    ARROW_RIGHT  move cursor right 
+;    CTRL_O  toggle between insert/overwrite
 ; input:
 ;	none
 ; local variable on stack:
@@ -514,19 +515,20 @@ delete_line:
 ;   count  line length 
 ;------------------------------------
 	; local variables
-	LL_HB=1
+	LL_HB=1  ; line length high byte 
 	RXCHAR = 1 ; last char received
 	LL = 2  ; accepted line length
 	CPOS=3  ; cursor position 
 	OVRWR=4 ; overwrite flag 
 	VSIZE=4 
 readln::
+	pushw y 
 	_vars VSIZE 
 	clrw x 
 	ldw (LL,sp),x 
 	ldw (CPOS,sp),x 
 	cpl (OVRWR,sp) ; default to overwrite mode 
- 	ldw y,#tib ; input buffer
+ 	ldw y,#tib ; terminal input buffer
 readln_loop:
 	call getc
 	ld (RXCHAR,sp),a
@@ -570,16 +572,17 @@ readln_loop:
 4$:
 	cp a,#CTRL_R 
 	jrne 5$
-;reprint 
+;repeat line 
 	tnz (LL,sp)
 	jrne readln_loop
-	ldw x,#tib 
-	call strlen 
 	ldw y,#tib 
+	ldw x,y
+	call strlen
+	tnz a  
 	jreq readln_loop
 	ld (LL,sp),a 
     ld (CPOS,sp),a
-	ldw x,#tib 
+	ldw x,y  
 	call puts
 	clr (LL_HB,sp)
 	addw y,(LL_HB,sp)
@@ -594,9 +597,9 @@ readln_loop:
 	call search_lineno
 	tnzw x 
 	jrne 51$
-	clr (LL,sp)
-	ldw y,#tib
-    clr (y) 	
+;	clr (LL,sp)
+;	ldw y,#tib
+;   clr (y) 	
 	jp readln_quit  
 51$:
 	ldw basicptr,x
@@ -673,9 +676,7 @@ readln_loop:
 	jrne 11$ 
 ; toggle between insert/overwrite
 	cpl (OVRWR,sp)
-	pushw y 
 	call beep_1khz
-	popw y 
 	jp readln_loop 
 11$: cp a,#SUP 
     jrne final_test 
@@ -712,7 +713,7 @@ accept_char:
     ld a,(RXCHAR,sp)
     call insert_char
     inc (LLEN,sp)
-    inc (CPOS,sp)
+    inc (CPOS,sp)	
     jp readln_loop 
 overwrite:
 	ld a,(RXCHAR,sp)
@@ -739,6 +740,7 @@ readln_quit:
 	ld a,#CR
 	call putc
 	_drop VSIZE 
+	popw y 
 	ret
 
 ;------------------------------

@@ -70,34 +70,34 @@ CODE                                00008080    00003604 =       13828. bytes (R
      00008A21  puts                               HW_INIT
      00008A8E  spaces                             HW_INIT
      00008B26  readln                             HW_INIT
-     00008CE7  print_hex                          HW_INIT
-     00008CFE  to_hex_char                        HW_INIT
-     00008D09  search_lineno                      HW_INIT
-     00008E4C  escaped                            HW_INIT
-     00008EE4  is_alpha                           HW_INIT
-     00008EF5  is_digit                           HW_INIT
-     00008EFE  is_alnum                           HW_INIT
-     00008FAA  get_token                          HW_INIT
-     00009169  compile                            HW_INIT
-     00009213  right_align                        HW_INIT
-     0000926B  var_name                           HW_INIT
-     00009296  decompile                          HW_INIT
-     00009480  strlen                             HW_INIT
-     0000949C  strcpy                             HW_INIT
-     000094AC  move                               HW_INIT
-     0000973C  syntax_error                       HW_INIT
-     0000973E  tb_error                           HW_INIT
-     0000983D  next_token                         HW_INIT
-     000098CF  itoa                               HW_INIT
-     00009928  to_upper                           HW_INIT
-     00009934  atoi24                             HW_INIT
-     0000999E  search_dict                        HW_INIT
-     00009CFD  let                                HW_INIT
-     0000A1B5  remark                             HW_INIT
-     0000A5FC  beep_1khz                          HW_INIT
-     0000A9E8  qkey                               HW_INIT
-     0000B3C1  kword_dict                         HW_INIT
-     0000B3C9  code_addr                          HW_INIT
+     00008CDC  print_hex                          HW_INIT
+     00008CF3  to_hex_char                        HW_INIT
+     00008CFE  search_lineno                      HW_INIT
+     00008E41  escaped                            HW_INIT
+     00008ED5  is_alpha                           HW_INIT
+     00008EE6  is_digit                           HW_INIT
+     00008EEF  is_alnum                           HW_INIT
+     00008F9B  get_token                          HW_INIT
+     0000915A  compile                            HW_INIT
+     00009204  right_align                        HW_INIT
+     0000925C  var_name                           HW_INIT
+     00009287  decompile                          HW_INIT
+     00009471  strlen                             HW_INIT
+     0000948D  strcpy                             HW_INIT
+     0000949D  move                               HW_INIT
+     0000972D  syntax_error                       HW_INIT
+     0000972F  tb_error                           HW_INIT
+     0000982E  next_token                         HW_INIT
+     000098C0  itoa                               HW_INIT
+     00009919  to_upper                           HW_INIT
+     00009925  atoi24                             HW_INIT
+     0000998F  search_dict                        HW_INIT
+     00009CEE  let                                HW_INIT
+     0000A1AC  remark                             HW_INIT
+     0000A5F3  beep_1khz                          HW_INIT
+     0000A9E5  qkey                               HW_INIT
+     0000B3B4  kword_dict                         HW_INIT
+     0000B3BC  code_addr                          HW_INIT
      0000B680  app_space                          HW_INIT
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.

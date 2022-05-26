@@ -179,8 +179,8 @@ strcpy::
 ; output:
 ;   none 
 ;--------------------------------------
-	INCR=1 ; increament high byte 
-	LB=2 ; increament low byte 
+	INCR=1 ; incrament high byte 
+	LB=2 ; increment low byte 
 	VSIZE=2
 move::
 	push a 
@@ -405,7 +405,6 @@ cmd_line: ; user interface
 	tnz count 
 	jreq cmd_line
 	call compile
-
 ;;;;;;;;;;;;;;;;;;;;;;	
 ;pushw y 
 ;ldw x,txtbgn  
@@ -1668,6 +1667,8 @@ cloop_1:
 	ldw x,#tib 
 	ld a,(RECLEN,sp)
 	call write_nbytes
+	tnz (UPDATE,sp)
+	jrne 8$ ; not a new constant, don't update free_eeprom
 ; update free_eeprom 
 	clrw x 
 	ld a,(RECLEN,sp)
@@ -2043,12 +2044,14 @@ input_loop:
 	cp a,#TK_INTGR
 	jreq 3$ 
 	cp a,#TK_MINUS
+	jrne 22$
 	call get_token 
 	cp a,#TK_INTGR 
-	jreq 22$
+	jreq 23$
+22$:
 	call rest_context 
 	jp syntax_error
-22$:
+23$:
 	call neg_acc24	
 3$: 
 	ld a,acc24 
@@ -2757,6 +2760,7 @@ cmd_get:
 ; 1 Khz beep 
 ;-----------------
 beep_1khz:: 
+	pushw y 
 	ldw x,#100
 	ldw y,#1000
 	jra beep
@@ -2770,6 +2774,7 @@ beep_1khz::
 ;    expr2   duration msec.
 ;---------------------------
 tone:
+	pushw y 
 	call arg_list 
 	cp a,#2 
 	jreq 1$
@@ -2807,6 +2812,7 @@ beep:
 	call pause02
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
+	popw y 
 	ret 
 
 ;-------------------------------
@@ -3476,7 +3482,7 @@ pause02:
 	jreq 2$
 	wfi 
 	jrne 1$
-2$:	clr a 
+2$:	
 	ret 
 
 ;------------------------------
@@ -4524,7 +4530,6 @@ kword_end:
 	_dict_entry,2,IF,IF_IDX;if 
 	_dict_entry,3+F_IFUNC,IDR,IDR_IDX;const_idr 
 	_dict_entry,3,HEX,HEX_IDX;hex_base
-	_dict_entry,4+F_IFUNC,GPIO,GPIO_IDX;gpio 
 	_dict_entry,4,GOTO,GOTO_IDX;goto 
 	_dict_entry,5,GOSUB,GOSUB_IDX;gosub 
 	_dict_entry,3,GET,GET_IDX; cmd_get 
@@ -4565,7 +4570,7 @@ code_addr::
 	.word abs,power_adc,analog_read,ascii,awu,bitmask ; 0..7
 	.word bit_reset,bit_set,bit_test,bit_toggle,bye,char,const_cr2  ; 8..15
 	.word const_cr1,data,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
-	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto,gpio ; 24..31 
+	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto ; 24..31 
 	.word hex_base,const_idr,if,input_var,invert,enable_iwdg,refresh_iwdg,key ; 32..39 
 	.word let,list,log2,lshift,next,new ; 40..47
 	.word func_not,const_odr,pad_ref,pause,pin_mode,peek,const_input ; 48..55

@@ -51,8 +51,7 @@
     FOR_IDX=SAVE_IDX+2
     GOSUB_IDX=FOR_IDX+2
     GOTO_IDX=GOSUB_IDX+2
-    GPIO_IDX=GOTO_IDX+2
-    HEX_IDX=GPIO_IDX+2
+    HEX_IDX=GOTO_IDX+2
     IDR_IDX=HEX_IDX+2
     IF_IDX=IDR_IDX+2
     INPUT_IDX=IF_IDX+2
@@ -118,7 +117,7 @@
     ON_IDX=SIZE_IDX+2 
     GET_IDX=ON_IDX+2
     CONST_IDX=GET_IDX+2
-    EEFREE_IDX=CONST_IDX+2 ; (121-25)*2=192
+    EEFREE_IDX=CONST_IDX+2
      
     ; keep these 3 at end
     ; these have no entry in code_addr 

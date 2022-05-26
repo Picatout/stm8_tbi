@@ -208,7 +208,7 @@ clock_init:
 
 ;----------------------------------
 ; TIMER2 used as audio tone output 
-; on port D:5.
+; on port D:5. CN9-6
 ; channel 1 configured as PWM mode 1 
 ;-----------------------------------  
 
