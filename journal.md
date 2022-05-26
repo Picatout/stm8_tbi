@@ -1,5 +1,11 @@
 #### 2022-05-26
 
+<hr>
+
+* 16:38 merge V2 à master 
+
+* commit 1637 
+
 * Corrigé bogue dans *cmd_const*  lorsqu'on utilise l'option *\U*  la variable *free_eeprom* était incrémentée même s'il ne s'agissait pas d'une nouvelle constante.
 ```
 	call write_nbytes
