@@ -77,27 +77,27 @@ CODE                                00008080    00003604 =       13828. bytes (R
      00008EE4  is_alpha                           HW_INIT
      00008EF5  is_digit                           HW_INIT
      00008EFE  is_alnum                           HW_INIT
-     00008F9F  get_token                          HW_INIT
-     0000915E  compile                            HW_INIT
-     00009205  right_align                        HW_INIT
-     0000925D  var_name                           HW_INIT
-     00009288  decompile                          HW_INIT
-     00009464  strlen                             HW_INIT
-     00009480  strcpy                             HW_INIT
-     00009490  move                               HW_INIT
-     00009720  syntax_error                       HW_INIT
-     00009722  tb_error                           HW_INIT
-     00009821  next_token                         HW_INIT
-     000098B3  itoa                               HW_INIT
-     0000990C  to_upper                           HW_INIT
-     00009918  atoi24                             HW_INIT
-     00009982  search_dict                        HW_INIT
-     00009CDA  let                                HW_INIT
-     0000A192  remark                             HW_INIT
-     0000A5D9  beep_1khz                          HW_INIT
-     0000A9C5  qkey                               HW_INIT
-     0000B3DA  kword_dict                         HW_INIT
-     0000B3E2  code_addr                          HW_INIT
+     00008FAA  get_token                          HW_INIT
+     00009169  compile                            HW_INIT
+     00009213  right_align                        HW_INIT
+     0000926B  var_name                           HW_INIT
+     00009296  decompile                          HW_INIT
+     00009480  strlen                             HW_INIT
+     0000949C  strcpy                             HW_INIT
+     000094AC  move                               HW_INIT
+     0000973C  syntax_error                       HW_INIT
+     0000973E  tb_error                           HW_INIT
+     0000983D  next_token                         HW_INIT
+     000098CF  itoa                               HW_INIT
+     00009928  to_upper                           HW_INIT
+     00009934  atoi24                             HW_INIT
+     0000999E  search_dict                        HW_INIT
+     00009CFD  let                                HW_INIT
+     0000A1B5  remark                             HW_INIT
+     0000A5FC  beep_1khz                          HW_INIT
+     0000A9E8  qkey                               HW_INIT
+     0000B3C1  kword_dict                         HW_INIT
+     0000B3C9  code_addr                          HW_INIT
      0000B680  app_space                          HW_INIT
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.

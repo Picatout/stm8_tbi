@@ -494,7 +494,7 @@ symb_loop:
 ;   A 	    first letter  
 ; output:
 ;   X		exec_addr|var_addr 
-;   A 		TK_CMD|TK_IFUNC|TK_CFUNC  
+;   A 		TK_CMD|TK_IFUNC|TK_CFUNC|TK_AND|TK_OR|TK_XOR   
 ;   pad 	keyword|var_name  
 ;--------------------------  
 	XFIRST=1
@@ -520,36 +520,40 @@ parse_keyword:
 	call search_dict
 	tnz a
 	jrne 4$
-; not in this dictionary 
-; search for operators dictionary 
-	ldw x,(XFIRST,sp)
-	incw x  ; *name to search for
-	call search_op_dict
-	tnz a
-	jreq 22$
-; operator 
-	ldw y,(XFIRST,sp)
-	ld (y),a 
-	incw y 
-	jra 5$
-22$:	 
 ; not in dictionary
 ; compile it as TK_LABEL
 	ldw y,(XFIRST,sp)
 	ld a,#TK_LABEL 
 	ld (y),a 
 	incw y
-24$:	
+	ldw x,y 
+	call strlen
+	cp a,#15 
+	jrule 22$ 
+	ld a,#15
+22$:	
+	push a 
+24$:
     ld a,(y)
 	jreq 3$
-	incw y 
-	jra 24$ 
+	incw y
+	dec (1,sp) 
+	jrne 24$
+	clr a 
+	ld (y),a 
 3$: incw y 
+	_drop 1 
 	ld a,#TK_LABEL 
 	clrw x 	
 	jra 5$ 
 4$:	
 	ldw y,(XFIRST,sp)
+	cp a,#TK_AND
+	jrmi 41$
+	ld (y),a 
+	incw y 
+	jra 5$ 
+41$:	
 	cpw x,#LET_IDX 
 	jreq 5$  ; don't compile LET command 
 	ld (y),a 

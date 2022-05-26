@@ -20,9 +20,15 @@
         EOF=0xff ; end of file marker 
         ; keyword types 
         F_CMD=0     ; command keyword
-        F_IFUNC=0x40 ; integer function keyword
-        F_CFUNC=0x80 ; character function keyword
-        F_CONST=0xC0 ; function keyword that return a constant
+        F_IFUNC=(1<<4) ; integer function keyword
+        F_CFUNC=(2<<4) ; character function keyword
+        F_CONST=(3<<4) ; function keyword that return a constant
+        F_AND=(7<<4)   ; TK_AND
+        F_OR=(8<<4)    ; TK_OR
+        F_XOR=(9<<4)   ; TK_XOR   
+        NLEN_MASK=0xf  ; mask to extract name len 
+        KW_TYPE_MASK=0xf0 ; mask to extract keyword type 
+
 
 	STACK_SIZE=140
 	STACK_EMPTY=RAM_SIZE-1  

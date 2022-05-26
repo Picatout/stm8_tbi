@@ -118,7 +118,11 @@
     ON_IDX=SIZE_IDX+2 
     GET_IDX=ON_IDX+2
     CONST_IDX=GET_IDX+2
-    EEFREE_IDX=CONST_IDX+2 
+    EEFREE_IDX=CONST_IDX+2 ; (121-25)*2=192
      
-        
+    ; keep these 3 at end
+    ; these have no entry in code_addr 
+    AND_IDX=250 
+    OR_IDX=252 
+    XOR_IDX=254    
 

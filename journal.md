@@ -1,6 +1,18 @@
 #### 2022-05-25
 
-* commit 11:22
+* commit 20:06
+
+*  Modifié  *parse_keyword*,*decompile* et *arg_list* pour tenir compte de la nouvelle structure.
+
+*  Modifié la structure du dictionnaire pour unifié les 2 dictionnaires *op_dict* et *kw_dict*
+
+	* noms *keyword* et *étiquettes* limités à 15 charactères pour donner un bit de plus au champ *keyword type*. 
+
+	* Ajouté '.' et '_'  dans l'alphabet des noms 
+
+<hr>
+
+* commit 11:22,  binary size: 13956 bytes 
 
 * Travail sur les opérateurs AND|OR|XOR complété.
 

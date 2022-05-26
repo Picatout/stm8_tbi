@@ -46,6 +46,8 @@
 ;   Y   point after name  
 ;--------------------------
 cpy_cmd_name:
+	tnzw x 
+	jreq 10$
 	ld a,(x)
 	incw x
 	and a,#15  
@@ -59,6 +61,7 @@ cpy_cmd_name:
 	dec (1,sp)	 
 	jrne 1$
 9$: pop a 
+10$: 
 	ret	
 
 ;--------------------------
@@ -250,7 +253,7 @@ decomp_loop:
 	jp 20$
 1$:	jrmi 2$
 	jp 6$
-2$: ;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR
+2$: ;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR|TK_AND|TK_OR|TK_XOR 
 	cp a,#TK_VAR 
 	jrne 3$
 ;; TK_VAR 
@@ -281,7 +284,9 @@ decomp_loop:
 	addw y,(1,sp)
 	_drop 2 
 	jra decomp_loop
-4$: ; dictionary keyword 
+4$: ; dictionary keyword
+	cp a,#TK_AND 
+	jruge 50$ 
 	ldw x,(x)
 	inc in 
 	inc in 
@@ -303,9 +308,15 @@ decomp_loop:
 	jrmi 46$
 	jp 20$  
 5$: cpw x,#LET_IDX 
-	jrne 51$
+	jrne 54$
 	jp decomp_loop ; down display LET 	
-51$: ; insert command name 
+50$:
+	clrw x 
+	sub a,#TK_AND 
+	sll a 
+	ld xl,a 
+	addw x,#AND_IDX
+54$: ; insert command name 
 	call add_space  
 	pushw y
 	call cmd_name
@@ -455,6 +466,8 @@ cmd_name:
 	ldw x,(x) 
 	subw x,#2  
 	jrne 1$
+	clr a 
+	clrw x 
 	jra 9$
 2$: ldw x,(LINK,sp)
 	addw x,#2 	

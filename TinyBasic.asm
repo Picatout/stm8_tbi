@@ -504,7 +504,6 @@ next_token::
 get_code_addr:
 	ldw x,(x)
 	ldw x,(code_addr,x)
-skip_2_bytes:
 	inc in 
 	inc in 
 	ret
@@ -829,19 +828,17 @@ str_match:
 	ldw x,(XSAVE,sp)
 	ld a,(X)
 	ld (NLEN,sp),a ; needed to test keyword type  
-	and a,#0xf 
+	and a,#NLEN_MASK 
 ; move x to procedure address field 	
 	inc a 
 	ld acc8,a 
 	clr acc16 
 	addw x,acc16 
 	ldw x,(x) ; routine index  
-;determine keyword type bits 7:6 
+;determine keyword type bits 7:4 
 	ld a,(NLEN,sp)
+	and a,#KW_TYPE_MASK 
 	swap a 
-	and a,#0xc
-	srl a
-	srl a 
 	add a,#128
 search_exit: 
 	_drop VSIZE 
@@ -890,12 +887,15 @@ arg_list:
 	push #0
 1$:	call condition 
 	tnz a 
-	jreq 6$  
+	jreq 7$  
 	inc (1,sp)
 	call next_token 
 	cp a,#TK_COMMA 
 	jreq 1$ 
-6$:	pop a  
+	cp a,#TK_RPAREN
+	jreq 7$
+	_unget_token 
+7$:	pop a  
 	ret 
 
 ;--------------------------------
@@ -4065,8 +4065,6 @@ until:
 	_xpop 
 	tnz a 
 	jrne 9$ 
-	tnzw x   
-	jrne 9$
 	ldw x,(DOLP_ADR,sp)
 	ldw basicptr,x 
 	ld a,(2,x)
@@ -4440,83 +4438,10 @@ pad_ref:
 
 
 ;------------------------------
-; logical operators dictonary 
-; format:
-;    link: 2 bytes 
-;    name_length: 1 byte 
-;    op_name: 4 char max 
-;    op_id: # byte
-;-------------------------------
-	.macro _op_entry len,name,id 
-	.word OP_LINK 
-	OP_LINK=.
-name:
-	.byte len 
-	.asciz "name" 
-	.byte  id 
-	.endm 
-
-	OP_LINK=0 
-op_end:
-	_op_entry 3,XOR,TK_XOR 
-	_op_entry 2,OR,TK_OR 
-op_dict:	
-	_op_entry 3,AND,TK_AND 
-
-;------------------------------
-;  search operator dictonary 
-;  input:
-;     x    *name 
-;  output:
-;     A     op_id | 0 
-;-----------------------------
-	NLEN=1 
-	NAME=2
-	XSAVE=4
-	VSIZE=5 
-search_op_dict:
-	_vars VSIZE 
-	ldw (NAME,sp),x 
-	call strlen 
-	ld (NLEN,sp),a 
-	ldw x,#op_dict+2
-1$:	ldw (XSAVE,sp),x 
-	ld a,(x)
-	cp a,(NLEN,sp)
-	jreq 3$
-; skip over this one 	
-2$:	ldw x,(XSAVE,sp)
-	subw x,#2 
-	ldw x,(x) ; link 
-	jreq 8$ 
-	jra 1$
-3$: ; len good compare string 
-	incw x  
-	ldw y,(NAME,sp)
-	call strcmp 
-	jreq 2$ 
-; found 
-	ldw x,(XSAVE,sp)
-; skip to id field 
-	ld a,(x) ; len field 
-	add a,#2 ; len and 0 at end of string 
-	push a 
-	push #0 
-	addw x,(1,sp)
-	_drop 2 
-	ld a,(x)
-	jra 9$ 
-8$: ; not found 	
-	clr a 	
-9$:	_drop VSIZE 
-	ret 
-
-
-;------------------------------
 ;      dictionary 
 ; format:
 ;   link:   2 bytes 
-;   name_length+flags:  1 byte, bits 0:4 lenght,5:8 flags  
+;   name_length+flags:  1 byte, bits 0:3 lenght,4:8 kw type   
 ;   cmd_name: 16 byte max 
 ;   cmd_index: 2 bytes 
 ;------------------------------
@@ -4524,7 +4449,7 @@ search_op_dict:
 	.word LINK 
 	LINK=.
 name:
-	.byte len 	
+	.byte len   	
 	.ascii "name"
 	.word cmd_idx 
 	.endm 
@@ -4533,6 +4458,7 @@ name:
 ; respect alphabetic order for BASIC names from Z-A
 ; this sort order is for a cleaner WORDS cmd output. 	
 kword_end:
+	_dict_entry,3+F_XOR,XOR,XOR_IDX ; xor operator
 	_dict_entry,5,WRITE,WRITE_IDX;write  
 	_dict_entry,5,WORDS,WORDS_IDX;words 
 	_dict_entry 4,WAIT,WAIT_IDX;wait 
@@ -4580,6 +4506,7 @@ kword_end:
 	_dict_entry,4+F_IFUNC,PEEK,PEEK_IDX;peek 
 	_dict_entry,5,PAUSE,PAUSE_IDX;pause 
 	_dict_entry,3+F_IFUNC,PAD,PAD_IDX;pad_ref 
+	_dict_entry,2+F_OR,OR,OR_IDX; OR operator 
 	_dict_entry,2,ON,ON_IDX; cmd_on 
 	_dict_entry,3+F_IFUNC,ODR,ODR_IDX;const_odr 
 	_dict_entry,3+F_IFUNC,NOT,NOT_IDX;func_not 
@@ -4627,6 +4554,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,BIT,BIT_IDX;bitmask
 	_dict_entry,3,AWU,AWU_IDX;awu 
 	_dict_entry,3+F_IFUNC,ASC,ASC_IDX;ascii
+	_dict_entry,3+F_AND,AND,AND_IDX ; AND operator 
 	_dict_entry,7+F_IFUNC,ADCREAD,ADCREAD_IDX;analog_read
 	_dict_entry,5,ADCON,ADCON_IDX;power_adc 
 kword_dict::
