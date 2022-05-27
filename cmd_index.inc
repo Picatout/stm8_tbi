@@ -65,8 +65,7 @@
     LSHIFT_IDX=LOG_IDX+2
     NEXT_IDX=LSHIFT_IDX+2
     NEW_IDX=NEXT_IDX+2
-    NOT_IDX=NEW_IDX+2
-    ODR_IDX=NOT_IDX+2
+    ODR_IDX=NEW_IDX+2
     PAD_IDX=ODR_IDX+2
     PAUSE_IDX=PAD_IDX+2
     PMODE_IDX=PAUSE_IDX+2
@@ -121,6 +120,7 @@
      
     ; keep these 3 at end
     ; these have no entry in code_addr 
+    NOT_IDX=248
     AND_IDX=250 
     OR_IDX=252 
     XOR_IDX=254    

@@ -1194,23 +1194,36 @@ relation:
 	ret 
 
 ;-------------------------------------------
-;  AND factor:   relation | (condition)
+;  AND factor:  [NOT] relation | (condition)
 ;  output:
 ;     A      TK_INTGR|0
 ;-------------------------------------------
+	NOT_OP=1
 and_factor:
-	call next_token  
+	push #0 
+0$:	call next_token  
 	tnz a 
 	jreq 8$ 
+	cp a,#TK_NOT 
+	jrne 1$ 
+	cpl (NOT_OP,sp)
+	jra 0$ 
+1$:	
 	cp a,#TK_LPAREN 
-	jrne 1$
+	jrne 2$
 	call condition
 	ld a,#TK_RPAREN 
 	call expect
-	ret
-1$: _unget_token 
-	call relation 
-8$: ret 
+	jra 3$
+2$: _unget_token 
+	call relation
+3$:
+	tnz (NOT_OP,sp)
+	jreq 8$ 
+	call cpl24
+8$:
+	_drop 1  
+    ret 
 
 
 ;--------------------------------------------
@@ -2495,6 +2508,8 @@ get_target_line_addr:
 	ret 
 
 ; the GOTO|GOSUB target is a symbol.
+; output:
+;    X    line address|0 
 look_target_symbol:
 	pushw y 
 	pushw x 
@@ -3655,7 +3670,7 @@ pin_mode:
 	jreq 1$
 	jp syntax_error 
 1$: _xpop 
-	ldw y,x ; mode 
+	ldw ptr16,x ; mode 
 	_xpop ; Dx pin 
 	call select_pin 
 	ld (PINNO,sp),a  
@@ -3669,7 +3684,8 @@ pin_mode:
 	ld a,(PINNO,sp)
 	or a,(GPIO_CR1,x) ;if input->pull-up else push-pull 
 	ld (GPIO_CR1,x),a 
-4$:	cpw y,#OUTP 
+4$:	ld a,#OUTP
+	cp a,acc8 
 	jreq 6$
 ; input mode
 ; disable external interrupt 
@@ -3827,6 +3843,7 @@ random:
 	WCNT=3 ; count words printed 
 	VSIZE=3 
 words:
+	pushw y
 	_vars VSIZE
 	clr (LLEN,sp)
 	clr (WCNT,sp)
@@ -3864,6 +3881,7 @@ words:
 	ldw x,#words_count_msg
 	call puts 
 	_drop VSIZE 
+	popw y 
 	ret 
 words_count_msg: .asciz " words in dictionary\n"
 
@@ -3890,31 +3908,15 @@ set_timer:
 ;   A:X     -1 timeout 
 ;------------------------------
 timeout:
-	ldw x,timer 
 	clr a 
-	jra logical_not 
-
-;--------------------------------
-; BASIC NOT(expr) 
-; return logical complement of expr
-;--------------------------------
-func_not:
-	call func_args  
-	cp a,#1
+	ldw x,timer 
 	jreq 1$
-	jp syntax_error
-1$: _xpop 
-logical_not: 
-	tnz a 
-	jrne 2$
-	tnzw x 
-	jrne 2$  
-	cpl a 
-	cplw x  
-	ret 
-2$: clr a 
 	clrw x 
+1$:	cpl a
+	cplw x 
 	ret 
+ 	
+
 
 
 ;-----------------------------------
@@ -4197,34 +4199,14 @@ data:
 ;    Z    set if DATA line 
 ;----------------------------
 is_data_line:
+	pushw x 
+	ld a,(3,x)
+	cp a,#TK_CMD 
+	jrne 9$
 	ldw x,(4,x)
-	ldw x,(code_addr,x)
-	cpw x,#data 
+	cpw x,#DATA_IDX  
+9$: popw x 
 	ret 
-
-;---------------------------
-; set DATA pointer at line# 
-; specified by X 
-;---------------------------
-data_line:
-	pushw y 
-	clr a 
-	call search_lineno
-	tnzw x 
-	jrne 3$
-2$:	ld a,#ERR_NO_LINE 
-	jp tb_error
-3$: ; check if valid data line 
-    ldw y,x 
-	call is_data_line 
-	jrne 2$ 
-set_data_ptr: 	
-	ldw data_ptr,y
-	ld a,(2,y)
-	ld data_len,a 
-	mov data_ofs,#FIRST_DATA_ITEM 
-	popw y 
-	ret
 
 ;---------------------------------
 ; BASIC: RESTORE [line#]
@@ -4239,34 +4221,72 @@ set_data_ptr:
 ; the program is interrupted. 
 ;---------------------------------
 restore:
-	clr data_ptr 
-	clr data_ptr+1
-	clr data_ofs 
-	clr data_len
+	clrw x 
+	ldw data_ptr,x 
+	ldw data_ofs,x 
+	ldw x,txtbgn 
 	call next_token 
 	cp a,#TK_INTGR
 	jrne 0$
-	call get_int24 
-	jra data_line 
-0$:	
-	_unget_token  
-	ldw x,txtbgn
+	call get_int24
 	pushw y 
-; search first DATA line 
-data_search_loop: 	
-	cpw x,txtend
-	jruge restore_error 
-	ldw y,x 
+	clr a 
+	call search_lineno  
+	popw y 
+	tnzw x 
+	jrne set_data_pointer 
+	jra data_error 
+0$:
+	_unget_token  
+; search first DATA line 	
+1$:	cpw x,txtend
+	jruge data_error 
+2$:	
 	call is_data_line 
-	jreq set_data_ptr
+	jrne 4$
+4$:	call try_next_line 
+	jrne 4$ 
+	ret 
+
+;---------------------
+; set data pointer 
+; variables at new line 
+; input:
+;    X    line address 
+;----------------------
+set_data_pointer:
+	ldw data_ptr,x
+	ld a,(2,x)
+	ld data_len,a 
+	mov data_ofs,#FIRST_DATA_ITEM
+	ret 
+
+
+;--------------------
+; at end of data line 
+; check if next line 
+; is a data line 
+; input:
+;    X   actual line address 
+;  
+;-------------------
 try_next_line: 
-	ldw x,y 
 	ld a,(2,x)
 	ld acc8,a 
 	clr acc16 
 	addw x,acc16 
-	jra data_search_loop
-restore_error:	
+	cpw x,txtend 
+	jrult 1$
+	jra data_error 
+1$:	
+	call is_data_line 
+	jreq 2$
+	ld a,#1  
+	jra 9$
+2$:	call set_data_pointer
+	clr a  
+9$:	ret 
+data_error:	
     ld a,#ERR_NO_DATA 
 	jp tb_error 
 
@@ -4282,11 +4302,12 @@ restore_error:
 	VSIZE=7 
 read:
 	_vars  VSIZE 
+	call save_context
 read01:	
 	ld a,data_ofs
 	cp a,data_len 
 	jreq 2$ ; end of line  
-	call save_context
+0$:
 	ldw x,data_ptr 
 	ldw basicptr,x 
 	mov in,data_ofs 
@@ -4305,14 +4326,11 @@ read01:
 	_drop VSIZE 
 	ret 
 2$: ; end of line reached 
-	ldw y, data_ptr 
-	clr data_ptr
-	clr data_ptr+1   
-	clr data_ofs 
-	clr data_len 
-	call try_next_line 
-	jra read01
-
+	; try next line 
+	ldw x,data_ptr  
+	call try_next_line
+	jreq 0$ 
+	jra data_error 
 
 ;---------------------------------
 ; BASIC: SPIEN clkdiv, 0|1  
@@ -4515,7 +4533,7 @@ kword_end:
 	_dict_entry,2+F_OR,OR,OR_IDX; OR operator 
 	_dict_entry,2,ON,ON_IDX; cmd_on 
 	_dict_entry,3+F_IFUNC,ODR,ODR_IDX;const_odr 
-	_dict_entry,3+F_IFUNC,NOT,NOT_IDX;func_not 
+	_dict_entry,3+F_NOT,NOT,NOT_IDX;NOT operator
 	_dict_entry,4,NEXT,NEXT_IDX;next 
 	_dict_entry,3,NEW,NEW_IDX;new
 	_dict_entry,6+F_IFUNC,LSHIFT,LSHIFT_IDX;lshift
@@ -4573,7 +4591,7 @@ code_addr::
 	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto ; 24..31 
 	.word hex_base,const_idr,if,input_var,invert,enable_iwdg,refresh_iwdg,key ; 32..39 
 	.word let,list,log2,lshift,next,new ; 40..47
-	.word func_not,const_odr,pad_ref,pause,pin_mode,peek,const_input ; 48..55
+	.word const_odr,pad_ref,pause,pin_mode,peek,const_input ; 48..55
 	.word poke,const_output,print,const_porta,const_portb,const_portc,const_portd,const_porte ; 56..63
 	.word const_portf,const_portg,const_porth,const_porti,qkey,read,cold_start,remark ; 64..71 
 	.word restore,return, random,rshift,run,free ; 72..79

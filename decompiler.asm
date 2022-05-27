@@ -285,7 +285,7 @@ decomp_loop:
 	_drop 2 
 	jra decomp_loop
 4$: ; dictionary keyword
-	cp a,#TK_AND 
+	cp a,#TK_NOT 
 	jruge 50$ 
 	ldw x,(x)
 	inc in 
@@ -309,13 +309,13 @@ decomp_loop:
 	jp 20$  
 5$: cpw x,#LET_IDX 
 	jrne 54$
-	jp decomp_loop ; down display LET 	
+	jp decomp_loop ; down display LET
 50$:
 	clrw x 
-	sub a,#TK_AND 
+	sub a,#TK_NOT  
 	sll a 
 	ld xl,a 
-	addw x,#AND_IDX
+	addw x,#NOT_IDX
 54$: ; insert command name 
 	call add_space  
 	pushw y

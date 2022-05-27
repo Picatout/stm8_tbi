@@ -23,9 +23,10 @@
         F_IFUNC=(1<<4) ; integer function keyword
         F_CFUNC=(2<<4) ; character function keyword
         F_CONST=(3<<4) ; function keyword that return a constant
-        F_AND=(7<<4)   ; TK_AND
-        F_OR=(8<<4)    ; TK_OR
-        F_XOR=(9<<4)   ; TK_XOR   
+        F_NOT=(7<<4)   ; TK_NOT 
+        F_AND=(8<<4)   ; TK_AND
+        F_OR=(9<<4)    ; TK_OR
+        F_XOR=(10<<4)   ; TK_XOR   
         NLEN_MASK=0xf  ; mask to extract name len 
         KW_TYPE_MASK=0xf0 ; mask to extract keyword type 
 
@@ -76,9 +77,10 @@
         TK_INTGR=132    ; 16 bits integer 
         TK_VAR=133
         TK_FLOAT=134    ; float32 
-        TK_AND=135      ;
-        TK_OR=136       ;
-        TK_XOR=137      ; 
+        TK_NOT=135
+        TK_AND=136      ;
+        TK_OR=137       ;
+        TK_XOR=138      ; 
         TK_NONE=0       ; not a token 
         TK_QSTR=2       ; quoted string  
         TK_LABEL=3      ; used for defined, constants, variables

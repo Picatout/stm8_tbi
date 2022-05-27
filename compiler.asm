@@ -548,7 +548,7 @@ parse_keyword:
 	jra 5$ 
 4$:	
 	ldw y,(XFIRST,sp)
-	cp a,#TK_AND
+	cp a,#TK_NOT 
 	jrmi 41$
 	ld (y),a 
 	incw y 

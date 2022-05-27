@@ -15,8 +15,6 @@
 
 * [Ligne de commande](#cli)
 
-* [Fichiers](#fichiers)
-
 * [Référence des commandes et fonctions](#index)
 
 * [Installation](#install)
@@ -73,7 +71,7 @@ Les opérateurs relationnels ont une priorités inférieure à celle des opérat
 
 ### Opérateur binaire/conditionnel 
 
-Les opérateurs **AND**, **OR** et **XOR** effectuent des opérations bit à bit mais peuvent-être aussi utilisé comme opérateurs en logique combinatoire. Si ces opérateurs sont utilisés avec le résultat d'une relation alors le résultat est le même que pour un opérateur logique du même nom. C'est à dire que le résultat sera **0** ou **-1**.
+Les opérateurs **AND**,**NOT**, **OR** et **XOR** effectuent des opérations bit à bit mais peuvent-être aussi utilisés comme opérateurs en logique combinatoire. Si ces opérateurs sont utilisés avec le résultat d'une relation alors le résultat est le même que pour un opérateur logique du même nom. C'est à dire que le résultat sera **0** ou **-1**.
 par exemple:
 ```
 > ? 3 AND 5 
@@ -86,12 +84,23 @@ Dans cet exemple le **AND** agit comme un opérateur bit à bit comme l'instruct
 ```
 Dans ce 2ième exemple l'opérateur **AND** agit comme un  opérateur en logique combinatoire. 
 
-Ces opérateurs ont la plus faible priorité. Entre eux ils ont la priorité suivante.
+Ces opérateurs ont une plus faible priorité que les opérateurs de comparaison. Entre eux ils ont la priorité suivante.
 
-1. **AND**   plus haute priorité. 
-1. **OR** et **XOR**  même priorité. 
+1. **NOT**   plus haute priorité des 4. 
+1. **AND**   plus haute priorité que **OR** et **XOR**. 
+1. **OR** et **XOR**  ont la même priorité. 
 
 Les opérateurs de priorité identiques sont évalués de gauche à droite. Les parenthèses peuvent-être utilisées pour modifier la priorité des relations combinatoire.
+```
+
+>? not 3>5 and 4<0
+   0 
+
+>? not(3>5 and 4<0)
+  -1 
+
+>
+```
 
 [index principal](#index-princ)
 <a id="syntaxe"></a>
@@ -102,29 +111,40 @@ Le code utilisé pour le texte est le code [ASCII](https://fr.wikipedia.org/wiki
 Un programme débute par un numéro de ligne suivit d'une ou plusieurs commandes séparées par le caractère **':'**. Ce caractère est facultatif, l'espace entre les commandes est suffisant pour les distinguées.  Par exemple:
 ```
 >t=ticks for i=1 to 10000 a=10 next i ? ticks-t
-333 
+395 
 ```
 fonctionne sans problème.
 
 Une commande est suivie de ses arguments séparés par une virgule. Les arguments des fonctions doivent-être mis entre parenthèses. Par fonction j'entends une sous-routine qui retourne une valeur. Cependant une fonction qui n'utilise pas d'arguments n'est pas suivie de parenthèses. Les commandes , c'est à dire les sous-routines qui ne retoune pas de valeur, reçoivent leur arguments sans parenthèses. 
 
 Les *espaces* entre les *unitées lexicales* sont facultatifs sauf s'il y a ambiguité. Par exemple si le nom d'un commande est immédiatement suivit par le nom d'une variable un espace doit les séparer. 
+```
+>t=ticks for i=1to10000 a=10 next i ? ticks-t
+run time error, syntax error
+
+>t=ticks for i=1to 10000 a=10 next i ? ticks-t
+ 395 
+```
+Dans le premier cas il y a une erreur car il doit y avoir un espace entre le **TO** et le **10000**. Puisque les chiffres peuvent-être utilisés dans les noms d'étiquettes ou de constantes l'analyseur lexical voit **TO10000** comme 1 seul mot. 
+
+Cependant il n'est pas nécessaire de mettre un espace entre le *1** et le **TO** car lorsqu'une unité lexicale commence par un chiffre 
+il est évident que c'est un entier et l'analyseur s'arrête au dernier chiffre de l'entier. 
 
 Les commandes peuvent-être entrées indifféremment en minuscule ou majuscule.
 L'analyseur lexical convertie les lettres en  majuscule sauf à l'intérieur d'une chaîne entre guillemets.
 
 Les commandes peuvent-être abrégées au plus court à 2 caractères à condition qu'il n'y est pas d'ambiguité entre 2 commandes. L'abréviation doit-être d'au moins 2 lettres pour éviter la confusion avec les variables. Par exemple **GOTO** peut-être abrégé **GO** et **GOSUB** peut-être abrégé **GOS**. La recherche dans le dictionnaire se fait de la fin vers le début donc le **GOTO** est atteint avant le **GOSUB** voilà pourquoi **GO** peut-être utilisée pour le représenté.
 
-Certaines commandes sont représentées facultativement par une caractère unique. Par exemple la commande **PRINT** peut-être remplacée par le caractère **'?'**. La commande **REMARK** peut-être remplacée par un apostrophe (**'**). 
+Certaines commandes sont représentées facultativement par une caractère unique. Par exemple la commande **PRINT** peut-être remplacée par le caractère **'?'**. La commande **REM** peut-être remplacée par un apostrophe (**'**). 
 
-Plusieurs commandes peuvent-être présentent sur la même ligne. Le caractère **':'** est utilisé pour indiqué la fin d'une commande. Son utilisation est facultif s'il n'y pas pas d'ambiguité. 
+Plusieurs commandes peuvent-être présentent sur la même ligne. Le caractère **':'** est utilisé pour indiquer la fin d'une commande. Son utilisation est facultif s'il n'y pas pas d'ambiguité. 
 ```
 >A=2:B=4   ' valide
 
 >C=3 D=35 ' valide car il n'y pas d'ambiguité.
 
->? a=3 b<=45  ' pas d'ambiguité il s,agit de 2 comparaisons. 
-   0   1
+>? a=3 b<=45  ' pas d'ambiguité il s'agit de 2 comparaisons. 
+   0   -1
 
 ```
 
@@ -140,14 +160,14 @@ Forme lexicale des entiers. Dans la liste qui suit ce qui est entre **'['** et *
 *  digit::= ('0','1','2','3','4','5','6','7','8','9')
 *  hex_digit::= (digit,'A','B','C','D','E','F') 
 *  entier décimaux::=  ['+'|'-']digit+
-*  entier hexadécimaux::= '$'hex_digit+
-*  entier binaire::= '&'('0'|'1')+   
+*  entier hexadécimaux::= ['+'|'-']'$'hex_digit+
+*  entier binaire::= ['+'|'-']'&'('0'|'1')+   
 
 examples d'entiers:
 
     -13534 ' entier décimal négatif 
-    $ff0f  ' entier hexadécimal 
-    &101   ' entier binaire correspondant à 5 en décimal. 
+    +$ff0f  ' entier hexadécimal 
+    -&101   ' entier binaire correspondant à 5 en décimal. 
 
 [index principal](#index-princ)
 <a id="cli"></a>
@@ -156,8 +176,8 @@ examples d'entiers:
 Au démarrage l'information sur Tiny BASIC est affichée. Ensuite viens l'invite de commande qui est représentée par le caractère **&gt;**. 
 ```
 Tiny BASIC for STM8
-Copyright, Jacques Deschenes 2019,2020
-version 1.0
+Copyright, Jacques Deschenes 2019,2022
+version 2.0
 
 >
 ```
@@ -169,33 +189,34 @@ version 1.0
 
 * Si la ligne ne contient qu'un numéro sans autre texte et qu'il existe déjà une ligne avec ce numéro la ligne en question est supprimée. Sinon elle est ignorée. 
 
-* Les lignes sont insérée en ordre numérique croissant. 
+* Les lignes sont insérées en ordre numérique croissant. 
 
 Certaines commandes ne peuvent-être utilisées qu'à l'intérieur d'un programme et d'autres seulement en mode ligne de commande. L'exécution est interrompue et un message d'erreur est affiché si une commande est utilisée dans un contexte innaproprié. 
 
-Le programme en mémoire RAM est perdu à chaque réinitialiation du processeur sauf s'il a été sauvegardé comme fichier dans la mémoire flash. Les commandes de fichiers sont décrites dans la section référence.
+Le programme en mémoire RAM est perdu à chaque réinitialiation du processeur sauf s'il a été sauvegardé en mémoire flash avec la commande [SAVE](#save). Le programme sauvegardé en mémoire flash s'exécute automatiquement lors de la mise sous tension ou d'une réinitialisation de la carte.
 
-### Commandes d'édtion
+Notez qu'il peut-être intéressant d'écrire vos programmes sur le PC avec un éditeur de texte qui accepte  l'encodage ASCII ou UTF8. Les fichiers sur le PC peuvent-être envoyé à la carte avec le script [send.sh](send.sh) qui est dans le répertoire racine. Ce script fait appel à l'utilitaire [SendFile](BASIC/SendFile).
+
+### Commandes d'édition
+
+La fonction qui lit la ligne de commande permet les fonctions suivantes.
 
 Touches|fonction 
 -|-
-BS|efface le caractère à gauche 
-ln CTRL+E|edite la ligne 'ln'
-CTLR+R|ramène la dernière ligne saisie.
-CTRL+D|supprime la ligne en cours d'édition 
-HOME| déplace le curseur au début de ligne
-END| déplace le curseur à la fin de la ligne 
-flèche gauche| déplace le curseur vers la gauche 
-flèche droite| déplace le cureseur vers la droite
-CTRL+O|commute entre les modes insertion|écrasement
-
-[index principal](#index-princ)
-<a id="fichiers"></a>
-## Système de fichier
-Le microcontrôleur de la carte NUCLEO-8S208RB possède 128Ko de mémoire flash. Cependant seulement 32Ko sont dans la plage de mémoire standard {0..65535}. Le reste fait partie de la mémoire étendue {32768..131071}. 
-Cette mémoire étendu n'est pas utilisée par Tiny BASIC, elle est réservée pour un mini système de fichiers qui sert à sauvegarder les programmes BASIC.
+BS|Efface le caractère à gauche 
+ln CTRL+E|Édite la ligne 'ln'
+CTLR+R|Ramène la dernière ligne saisie à l'écran.
+CTRL+D|Supprime la ligne en cours d'édition. 
+HOME| Déplace le curseur au début de ligne
+END| Déplace le curseur à la fin de la ligne 
+flèche gauche| Déplace le curseur vers la gauche 
+flèche droite| Déplace le cureseur vers la droite
+CTRL+O|Commute entre les modes insertion et écrasement
 
 <a id="reference"></a>
+
+<hr>
+
 ## Référence des commandes et fonctions.
 la remarque **{C,P}** après le nom de chaque commande indique dans quel contexte cette commande ou fonction peut-être utilisée. **P** pour *programme* et **C** pour ligne de commande. Une fonction ne peut-être utilisée que comme argument d'une commande ou comme partie d'une expression. 
 
@@ -237,7 +258,6 @@ nom|abrévation
 [GET](#get)|GE 
 [GOSUB](#gosub)|GOS
 [GOTO](#goto)|GOT
-[GPIO](#gpio)|GP
 [HEX](#hex)|HE
 [IDR](#idr)|ID
 [IF](#if)|IF
@@ -250,7 +270,6 @@ nom|abrévation
 [LIST](#list)|LI
 [LOG](#log)|LOG
 [LSHIFT](#lshift)|LS
-[MULDIV](#muldiv)|MU
 [NEW](#new)|NE
 [NEXT](#next)|NEX
 [NOT](#not)|NO
@@ -265,26 +284,25 @@ nom|abrévation
 [POKE](#poke)|PO
 [POUT](#pout)|POU
 [PRINT](#print)|?
-[PRTA](#prtx)|PRTA
-[PRTB](#prtx)|PRTB
-[PRTC](#prtx)|PRTC
-[PRTD](#prtx)|PRTD
-[PRTE](#prtx)|PRTE
-[PRTF](#prtx)|PRTF
-[PRTG](#prtx)|PRTG
-[PRTH](#prtx)|PRTH
-[PRTI](#prtx)|PRTI
+[PORTA](#prtx)|PRTA
+[PORTB](#prtx)|PRTB
+[PORTC](#prtx)|PRTC
+[PORTD](#prtx)|PRTD
+[PORTE](#prtx)|PRTE
+[PORTF](#prtx)|PRTF
+[PORTG](#prtx)|PRTG
+[PORTH](#prtx)|PRTH
+[PORTI](#prtx)|PRTI
 [QKEY](#qkey)|QK
 [READ](#read)|REA
 [REBOOT](#reboot)|REB
-[REMARK](#remark)|'
+[REM](#remark)|'
 [RESTORE](#restore)|RES
 [RETURN](#return)|RET
 [RND](#rnd)|RN
 [RSHIFT](#rshift)|RS
 [RUN](#run)|RU
 [SAVE](#save)|SA 
-[SHOW](#show)|SH
 [SIZE](#size)|SI 
 [SLEEP](#sleep)|SL
 [SPIEN](#spien)|SPIE
@@ -355,16 +373,20 @@ Lecture d'une des 6 entrées analogiques reliées au connecteur CN4. L'argument 
 
 [index](#index)
 <a id="and"></a>
-### AND(*expr1*,*expr2*) {C,P}
-Il s'agit de la fonction logique **AND** binaire c'est à dire d'une application bit à bit entre les 2 expressions. L'équivalent de l'opérateur **&** en C. 
+### *relation|expression* AND *relation|expression* {C,P}
+Il s'agit de la fonction logique **AND** binaire c'est à dire d'une application bit à bit entre les 2 expressions. L'équivalent de l'opérateur **&** en C. Cependant cet opérateur peut aussi être utilisé comme opérateur en logique combinatoire.  s'il est situé entre 2 relations plutôt qu'entre 2 expressions arithmétiques  
 ```
->? and(4,6)
-   4
+>a=2 ? a
+   2 
 
->? and(255,127)
- 127
+>b=4 ? b
+   4 
+
+>if a>=2 and b<=4 ? a,b 
+   2    4 
 
 >
+
 ```
 
 [index](#index)
@@ -464,23 +486,38 @@ La fonction *character* retourne le caractère ASCII correspondant aux 7 bits le
 [index](#index)
 <a id="const"></a>
 ### CONST [\U] nom=valeur [,nom=valeur] {C,P}
-Cette commande sert à créer des constantes qui sont conservées en permanance dans la mémoire EEPROM.
+Cette commande sert à créer des constantes qui sont conservées en permanence dans la mémoire EEPROM.
  * L'option **\U**  permet de mettre à jour une constante déjà existante. Sans cette option la commande de créer une constante avec un nom déjà existant est ignorée. 
  * **nom** est le nom de la constante. 
  * **valeur** est la valeur de cette constante. Il peut s'agit d'une expression. 
  * Plusieurs constantes peuvent-être définies dans la même commande en les séparant par une virgule.
  ```
- NEW 
-5 ' test vitesse d'utilisation d'une constante symbolique par rapport
-6 ' a une constante numerique. 
-7  CONST TEST=1024
-10 T=TICKS FOR I=1 TO 10000 A=$500A NEXT I ? TICKS-T "MSEC."
-20 T=TICKS FOR I=1 TO 10000 A=TEST NEXT I ? TICKS-T "MSEC."
+>li
+    5 ' test vitesse d'utilisation d'une constante symbolique par rapport
+    6 ' a une constante numerique. 
+   10 CONST TEST =1024
+   20 PRINT "test assignation d'une variable."
+   24 PRINT "constante numerique: ",
+   30 T=TICKS FOR I=1 TO 10000 A=20490 NEXT I PRINT TICKS-T "MSEC."
+   34 PRINT "constante symbolique: ",
+   40 T=TICKS FOR I=1 TO 10000 A= TEST NEXT I PRINT TICKS-T "MSEC."
+   50 CONST LED2 =20490
+   60 PRINT "test basculement etat LED2 sur la carte."
+   64 PRINT "constante numerique: ",
+   70 T=TICKS FOR I=1 TO 10000 BTOGL 20490,32 NEXT I PRINT TICKS-T "MSEC."
+   74 PRINT "constante symbolique: ",
+   80 T=TICKS FOR I=1 TO 10000 BTOGL LED2 ,32 NEXT I PRINT TICKS-T "MSEC."
+program address:  $80, program size:  600 bytes in RAM memory
 
 >run
-338 MSEC.
-478 MSEC.
+test assignation d'une variable.
+constante numerique:  397 MSEC.
+constante symbolique:  540 MSEC.
+test basculement etat LED2 sur la carte.
+constante numerique:  651 MSEC.
+constante symbolique:  770 MSEC.
 
+>
  ```
 
 [index](#index)
@@ -497,7 +534,7 @@ Cette fonction retourne l'index du registre **CR1** *(Control Register 1)* d'un 
 [index](#index)
 <a id="data"></a>
 ### DATA {P}
-Cette directive permet de définir des données dans un programme. L'interpréteur ignore les lignes qui débute par **DATA**.  Ces lignes ne sont utilisées que par la commande **READ**.
+Cette directive permet de définir des données dans un programme. L'interpréteur ignore les lignes qui débute par **DATA**.  Ces lignes ne sont utilisées que par la fonction **READ**. Notez que contrairement à MS-BASIC il s'agit d'un fonction et non d'une commande. Cette fonction ne prend aucn argument.
 ```
 >list
     5 ' joue 4 mesures de l'hymne a la joie

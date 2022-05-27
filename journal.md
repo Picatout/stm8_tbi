@@ -1,5 +1,98 @@
 #### 2022-05-26
 
+* 22:28  commit 
+
+* bogue:  
+```
+>pmode 5,pinp
+
+>? dread(5)
+run time error, division by 0
+
+$16B8   $0  $0  $F $80  $0 $66 $81  $0 $24  $6 $84  $0  $0  $5  $7
+    0 PRINT DREAD(5)
+last token id:   80
+>
+
+```
+Le bogue était dans la routine *pin_mode* qui écrasait le registre **Y** qui doit-être préservé en tout temps car il est le pointeur pour *xstack*.
+
+
+* Travail de mise à jousr du fichier [tbi_reference.md](tbi_reference.md).
+
+* Réparé bogue dans **READ** et **RESTORE**. Réécriture des routines.
+
+```
+>NEW
+
+>5 ' joue 4 mesures de l'hymne a la joie
+
+>10 RESTORE 
+
+>20 DATA 440,250,440,250,466,250,523,250,523,250,466,250,440,250
+
+>30 DATA 392,250,349,250,349,250,392,250,440,250,440,375,392,125
+
+>40 DATA 392,500
+
+>50 FOR I =1 TO 15 ? i,: TONE READ ,READ :NEXT I 
+
+>60 END 
+
+>
+
+>run
+Registers state at abort point.
+--------------------------
+EPC:  32
+X:$5B7E (23422)
+Y: $9A ( 154)
+A: $4D (  77)
+CC:  $1 (   1)
+SP:$17DB (6107)
+
+?
+
+```
+
+<hr>
+
+* la fonction **NOT(_expr_)** a été remplacée par un opérateur unaire qui a la priorité sur l'opérateur **AND**.
+
+* Réparé bogue dans la commande **WORDS** qui rendait le système inopérand. le registre **Y** n'était pas préservé.  
+
+```
+>a=2 ? a
+   2 
+
+>b=4 ? b
+   4 
+
+>if a>=2 and b<=4 ? a,b 
+   2    4 
+
+>words
+ABS ADCON ADCREAD AND ASC AWU BIT BRES BSET BTEST BTOGL BYE CHAR CONST CRH
+CRL DATA DDR DEC DO DREAD DWRITE EDIT EEFREE EEPROM END ERASE FCPU FOR FREE
+GET GOSUB GOTO HEX IDR IF INPUT INVERT IWDGEN IWDGREF KEY LET LIST LOG LSHIFT
+NEW NEXT NOT ODR ON OR PAD PAUSE PEEK PINP PMODE POKE POUT PRINT PORTA PORTB
+PORTC PORTD PORTE PORTF PORTG PORTH PORTI QKEY READ REBOOT REM RESTORE RETURN
+RND RSHIFT RUN SAVE SIZE SLEEP SPIEN SPIRD SPISEL SPIWR STEP STOP TICKS
+TIMEOUT TIMER TO TONE UBOUND UFLASH UNTIL USR WAIT WORDS WRITE XOR 
+  99 words in dictionary
+
+>? a b
+   0    0 
+
+>a=2 ?a
+   0 
+
+>
+```
+
+
+* Travail de mise à jousr du fichier [tbi_reference.md](tbi_reference.md).
+
 <hr>
 
 * 16:38 merge V2 à master 

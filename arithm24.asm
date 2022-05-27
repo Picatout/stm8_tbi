@@ -109,10 +109,9 @@ abs24: ; ( i -- u )
 ;  one's compleement 
 ;----------------------------
 cpl24:  ; i -- ~i 
-    _at_top 
-    cpl a 
-    cplw x 
-    _store_top 
+    cpl (y) 
+    cpl (1,y)
+    cpl (2,y)
     ret 
 
 ;----------------------------    
