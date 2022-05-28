@@ -720,18 +720,15 @@ tick_tst: ; comment
 copy_comment:
 	ldw y,#tib 
 	addw y,in.w
-	pushw y
+	pushw y 
 	call strcpy
-    subw y,(1,sp)
-	ld a,yl 
-	add a,in
-	ld in,a 
-	ldw (1,sp),x
-	addw y,(1,sp)
-	incw y 
+	subw y,(1,sp)
+	incw y ; strlen+1 
+	ldw (1,sp),y 
+	addw x,(1,sp) 
 	_drop 2 
-	ldw x,#REM_IDX 
-	ld a,#TK_CMD 
+	clr a 
+	ldw y,x 
 	jp token_exit 
 plus_tst:
 	_case '+' star_tst 
@@ -795,9 +792,9 @@ other: ; not a special character
 	jp syntax_error 
 30$: 
 	call parse_keyword
-	cpw x,#remark 
+	cpw x,#REM_IDX 
 	jrne token_exit 
-	ldw y,x 
+	ldw x,y 
 	jp copy_comment 
 token_char:
 	ld (x),a 

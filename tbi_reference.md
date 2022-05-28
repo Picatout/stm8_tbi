@@ -240,8 +240,8 @@ nom|abrévation
 [BYE](#bye)|BY
 [CHAR](#char)|CH
 [CONST](#const)|CO 
-[CRH](#chr)|CRH
-[CRL](#crl)|CRL
+[CR1](#cr1)|CR1
+[CR2](#cr2)|CR2
 [DATA](#data)|DATA
 [DDR](#ddr)|DD
 [DEC](#dec)|DE
@@ -249,7 +249,8 @@ nom|abrévation
 [DREAD](#dread)|DR
 [DWRITE](#dwrite)|DW
 [EDIT](#edit)|ED
-[EEPROM](#eeprom)|EE
+[EEFREE](#eefree)|EEF
+[EEPROM](#eeprom)|EE 
 [END](#end)|EN
 [ERASE](#erase)|ER 
 [FCPU](#fcpu)|FC 
@@ -262,7 +263,6 @@ nom|abrévation
 [IDR](#idr)|ID
 [IF](#if)|IF
 [INPUT](#input)|IN
-[INVERT](#invert)|INV
 [IWDGEN](#iwdgen)|IDGE
 [IWDGREF](#iwdgref)|IWGR
 [KEY](#key)|KE
@@ -296,7 +296,7 @@ nom|abrévation
 [QKEY](#qkey)|QK
 [READ](#read)|REA
 [REBOOT](#reboot)|REB
-[REM](#remark)|'
+[REM](#rem)|'
 [RESTORE](#restore)|RES
 [RETURN](#return)|RET
 [RND](#rnd)|RN
@@ -373,8 +373,11 @@ Lecture d'une des 6 entrées analogiques reliées au connecteur CN4. L'argument 
 
 [index](#index)
 <a id="and"></a>
-### *relation|expression* AND *relation|expression* {C,P}
-Il s'agit de la fonction logique **AND** binaire c'est à dire d'une application bit à bit entre les 2 expressions. L'équivalent de l'opérateur **&** en C. Cependant cet opérateur peut aussi être utilisé comme opérateur en logique combinatoire.  s'il est situé entre 2 relations plutôt qu'entre 2 expressions arithmétiques  
+### *expr1|rel1|cond1* AND *expr2|rel2|cond2* {C,P}
+Opérateur logique bit à bit entre les 2 expressions. L'équivalent de l'opérateur **&** en C. Cependant cet opérateur peut aussi être utilisé comme opérateur en logique combinatoire.  s'il est situé entre 2 relations plutôt qu'entre 2 expressions arithmétiques.
+
+Voir aussi [NOT](#not),[OR](#or),[XOR](#xor).
+
 ```
 >a=2 ? a
    2 
@@ -382,11 +385,10 @@ Il s'agit de la fonction logique **AND** binaire c'est à dire d'une application
 >b=4 ? b
    4 
 
->if a>=2 and b<=4 ? a,b 
-   2    4 
+>if a>=2 and b<=4 ? "vrai" 
+   vrai 
 
 >
-
 ```
 
 [index](#index)
@@ -521,20 +523,27 @@ constante symbolique:  770 MSEC.
  ```
 
 [index](#index)
-<a id="chr"></a>
-### CRH {C,P}
-Cette fonction retourne l'index du registre **CR2** *(Control Register 2)* d'un port GPIO. En mode entrée ce registre active ou désactive l'interruption externe. En mode sortie il configure la vitesse du port. 
+<a id="cr1"></a>
+### CR1 (C,P)
+
+Cette constante système retourne l'index du registre **CR1** *(Control Register 1)* d'un port GPIO. En mode entrée ce registre active ou désactive le pull-up. En mode sortie il configure le mode push-pull ou open-drain. 
+
+Voir aussi [ODR](#odr),[IDR](#idr),[DDR](#ddr),[CR2](#cr2)
 
 [index](#index)
-<a id="crl"></a>
-### CRL (C,P)
+<a id="cr2"></a>
+### CR2 {C,P}
+Cette constante système retourne l'index du registre **CR2** *(Control Register 2)* d'un port GPIO. En mode entrée ce registre active ou désactive l'interruption externe. En mode sortie il configure la vitesse du port. 
 
-Cette fonction retourne l'index du registre **CR1** *(Control Register 1)* d'un port GPIO. En mode entrée ce registre active ou désactive le pull-up. En mode sortie il configure le mode push-pull ou open-drain. 
+Voir aussi [ODR](#odr),[IDR](#idr),[DDR](#ddr),[CR1](#cr1)
 
 [index](#index)
 <a id="data"></a>
 ### DATA {P}
-Cette directive permet de définir des données dans un programme. L'interpréteur ignore les lignes qui débute par **DATA**.  Ces lignes ne sont utilisées que par la fonction **READ**. Notez que contrairement à MS-BASIC il s'agit d'un fonction et non d'une commande. Cette fonction ne prend aucn argument.
+Cette directive permet de définir des données dans un programme. L'interpréteur ignore les lignes qui débute par **DATA**.  Ces lignes ne sont utilisées que par la fonction [READ](#read). Notez que contrairement à MS-BASIC il s'agit d'un fonction et non d'une commande. Cette fonction ne prend aucn argument.
+
+Voir aussi [RESTORE](#restore).
+
 ```
 >list
     5 ' joue 4 mesures de l'hymne a la joie
@@ -548,9 +557,12 @@ Cette directive permet de définir des données dans un programme. L'interpréte
 [index](#index)
 <a id="ddr"></a>
 ### DDR {C,P}
-Cette fonction retourne l'index du registre **DDR** *(Data Direction Register)* d'un périphérique GPIO. Ce registre permet de configurer les bits du port en entrée ou en sortie. Par défaut ils sont tous en entrée. 
+Cette constante système retourne l'index du registre **DDR** *(Data Direction Register)* d'un périphérique GPIO. Ce registre permet de configurer les bits du port en entrée ou en sortie. Par défaut ils sont tous en entrée. 
+
+Voir aussi [ODR](#odr),[IDR](#idr),[CR1](#cr1),[CR2](#cr2)
+
 ```
->bset gpio(2,ddr),32 ' LED2 en sortie
+>bset portc+ddr,32 ' LED2 en sortie
 
 >
 ```
@@ -558,16 +570,20 @@ Cette fonction retourne l'index du registre **DDR** *(Data Direction Register)* 
 [index](#index)
 <a id="dec"></a>
 ### DEC {C,P}
-La commande *decimal* définie la base numérique pour l'affichage des entiers à la base décimale. C'est la base par défaut. Voir la commande **HEX**.
+La commande *decimal* définie la base numérique pour l'affichage des entiers à la base décimale. C'est la base par défaut. 
 
-    >HEX:?-10:DEC:?-10
-    $FFFFF6
-    -10
+Voir aussi [HEX](#hex).
+
+```
+>HEX:?-10:DEC:?-10
+$FFFFF6
+-10
+```
 
 [index](#index)
 <a id="do"></a>
 ### DO {C,P}
-Mot réservé qui débute une boucle **DO ... UNTIL** Les instructions entre  **DO** et **UNTIL**  s'exécutent en boucle aussi longtemps que l'expression qui suit **UNTIL** est fausse.  Voir **UNTIL**. 
+Mot réservé qui débute une boucle **DO ... UNTIL** Les instructions entre  **DO** et **UNTIL**  s'exécutent en boucle aussi longtemps que l'expression qui suit **UNTIL** est fausse.  Voir [UNTIL](#until). 
 ```
 >li
    10 A = 1 
@@ -627,6 +643,30 @@ program address: $80 program size: 106 bytes
 
 >
 ```
+
+[index](#index)
+<a id="eefree"></a>
+### EEFREE {C,P}
+Cette fonction retourne l'adresse EEPROM libre. C'est à dire celle après la dernière constante définie.
+```
+>li \c
+   0 constants in EEPROM
+
+>? eefree
+16384 
+
+>const LED2=bit(5)
+
+>li \c
+LED2=  32
+   1 constants in EEPROM
+
+>? eefree
+16393 
+
+>
+```
+
 [index](#index)
 <a id="eeprom"></a>
 ### EEPROM {C,P}
@@ -666,8 +706,10 @@ Cette commande arrête l'exécution d'un programme et retourne le contrôle à l
 ```
 [index](#index)
 <a id=erase></a>
-### ERASE {C}
-Cette commande efface le programme qui a été sauvegardé en mémoire FLASH pour la rendre prête pour un autre [SAVE](#save). 
+### ERASE \E|\F {C}
+Avec l'option **\F** cette commande efface le programme qui a été sauvegardé en mémoire FLASH pour la rendre prête pour un autre [SAVE](#save). 
+
+Avec l'option **\E** elle efface le contenu de la mémoire EEPROM.
 
 [index](#index)
 <a id="fcpu"></a>
@@ -676,13 +718,13 @@ Cette commande sert à contrôler la fréquence d'horloge du CPU. Au démarrage 
 ```
 >fcpu 7 ' Fcpu=125 Khz
 
->t=ticks:for a=1to1000:ne a:?ticks-t
- 1890
+>t=ticks for a=1 to 10000 next a ? ticks-t "msec"
+ 19147 msec
 
 >fcpu 0 ' Fcpu=16 Mhz 
 
->t=ticks:for a=1to1000:ne a:?ticks-t
-  12
+>t=ticks for a=1 to 10000 next a ? ticks-t "msec"
+ 102 msec
 
 >
 
@@ -692,7 +734,7 @@ Réduire la vitesse du CPU permet de réduire la consommation électrique. Notez
 [index](#index)
 <a id="for"></a>
 ### FOR *var*=*expr1* TO *expr2* [STEP *expr3*] NEXT *var* {C,P}
-Cette commande initialise une boucle avec compteur. La variable est initialisée avec la valeur de l'expression *expr1*. À chaque boucle la variable est incrémentée de la valeur indiquée par *expr3* qui suit le mot réservé **STEP**. Si **STEP** n'est pas indiqué la valeur par défaut **1** est utilisée. Une boucle **FOR** se termine par la commande **NEXT** tel qu'indiqué plus bas. Les instructions entre les comamndes **FOR** et **NEXT**
+Cette commande initialise une boucle avec compteur. La variable est initialisée avec la valeur de l'expression *expr1*. À chaque boucle la variable est incrémentée de la valeur indiquée par *expr3* qui suit le mot réservé [STEP](#step). Si [STEP](#step) n'est pas indiqué la valeur par défaut **1** est utilisée. Une boucle **FOR** se termine par la commande [NEXT](#next) tel qu'indiqué plus bas. Les instructions entre les comamndes **FOR** et [NEXT](#next)
 peuvent s'étaler sur plusieurs lignes à l'intérieur d'un programme. Mais sur la ligne de commande le bloc au complet doit-être sur la même ligne.
 
 La boucle FOR...NEXT est excéutée au moins une fois même si la limite est déjà dépassée par la condition initiale de la variable de contrôle. Ceci est du au fait que l'incrément et la vérification de la limite est effectuée par la commande **NEXT** qui vient à la fin de la boucle.  
@@ -737,103 +779,115 @@ Exemple de boucle FOR...NEXT dans un programme.
 [index](#index)
 <a id="free"></a>
 ### FREE {C,P}
-Cette commande retourne le nombre d'octets libre dans la mémoire RAM
+Cette fonction retourne le nombre d'octets libre dans la mémoire RAM.
 ```
->?free
-5740
->10 ?hello world!"
+>new
 
->?free
-5721
+>? free
+5608 
+
+>10 ? "hello world!"
+
+>? free
+5588 
+
 >
 ```
 
 [index](#index)
 <a id="get"></a>
 ### GET *var* 
-Cette commande fait la lecture d'un caractère en provenance du terminal et place sa valeur ACII dans la variable *var*. **GET** contrairement à [KEY](#key) n'attend pas la réception d'un caractère. Si aucun caractère n'est disponible la valeur 0 est placé dans la variable et le programme continu après cette commande. 
+Cette commande fait la lecture d'un caractère en provenance du terminal et place sa valeur ASCII dans la variable *var*. **GET** contrairement à [KEY](#key) n'attend pas la réception d'un caractère. Si aucun caractère n'est disponible la valeur 0 est placé dans la variable et le programme continu après cette commande. 
 ```
-10 PRINT "Enfoncez une touche pour arrêter le programme\n"  PAUSE 400 
-20 DO ? "hello ",  GET A UNTIL A 
+ 10 PRINT "Enfoncez une touche pour arrêter le programme\n"  PAUSE 400
+20 DO ? "hello ",  GET A UNTIL A<>0 
 
 ```
 
 [index](#index)
 <a id="gosub"></a>
-### GOSUB *expr* {P}
-Appel de sous-routine. *expr* doit résulté en un numéro de ligne existant sinon le programme arrête avec un message d'erreur.
+### GOSUB *line#*|*label* {P}
+Appel de sous-routine., *line#* doit être un numéro de ligne existant sinon le programme arrête avec un message d'erreur. 
+
+*label* est une étiquette placée en début de ligne et qui peut-être utilisée au lieu d'un numéro de ligne.
+
 ```
 >li
-   10 a=0
-   20 gosub 1000
-   30 if a>20 : end 
-   40 goto 20
- 1000 ? a,
- 1010 a=a+1
- 1020 ret
+5 ' test GOSUB with line# and label
+10 GOSUB 100 
+20 GOSUB LBL1 
+30 END 
+100 ? "GOSUB line# works!" return 
+200 LBL1 ? "GOSUB label works!" return 
 
 >run
-   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20
+GOSUB line# works!
+GOSUB label works!
+
 >
 ```
 
 [index](#index)
 <a id="goto"></a>
-### GOTO *expr* {P}
-Passe le contrôle à la ligne dont le numéro est déterminé par *expr*. *expr* doit résulté en un numéro de ligne existant sinon le programme s'arrête avec un message d'erreur. 
+### GOTO *line#*|label {P}
+Saute à la ligne dont le numéro est déterminé par *line#*. Cette ligne doit existée sinon le programme s'arrête avec un message d'erreur.
+
+Une étiquette *label* peut-être utilisée à la place d'un numéro de ligne. 
+
 ```
 >li
-   10 a=0
-   20 goto 1000
-   30 if a>20 : end 
-   40 goto 20
- 1000 ? a,
- 1010 a=a+1
- 1020 goto 30
+    5 ' test GOTO avec line# et label 
+   10 GOTO 100
+   20  LBL1 PRINT "GOTO label works!"
+   30 END
+  100 PRINT "GOTO line# works!"GOTO LBL1 
+program address:  $80, program size:  119 bytes in RAM memory
 
->ru
-   0   1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20
->
-```
-
-[index](#index)
-<a id="gpio"></a>
-### GPIO(*expr1*,*reg*) {C,P}
-Cette commande retourne l'adresse d'un des registre de contrôle d'un port GPIO. *expr1* doit indiqué un numéro de port valide dans l'ensemble **{0..8}**. Ces valeurs correspondent aux ports {A,B,C,D,E,F,G,H,I} du MCU. *reg* indique le registre. Chaque GPIO a 5 registres de contrôle: **ODR**, **IDR**, **DDR**, **CRL**, **CRH**. 
-```
->bset gpio(2,odr),32 ' allume LD2 
-
->bres gpio(2,odr),32 ' eteint LD2
+>run
+GOTO line# works!
+GOTO label works!
 
 >
-``` 
-
+```
 [index](#index)
 <a id="hex"></a>
 ### HEX {C,P}
 Sélectionne la base numérique hexadécimale pour l'affichage des entiers.
-Voir la commande **DEC**  pour revenir en décimale.
 
-    >HEX:?-10:DEC:?-10
-    $FFFFF6
-    -10
+Voir auddi [DEC](#dec).
+```
+>HEX ?-10 DEC:?-10
+$FFFFF6
+  -10
+```
 
 [index](#index)
 <a id="idr"></a>
 ### IDR {C,P}
-Cette fonction retourne l'index du registre GPIO **IDR** *(Input Data Register)*. Ce registre permet de lire les états d'entrée d'un port GPIO. 
-```
->hext:?peek(gpio(4,idr))
- $F9
+Constante système qui correspond à l'offset du registre **IDR** par rapport à l'adresse de base d'un port GPIO. 
+Un port GPIO utilise 5 registres de configurations: 
 
->
+* [ODR](#odr) *Output Data Register*, offset 0 
+
+* [IDR](#idr) *Input Data Register*, offset 1 
+
+* [DDR](#ddr) *Data Direction Register*, offset 2 
+
+* [CR1](#cr1) *Control Register 1, offset 3 
+
+* [CR2](#cr2) *Control Register 2, offset 4 
+
 ```
-Dans cet exemple on fait la lecture du GPIO E et on constate que toutes les entrées sauf les bits 1 et 2 sont à l'état **1**. 
+>? "Nucleo board LD2 ODR address:" PORTC+ODR
+Nucleo board LD2 ODR address:20490 
+
+>          
+```
 
 [index](#index)
 <a id="if"></a>
-### IF *relation* : cmd [:cmd]* {C,P}
-Le **IF** permet d'exécuter les instructions qui suivent sur la même ligne si l'évalution de *relation* est vrai. Toute valeur différente de zéro est considérée comme vrai.  Si la résultat de *relation* est zéro les instructions qui suivent le **IF** sont ignorées.  Il n'y a pas de **ENDIF** ni de **ELSE**. Toutes les instructions à exécuter doivent-être sur la même ligne que le **IF**. 
+### IF *condition* : cmd [:cmd]* {C,P}
+Le **IF** permet d'exécuter les instructions qui suivent sur la même ligne si l'évalution de *condition* est vrai. Toute valeur différente de zéro est considérée comme vrai.  Si la résultat de *CONDITION* est zéro les instructions qui suivent le **IF** sont ignorées.  Il n'y a pas de **ENDIF** ni de **ELSE**. Toutes les instructions à exécuter doivent-être sur la même ligne que le **IF**. 
 
 ```
 >a=5%2:if a:?"vrai",a
@@ -851,67 +905,82 @@ Cette commande permet de saisir un entier fourni par l'utilisateur. Cet entier e
 Facultativement un message peut-être affiché à la place du nom de la variable. Cette chaîne précède le nom de la variable sans virgule de séparation entre les deux.
 
 ```
->10 input "age? "a,"sexe(1=M,2=F)? "s 
+>li
+    5 ' test INPUT command 
+   10 INPUT "age? "A,"sex(1=M,2=F)? "S
+   20 IF S=1 PRINT "man ",:GOTO 40
+   30 PRINT "woman ",
+   40 IF A>59 PRINT "babyboomer":END
+   50 PRINT "still young"
+program address:  $80, program size:  161 bytes in RAM memory
 
 >run
-age? 24
-sexe(1=M,2=F)? 1
+age? :60
+sex(1=M,2=F)? :1
+man babyboomer
 
->? a,s
-  24   1
+>run
+age? :40
+sex(1=M,2=F)? :2
+woman still young
 
 >
 ```
 [index](#index)
-<a id="invert"></a>
-### INVERT(*expr*) {C,P}
-Cette fonciton retourne l'inverse binaire de *expr*. C'est à dire que la valeur de chaque bit de l'entier est inversé. 
-```
-> ? invert(5)
-   -6
-> hex: ? invert(&101)
-   $FFFA   
-```
-
-[index](#index)
 <a id="iwdgen"></a>
 ### IWDGEN *expr* {C,P}
-Active l'*Independant WatchDog timer*. *expr* représente le délais de la minuterie en mulitiple de **62,5µsec** avant la réinialiation du MCU. Le compteur du **IWDG** doit-être rafraîchie avant la fin de ce délais sinon le MCU est réinitialisé. Un **WatchDog timer** sert à détecter les pannes matérielles ou logicielles. Une fois activé le **IWDG** ne peut-être désactivé que par une réiniatiliation du MCU.  La commande **IWDGREF**  doit-être utilisée en boucle pour empêcher une réinitialisation intempestive du MCU. *expr* doit-être dans l'interval {1..16383}.
+Active l'*Independant WatchDog timer*. *expr* représente le délais de la minuterie en mulitiple de **62,5µsec** avant la réinialiation du MCU. Le compteur du **IWDG** doit-être rafraîchie avant la fin de ce délais sinon le MCU est réinitialisé. Un **WatchDog timer** sert à détecter les pannes matérielles ou logicielles. Une fois activé le **IWDG** ne peut-être désactivé que par une réiniatiliation du MCU.  La commande [IWDGREF](#iwdgref)  doit-être utilisée en boucle pour empêcher une réinitialisation intempestive du MCU. *expr* doit-être dans l'interval {1..16383}.
 16383 représente un délais d'une seconde.
 
 ```
-   10 IWDGEN 16383 ' activation de **IWDG** délais ~ 1 seconde 
-   20 IF QKEY :GOTO 40
-   30 IWDGREF ' réinitialise le compteur du **IWDG**
-   34 GOTO 20  
-   40 GOTO 40 ' la cart var réinitialiser après 1 seconde.
+>li
+    5 ' indepencdent watchdog timer test 
+   10 IWDGEN 16383 ' enable **IWDG** with 1 second delay  
+   20 IF QKEY:GOTO 40
+   30 PRINT \.,:PAUSE 100:IWDGREF ' refresh **IWDG** before it expire. 
+   34 GOTO 20
+   40 PRINT "\nThe IWDG will reset MCU in 1 second ."
+program address:  $80, program size:  225 bytes in RAM memory
 
+>run
+.................
+The IWDG will reset MCU in 1 second .
 
+> �
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.0
+
+>
 ```
 
 [index](#index)
 <a id="iwdgref"></a>
 ### IWDGREF  {C,P}
 Cette commande sert à rafraîchir le compteur du **IWDG** avant l'expiration de son délais.
-Voir commande **IWDGEN**.
+Voir commande [IWDGEN](#iwdgen).
 
 [index](#index)
 <a id="key"></a>
 ### KEY {C,P}
-Attend qu'un caractère soit reçu de la console. Ce caractère est retourné sous la forme d'un entier et peut-être affecté à une variable.
+Attend qu'un caractère soit reçu de la console. Si ce caractère est affecté à une variable il sera automatiquement converti en entier. 
 ```
 >? "Press a key to continue...":k=key
 Press a key to continue...
+
+>? k
+  13 
 
 >
 ```
 
 [index](#index)
 <a id="let"></a>
-### LET *var*=*expr* {C,P}
+### LET *var*=*condition* {C,P}
 Affecte une valeur à une variable. En Tiny BASIC il n'y a que 26 variables représentées par les lettres de l'alphabet. Il y a aussi une variable tableau unidimensionnelle nommée **@**. **Notez** que le premier indice du tableau est **1**. 
 
-*expr* peut-être arithmétique ou relationnel ou une combinaison des deux. Le mot réservé **LET** est facultatif. 
+*condition* peut-être arithmétique ou relationnel. Le mot réservé **LET** est facultatif. Il a été ajouté pour des raison de compatibilité avec la version traditionnelle de Tiny BASIC. En réalité le compilateur le supprime. Si un programme dans leque **LET** a été utilisé est *LIST*er il n'apparaît pas dans le *listing*. 
 ```
 >LET A=24*2+3:?a
   51
@@ -926,15 +995,14 @@ Affecte une valeur à une variable. En Tiny BASIC il n'y a que 26 variables repr
 
 >
 ```
-La commande **LET** est facultative et n'est conservée que pour des raisons de compatibilité avec les programmes TinyBasic originaux. Le compilateur supprime cette commande. 
 
 [index](#index)
 <a id="list"></a>
-### LIST [\C] | [*expr1*][,*expr2*] {C}
+### LIST [\C] | [*line#1*][,*line#2*] {C}
 
-Cette commande a 2 fonctions afficher le programme en mémoire ou bien afficher la liste des constantes définie en mémoire **EEPROM**. 
+Cette commande a 2 fonctions afficher le programme en mémoire ou bien afficher la liste des [constantes](#const) sauvegardées **EEPROM**. 
 
-* [\C] Cette option affiche la liste des constantes définies dans la mémoire **EEPROM**  et s'utilise à l'exclusion du listage de programme. 
+* [\C](#const) Cette option affiche la liste des constantes sauvegardées dans la mémoire **EEPROM**  et s'utilise à l'exclusion du listage de programme. 
 
 ```
 >list \c
@@ -945,7 +1013,7 @@ TEST=1024
 >
 ```
 
-* Affiche le programme contenu dans la mémoire RAM à l'écran. Sans arguments toutes les lignes sont affichées. Avec un argument la liste débute à la ligne dont le numéro est **&gt;=expr1**. Avec 2 arguments la liste se termine au numéro **&lt;=expr2**. 
+* LIST [*line#1*][*,line#2*] Affiche le programme contenu dans la mémoire à l'écran. Sans arguments toutes les lignes sont affichées. Avec un argument la liste débute à la ligne dont le numéro est **&gt;=line#1**. Avec 2 arguments la liste se termine au numéro **&lt;=line#2**. 
 ```
 >li
    5  ' suite de fibonacci 
@@ -965,17 +1033,21 @@ program address: $80 , program size: 119 bytes in RAM memory
 >
 
 ```
-Si le dernier programme exécuté était celui sauvegardé en mémoire **FLASH** avec la commande [SAVE](#save) alors le listing sera celui du programme ne mémoire **FLASH*** l'adresse du programme ainsi que sa taille sont indiqués à la fin du listing.
+Si le dernier programme exécuté était celui sauvegardé en mémoire **FLASH** avec la commande [SAVE](#save) alors le listing sera celui du programme en mémoire **FLASH*** l'adresse du programme ainsi que sa taille sont indiqués à la fin du listing.
 
 [index](#index)
 <a id="log"></a>
-### LOG(*expr*) {C,P}
-Cette fonction retourne le log en base 2 de *expr*. I
+### LOG2(*expr*) {C,P}
+Cette fonction retourne le log en base 2 de *expr*. Il s'agit log2 tronqué à l'entier le plus petit.
 ```
-> for i=1 to 16380 step 0: ? log(i),: i=i*2: next i
-   0   1   2   3   4   5   6   7   8   9  10  11  12  13
+>i=1 do ? log2(i),:i=i*2 until i=$400000 
+   0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17   18   19   20   21 
 >
-
+```
+Cette fonction est l'inverse de [BIT](#bit).
+```
+>? log(bit(7))
+   7 
 ```
 
 [index](#index)
@@ -986,127 +1058,136 @@ Cette fonction décale vers la gauche *expr1* par *expr2* bits. Le bit le plus f
 >? lshift(1,15)
  -32768
 
->?rshift(-32768,15)
-   1
-
+>
 ```
-[index](#index)
-<a id="muldiv"></a>
-### MULDIV(*expr1*,*expr2*,*expr3*) {C,P}
-Cette fonction effectue une multiplication suive d'une division. Le résultat de la multiplication est conservé dans un entier de 32 bits pour éviter les erreurs de débordement possible lors de la multiplication. Le résultat est *expr1* * *expr2* / *expr3* 
-```
->? 5000*10/10 ' erreur débordement sur la multiplication 
--1554  ' mauvaise réponse.
-
->? muldiv(5000,10,10)
-5000  ' bonne réponse 
-
->? -5000*10/10 ' erreur débordement sur la multiplication 
-1553 ' mauvaise réponse
-
->? muldiv(-5000,10,10)
--5000  ' bonne réponse 
-
->? muldiv(32000,25,10)
-14464 ' mauvaise réponse car le quotient > INT16_MAX 
-
->? muldiv(32000,25,30)
-26666  ' bonne réponse car le quotient est < INT16_MAX 
-
->t=ticks:for a=1to10000:i=muldiv(5000,25,30):next a:? ticks-t
-1161 
-```
-
+Voir aussi [RSHIFT](#rshift)
 
 [index](#index)
 <a id="new"></a>
 ### NEW {C}
-Clean RAM and reset variables 
+Clear program from RAM.  
 
 [index](#index)
 <a id="next"></a>
 ### NEXT var {C,P}
-Fait parti de la structure de contrôle ***FOR...NEXT** indique la fin de la boucle.  Voir [FOR](#for).  
+Fait parti de la structure de contrôle [FOR...NEXT](#for) indique la fin de la boucle. À ce point la variable de contrôle est incrémentée de la valeur de [STEP](#step) et si elle dépasse la limite la boucle est interrompue sinon l'éxécution se poursuit au début de la boucle.
+
+Voir aussi [FOR](#for), [TO](#to),[STEP](#step). 
+
 [index](#index)
 <a id="not"></a>
-### NOT(*expr*) {C,P}
-Cette fonction retourne le complément logique de la valeur de l'expression passée en argument. 
-Autrement dit, si *expr*=0 la fonction retourne **-1** et pour toute autre valeur retourne **0**.
+### NOT *expr|relation|condition* {C,P}
+Cet opérateur unaire retourne le complément binaire de la valeur de l'expression passée en argument. C'est à dire que la valeur de chaque bit est inversé. Les bits à **0** deviennent **1** et vice-versa. 
+
+Voir aussi [AND](#and),[OR](#or),[XOR](#xor).
+
 ```
-> ? not(qkey)
--1
+>hex
+
+>? not 0
+$FFFFFF 
+
+>? not $ffffff
+  $0 
+
+>? not 5
+$FFFFFA 
+
+>? not $fffffa
+  $5 
+
 >
 ```
-
-S'il n'y a aucun caractère de reçu **QKEY** retourne **0** donc la fonction **NOT** renvoie **-1** qui veut dire **vrai**. 
 
 [index](#index)
 <a id="odr"></a>
 ### ODR {C,P}
-Renvoie l'index du registre **ODR** *(Output Data Register)* d'un périphérique **GPIO**. Ce registre est utilisé pour contrôler l'état des sorties du port GPIO. Considérez chaque GPIO comme un tableau à 5 valeurs, 
-qu'on définirait en 'C' par __uint8_t gpio[5]__. Les fonctions **ODR**,**IDR**,**DDR**,**CRL** et **CRH**  retourne l'index du tableau qui correspond à 1 des 5 registres du tableau. 
 
+Cette constante système renvoie l'index du registe **ODR** par rapport à l'adresse du port GPIO. 
+Sur la carte NUCLEO-8S208RB il y a une LED identifiée **LD2**.
+Cette LED est branchée sur le bit **5** du port **C**
 ```
->bset gpio(2,odr),32 ' allume LED2 
+>bset portc+odr,bit(5) ' allume LD2 
 
->bres gpio(2,odr),32 ' eteint LED2
+>bres portc+odr,bit(5) ' eteint LED2
 
 >
 ``` 
-Dans cette exemple la LED2 est allumée puis éteinte. La LED est branchée sur le bit 5 du port **C**. **32=(1&lt;&lt;5)** donc ce masque affecte seulement le bit 5.  
+Voir aussi [IDR](#idr),[DDR](#ddr),[CR1](#cr1), [CR2](#cr2). 
 
 [index](#index)
 <a id="on"></a>
 ### ON *expr* GOTO|GOSUB liste_destination
-Cette commande permet de sélectionner la destination d'un [GOTO](#goto) ou [GOSUB](#gosub) en fonction de la valeur d'une expression. *liste_destination* est une liste de numéros de lignes dont un élément sera sélection comme destination. Les numéros sont séparés par une virgule. Si la valeur de l'expression est plus petite que **1** ou plus grande que le nombre d'élément de la liste, l'exécution se poursuit sur la ligne suivante.
+Cette commande permet de sélectionner la destination d'un [GOTO](#goto) ou [GOSUB](#gosub) en fonction de la valeur d'une expression. *liste_destination* est une liste de numéros de lignes ou d'étiquttes dont un élément sera sélection comme destination. Les numéros sont séparés par une virgule. Si la valeur de l'expression est plus petite que **1** ou plus grande que le nombre d'élément de la liste, l'exécution se poursuit sur la ligne suivante.
 ```
-   5  ? "testing ON expr GOTO line#,line#,..."
-   7  INPUT "select 1-4"A 
-  10  ON A GOTO 100,200,300,500  
-  14  ? "Woops! selector out of range." : END  
-  20  GOTO 500 
- 100  PRINT 100 :GOTO 500
- 200  PRINT 200 :GOTO 500
- 300  PRINT 300 :GOTO 500 
- 500 ? "testing ON expr GOSUB line#,line#..." 
- 505 INPUT "select 1-6"B
- 510 A=1 ON A*B GOSUB 600,700,800,900,1000,1100 
- 520 IF (B>6) GOTO 14 
- 522 if B<1 GOTO 14 
- 524 GOTO 5  
- 600 ? 600 : RETURN 
- 700 ? 700 : RETURN 
- 800 ? 800 : RETURN 
- 900 ? 900 : RETURN 
- 1000 ? 1000 : RETURN 
- 1100 ? 1100 : RETURN 
+>li
+    5 PRINT "testing ON expr GOTO line#,line#,..."
+    7 INPUT "select 1-5"A
+   10 ON A GOTO 100, LBL1 ,300,400, EXIT 
+   14 PRINT "Woops! selector out of range.":END
+   20 GOTO 500
+  100 PRINT "selected GOTO 100":GOTO 500
+  200  LBL1 PRINT "selected GOTO LBL1":GOTO 500
+  300 PRINT "selected GOTO 300":GOTO 500
+  400 PRINT "selected GOTO 400"
+  500 PRINT "testing ON expr GOSUB line#,line#..."
+  505 INPUT "select 1-7"B
+  510 A=1 ON A*B GOSUB 600,700,800,900,1000, LBL2 , EXIT 
+  520 IF B<1 OR B>7 GOTO 14
+  524 GOTO 5
+  600 PRINT "selected GOSUB 600":RETURN
+  700 PRINT "selected GOSUB 700":RETURN
+  800 PRINT "selected GOSUB 800":RETURN
+  900 PRINT "selected GOSUB 900":RETURN
+ 1000 PRINT "selected GOSUB 1000":RETURN
+ 1100  LBL2 PRINT "selected GOSUB LBL2":RETURN
+ 2000  EXIT PRINT "selected EXIT"
+ 2010 END
+program address:  $80, program size:  675 bytes in RAM memory
+
+>run
+testing ON expr GOTO line#,line#,...
+select 1-5:1
+selected GOTO 100
+testing ON expr GOSUB line#,line#...
+select 1-7:6
+selected GOSUB LBL2
+testing ON expr GOTO line#,line#,...
+select 1-5:5
+selected EXIT
+
+>
+
 ```  
 
 [index](#index)
 <a id="or"></a>
-### OR(*expr1*,*expr2*) {C,P}
- Cette fonction applique une opération **OU** bit à bit entre les 2 arguments.
-```
->? or(14,1)
-  15
+### *expr1|rel1|cond1* OR expr2|rel2|cond2*  {C,P}
+ Cet opérateur applique une opération **OU** bit à bit entre les 2 éléments. Si ces éléments sont des *relations* ou des *conditions* le résulat sera **0** ou **-1**.  
 
->? or($AA,$55)
- 255
-
->
 ```
+>a=3:b=5 if a>3 or a<5 ? b
+   5 
+
+>if a<3 or a>5 ? a
+
+>  
+```
+
+Voir aussi [AND](#and),[NOT](#not),[OR](#or),[XOR](#xor).
+
 [index](#index)
 <a id="pad"></a>
 ### PAD {C,P}
 Retourne l'adresse du tampon de 128 octets utilisé pour la compilation et d'autres fonctions.
 ```
 >? pad
-5856
+5816
 
 >
-
 ```
-Ce tampon se trouve juste sous la pile et après le *tib* qui est un tampon de 80 octets utilisé entre autre par la lecture des commandes. 
+
+Ce tampon se trouve juste sous la pile des expressionset après le *Terminal Input Buffer* qui est un tampon de 80 octets. 
 
 [index](#index)
 <a id="pause"></a>
@@ -1141,22 +1222,23 @@ Retourne la valeur de l'octet situé à l'adresse représentée par *expr*. Mêm
 [index](#index)
 <a id="pinp"></a>  {C,P}
 ### PINP pin 
-Constante utilisée par la commande [PMODE](#pmode) pour définir une broche en mode entrée logique.
+Constante système utilisée par la commande [PMODE](#pmode) pour définir une broche en mode entrée logique.
 
 [index](#index)
 <a id="pmode"></a>
 ### PMODE *pin*,*mode*
-Configure le mode entrée/sortie d'une des 15 broches nommées **D0..D15** sur l connecteur **CN8**. *pin* est un entier dans l'intervalle {0..15} et mode est {PINP,POUT}. Cette commande est équivalente à la fonction Arduino *PinMode*. 
+Configure le mode entrée/sortie d'une des 15 broches nommées **D0..D15** sur l connecteur **CN8**. *pin* est un entier dans l'intervalle {0..15} et mode est {[PINP](#pinp),[POUT](#pout)}. Cette commande est équivalente à la fonction Arduino *PinMode*. 
+
 ```
 10 PMODE 10,POUT 
-20 DWRITE 10, 1#
+20 DWRITE 10, 1
 ```
 [index](#index)
 <a id="poke"></a>
 ### POKE *expr1*,*expr2*
-Dépose la valeur de *expr2* à l'adresse de *expr1*. Même si expr2 est un entier seul l'octet faible est utilisé. 
+Dépose la valeur de *expr2* à l'adresse de *expr1*. Même si expr2 est un entier>255 seul l'octet faible est utilisé. 
 ```
->poke $5241,asc("A") 'UART3_DR, envoie 'A' au terminal
+>poke $5231,asc("A") ' Envoie un caractère au terminal.
 A
 >
 ```
@@ -1167,15 +1249,30 @@ Constante utilisée par la commande [PMODE](#pmode) pour définir une broche en 
 
 [index](#index)
 <a id="print"></a>
-### PRINT [*string*|*expr*|*char*][,*string*|*expr*|*char*][','] {C,P}
-La commande **PRINT** sans argument envoie le curseur du terminal sur la ligne suivante. Si la commande se termine par une virgule il n'y a pas de saut à la ligne suivante et la prochaine commande **PRINT** se fera sur  la même ligne. Les arguments sont séparés par la virgule. 
+### PRINT [#n]|[*string*|*expr*|*char*][,*string*|*expr*|*char*][','] {C,P}
+La commande **PRINT** sans argument envoie le curseur du terminal sur la ligne suivante. Si la commande se termine par une virgule il n'y a pas de saut à la ligne suivante et la prochaine commande **PRINT** se fera sur  la même ligne. Les arguments sont séparés optionnelement par la virgule, lorsqu'il y a embiguité sur la fin d'une expression. 
+
+l'option **#n** sert à fixer la largeur de champ réservé pour l'imprssion d'un entier.
+
+```
+>? #6 3
+     3 
+
+>? #4 3
+   3 
+
+>? #0 3
+3 
+
+>
+```
 
 Le **'?'** peut-être utilisé à la place de **PRINT**.
 
 **PRINT** accepte 3 types d'arguments: 
 
 * *string*,  chaîne de caractère entre guillemets
-* *expr*,   Toute expression arithmétique ou relationnelle qui retourne un entier.
+* *expr*,   Toute expression arithmétique,relationnel ou contion logique.
 * *char*,  Un caractère ASCII pécédé de **\\** ou tel que retourné par la fonction **CHAR()**.
 ```
 >? "la valeur de A=",a
@@ -1188,33 +1285,36 @@ Caractere recu du terminal Z
 ```
 [index](#index)
 <a id="prtx"></a>
-### PRTx {C,P}
-**PRTA**...**PRTI** sont des constates qui retourne un index de PORT pour la fonction **GPIO** 
+### PORTc {C,P}
+Les constanstes système **PORTc** renvoie l'adresse de base des registres de cntrôle d'un port GPIO. **c** est un caractère identifiant le port. Il y a 9 ports 
+sur le MCU STM8S208, **PORTA**...**PORTI**
 ```
->? gpio(prta,odr)
+>? porta
  20480
 
->hex: ? gpio(prtc,odr)
+>? portc+ddr
+20492 
+
+>hex: ? portc+odr
  $500A
 
->bset gpio(prtc,odr),bit(5) ' allume LD2
-
+>bset portc+odr,bit(5) ' allume LD2
 ```
 [index](#index)
 <a id="qkey"></a>
 ### QKEY {C,P}
-Cette commande vérifie s'il y a un caractère en attente dans le tampon de réception du terminal. Retourne **1** si c'est le cas sinon retourne **0**.
+Cette fonction vérifie s'il y a un caractère en attente dans le tampon de réception du terminal. Retourne **-1** si c'est le cas sinon retourne **0**.
 ```
->for a=0to0ste0:a=qkey:next a
+>do a=qkey until a : ? a,key
+  -1 v
 
->z
+>
 ```
-Pour créer une boucle infinie on utilise un FOR...NEXT avec la valeur de STEP à zéro. À l'intérieur de la boucle on appelle la fonction **QKEY** dont la valeur est affectée à la variable **A** qui est la variable de contrôle de la boucle. Sitôt qu'une touche est enfoncée sur la console la valeur de **A** passe à **1** et la boucle se termine. De retour sur la ligne de commande le caractère reçu  de la console est affiché après le **'&gt;'** puisqu'il est lu par la fonction *readln* de l'interpréteur de commande.
 
 [index](#index)
 <a id="read"></a>
 ### READ {P}
-Cette fonction retourne l'entier pointé par le pointeur de donné initialisé avec les commandes **RESTORE** ou **DATALN**. À chaque appel de **READ** le pointeur est avancé à l'item suivant et s'il y a plusieurs lignes **DATA** dans le programme et que la ligne courante est épuisée, le pointeur passe à la ligne suivante. C'est une erreur fatale d'invoquer **READ** lorsque toutes les données ont étées lues. Cependant le pointeur peut-être réinitialisé avec l'une des commandes **RESTORE** ou **DATALN**.  
+Cette fonction retourne l'entier pointé par le pointeur de donné initialisé avec la commande [RESTORE](#restore). À chaque appel de **READ** le pointeur est avancé à l'item suivant et s'il y a plusieurs lignes [DATA](#data) dans le programme et que la ligne courante est épuisée, le pointeur passe à la ligne suivante. C'est une erreur fatale d'invoquer  [DATA](#data) lorsque toutes les données ont étées lues. Cependant le pointeur peut-être réinitialisé avec la commande [RESTORE](#restore).  
 ```
 >list
    10 RESTORE 
@@ -1236,50 +1336,78 @@ Réinitialise le MCU
 ```
 >reboot
 
+
 Tiny BASIC for STM8
-Copyright, Jacques Deschenes 2019,2020
-version 1.0
+Copyright, Jacques Deschenes 2019,2022
+version 2.0
 
 >
 ```
 
 [index](#index)
-<a id="remark"></a>
-### REMARK  *texte*
-La commande **REM**  sert à insérer des commentaires (*remark*) dans un programme pour le documenter. Le mot réservé **REM** peut-être avantageusement remplacé par le caractère apostrophe (**'**). Un commentaire se termine avec la ligne et est ignoré par l'interpréteur.
+<a id="rem"></a>
+### REM|'  *texte*
+La commande **REM**  sert à insérer des commentaires (*remark*) dans un programme pour le documenter. Le mot réservé **REM** peut-être avantageusement remplacé par le caractère apostrophe (**'**). Un commentaire se termine avec la ligne et est ignoré par l'interpréteur. Le décompilateur 
+remplace le mot **REM** par une apostrophe comme on le voit çi-bas.
 ```
+>10 rem ceci est un commentaire 
+
+>20 ' ceci est aussi un commentaire 
+
 >list
-   10 REM ceci est un commentaire
-   20 'ceci est aussi un commentaire
+   10 ' ceci est un commentaire 
+   20 ' ceci est aussi un commentaire
+program address:  $80, program size:   69 bytes in RAM memory
+
+>
 ```
+
 [index](#index)
 <a id="restore"></a>
 ### RESTORE [line#] {p}
 Cette commande initialise le pointeur de [DATA](#data) au début de la première ligne de données. Il peut être invoqué à l'intérieur d'une boucle si on veut relire les même données plusieurs fois. Pour un exemple d'utilisation voir la fonction [READ](#read). La commande peut accepter optionnellment un numéro de ligne  comme argument. Dans ce cas le pointeur [DATA](#data) sera placé sur cette ligne. Si cette ligne n'existe pas ou n'est pas une ligne de données le programme est interrompu avec un message d'erreur.  
 
+```
+>li
+    5 PRINT "test RESTORE command."
+   10 RESTORE
+   20 PRINT READ READ READ
+   30 RESTORE 300
+   40 PRINT READ READ READ
+   50 END
+  100 DATA 1,2,3
+  200 DATA 4,5,6
+  300 DATA 7,8,9
+program address:  $80, program size:  141 bytes in RAM memory
+
+>run
+test RESTORE command.
+   1    2    3 
+   7    8    9 
+
+>
+
+```
+
 [index](#index)
 <a id="return"></a>
 ### RETURN {P}
-La commande **RETURN**  indique la fin d'une sous-routine. Lorsque cette commande est rencontrée l'exécution se poursuit à la ligne qui suit le **GOSUB** qui a appellé cette sous-routine.
+La commande **RETURN**  indique la fin d'une sous-routine. Lorsque cette commande est rencontrée l'exécution se poursuit à la commande qui suit le [GOSUB](#gosub) qui a appellé cette sous-routine.
 ```
 >li
-    5 ? #6,"Suite de Fibonacci,'q'uitter, autre suivant"
-   10 a=1:b=1:f=1
-   12 ? f,
-   20 gosub 100
-   30 r=key:if r=asc("q"):stop
-   40 goto 20
-  100 'imprime terme, calcule suivant
-  110 ?f,
-  120 a=b:b=f:f=a+b
-  130 return
+   10 GOSUB 100:PRINT "de retour du gosub"
+   20 END
+  100 PRINT "dans la sous-routine"
+  110 RETURN
+program address:  $80, program size:   74 bytes in RAM memory
 
->ru
-Suite de Fibonacci,'q'uitter, autre suivant
-     1     1     2     3     5     8    13    21    34    55    89
+>run
+dans la sous-routine
+de retour du gosub
+
 >
+
 ```
-Dans cet exemple chaque fois qu'on presse une touche sur la console le terme suivant de la suite de Fibonacci est imprimé. La touche 'q' termine le programme. 
 
 [index](#index)
 <a id="rnd"></a>
@@ -1287,15 +1415,31 @@ Dans cet exemple chaque fois qu'on presse une touche sur la console le terme sui
 Cette fonction retourne un entier aléatoire dans l'intervalle {1..*expr*}.
 *expr* doit-être un nombre positif sinon le programme s'arrête et affiche un message d'erreur.
 ```
->?#6:r=32767:fo a=1to100:r=rnd(r):?r,:r=abs(r*113):ne a  
+>>li 
+   10 FOR I=1 TO 100
+   20 PRINT RND(1000),:IF I%16=0 PRINT
+   30 NEXT I
+program address:  $80, program size:   66 bytes in RAM memory
 
- 10061 15156  1114   572   587   771 13879  3472   109  7406  5650  9869   833 22330 22817 17725  7596  5740  2199  6776  9098 16066  8444 11069  2060 23863  1644  6927  2477  1129   893  9684 16320  2571 11309 25964  8347  2297  1663  1504  2144 17889  5946  4483 10146  1086  8073  2449  5911  5213   417  1796  4428  2811  8606  7311 25498  1127  1488 15552  8132  1370 23611 12255  7190  8535  3260 21717 19866  8811 11734 10410  2767  8649  2142 16396  4067   115  4256 16132  2431 10187 11490  2952  2431  2599 23978 11674  4296  1501 24609 26148  2133 20845  3084 18563    13  1086  3761 10511
+>run
+   2  103   57  145  868  657  123  352  358  904  354  117  765  520  164  527 
+ 557  361  640  130  548  126  656  867  800  823  850  691  343  146  172  360 
+ 867  601  318  916  251  509  296  686  413  492  165  167  651  362  768  237 
+ 314  208  793  321  201  984  880  816  406  289  532  303  321  129  747  399 
+ 632  889  447  524   40   66  181  300  147  593  703  702  888  520  876  329 
+ 481  819  948  670  101  457  777  841  382  258  338  647  566  396  458  203 
+ 855  958  846  555 
 >
+
+
 ```
 [index](#index)
 <a id="rshift"></a>
 ### RSHIFT(*expr1*,*expr2*) {C,P}
 Cette fonction décale vers la droite *expr1* de *expr2* bits. Le bit le plus signficatif est remplacé par un **0**.
+
+Voir aussi [LSHIFT](#lshift)
+
 ```
 >? rshift($80,7)
    1
@@ -1308,7 +1452,7 @@ Cette fonction décale vers la droite *expr1* de *expr2* bits. Le bit le plus si
 [index](#index)
 <a id="run"></a>
 ### RUN {C}
-Lance l'exécution du programme qui est chargé en mémoire RAM. Si aucun programme n'est chargé il ne se passe rien.
+Lance l'exécution du programme qui est chargé en mémoire. Si aucun programme n'est chargé il ne se passe rien.  la combinaison **CTRL+C** permet d'interrompre le programme et de retombé sur la ligne de commande.
 
 [index](#index)
 <a id="save"></a>
@@ -1316,36 +1460,9 @@ Lance l'exécution du programme qui est chargé en mémoire RAM. Si aucun progra
 Cette commande copie le programme qui est en mémoire RAM dans la mémoire FLASH le rendant ainsi persistant. Ce programme va par la suite s'exécuter automatiquement au démarrage du MCU. 
 
 [index](#index)
-<a id="show"></a>
-### SHOW {C,P}
- Outil d'aide au débogage d'un programme. Cette commande affiche le contenu de la  pile. Peut-être insérée à l'intérieur d'un programme ou sur la ligne de commande en conjonction avec la commande **STOP**.
-```
->li
-   10 for a=1to10:?a,:stop:ne a
-
->run
-   1
-break point, RUN to resume.
-
->show
-stack:  $5B $10 $191E  $A $5B
-
->ru
-   2
-break point, RUN to resume.
-
->end
-
->
-```
-Dans cet exemple la commande **STOP** a été insérée au milieu d'une boucle **FOR...NEXT**. Donc à chaque itération de la boucle on retombe sur la ligne de commande où la commande **SHOW** est utilisée pour afficher le contenu des piles. Sur *dstack* on aperçoit les paramètres de la boucle **FOR...NEXT**. **39** est l'adresse de la variable de contrôle **A**, **10** est la limite de la boucle et **1** l'incrément.  
-
-À la deuxième itération la commande **END** est utilisée pour arrêter l'exécution. 
-
-[index](#index)
 <a id="size"></a>
 ### SIZE {C}
-Cett commande affiche l'adresse du programme et sa taille. Il peut s'agit du programme en mémoire FLASH ou de celui en mémoire RAM. Celui qui a été le dernier exécuté.
+Cette commande affiche l'adresse du programme et sa taille. Il peut s'agir du programme en mémoire FLASH ou de celui en mémoire RAM. Celui qui a été le dernier exécuté.
 
 [index](#index)
 <a id="sleep"></a>
@@ -1355,17 +1472,19 @@ Cette commande place le MCU en sommeil profond. En mode *sleep* le processeur es
 **SLEEP** utilise l'instruction machine **halt** qui arrête tous les oscillateurs du MCU donc les périphériques ne fonctionnent plus. Par exemple le TIMER4 utilisé pour compter les millisecondes cesse de fonctioner. Le temps est suspendu jusqu'au redémarrage. 
 ```
 >li
-   10 ?"hello ",
-   20 sleep
-   30 ?"world!"
+   10 PRINT TICKS ":hello"
+   20 SLEEP
+   30 PRINT TICKS ": world"
+program address:  $80, program size:   41 bytes in RAM memory
 
->ru
-hello world!
+>run
+1968257 :hello
+1968259 : world
 
 >
 ```
-Dans cet exemple le mot **"hello "** s'affiche puis il ne passe plus rien jusqu'à ce qu'on appuie sur le bouton **USER** sur la carte **NUCLEO**. 
-Ce qui déclenche l'interruption externe **INT4** et redémarre le MCU qui exécute la suite du programme et affiche le mot **"world!"**. 
+Dans cet exemple le compteur de millisecones est affiché suivit du mot **"hello "** Le MCU et ensuite mis en sommeil avec la commande **SLEEP**. Après plusieurs secondes le bouton **USER** sur la carte **NUCLEO** a été enfoncé. 
+Ce qui déclenche l'interruption externe **INT4** et redémarre le MCU sans le réinitialisé. Le programme se poursuit à la ligne 30 et affiche à nouveau le compteur de millisecondes suivit du mot **world**. On voit que le compteur n'a avancé que de 2 millisecondes. 
 
 Si le bouton **RESET** avait été utilisé le MCU aurait été réinitialisé.
 
@@ -1428,28 +1547,38 @@ Cette commande permet d'envoyer un ou plusieurs octets vers le périphérique SP
 [index](#index)
 <a id="step"></a>
 ### STEP *expr* {C,P}
-Ce mot réservé fait partie de la commande [FOR](#for) et indique l'incrément de la variable de contrôle de la boucle. Pour plus de détail voir la commande **FOR**. 
+Ce mot réservé fait partie de la commande [FOR](#for) et indique l'incrément de la variable de contrôle de la boucle. Pour plus de détail voir la commande [FOR](#for). 
 
 [index](#index)
 <a id="stop"></a>
 ### STOP {P}
 Outil d'aide au débogage. Cette commande interrompt l'exécution du programme au point où elle est insérée. L'utilisateur se retrouve donc sur la ligne de commande où il peut exécuter différentes commandes comme examiner le contenu des piles avec la commande **SHOW** ou imprimer la valeur d'une variable. Le programme est redémarré à son point d'arrêt avec la commande **RUN**.  La commande **END** interompt l'exécution.
 ```
->li
-   10 for a=1to10:?a,:STOP:ne a
+>10 FOR A=1 TO 10:PRINT A,:STOP:NEXT A
 
 >run
-   1
+   1 
 break point, RUN to resume.
 
->show
-stack:  $5B $10 $191E  $A $5B
-
->ru
-   2
+>run
+   2 
 break point, RUN to resume.
 
->END
+>run
+   3 
+break point, RUN to resume.
+
+>run
+   4 
+break point, RUN to resume.
+
+>end
+
+>run
+   1 
+break point, RUN to resume.
+
+>end
 
 >
 ```
@@ -1458,29 +1587,28 @@ Dans cet exemple la commande **STOP** a été insérée à l'intérieur d'une bo
 [index](#index)
 <a id="ticks"></a>
 ### TICKS {C,P}
-Le systême entretien un compteur de millisecondes en utilisant le **TIMER4**.  Cette commande retourne la valeur de ce compteur. Le compteur est de 16 bits donc le *roll over* est de 65536 millisecondes. Ce compteur peut-être utilisé pour chronométrer la durée d'exécution d'une routine. Par exemple ça prend combien de temps pour exécuter 1000 boucles FOR vide.
+Le systême entretien un compteur de millisecondes en utilisant le **TIMER4**.  Cette fonction retourne la valeur de ce compteur. Le compteur est de 24 bits mais il est remis à zéro lorsqu'il dépasse 0x7fffff donc le *roll over* est de 8388608 millisecondes soit environ 2.3 heures. Ce compteur peut-être utilisé pour chronométrer la durée d'exécution d'une routine. Par exemple ça prend combien de temps pour exécuter 1000 boucles FOR vide.
 ```
->t=ticks:fo a=1to1000:ne a:?ticks-t
-  12
+>t=ticks: for a=1 to 1000:next a : ?ticks-t "msec"
+  13 msec 
+
+> REM  version sans ':' 
+
+>t=ticks for a=1 to 1000 next a ? ticks-t "msec"
+  10 msec
 
 >
 ```
-Réponse: 12 millisecondes. 
 
 [index](#index)
 <a id="timeout"></a>
 ### TIMEOUT 
-Cette foncition s'utilise avec la commande **TIMER** et retourne **-1** si la minuterie est expirée ou **0** autrement.
+Cette foncition s'utilise avec la commande [TIMER](#timer) et retourne **-1** si la minuterie est expirée ou **0** autrement.
 
 ```
->timer 1000: ? timeout
-   0
-
->? timeout ' après 1 seconde retourne **-1**. 
-  -1
-
+>TIMER 5 DO A=TIMEOUT PRINT A,UNTIL A
+   0    0    0    0    0    0    0    0    0    0    0    0   -1 
 >
-
 ```
 
 [index](#index)
@@ -1488,7 +1616,7 @@ Cette foncition s'utilise avec la commande **TIMER** et retourne **-1** si la mi
 ### TIMER *expr* {C,P}
 Cette commande sert à initialiser une minuterie. *expr* doit résulté en un entier qui représente le nombre de millisecondes. Contrairement à **PAUSE** la commande **TIMER** ne bloque pas l'exécution. On doit vérifier l'expiration de la minuterie avec la fonction [TIMEOUT](#timeout).  
 ```
->timer 1000 ' initialise à 1 seconde.
+>timer 1000 ' time out after 1 second.
 ```
 
 [index](#index)
@@ -1502,74 +1630,118 @@ Ce mot réservé est utilisé lors de l'initialisation d'une boucle [FOR](#for).
 Cette commande génère une tonalité de fréquence déterminée par *expr1* et de durée *expr2* en millisecondes. La sortie est sur **GPIO D:4** branché sur **CN9-6**. La minuterie **TIMER2** est utilisée sur le chanal sortie **1** configuré en mode PWM avec un rapport cyclique de 50%.
   
 ```
-5  ' ce programme joue la gamme. 
-10 @( 1 )= 440 :@( 2 )= 466 :@( 3 )= 494 :@( 4 )= 523 :@( 5 )= 554 :@( 6 )= 587 
-20 @( 7 )= 622 :@( 8 )= 659 :@( 9 )= 698 :@( 10 )= 740 :@( 11 )= 784 :@( 12 )= 831 
-30 FOR I = 1 TO  12 :TONE @(I ), 200 :NEXT I 
+>li
+    5 ' ce programme joue la gamme. 
+   10 @(1)=440:@(2)=466:@(3)=494:@(4)=523:@(5)=554:@(6)=587
+   20 @(7)=622:@(8)=659:@(9)=698:@(10)=740:@(11)=784:@(12)=831
+   30 FOR I=1 TO 12:TONE@(I),200:NEXT I
+program address:  $80, program size:  239 bytes in RAM memory
 
+>run
 
+>
 ``` 
 [index](#index)
 <a id="ubound"></a>
 ### UBOUND
 Cette fonction retourne la taille de la variable tableau **@**. Comme expliqué plus haut cette variable utilise la mémoire RAM qui n'est pas utilisée par le programme BASIC. Donc plus le programme prend de place plus sa taille diminue. Un programme peut donc invoqué cette commande pour connaître la taille de **@** dont il dispose.
 ```
->?ubound
-2870
->10 'plus le programme prend de la place, plus @ diminue.
+>li
+    5 ' ce programme joue la gamme. 
+   10 @(1)=440:@(2)=466:@(3)=494:@(4)=523:@(5)=554:@(6)=587
+   20 @(7)=622:@(8)=659:@(9)=698:@(10)=740:@(11)=784:@(12)=831
+   30 FOR I=1 TO 12:TONE@(I),200:NEXT I
+program address:  $80, program size:  239 bytes in RAM memory
 
->?ubound
-2841
+>? ubound
+1789 
+
+>new   
+
+>? ubound
+1869 
+
 >
 ```
 [index](#index)
 ### UFLASH (C,P)
 <a id="uflash"></a>
-Retourne l'adresse du début de la mémoire FLASH disponible à l'utilisateur.
+Retourne l'adresse du début de la mémoire FLASH disponible à l'utilisateur. S'il y a un programme sauvegardé en mémoire flash, l'adresse est située après ce programme puisque la mémoire flash est organisée en block de 128 octets. Cette addresse est alignée au début d'un block. 
+
 ```
 >li
-   10 'code binaire programme test a UFLASH 
-   15 hex 
-   20 a=uflash
-   30 if pe(a)=0:stop
-   40 ?pe(a),
-   50 a=a+1
-   60 goto 30
-   70 dec 
+    5 ' Blink LED2 on card 
+   10 DO BTOGL PORTC,BIT(5) PAUSE 250 UNTIL QKEY
+   20 BRES PORTC,BIT(5)
+   30 END
+program address:  $80, program size:   87 bytes in RAM memory
 
->ru
- $89 $72 $1A $50  $A $85 $CD $9B $A6 $72 $1B $50  $A $81
+>hex ? uflash
+$B600 
+
+>save
+
+>hex ? uflash
+$B680 
+
 >
 ```
-Comme expliqué dans la discription de la commande **USR** il y a un petit programme *test* préinstallé à l'adresse **UFLASH**. le programme ci-haut affiche le code binaire de ce petit programme. Le dernier code **$81** corrrespond à l'instruction machine **RET**.
 
 [index](#index)
 <a id="until"></a>
 ### UNTIL *expr* {C,P}
-Mot réservé qui ferme une boucle **DO...UNTIL**.  Les instructions entre le **DO** et le **UNTIL** s'exécutent en boucle aussi longtemps que **expr** est faux. Voir **DO**.
+Mot réservé qui ferme une boucle [DO...UNTIL](#do).  Les instructions entre le **DO** et le **UNTIL** s'exécutent en boucle aussi longtemps que **expr** est faux. Voir [DO](#do).
 ```
 >li
-   10 A = 1 
-   20 DO 
-   30 PRINT A ,
-   40 A =A + 1 
-   50 UNTIL A > 10 
+   10 A=1
+   20 DO
+   30 PRINT A,
+   40 A=A+1
+   50 UNTIL A>10
+program address:  $80, program size:   56 bytes in RAM memory
 
 >run
-   1   2   3   4   5   6   7   8   9  10
+   1    2    3    4    5    6    7    8    9   10 
+>
 ```
 [index](#index)
 <a id="usr"></a>
-### USR(*addr*[,*expr*]) {C,P}
-La fonction **USR()** permet d'exécuter une routine écrite en code machine. *addr* est l'adresse de la routine et *expr* est un entier passé en argument à la routine. Au démarrage l'adresse de l'espace utilisateur est affichée en hexadécimal. Cette adresse est le début de l'espace mémoire flash qui n'est pas utilisé par Tiny BASIC et qui peut-être utilisé pour enregistrer des routines en code machine. Cette espace utilisateur se termine à l'adresse 65535 ($ffff). Par défaut un petit programme est enregistré à cet adresse à des fins de test. La commande **WRITE** peut-être utilisée pour enregistrer du code binaire dans cet espace utilisateur. 
-```
-Tiny BASIC for STM8
-Copyright, Jacques Deschenes 2019,2020
-version 1.0
->?usr(uflash,200)
-   0
+### USR(*addr*,*expr*) {C,P}
+La fonction **USR()** permet d'exécuter une routine écrite en code machine. *addr* est l'adresse de la routine et *expr* est un entier passé en argument à la routine. L'adresse à laquelle l'utilisateur peut écrire du code machine est obtenue avec la commande [UFLASH](#uflash). Le routine reçoit son argument sur la pile xstack et doit retourné son résultat sur cette pile.
 
->a=usr($9e80,200)
+Dans l'exemple suivant une routine en code machine calcule le carré d'un entier. Les macros *_at_top* et *_xpush* font parties du projet et sont dans le fichier [tbi_macros.inc](tbi_macros.inc). Le code 
+machine contenu dans les lignes [DATA](#data) est d'abord écris en mémoire flash avant d'être appellé par la function **USR**. 
+```
+>li
+    1 ' write binary code in flash and execute it.
+    2 ' square a number 
+    3 ' assembly code 
+    4 ' square:
+    5 '   _at_top 
+    6 '   _xpush 
+    7 '   call mul24 
+    8 '   ret 
+   20 RESTORE
+   30 DATA 144,246,147,238,1,114,162,0,3,144,247,144
+   40 DATA 239,1,205,2+128,89+128,129
+   50 A=UFLASH
+   60 FOR I=1 TO 18
+   70 WRITE A,READ:A=A+1
+   80 NEXT I
+   90 INPUT "number to square?"N
+  100 PRINT USR(UFLASH,N)
+  110 GOTO 90
+program address:  $80, program size:  419 bytes in RAM memory
+
+>run
+number to square?:15
+ 225 
+number to square?:8
+  64 
+number to square?:50
+2500 
+number to square?:
+Program aborted by user.
 
 >
 ```

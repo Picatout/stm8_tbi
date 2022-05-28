@@ -1,3 +1,66 @@
+#### 2022-05-27
+
+* bogue
+```
+>? 1000*1000
+run time error, overflow
+
+$16B8   $0  $0  $F $80  $0 $64 $84  $0  $3 $E8 $20 $84  $0  $3 $E8
+    0 PRINT 1000*1000
+last token id:   48
+>
+```
+
+* Modifié la fonction **UFLASH** pour alignée l'adresse sur un bloc de 128 octets.
+
+* Corrigé bogue dans fonction **UBOUND** 
+```
+>new
+
+>? ubound
+ 696 
+
+>NEW
+
+>5  ' ce programme joue la gamme. 
+
+>10 @(1)= 440 :@(2)= 466 :@(3)= 494 :@(4)= 523 :@(5)= 554 :@(6)= 587 
+
+>20 @(7)= 622 :@(8)= 659 :@(9)= 698 :@(10)= 740 :@(11)= 784 :@(12)=831 
+
+>30 FOR I = 1 TO  12 :TONE @(I ), 200 :NEXT I 
+
+>
+
+>? ubound
+ 747 
+
+>
+```
+
+* Corrigé bogue dans **TIMEOUT** qui retournait toujours **-1**.
+
+* Corrigé bogue dans routine *get_token*  qui affectait le listing. Les commentaires débutant par le mot **REM** n'étaient pas listé correctement alors que ceux débutant par un apostrophe l'était. 
+
+```
+>10 rem ceci est un commentaire 
+
+>li
+   10 'CECI
+program address:  $80, program size:   33 bytes in RAM memory
+
+```
+
+* Renommé les constantes système **CRH** et **CRL** en **CR1**,**CR2**.
+
+* Renommé la fonction **LOG** en **LOG2**. 
+
+* Suppression de la fonction **INVERT** qui faisait la même chose que l'opérateur **NOT**. 
+
+* Modifié **IF** et **UNTIL** pour tester les 3 octets pour la nullité. 
+
+* Travail de mise à jousr du fichier [tbi_reference.md](tbi_reference.md).
+
 #### 2022-05-26
 
 * 22:28  commit 

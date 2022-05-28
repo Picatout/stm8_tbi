@@ -1353,7 +1353,7 @@ free:
 	pushw y 
 	clr a 
 	ldw x,#tib 
-	ldw y,txtbgn 
+	ldw y,txtend 
 	cpw y,#app_space
 	jrult 1$
 	subw x,#free_ram 
@@ -1396,7 +1396,7 @@ cmd_size:
 ubound:
 	call free 
 	ld a,#CELL_SIZE 
-	mul x,a 
+	div x,a 
 	ldw array_size,x
 	clr a 
 	ret 
@@ -2296,7 +2296,9 @@ if:
 	call condition  
 	_xpop 
 	tnz  a  
-	jrne 9$ 
+	jrne 9$
+	tnzw x 
+	jrne 9$  
 ;skip to next line
 	mov in,count
 	_drop 2 
@@ -3401,55 +3403,46 @@ bad_port:
 ;   xstack	free address 
 ;---------------------------
 uflash:
-	ldw x,app_sign
-	cpw x,#4243 ; signature "BC" 
-	jreq 1$
-	ldw x,app_size 
-	addw x,#app
+	call qsign 
+	jrne 1$
+	ldw x,#app_space 
+	addw x,app_size 
+	addw x,#4
+; align on 128 bytes block 
+	addw x,#BLOCK_SIZE 
+	ld a,xl 
+	and a,#0x80 
+	ld xl,a 
 	jra 2$
 1$:	ldw x,#app_space 
-2$:	clr a 
+2$:
+	clr a 
 	ret 
 
 
 ;---------------------
-; BASIC: USR(addr[,arg])
+; BASIC: USR(addr,arg)
 ; execute a function written 
 ; in binary code.
-; binary fonction should 
-; return token attribute in A 
-; and value in YL:X. 
 ; input:
 ;   addr	routine address 
-;   arg 	is an optional argument 
+;   arg 	is an argument
+;           it can be ignore 
+;           by cally. 
 ; output:
-;   A 		token attribute 
-;   xstack  returned value 
+;   xstack 	value returned by cally  
 ;---------------------
 usr:
-	pushw x 
-	pushw y 	
 	call func_args 
-	cp a,#1 
-	jreq 1$
 	cp a,#2
 	jreq 1$  
 	jp syntax_error 
-1$: push a 
-	_xpop 
-	ldw y,x  ; arg|addr 
-    pop a 
-	cp a,#1 
-	jreq 3$
-	_xpop  ; x=code addr  
-	exgw x,y ; y=code addr, x=arg 
-3$: call (y)
-	push a 
-	ld a,yl  
-	_xpush 
-	pop a 
-	popw y 
-	popw x 
+1$: 
+	_at_next ; A:X addr 
+	ldw ptr16,X 
+	_xpop  ; arg 
+	_store_top ; overwrite addr 
+    call [ptr16]
 	ret 
 
 
@@ -3911,7 +3904,8 @@ timeout:
 	clr a 
 	ldw x,timer 
 	jreq 1$
-	clrw x 
+	clrw x
+	ret  
 1$:	cpl a
 	cplw x 
 	ret 
@@ -3964,7 +3958,7 @@ refresh_iwdg:
 
 
 ;-------------------------------------
-; BASIC: LOG(expr)
+; BASIC: LOG2(expr)
 ; return logarithm base 2 of expr 
 ; this is the position of most significant
 ; bit set. 
@@ -4028,20 +4022,6 @@ bitmask:
 9$:	ret 
 
 ;------------------------------
-; BASIC: INVERT(expr)
-; 1's complement 
-;--------------------------------
-invert:
-	call func_args
-	cp a,#1 
-	jreq 1$
-	jp syntax_error
-1$: _xpop 
-	cpl a 
-	cplw x 
-	ret 
-
-;------------------------------
 ; BASIC: DO 
 ; initiate a DO ... UNTIL loop 
 ;------------------------------
@@ -4072,6 +4052,8 @@ until:
 	call condition  
 	_xpop 
 	tnz a 
+	jrne 9$ 
+	tnzw x 
 	jrne 9$ 
 	ldw x,(DOLP_ADR,sp)
 	ldw basicptr,x 
@@ -4537,13 +4519,12 @@ kword_end:
 	_dict_entry,4,NEXT,NEXT_IDX;next 
 	_dict_entry,3,NEW,NEW_IDX;new
 	_dict_entry,6+F_IFUNC,LSHIFT,LSHIFT_IDX;lshift
-	_dict_entry,3+F_IFUNC,LOG,LOG_IDX;log2 
+	_dict_entry,4+F_IFUNC,LOG2,LOG_IDX;log2 
 	_dict_entry 4,LIST,LIST_IDX;list
 	_dict_entry 3,LET,LET_IDX;let 
 	_dict_entry,3+F_CFUNC,KEY,KEY_IDX;key 
 	_dict_entry,7,IWDGREF,IWDGREF_IDX;refresh_iwdg
 	_dict_entry,6,IWDGEN,IWDGEN_IDX;enable_iwdg
-	_dict_entry,6+F_IFUNC,INVERT,INVERT_IDX;invert 
 	_dict_entry,5,INPUT,INPUT_IDX;input_var  
 	_dict_entry,2,IF,IF_IDX;if 
 	_dict_entry,3+F_IFUNC,IDR,IDR_IDX;const_idr 
@@ -4565,8 +4546,8 @@ kword_end:
 	_dict_entry,3,DEC,DEC_IDX;dec_base
 	_dict_entry,3+F_IFUNC,DDR,DDR_IDX;const_ddr 
 	_dict_entry,4,DATA,DATA_IDX;data  
-	_dict_entry,3+F_IFUNC,CRL,CRL_IDX;const_cr1 
-	_dict_entry,3+F_IFUNC,CRH,CRH_IDX;const_cr2 
+	_dict_entry,3+F_IFUNC,CR2,CR2_IDX;const_cr2 
+	_dict_entry,3+F_IFUNC,CR1,CR1_IDX;const_cr1 
 	_dict_entry,5,CONST,CONST_IDX; cmd_const 
 	_dict_entry,4+F_CFUNC,CHAR,CHAR_IDX;char
 	_dict_entry,3,BYE,BYE_IDX;bye 
@@ -4589,7 +4570,7 @@ code_addr::
 	.word bit_reset,bit_set,bit_test,bit_toggle,bye,char,const_cr2  ; 8..15
 	.word const_cr1,data,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
 	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto ; 24..31 
-	.word hex_base,const_idr,if,input_var,invert,enable_iwdg,refresh_iwdg,key ; 32..39 
+	.word hex_base,const_idr,if,input_var,enable_iwdg,refresh_iwdg,key ; 32..39 
 	.word let,list,log2,lshift,next,new ; 40..47
 	.word const_odr,pad_ref,pause,pin_mode,peek,const_input ; 48..55
 	.word poke,const_output,print,const_porta,const_portb,const_portc,const_portd,const_porte ; 56..63
