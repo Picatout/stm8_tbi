@@ -169,46 +169,51 @@ mulu24_8:
 	push a     ; U8
 	clr acc32 
 ; multiply bits 7..0 * U8   	
-	ld xl,a 
-	ld a,acc8 
-	mul x,a 
-	ld a, acc16 
-	ldw acc16,x
-; multiply middle byte, bits 15..8 * U8  	
-	ld xl,a 
-	ld a,(U8,sp)
-	mul x,a 
-	ld a,acc24
-	clr acc24  
-	addw x,acc24
-	ldw acc24,x 
-; multiply  MSB, bits 23..16 * U8 
-	ld xl,a 
-	ld a,(U8,sp)
-	mul x,a
-	addw x,acc32  
-	ldw acc32,x 
-	ld a,xh 
-	_drop VSIZE  
-	popw x 
-	ret 
+    ldw x,acc16 
+    mul x,a
+    ld a,acc16 
+    ldw acc16,x 
+    ld xl,a
+    ld a,(U8,sp) 
+    mul x,a 
+    ld a,acc24 
+    clr acc24 
+    addw x,acc24
+    rlc acc32 
+    ldw acc24,x 
+    ld xl,a 
+    ld a,(U8,sp)
+    mul x,a 
+    addw x,acc32 
+    ldw acc32,x 
+    ld a,xh 
+    _drop 1 
+    popw x
+    ret
 
 
 ;-------------------------------
 ; mul24 i1 i2 -- i1*i2  
 ; multiply 24 bits integers 
 ;------------------------------
+    ; move N2 to acc24 
+    .macro _mov_n2 
+        ld a,(N2,sp) 
+        ldw x,(N2+1,sp)
+        ld acc24,a 
+        ldw acc16,x 
+    .endm 
+
     PROD=1 
-    N1=4
-    N2=7
-    PROD_SIGN=10
+    PROD_SIGN=4
+    N1=5
+    N2=8
     VSIZE=10 
 mul24:
     _vars VSIZE
-    clr (PROD_SIGN,sp)
-    clr (PROD,sp)
     clrw x 
-    ldw (PROD+1,sp),x
+    ldw (PROD,sp),x 
+    ldw (PROD+2,sp),x
     _xpop 
     tnz a 
     jrpl 0$
@@ -222,9 +227,9 @@ mul24:
     jrpl 2$ 
     cpl (PROD_SIGN,sp) 
     call neg_ax
+2$:
     ld (N2,sp),a 
-    ldw (N2+1,sp),x   
-2$: 
+    ldw (N2+1,sp),x    
     ld acc24,a 
     ldw acc16,x 
     ld a,(N1+2,sp); least byte     
@@ -237,11 +242,8 @@ mul24:
     jrmi 8$ ; overflow  
     ld (PROD,sp),a
     ldw (PROD+1,sp),x 
+    _mov_n2 
 4$:
-    ld a,(N2,sp) 
-    ldw x,(N2+1,sp)
-    ld acc24,a 
-    ldw acc16,x 
     ld a,(N1+1,sp); middle byte     
     jreq 5$
     call mulu24_8
@@ -253,10 +255,7 @@ mul24:
     addw x,(PROD,sp)
     jrv 8$ ; overflow
     ldw (PROD,sp),x 
-    ld a,(N2,sp)
-    ldw x,(N2+1,sp)
-    ld acc24,a 
-    ldw acc16,x 
+    _mov_n2 
 5$:
     ld a,(N1,sp) ; high byte 
     jreq 6$

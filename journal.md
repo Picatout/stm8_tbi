@@ -1,3 +1,9 @@
+#### 2022-05-28
+
+* 22:13 commit.
+
+* Corrigé bogue and *mul24*  **N2** n'était pas sauvegardé sur la pile lorsque positif. Réécris *mulu24_8*.
+
 #### 2022-05-27
 
 * bogue

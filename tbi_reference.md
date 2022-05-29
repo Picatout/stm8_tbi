@@ -1745,7 +1745,6 @@ Program aborted by user.
 
 >
 ```
-Dans cet exemple le programme par défaut est appelé avec l'argument *200*. Ce petit programme allume la LED2 sur la carte pour la durée en millisecondes fournie en argument. Ce délais passé la LED est éteinte et la routine quitte. 
 
 [index](#index)
 <a id="wait"></a>
@@ -1758,7 +1757,7 @@ L'attente se poursuit tant que (*expr1* & *expr2*)^*epxr3* n'est pas nul. Si *ep
 A
 >
 ```
-Dans cet exemple l'adresse $5131 correspond au registre UART1_DR et $5231 au UART1_SR. Lorsque la transmission du caractère est complétée le bit 6 de ce registre passe à **1** et l'attente se termine.
+Dans cet exemple l'adresse $5131 correspond au registre UART1_DR et $5230 au UART1_SR. Lorsque la transmission du caractère est complétée le bit 6 de ce registre passe à **1** et l'attente se termine.
 
 [index](#index)
 <a id="words"></a>
@@ -1766,24 +1765,22 @@ Dans cet exemple l'adresse $5131 correspond au registre UART1_DR et $5231 au UAR
 Affiche la liste de tous les mots qui sont dans le dictionnaire. Le dictionnaire est une liste chaînée des noms des commandes et fonctions de Tiny Basic en relation avec l'adresse d'exécution. 
 ```
 >words
-ABS ADCON ADCREAD AND ASC AWU BIT BRES BSET BTEST BTOGL BYE CHAR
-CRH CRL DATA DATALN DDR DEC DO DREAD DWRITE END EEPROM FCPU FOR 
-GOSUB GOTO GPIO HEX IDR IF INPUT INVERT IWDGEN IWDGREF KEY LET LIST 
-LOG LSHIFT MULDIV NEXT NEW NOT ODR OR PAD PAUSE PMODE PEEK PINP POKE POUT
-PRINT PRTA PRTB PRTC PRTD PRTE PRTF PRTG PRTH PRTI QKEY READ REBOOT REMARK
-RESTORE RETURN RND RSHIFT RUN SHOW SIZE SLEEP SPIRD SPIEN SPISEL SPIWR
-STEP STOP TICKS TIMER TIMEOUT TO TONE UBOUND UFLASH UNTIL USR WAIT WORDS
-WRITE XOR 
- 100 words in dictionary
+ABS ADCON ADCREAD AND ASC AWU BIT BRES BSET BTEST BTOGL BYE CHAR CONST CR1
+CR2 DATA DDR DEC DO DREAD DWRITE EDIT EEFREE EEPROM END ERASE FCPU FOR FREE
+GET GOSUB GOTO HEX IDR IF INPUT IWDGEN IWDGREF KEY LET LIST LOG2 LSHIFT
+NEW NEXT NOT ODR ON OR PAD PAUSE PEEK PINP PMODE POKE POUT PRINT PORTA PORTB
+PORTC PORTD PORTE PORTF PORTG PORTH PORTI QKEY READ REBOOT REM RESTORE RETURN
+RND RSHIFT RUN SAVE SIZE SLEEP SPIEN SPIRD SPISEL SPIWR STEP STOP TICKS
+TIMEOUT TIMER TO TONE UBOUND UFLASH UNTIL USR WAIT WORDS WRITE XOR 
+  98 words in dictionary
 
 >
-
 ```
 
 [index](#index)
 <a id="write"></a>
 ### WRITE *expr1*,*expr2*[,*expr*]* 
-Cette commande permet d'écrire un octet ou plusieurs dans la mémoire EEPROM ou dans la mémoire FLASH. *expr1* la liste d'expressions qui suivent  donne les valeurs à écrire aux adresses successives. le **STM8S208RB** possède 2Ko de mémoire EEPROM 128Ko de mémoire FLASH. Pour la mémoire flash seul la plage d'adresse à partir de **UFLASH** jusqu'à 65535 peuvent-être écritre. Cette commande est utile pour injecter du code machine dans la mémoire flash pour exécution avec la fonction **USR()**. 
+Cette commande permet d'écrire un octet ou plusieurs dans la mémoire EEPROM ou dans la mémoire FLASH. *expr1* est l'adresse ou débute l'écriture et la liste d'expressions qui suivent  donne les valeurs à écrire aux adresses successives. le **STM8S208RB** possède 4Ko de mémoire EEPROM 128Ko de mémoire FLASH. Pour la mémoire flash seul la plage d'adresse à partir de **UFLASH** peuvent-être écrite. Cette commande est utile pour injecter du code machine dans la mémoire flash pour exécution avec la fonction [USR](#usr). 
 
 ```
 >write eeprom+100,1,2,3,4,5
@@ -1792,12 +1789,12 @@ Cette commande permet d'écrire un octet ou plusieurs dans la mémoire EEPROM ou
    1   2   3   4   5
 >
 ```
-**AVERTISSEMENT: Écrire dans la mémoire FLASH en base de l'adresse _UFLASH_ va endommagé le système Tiny BASIC** 
+**AVERTISSEMENT: Écrire dans la mémoire FLASH en bas de l'adresse _UFLASH_ va endommagé le système Tiny BASIC** 
 
 [index](#index)
 <a id="xor"></a>
-### XOR(*expr1*,*expr2*) {C,P}
-Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxressions.
+### *expr1|rel1|cond1* XOR *expr2|rel2|cond2* {C,P}
+Cet opérateur applique la fonction **ou exclusif** bit à bit entre les 2 epxressions,relation ou condition booléenne.
 ```
 >? xor($aa,$55)
  255
@@ -1809,29 +1806,12 @@ Cette fonction applique la fonction **ou exclusif** bit à bit entre les 2 epxre
 ```
 
 [index](#index)
-<a id="xrcv"></a>
-### XRCV 
-Commande pour revevoir un fichier BASIC qui est sur le PC hôte en utilisant le protocole **XMODEM**. Il faut donc utiliser sur le PC un émulateur de terminal qui supporte le transfert de fichier par **XMODEM**, par exemple **minicom**. Il faut donc 2 émulateurs de terminal. L'un pour la console utilisateur et l'autre pour le transfert. On doit activer la transmission avant de passer la commande **XRCV** sur la console. <br/>
-![docs/images/xrcv.png](docs/images/xrcv.png)
-Dans cette capture d'écran **GTKTerm** est utiliser comme console utilisateur et **minicom** pour activer la transmission du fichier à partir du PC. La console communique via **UART1** et xmodem via le canal **UART3**. 
-
-Cette commande peut aussi être utilisée pour transmettre un programm BASIC directement d'une carte à l'autre.
-
-[index](#index)
-<a id="xtrmt"></a>
-### XTRMT 
-Commande pour transmettre le fichier BASIC qui est en émoire RAM vers le PC hôte en utlisant le protocole **XMODEM**. On doit lancer la commande **XTRMT** sur la console avant de lancer la réception **XMODEM** sur l'autre terminal.<br/> 
-![docs/images/xtrmt.png](docs/images/xtrmt.png)
-Sur cette capture d'écran **GTKTerm** branché sur **UART1** est utilisé comme console utilisateur et **minicom** branché sur **UART3** est utilisé pour la réception vers le PC. 
-
-Cette commande peut aussi être utilisée pour transmettre un programm BASIC directement d'une carte à l'autre.
-
-[index](#index)
 
 [index principal](#index-princ)
 <hr>
 
 <a id="install"></a>
+
 ## Installation de Tiny BASIC sur la carte NUCLEO-8S208RB 
 À la ligne 36 du fichier [PABasic.asm](PABasic.asm) il y a une macro nommée **_dbg**. Cette macro ajoute du code supplémentaire lors du développement du système et doit-être mise en commentaire pour construire la version finale. construire Tiny BASIC et programmer la carte NUCLEO est très simple grâce la l'utilitaire **make**. Lorsque la carte est branchée et prête à être programmée faites la commande suivante:
 ```
@@ -1843,7 +1823,7 @@ cleaning files
 rm -f build/*
 
 **********************
-compiling PABasic       
+compiling TinyBASIC      
 **********************
 sdasstm8 -g -l -o build/PABasic.rel PABasic.asm
 sdcc -mstm8 -lstm8 -L../lib/ -I../inc  -o build/PABasic.ihx  build/PABasic.rel
@@ -1906,10 +1886,13 @@ Bien qu'il soit possible de créer les fichiers source sur le terminal et de les
 <a id="sources"></a>
 # code source 
 
+* [hardware_init.asm](hardware_init.asm) Initialisation matérielle.
 * [TinyBasic.asm](TinyBasic.asm)  Code source de l'interpréteur BASIC.
 * [tbi_macros.inc](tbi_macros.inc) constantes et macros utilisées par ce programme.
 * [terminal.asm](terminal.asm) interface utilisateur avec l'émulateur de terminal sur le PC.
 * [compiler.asm](compiler.asm) compile le code source BASIC en byte code pour exécution.
 * [decompiler.asm](decompiler.asm) décompile le bytecode pour l'afficher à nouveau sur l'écran du terminal. Le décompilateur est utilisé par la commande [LIST](#list).
+* [arithm24.asm](arithm24.asm)  fonctions arithmétiques sur entiers 24 bits. 
+* [flash_prog.asm](flash_prog.asm) routine pour la programmation **IAP** de la mémoire FLASH et EEPROM.
 
 [index principal](#index-princ)
