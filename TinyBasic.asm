@@ -717,17 +717,19 @@ to_upper::
 	SIGN=1 ; 1 byte, 
 	BASE=2 ; 1 byte, numeric base used in conversion
 	TEMP=3 ; 1 byte, temporary storage
-	VSIZE=3 ; 3 bytes reserved for local storage
+	XTEMP=4 ; 2 bytes, preserve X 
+	VSIZE=5 ; 5 bytes reserved for local storage
 atoi24::
-	pushw x 
 	_vars VSIZE
-	; acc24=0 
-	clr acc24    
-	clr acc16
-	clr acc8 
+	ldw (XTEMP,sp),x 
+; conversion made on xstack 
+	clr a 
+	clrw x 
+	_xpush 
 	clr (SIGN,sp)
 	ld a,#10
 	ld (BASE,sp),a ; default base decimal
+	ldw x,(XTEMP,sp)
 	ld a,(x)
 	jreq 9$  ; completed if 0
 	cp a,#'-
@@ -739,8 +741,9 @@ atoi24::
 	ld a,#16
 	ld (BASE,sp),a
 2$:	incw x
+	ldw (XTEMP,sp),x 
 	ld a,(x)
-3$:	
+3$:	; char to digit 
 	cp a,#'a
 	jrmi 4$
 	sub a,#32
@@ -754,23 +757,25 @@ atoi24::
 	jrpl 9$
 5$:	ld (TEMP,sp),a
 	ld a,(BASE,sp)
-	call mulu24_8
+	clrw x 
+	rlwa x 
+	_xpush 
+	call mul24
+	clrw x 
 	ld a,(TEMP,sp)
-	add a,acc24+2
-	ld acc24+2,a
-	clr a
-	adc a,acc24+1
-	ld acc24+1,a
-	clr a
-	adc a,acc24
-	ld acc24,a
+	rlwa x 
+	_xpush 
+	call add24 
+	ldw x,(XTEMP,sp)
 	jra 2$
 9$:	tnz (SIGN,sp)
     jreq atoi_exit
-    call neg_acc24
-atoi_exit: 
+    call neg24
+atoi_exit:
+	_xpop 
+	ld acc24,a 
+	ldw acc16,x  
 	_drop VSIZE
-	popw x ; restore x
 	ret
 
 

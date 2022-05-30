@@ -154,41 +154,48 @@ neg_acc24: ;
 ;--------------------------------------
 ; unsigned multiply uint24_t by uint8_t
 ; input:
-;	acc24	uint24_t 
-;   A		uint8_t
+;	xstack	    uint24_t 
+;   a	        uint8_t
 ; output:
-;   acc24   A*acc24
-;      A    overflow, bits 31..24 
+;   A:X     product 
+;   acc32   overflow, bits 31..24 
 ;-------------------------------------
 ; local variables offset  on sp
-	U8   = 1   ; A pushed on stack
-	VSIZE = 1 
+	U8   = 1 
+    VSIZE=1 
 mulu24_8:
-	pushw x    ; save X
-	; local variable
-	push a     ; U8
-	clr acc32 
-; multiply bits 7..0 * U8   	
-    ldw x,acc16 
-    mul x,a
-    ld a,acc16 
-    ldw acc16,x 
-    ld xl,a
-    ld a,(U8,sp) 
-    mul x,a 
-    ld a,acc24 
-    clr acc24 
-    addw x,acc24
-    rlc acc32 
-    ldw acc24,x 
+    push a 
+	clr acc32
+    clr acc24  
+; multiply top bits 7..0 * U8   	
+    ld a,(2,Y) ; top least byte  
     ld xl,a 
     ld a,(U8,sp)
     mul x,a 
-    addw x,acc32 
-    ldw acc32,x 
-    ld a,xh 
-    _drop 1 
-    popw x
+    ldw acc16,x 
+; multiply top bits 15..8 * U8     
+    ld a,(1,Y) ; top middle byte 
+    ld xl,a 
+    ld a,(U8,sp) 
+    mul x,a 
+    addw x,acc24
+    rlc acc32 
+    ldw acc24,x 
+; multiply top bits 23..16 * 8 
+    ld a,(Y)
+    ld xl,a 
+    ld a,(U8,sp)
+    mul x,a 
+    addw x,acc32
+    rlwa x 
+    tnz a 
+    jreq 1$
+    ld a,#ERR_OVERFLOW
+    jp tb_error 
+1$:
+    ld a,xh  
+    ldw x,acc16   
+    _drop VSIZE 
     ret
 
 
@@ -196,19 +203,10 @@ mulu24_8:
 ; mul24 i1 i2 -- i1*i2  
 ; multiply 24 bits integers 
 ;------------------------------
-    ; move N2 to acc24 
-    .macro _mov_n2 
-        ld a,(N2,sp) 
-        ldw x,(N2+1,sp)
-        ld acc24,a 
-        ldw acc16,x 
-    .endm 
-
     PROD=1 
     PROD_SIGN=4
     N1=5
-    N2=8
-    VSIZE=10 
+    VSIZE=7  
 mul24:
     _vars VSIZE
     clrw x 
@@ -222,49 +220,35 @@ mul24:
 0$:    
     ld (N1,sp),a 
     ldw (N1+1,sp),x
-    _at_top 
-    tnz a 
+    tnz (Y)
     jrpl 2$ 
     cpl (PROD_SIGN,sp) 
-    call neg_ax
-2$:
-    ld (N2,sp),a 
-    ldw (N2+1,sp),x    
-    ld acc24,a 
-    ldw acc16,x 
+    call neg24
+2$: 
     ld a,(N1+2,sp); least byte     
     jreq 4$
     call mulu24_8
     tnz a 
-    jrne 8$ ; overflow 
-    ldw x,acc16  
-    ld a,acc24
     jrmi 8$ ; overflow  
     ld (PROD,sp),a
     ldw (PROD+1,sp),x 
-    _mov_n2 
 4$:
     ld a,(N1+1,sp); middle byte     
     jreq 5$
     call mulu24_8
     tnz a 
-    jrne 8$ ; overflow 
-    ld a,acc24 
     jrne 8$  ; overflow 
-    ldw x,acc16  
     addw x,(PROD,sp)
     jrv 8$ ; overflow
     ldw (PROD,sp),x 
-    _mov_n2 
 5$:
     ld a,(N1,sp) ; high byte 
     jreq 6$
     call mulu24_8
+    rrwa x 
+    tnzw x 
+    jrne 8$ ; overflow 
     tnz a 
-    jrne 8$ ; overflow 
-    ldw x,acc24 
-    jrne 8$ ; overflow 
-    ld a,acc8 
     jrmi 8$ ; overflow 
     add a,(PROD,sp)
     ld (PROD,sp),a 
@@ -275,14 +259,13 @@ mul24:
     tnz (PROD_SIGN,sp)
     jreq 9$
     call neg_ax 
-    jra 9$ 
-8$: ; overflow
-    ld a,#ERR_OVERFLOW
-    jp tb_error 
-9$:    
+9$:
     _store_top 
     _drop VSIZE 
     ret 
+8$: ; overflow
+    ld a,#ERR_OVERFLOW
+    jp tb_error 
 
 ;-------------------------------------
 ; divide uint24_t by uint8_t

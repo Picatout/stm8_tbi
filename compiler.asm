@@ -335,7 +335,7 @@ parse_integer: ; { -- n }
     clr (x)
 	ldw x,(XSAVE,sp)
 	call atoi24
-	ldw y,x
+	ldw y,(XSAVE,sp)
 	ld a,acc24 
 	ld (y),a 
 	incw y  
