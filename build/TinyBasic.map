@@ -21,7 +21,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      0000007E  l_DATA                          
      00000080  l_HOME                          
      00000198  l_SSEG0                         
-     00003584  l_CODE                          
+     00003484  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -54,7 +54,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00003584 =       13700. bytes (REL,CON)
+CODE                                00008080    00003484 =       13444. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -81,24 +81,23 @@ CODE                                00008080    00003584 =       13700. bytes (R
      0000911B  compile                            HW_INIT
      000091C5  right_align                        HW_INIT
      0000921D  var_name                           HW_INIT
-     00009248  decompile                          HW_INIT
-     00009432  strlen                             HW_INIT
-     0000944E  strcpy                             HW_INIT
-     0000945E  move                               HW_INIT
-     000096EE  syntax_error                       HW_INIT
-     000096F0  tb_error                           HW_INIT
-     000097EF  next_token                         HW_INIT
-     00009881  itoa                               HW_INIT
-     000098DA  to_upper                           HW_INIT
-     000098E6  atoi24                             HW_INIT
-     00009969  search_dict                        HW_INIT
-     00009CDC  let                                HW_INIT
-     0000A19A  remark                             HW_INIT
-     0000A5E4  beep_1khz                          HW_INIT
-     0000A9D6  qkey                               HW_INIT
-     0000B356  kword_dict                         HW_INIT
-     0000B35E  code_addr                          HW_INIT
-     0000B600  app_space                          HW_INIT
+     00009227  decompile                          HW_INIT
+     0000940B  strlen                             HW_INIT
+     00009427  strcpy                             HW_INIT
+     00009437  move                               HW_INIT
+     000096C7  syntax_error                       HW_INIT
+     000096C9  tb_error                           HW_INIT
+     000097CE  next_token                         HW_INIT
+     00009853  itoa                               HW_INIT
+     000098AC  to_upper                           HW_INIT
+     000098B8  atoi24                             HW_INIT
+     0000993B  search_dict                        HW_INIT
+     00009CBA  let                                HW_INIT
+     0000A17E  remark                             HW_INIT
+     0000A5DA  beep_1khz                          HW_INIT
+     0000A9CC  qkey                               HW_INIT
+     0000B34C  kword_dict                         HW_INIT
+     0000B500  app_space                          HW_INIT
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
 Hexadecimal  [32-Bits]

@@ -166,6 +166,16 @@
     .endm
 
 
+    ; extract code address for 
+    ; TK_CMD|TK_FUNC|TK_IFUNC|TK_CFUNC 
+    .macro _get_code_addr
+        ldw x,(x)
+        inc in 
+        inc in 
+    .endm 
+
+
+
 ;---------------------------------------
 ;    xtack manipulation macros 
 ;    Y is used as xstack pointer  

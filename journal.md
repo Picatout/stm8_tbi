@@ -2,6 +2,8 @@
 
 * Modifié le modèle d'exécution de la machine virtuelle en remplacant les token de commandes par les adresses des routines. Le but est d'améliorer la performance.
 
+* 21:27 commit 
+
 * Réécriture de *mul24* et *mulu24_8* ainsi que de *itoa24* affecté par la modification arithmétique.
 
 #### 2022-05-28

@@ -554,7 +554,7 @@ parse_keyword:
 	incw y 
 	jra 5$ 
 41$:	
-	cpw x,#LET_IDX 
+	cpw x,#let  
 	jreq 5$  ; don't compile LET command 
 	ld (y),a 
 	incw y 
@@ -705,7 +705,7 @@ qmark_tst:
 	ld (x),a 
 	incw x 
 	ldw y,x 
-	ldw x,#PRT_IDX 
+	ldw x,#print
 	ldw (y),x 
 	addw y,#2
 	jp token_exit
@@ -714,7 +714,7 @@ tick_tst: ; comment
 	ld a,#TK_CMD
 	ld (x),a 
 	incw x
-	ldw y,#REM_IDX
+	ldw y,#remark 
 	ldw (x),y 
 	addw x,#2  
 copy_comment:
@@ -792,7 +792,7 @@ other: ; not a special character
 	jp syntax_error 
 30$: 
 	call parse_keyword
-	cpw x,#REM_IDX 
+	cpw x,#remark 
 	jrne token_exit 
 	ldw x,y 
 	jp copy_comment 

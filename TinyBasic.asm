@@ -447,8 +447,8 @@ interp_loop:
 	jreq next_line 
 	cp a,#TK_CMD
 	jrne 1$
-	call get_code_addr
-	call (x) 
+	_get_code_addr
+	call(x)
 	jra interp_loop 
 1$:	 
 	cp a,#TK_VAR
@@ -492,20 +492,6 @@ next_token::
 	incw x
 	inc in   
 9$: ret 
-
-;------------------------
-; get cmd and function 
-; code address 
-; input:
-;    X   * cmd|func index 
-;        in code_addr table 
-;------------------------
-get_code_addr:
-	ldw x,(x)
-	ldw x,(code_addr,x)
-	inc in 
-	inc in 
-	ret
 
 ;-------------------------
 ;  skip .asciz in BASIC line 
@@ -791,7 +777,7 @@ atoi_exit:
 ;   y		.asciz name to search 
 ; output:
 ;  A 		TK_CMD|TK_IFUNC|TK_NONE 
-;  X		cmd_index
+;  X		routine address|TK_OP 
 ;---------------------------------
 	NLEN=1 ; cmd length 
 	XSAVE=2
@@ -838,7 +824,7 @@ str_match:
 	ld acc8,a 
 	clr acc16 
 	addw x,acc16 
-	ldw x,(x) ; routine index  
+	ldw x,(x) ; routine address  
 ;determine keyword type bits 7:4 
 	ld a,(NLEN,sp)
 	and a,#KW_TYPE_MASK 
@@ -987,7 +973,7 @@ factor:
 41$:	
 	cp a,#TK_IFUNC 
 	jrne 5$ 
-	call get_code_addr 
+	_get_code_addr 
 	call (x); result in A:X  
 	jra 18$ 
 5$:
@@ -1022,7 +1008,7 @@ factor:
 9$: 
 	cp a,#TK_CFUNC 
 	jrne 12$
-	call get_code_addr 
+	_get_code_addr 
 	call(x)
 	clrw x 
 	rlwa x  ; char>int24 in A:X 
@@ -1934,7 +1920,7 @@ prt_loop:
 	call putc 
 	jra reset_comma 
 3$: ; print character function value  	
-	call get_code_addr 
+	_get_code_addr 
 	call (x)
 	call putc
 	jra reset_comma 
@@ -2339,7 +2325,7 @@ for: ; { -- var_addr }
 	jreq 1$
 	jp syntax_error
 1$:  
-	call get_code_addr
+	_get_code_addr
 	cpw x,#to   
 	jreq to
 	jp syntax_error 
@@ -2365,7 +2351,7 @@ to: ; { var_addr -- var_addr limit step }
 	jreq 4$ 
 	cp a,#TK_CMD
 	jrne 3$
-	call get_code_addr
+	_get_code_addr
 	cpw x,#step 
 	jreq step
 3$:	
@@ -2570,7 +2556,7 @@ cmd_on:
 	cp a,#TK_CMD 
 	jreq 2$ 
 	jp syntax_error 
-2$: call get_code_addr
+2$: _get_code_addr
 ;; must be a GOTO or GOSUB 
 	cpw x,#goto 
 	jreq 4$
@@ -3285,7 +3271,7 @@ write:
 ; output: 
 ; 	A char 
 ;---------------------
-char:
+func_char:
 	call func_args 
 	cp a,#1
 	jreq 1$
@@ -4191,7 +4177,7 @@ is_data_line:
 	cp a,#TK_CMD 
 	jrne 9$
 	ldw x,(4,x)
-	cpw x,#DATA_IDX  
+	cpw x,#data  
 9$: popw x 
 	ret 
 
@@ -4454,125 +4440,127 @@ pad_ref:
 ;   link:   2 bytes 
 ;   name_length+flags:  1 byte, bits 0:3 lenght,4:8 kw type   
 ;   cmd_name: 16 byte max 
-;   cmd_index: 2 bytes 
+;   code_addr: 2 bytes 
 ;------------------------------
-	.macro _dict_entry len,name,cmd_idx 
+	.macro _dict_entry len,name,code_addr 
 	.word LINK 
 	LINK=.
 name:
 	.byte len   	
 	.ascii "name"
-	.word cmd_idx 
+	.word code_addr  
 	.endm 
 
 	LINK=0
 ; respect alphabetic order for BASIC names from Z-A
 ; this sort order is for a cleaner WORDS cmd output. 	
 kword_end:
-	_dict_entry,3+F_XOR,XOR,XOR_IDX ; xor operator
-	_dict_entry,5,WRITE,WRITE_IDX;write  
-	_dict_entry,5,WORDS,WORDS_IDX;words 
-	_dict_entry 4,WAIT,WAIT_IDX;wait 
-	_dict_entry,3+F_IFUNC,USR,USR_IDX;usr
-	_dict_entry,5,UNTIL,UNTIL_IDX;until 
-	_dict_entry,6+F_IFUNC,UFLASH,UFLASH_IDX;uflash 
-	_dict_entry,6+F_IFUNC,UBOUND,UBOUND_IDX;ubound
-	_dict_entry,4,TONE,TONE_IDX;tone  
-	_dict_entry,2,TO,TO_IDX;to
-	_dict_entry,5,TIMER,TIMER_IDX;set_timer
-	_dict_entry,7+F_IFUNC,TIMEOUT,TMROUT_IDX;timeout 
-	_dict_entry,5+F_IFUNC,TICKS,TICKS_IDX;get_ticks
-	_dict_entry,4,STOP,STOP_IDX;stop 
-	_dict_entry,4,STEP,STEP_IDX;step 
-	_dict_entry,5,SPIWR,SPIWR_IDX;spi_write
-	_dict_entry,6,SPISEL,SPISEL_IDX;spi_select
-	_dict_entry,5+F_IFUNC,SPIRD,SPIRD_IDX; spi_read 
-	_dict_entry,5,SPIEN,SPIEN_IDX;spi_enable 
-	_dict_entry,5,SLEEP,SLEEP_IDX;sleep 
-    _dict_entry,4,SIZE,SIZE_IDX; cmd_size 
-	_dict_entry,4,SAVE,SAVE_IDX ;save_app 
-	_dict_entry 3,RUN,RUN_IDX;run
-	_dict_entry,6+F_IFUNC,RSHIFT,RSHIFT_IDX;rshift
-	_dict_entry,3+F_IFUNC,RND,RND_IDX;random 
-	_dict_entry,6,RETURN,RET_IDX;return 
-	_dict_entry,7,RESTORE,REST_IDX;restore 
-	_dict_entry 3,REM,REM_IDX;remark 
-	_dict_entry,6,REBOOT,RBT_IDX;cold_start
-	_dict_entry,4+F_IFUNC,READ,READ_IDX;read  
-	_dict_entry,4+F_IFUNC,QKEY,QKEY_IDX;qkey  
-	_dict_entry,5+F_IFUNC,PORTI,PRTI_IDX;const_porti 
-	_dict_entry,5+F_IFUNC,PORTH,PRTH_IDX;const_porth 
-	_dict_entry,5+F_IFUNC,PORTG,PRTG_IDX;const_portg 
-	_dict_entry,5+F_IFUNC,PORTF,PRTF_IDX;const_portf
-	_dict_entry,5+F_IFUNC,PORTE,PRTE_IDX;const_porte
-	_dict_entry,5+F_IFUNC,PORTD,PRTD_IDX;const_portd
-	_dict_entry,5+F_IFUNC,PORTC,PRTC_IDX;const_portc
-	_dict_entry,5+F_IFUNC,PORTB,PRTB_IDX;const_portb
-	_dict_entry,5+F_IFUNC,PORTA,PRTA_IDX;const_porta 
-	_dict_entry 5,PRINT,PRT_IDX;print 
-	_dict_entry,4+F_IFUNC,POUT,POUT_IDX;const_output
-	_dict_entry,4,POKE,POKE_IDX;poke 
-	_dict_entry,5,PMODE,PMODE_IDX;pin_mode 
-	_dict_entry,4+F_IFUNC,PINP,PINP_IDX;const_input
-	_dict_entry,4+F_IFUNC,PEEK,PEEK_IDX;peek 
-	_dict_entry,5,PAUSE,PAUSE_IDX;pause 
-	_dict_entry,3+F_IFUNC,PAD,PAD_IDX;pad_ref 
-	_dict_entry,2+F_OR,OR,OR_IDX; OR operator 
-	_dict_entry,2,ON,ON_IDX; cmd_on 
-	_dict_entry,3+F_IFUNC,ODR,ODR_IDX;const_odr 
-	_dict_entry,3+F_NOT,NOT,NOT_IDX;NOT operator
-	_dict_entry,4,NEXT,NEXT_IDX;next 
-	_dict_entry,3,NEW,NEW_IDX;new
-	_dict_entry,6+F_IFUNC,LSHIFT,LSHIFT_IDX;lshift
-	_dict_entry,4+F_IFUNC,LOG2,LOG_IDX;log2 
-	_dict_entry 4,LIST,LIST_IDX;list
-	_dict_entry 3,LET,LET_IDX;let 
-	_dict_entry,3+F_CFUNC,KEY,KEY_IDX;key 
-	_dict_entry,7,IWDGREF,IWDGREF_IDX;refresh_iwdg
-	_dict_entry,6,IWDGEN,IWDGEN_IDX;enable_iwdg
-	_dict_entry,5,INPUT,INPUT_IDX;input_var  
-	_dict_entry,2,IF,IF_IDX;if 
-	_dict_entry,3+F_IFUNC,IDR,IDR_IDX;const_idr 
-	_dict_entry,3,HEX,HEX_IDX;hex_base
-	_dict_entry,4,GOTO,GOTO_IDX;goto 
-	_dict_entry,5,GOSUB,GOSUB_IDX;gosub 
-	_dict_entry,3,GET,GET_IDX; cmd_get 
-	_dict_entry,4+F_IFUNC,FREE,FREE_IDX;free
-	_dict_entry,3,FOR,FOR_IDX;for 
-	_dict_entry,4,FCPU,FCPU_IDX;fcpu 
-	_dict_entry,5,ERASE,ERASE_IDX; erase 
-	_dict_entry,3,END,END_IDX;cmd_end  
-	_dict_entry,6+F_IFUNC,EEPROM,EEPROM_IDX;const_eeprom_base   
-	_dict_entry,6+F_IFUNC,EEFREE,EEFREE_IDX; func_eefree 
-	_dict_entry,4,EDIT,EDIT_IDX ; edit 
-	_dict_entry,6+F_CMD,DWRITE,DWRITE_IDX;digital_write
-	_dict_entry,5+F_IFUNC,DREAD,DREAD_IDX;digital_read
-	_dict_entry,2,DO,DO_IDX;do_loop
-	_dict_entry,3,DEC,DEC_IDX;dec_base
-	_dict_entry,3+F_IFUNC,DDR,DDR_IDX;const_ddr 
-	_dict_entry,4,DATA,DATA_IDX;data  
-	_dict_entry,3+F_IFUNC,CR2,CR2_IDX;const_cr2 
-	_dict_entry,3+F_IFUNC,CR1,CR1_IDX;const_cr1 
-	_dict_entry,5,CONST,CONST_IDX; cmd_const 
-	_dict_entry,4+F_CFUNC,CHAR,CHAR_IDX;char
-	_dict_entry,3,BYE,BYE_IDX;bye 
-	_dict_entry,5,BTOGL,BTOGL_IDX;bit_toggle
-	_dict_entry,5+F_IFUNC,BTEST,BTEST_IDX;bit_test 
-	_dict_entry,4,BSET,BSET_IDX;bit_set 
-	_dict_entry,4,BRES,BRES_IDX;bit_reset
-	_dict_entry,3+F_IFUNC,BIT,BIT_IDX;bitmask
-	_dict_entry,3,AWU,AWU_IDX;awu 
-	_dict_entry,3+F_IFUNC,ASC,ASC_IDX;ascii
-	_dict_entry,3+F_AND,AND,AND_IDX ; AND operator 
-	_dict_entry,7+F_IFUNC,ADCREAD,ADCREAD_IDX;analog_read
-	_dict_entry,5,ADCON,ADCON_IDX;power_adc 
+	_dict_entry,3+F_XOR,XOR,TK_XOR ; xor operator
+	_dict_entry,5,WRITE,write  
+	_dict_entry,5,WORDS,words 
+	_dict_entry 4,WAIT,wait 
+	_dict_entry,3+F_IFUNC,USR,usr
+	_dict_entry,5,UNTIL,until 
+	_dict_entry,6+F_IFUNC,UFLASH,uflash 
+	_dict_entry,6+F_IFUNC,UBOUND,ubound
+	_dict_entry,4,TONE,tone  
+	_dict_entry,2,TO,to
+	_dict_entry,5,TIMER,set_timer
+	_dict_entry,7+F_IFUNC,TIMEOUT,timeout 
+	_dict_entry,5+F_IFUNC,TICKS,get_ticks
+	_dict_entry,4,STOP,stop 
+	_dict_entry,4,STEP,step 
+	_dict_entry,5,SPIWR,spi_write
+	_dict_entry,6,SPISEL,spi_select
+	_dict_entry,5+F_IFUNC,SPIRD,spi_read 
+	_dict_entry,5,SPIEN,spi_enable 
+	_dict_entry,5,SLEEP,sleep 
+    _dict_entry,4,SIZE,cmd_size 
+	_dict_entry,4,SAVE,save_app 
+	_dict_entry 3,RUN,run
+	_dict_entry,6+F_IFUNC,RSHIFT,rshift
+	_dict_entry,3+F_IFUNC,RND,random 
+	_dict_entry,6,RETURN,return 
+	_dict_entry,7,RESTORE,restore 
+	_dict_entry 3,REM,remark 
+	_dict_entry,6,REBOOT,cold_start
+	_dict_entry,4+F_IFUNC,READ,read  
+	_dict_entry,4+F_IFUNC,QKEY,qkey  
+	_dict_entry,5+F_IFUNC,PORTI,const_porti 
+	_dict_entry,5+F_IFUNC,PORTH,const_porth 
+	_dict_entry,5+F_IFUNC,PORTG,const_portg 
+	_dict_entry,5+F_IFUNC,PORTF,const_portf
+	_dict_entry,5+F_IFUNC,PORTE,const_porte
+	_dict_entry,5+F_IFUNC,PORTD,const_portd
+	_dict_entry,5+F_IFUNC,PORTC,const_portc
+	_dict_entry,5+F_IFUNC,PORTB,const_portb
+	_dict_entry,5+F_IFUNC,PORTA,const_porta 
+	_dict_entry 5,PRINT,print 
+	_dict_entry,4+F_IFUNC,POUT,const_output
+	_dict_entry,4,POKE,poke 
+	_dict_entry,5,PMODE,pin_mode 
+	_dict_entry,4+F_IFUNC,PINP,const_input
+	_dict_entry,4+F_IFUNC,PEEK,peek 
+	_dict_entry,5,PAUSE,pause 
+	_dict_entry,3+F_IFUNC,PAD,pad_ref 
+	_dict_entry,2+F_OR,OR,TK_OR ; OR operator 
+	_dict_entry,2,ON,cmd_on 
+	_dict_entry,3+F_IFUNC,ODR,const_odr 
+	_dict_entry,3+F_NOT,NOT,TK_NOT;NOT operator
+	_dict_entry,4,NEXT,next 
+	_dict_entry,3,NEW,new
+	_dict_entry,6+F_IFUNC,LSHIFT,lshift
+	_dict_entry,4+F_IFUNC,LOG2,log2 
+	_dict_entry 4,LIST,list
+	_dict_entry 3,LET,let 
+	_dict_entry,3+F_CFUNC,KEY,key 
+	_dict_entry,7,IWDGREF,refresh_iwdg
+	_dict_entry,6,IWDGEN,enable_iwdg
+	_dict_entry,5,INPUT,input_var  
+	_dict_entry,2,IF,if 
+	_dict_entry,3+F_IFUNC,IDR,const_idr 
+	_dict_entry,3,HEX,hex_base
+	_dict_entry,4,GOTO,goto 
+	_dict_entry,5,GOSUB,gosub 
+	_dict_entry,3,GET,cmd_get 
+	_dict_entry,4+F_IFUNC,FREE,free
+	_dict_entry,3,FOR,for 
+	_dict_entry,4,FCPU,fcpu 
+	_dict_entry,5,ERASE,erase 
+	_dict_entry,3,END,cmd_end  
+	_dict_entry,6+F_IFUNC,EEPROM,const_eeprom_base   
+	_dict_entry,6+F_IFUNC,EEFREE,func_eefree 
+	_dict_entry,4,EDIT,edit 
+	_dict_entry,6+F_CMD,DWRITE,digital_write
+	_dict_entry,5+F_IFUNC,DREAD,digital_read
+	_dict_entry,2,DO,do_loop
+	_dict_entry,3,DEC,dec_base
+	_dict_entry,3+F_IFUNC,DDR,const_ddr 
+	_dict_entry,4,DATA,data  
+	_dict_entry,3+F_IFUNC,CR2,const_cr2 
+	_dict_entry,3+F_IFUNC,CR1,const_cr1 
+	_dict_entry,5,CONST,cmd_const 
+	_dict_entry,4+F_CFUNC,CHAR,func_char
+	_dict_entry,3,BYE,bye 
+	_dict_entry,5,BTOGL,bit_toggle
+	_dict_entry,5+F_IFUNC,BTEST,bit_test 
+	_dict_entry,4,BSET,bit_set 
+	_dict_entry,4,BRES,bit_reset
+	_dict_entry,3+F_IFUNC,BIT,bitmask
+	_dict_entry,3,AWU,awu 
+	_dict_entry,3+F_IFUNC,ASC,ascii
+	_dict_entry,3+F_AND,AND,TK_AND ; AND operator 
+	_dict_entry,7+F_IFUNC,ADCREAD,analog_read
+	_dict_entry,5,ADCON,power_adc 
 kword_dict::
-	_dict_entry,3+F_IFUNC,ABS,ABS_IDX ;abs
+	_dict_entry,3+F_IFUNC,ABS,abs
 
+INDIRECT=0 
+.if INDIRECT 
 ;comands and fonctions address table 	
 code_addr::
 	.word abs,power_adc,analog_read,ascii,awu,bitmask ; 0..7
-	.word bit_reset,bit_set,bit_test,bit_toggle,bye,char,const_cr2  ; 8..15
+	.word bit_reset,bit_set,bit_test,bit_toggle,bye,func_char,const_cr2  ; 8..15
 	.word const_cr1,data,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
 	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto ; 24..31 
 	.word hex_base,const_idr,if,input_var,enable_iwdg,refresh_iwdg,key ; 32..39 
@@ -4585,7 +4573,7 @@ code_addr::
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
 	.word wait,words,write,cmd_size,cmd_on,cmd_get,cmd_const ; 96..99
 	.word func_eefree,0 
-
+.endif 
 
 
 

@@ -176,29 +176,6 @@ var_name::
 		add a,#'A 
 		ret 
 
-;-----------------------------
-; return cmd  idx from its 
-; code address 
-; input:
-;   X      code address 
-; output:
-;   X      cmd_idx
-;-----------------------------
-get_cmd_idx:
-	pushw y
-	ldw y,#code_addr 
-	ldw ptr16,y 
-	clrw y 
-1$:	cpw x,([ptr16],y)
-	jreq 3$ 
-	incw y 
-	ld a,([ptr16],y)
-	incw y
-	or a,([ptr16],y)	
-	jrne 1$
-3$: ldw x,y 
-	popw y 
-	ret
 
 
 ;-------------------------------------
@@ -290,7 +267,7 @@ decomp_loop:
 	ldw x,(x)
 	inc in 
 	inc in 
-	cpw x,#REM_IDX
+	cpw x,#remark 
 	jrne 5$
 	ldw x,basicptr 
 ; copy comment to buffer 
@@ -307,15 +284,16 @@ decomp_loop:
 	cp a,count 
 	jrmi 46$
 	jp 20$  
-5$: cpw x,#LET_IDX 
+5$: cpw x,#let  
 	jrne 54$
 	jp decomp_loop ; down display LET
 50$:
 	clrw x 
-	sub a,#TK_NOT  
-	sll a 
 	ld xl,a 
-	addw x,#NOT_IDX
+;	sub a,#TK_NOT  
+;	sll a 
+;	ld xl,a 
+;	addw x,#NOT_IDX
 54$: ; insert command name 
 	call add_space  
 	pushw y
@@ -441,17 +419,17 @@ ne:  .asciz "<>"
 ; search in kword_dict name
 ; from its execution address 
 ; input:
-;   X       	cmd_index 
+;   X       	routine_address  
 ; output:
 ;   X 			cstr*  | 0 
 ;--------------------------------
-	CMDX=1 
+	CODE_ADDR=1 
 	LINK=3 
 	VSIZE=4
 cmd_name:
 	_vars VSIZE 
 	clr acc16 
-	ldw (CMDX,sp),x  
+	ldw (CODE_ADDR,sp),x  
 	ldw x,#kword_dict	
 1$:	ldw (LINK,sp),x
 	ld a,(2,x)
@@ -459,8 +437,8 @@ cmd_name:
 	ld acc8,a 
 	addw x,#3
 	addw x,acc16
-	ldw x,(x) ; command index  
-	cpw x,(CMDX,sp)
+	ldw x,(x) ; code address   
+	cpw x,(CODE_ADDR,sp)
 	jreq 2$
 	ldw x,(LINK,sp)
 	ldw x,(x) 
