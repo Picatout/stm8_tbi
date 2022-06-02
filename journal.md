@@ -1,4 +1,19 @@
+#### 2022-06-01
+
+* Optimisation de *div24*.
+
+* Corrigé bogue dans *atoi24*.  Modifié code pour utilisé *mulu24_8* au lieu de *mul24* qui produisait un overflow lors de la saisied de **$ffffff**.
+
+* Corrigé bogue dans *interp_loop*.
+```
+4$: cp a,#TK_LABEL
+	jrne 5$  ; cette instruction était manquante. 
+```
+
+
 #### 2022-05-29
+
+* 22:26 commit 
 
 * Modifié le modèle d'exécution de la machine virtuelle en remplacant les token de commandes par les adresses des routines. Le but est d'améliorer la performance.
 

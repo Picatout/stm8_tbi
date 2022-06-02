@@ -464,6 +464,7 @@ interp_loop:
 	cp a,#TK_COLON 
 	jreq interp_loop
 4$: cp a,#TK_LABEL
+	jrne 5$
 	call skip_string 
 	jra interp_loop 
 5$:	jp syntax_error 
@@ -743,10 +744,8 @@ atoi24::
 	jrpl 9$
 5$:	ld (TEMP,sp),a
 	ld a,(BASE,sp)
-	clrw x 
-	rlwa x 
+	call mulu24_8
 	_xpush 
-	call mul24
 	clrw x 
 	ld a,(TEMP,sp)
 	rlwa x 

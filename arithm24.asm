@@ -17,22 +17,35 @@
 ;;
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;    24 bits arithmetic 
+;;    24 bits arithmetic
+;;  arguments are on xtack  
 ;;  format in registers: A:X 
 ;;      A  bits 23..16 
 ;;      X  bits 15..0 
 ;;  acc24 variable used for 
 ;;  computation 
+;;   T   Top element on xstack 
+;;   N   Next element on xtack 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
     .area CODE 
 
 ;-------------------------------
-; add24 A:X+acc24 
+;  duplacte T 
+;------------------------------
+dup24:
+    _at_top 
+    _xpush 
+    ret 
+
+
+
+;-------------------------------
+; add24 
 ; add 24 bits integers 
 ;------------------------------
-add24: ; ( i1 i2 -- i1 + i2 )
+add24: ; ( N T -- N+T )
     _xpop 
     pushw x  
     push a  
@@ -44,10 +57,10 @@ add24: ; ( i1 i2 -- i1 + i2 )
     ret 
 
 ;-------------------------------
-; sub24 A:X-acc24 
+; sub24 
 ; subtract 24 bits integers 
 ;------------------------------
-sub24: ; (i1 i2 -- i1-i2 ) 
+sub24: ; ( N T -- N-T ) 
     _xpop 
     pushw x 
     push  a
@@ -59,7 +72,7 @@ sub24: ; (i1 i2 -- i1-i2 )
     ret 
 
 ;------------------------------
-; cp24  i1 i2 -- 0x800000|0|0x010000
+; cp24  N T -- 0x800000|0|0x010000
 ;------------------------------
 cp24:
     _xpop 
@@ -157,6 +170,7 @@ neg_acc24: ;
 ;	xstack	    uint24_t 
 ;   a	        uint8_t
 ; output:
+;   xstack   not modified 
 ;   A:X     product 
 ;   acc32   overflow, bits 31..24 
 ;-------------------------------------
@@ -306,6 +320,9 @@ divu24_8:
 ; div24 N/T   
 ; divide 24 bits integers
 ;  i1 i2 -- i1/i2 
+;  output:
+;    T     quotient 
+;    A:X   remainder 
 ;------------------------------
     DIVISOR=1
     CNTR=4
@@ -329,7 +346,7 @@ div24:
     jrne 1$ 
     ld a,#ERR_DIV0 
     jp tb_error 
-1$: 
+1$: ; dividend  
     _at_top
     tnz a 
     jrpl 2$
@@ -337,12 +354,14 @@ div24:
     cpl (QSIGN,sp)
     cpl (RSIGN,sp)
 2$: 
-    ld acc24,a 
-    ldw acc16,x 
+;    ld acc24,a 
+;    ldw acc16,x 
+    _store_top 
     ld a,#24 
     ld (CNTR,sp),a
     ld a,(DIVISOR,sp)
     ldw x,(DIVISOR+1,sp)
+; dividend >= divisor ? 
     call cp24_ax ; A:X-acc24 ?
     jrule 22$ 
 ; quotient=0, remainder=divisor      
@@ -356,10 +375,10 @@ div24:
     clr a 
     clrw x 
     rcf  
-3$: 
-    rlc acc8 
-    rlc acc16
-    rlc acc24 
+3$: ; shift carry in acc24 bit 0 
+    rlc (2,y) 
+    rlc (1,y)
+    rlc (Y) 
     rlcw x  
     rlc a
 4$: subw x,(DIVISOR+1,sp) 
@@ -371,19 +390,17 @@ div24:
     ccf
     dec (CNTR,sp)
     jrne 3$ 
-    rlc acc8 
-    rlc acc16 
-    rlc acc32 
+; shift quotient last bit     
+    rlc (2,y)
+    rlc (1,y) 
+    rlc (y) 
 6$:    
     ld (DIVISOR,sp),a 
     ldw (DIVISOR+1,sp),x 
-    ld a,acc24 
-    ldw x,acc16 
     tnz (QSIGN,sp)
     jreq 8$
-    call neg_ax 
+    call neg24
 8$: 
-    _store_top 
     ld a,(DIVISOR,sp)
     ldw x,(DIVSOR+1,sp)
 81$:
