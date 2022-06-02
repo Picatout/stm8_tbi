@@ -1,5 +1,7 @@
 #### 2022-06-01
 
+* commit 21:04
+
 * Optimisation de *div24*.
 
 * Corrigé bogue dans *atoi24*.  Modifié code pour utilisé *mulu24_8* au lieu de *mul24* qui produisait un overflow lors de la saisied de **$ffffff**.
