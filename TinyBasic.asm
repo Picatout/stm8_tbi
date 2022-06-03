@@ -2505,6 +2505,7 @@ get_target_line_addr:
 look_target_symbol:
 	pushw y 
 	pushw x 
+	call skip_string 
 	clr acc16 
 	ldw y,txtbgn 
 1$:	ld a,(3,y) ; first TK_ID on line 
@@ -2637,11 +2638,10 @@ jp_to_target:
 ; are saved on cstack
 ; here cstack is 2 call deep from interpreter 
 ;--------------------
-	TARGET=1   ; target address 
-	RET_ADDR=3 ; subroutine return address 
-	RET_BPTR=5 ; basicptr return point 
-	RET_INW=7  ; in.w return point 
-	VSIZE=4  
+	RET_ADDR=1 ; subroutine return address 
+	RET_BPTR=3 ; basicptr return point 
+	RET_INW=5  ; in.w return point 
+	VSIZE=4 
 gosub:
 	btjt flags,#FRUN,gosub_1 
 	ld a,#ERR_RUN_ONLY
@@ -2649,34 +2649,29 @@ gosub:
 	ret 
 gosub_1:
 	call get_target_line 
-	ldw ptr16,x 
+	ldw ptr16,x
 gosub_2: 
 	popw x 
 	_vars VSIZE  
 	pushw x ; RET_ADDR 
-	ldw x,ptr16 
-	pushw x ; TARGET
 ; save BASIC subroutine return point.   
 	ldw x,basicptr
 	ldw (RET_BPTR,sp),x 
 	ldw x,in.w 
 	ldw (RET_INW,sp),x
-	popw x 
+	ldw x,ptr16  
 	jra jp_to_target
 
 ;------------------------
 ; BASIC: RETURN 
 ; exit from BASIC subroutine 
 ;------------------------
-	RET_BPTR=3 ; basicptr return point 
-	RET_INW=5  ; in.w return point 
-	VSIZE=4  
 return:
 	btjt flags,#FRUN,0$ 
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
 0$:	
-	ldw x,(RET_ADDR,sp) 
+	ldw x,(RET_BPTR,sp) 
 	ldw basicptr,x
 	ld a,(2,x)
 	ld count,a  
@@ -2684,8 +2679,8 @@ return:
 	ldw in.w,x 
 	popw x 
 	_drop VSIZE 
-	pushw x
-	ret  
+	jp (x)
+
 
 ;----------------------------------
 ; BASIC: RUN
@@ -4432,6 +4427,143 @@ pad_ref:
 	clr a
 	ret 
 
+;****************************
+; expression stack 
+; manipulation routines
+;****************************
+
+;-----------------------------
+; BASIC: PUSH expr|rel|cond 
+; push the result on xtack
+;-----------------------------
+xpush:
+	call condition 
+	ret 
+
+;------------------------------
+; BASIC: POP 
+; pop top of xstack 
+;------------------------------
+xpop:
+	_xpop 
+	ret 
+
+
+;------------------------------
+; BASIC: ALLOC expr 
+; allocate expr element on xtack 
+;-------------------------------
+xalloc: 
+	call expression 
+	cp a,#TK_INTGR
+	jreq 1$ 
+	jp syntax_error
+1$: _xpop 
+	tnz a 
+	jreq 3$ 
+2$:	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+3$: cpw x,#XSTACK_SIZE 
+	jrugt 2$
+	ld a,#CELL_SIZE 
+	mul x,a 
+	ldw acc16,x 
+	subw y,acc16 
+	cpw y,#xstack_full
+	jrugt 9$
+	ld a,#ERR_MEM_FULL
+	jp tb_error 
+9$:	 
+	ret 
+
+
+;------------------------------
+;  BASIC DROP expr 
+;  expr in range {0..XSTACK_SIZE}
+;  discard n elements from xtack
+;------------------------------
+xdrop:
+	call expression 
+	cp a,#TK_INTGR
+	jreq 1$ 
+	jp syntax_error 
+1$:	_xpop 
+	ld a,xl 
+	and a,#0x1f 
+	clrw x 
+	ld xl,a 
+	ld a,#CELL_SIZE 
+	mul x,a 
+	ldw acc16,x  
+	addw y,acc16 
+	cpw y,#XSTACK_EMPTY 
+	jrule 9$
+	ldw y,#XSTACK_EMPTY 
+9$:	ret 
+
+;-----------------------
+; check if value in A:X 
+; is inside xstack bound
+; output:
+;    X     slot address  
+;-----------------------
+xstack_bound:
+	tnz a 
+	jrne 8$ 
+1$: cpw x,#XSTACK_SIZE 
+	jrugt 8$
+	ld a,#CELL_SIZE 
+	mul x,a
+	ldw acc16,x 
+	ldw x,y 
+	addw x,acc16 
+	cpw x,#XSTACK_EMPTY 
+	jruge 8$  
+	ret 
+8$: ld a,#ERR_BAD_VALUE
+	jp tb_error 
+
+;-------------------------
+; BASIC: PUT expr, cond 
+; expr -> slot 
+; cond -> valut to put 
+; on xstack 
+;-------------------------
+xput:
+	call arg_list 
+	cp a,#2 
+	jreq 1$ 
+0$:	jp syntax_error
+1$: _xpop   ; value to put 
+	pushw x 
+	push a 
+	_xpop    ; slot 
+	call xstack_bound
+    ldw ptr16,x 
+	pop a 
+	popw x 
+	ld [ptr16],a 
+	inc ptr8 
+	ldw [ptr16],x 
+	ret 
+
+;------------------------
+; BASIC: PICK expr 
+; get nième element on 
+; xtack. 
+;-----------------------
+xpick:
+	call func_args 
+	cp a,#1 
+	jreq 1$
+	jp syntax_error 
+1$: _xpop 
+	call xstack_bound
+    ld a,(x)
+	ldw x,(1,x)				
+	ret 
+
+
 
 ;------------------------------
 ;      dictionary 
@@ -4484,7 +4616,9 @@ kword_end:
 	_dict_entry 3,REM,remark 
 	_dict_entry,6,REBOOT,cold_start
 	_dict_entry,4+F_IFUNC,READ,read  
-	_dict_entry,4+F_IFUNC,QKEY,qkey  
+	_dict_entry,4+F_IFUNC,QKEY,qkey
+	_dict_entry,3,PUT,xput 
+	_dict_entry,4,PUSH,xpush   
 	_dict_entry,5+F_IFUNC,PORTI,const_porti 
 	_dict_entry,5+F_IFUNC,PORTH,const_porth 
 	_dict_entry,5+F_IFUNC,PORTG,const_portg 
@@ -4496,9 +4630,11 @@ kword_end:
 	_dict_entry,5+F_IFUNC,PORTA,const_porta 
 	_dict_entry 5,PRINT,print 
 	_dict_entry,4+F_IFUNC,POUT,const_output
+	_dict_entry,3+F_IFUNC,POP,xpop 
 	_dict_entry,4,POKE,poke 
 	_dict_entry,5,PMODE,pin_mode 
 	_dict_entry,4+F_IFUNC,PINP,const_input
+	_dict_entry,4+F_IFUNC,PICK,xpick 
 	_dict_entry,4+F_IFUNC,PEEK,peek 
 	_dict_entry,5,PAUSE,pause 
 	_dict_entry,3+F_IFUNC,PAD,pad_ref 
@@ -4531,6 +4667,7 @@ kword_end:
 	_dict_entry,6+F_IFUNC,EEFREE,func_eefree 
 	_dict_entry,4,EDIT,edit 
 	_dict_entry,6+F_CMD,DWRITE,digital_write
+	_dict_entry,4,DROP,xdrop ; drop n element from xtack 
 	_dict_entry,5+F_IFUNC,DREAD,digital_read
 	_dict_entry,2,DO,do_loop
 	_dict_entry,3,DEC,dec_base
@@ -4549,6 +4686,7 @@ kword_end:
 	_dict_entry,3,AWU,awu 
 	_dict_entry,3+F_IFUNC,ASC,ascii
 	_dict_entry,3+F_AND,AND,TK_AND ; AND operator 
+	_dict_entry,5,ALLOC,xalloc ; allocate space on xtack 
 	_dict_entry,7+F_IFUNC,ADCREAD,analog_read
 	_dict_entry,5,ADCON,power_adc 
 kword_dict::

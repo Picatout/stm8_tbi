@@ -21,7 +21,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      0000007E  l_DATA                          
      00000080  l_HOME                          
      00000198  l_SSEG0                         
-     00003484  l_CODE                          
+     00003604  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -34,12 +34,12 @@ SSEG0                               00000000    00000198 =         408. bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00001668  tib                                HW_INIT
-     000016B8  block_buffer                       HW_INIT
-     000016B8  pad                                HW_INIT
-     00001738  xstack_full                        HW_INIT
-     00001774  stack_full                         HW_INIT
-     00001774  xstack_unf                         HW_INIT
+     00001690  tib                                HW_INIT
+     000016E0  block_buffer                       HW_INIT
+     000016E0  pad                                HW_INIT
+     00001760  xstack_full                        HW_INIT
+     0000179C  stack_full                         HW_INIT
+     0000179C  xstack_unf                         HW_INIT
 ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
 Hexadecimal  [32-Bits]
 
@@ -54,7 +54,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00003484 =       13444. bytes (REL,CON)
+CODE                                00008080    00003604 =       13828. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -96,8 +96,8 @@ CODE                                00008080    00003484 =       13444. bytes (R
      0000A179  remark                             HW_INIT
      0000A5D5  beep_1khz                          HW_INIT
      0000A9C7  qkey                               HW_INIT
-     0000B347  kword_dict                         HW_INIT
-     0000B500  app_space                          HW_INIT
+     0000B458  kword_dict                         HW_INIT
+     0000B680  app_space                          HW_INIT
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
 Hexadecimal  [32-Bits]

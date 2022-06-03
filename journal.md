@@ -1,3 +1,42 @@
+#### 2022-06-02
+
+* 21:29 commit 
+
+* corrigé bogue 
+```
+>li
+   10 '  exemple d'utilisation de la pile 
+   20 INPUT "nombre "N:IF N=0 END
+   30 PUSH N
+   32 GOSUB SQUARE 
+   34 PRINT POP
+   40 GOTO 20
+   50  SQUARE PUSH PICK(0)*POP
+   60 RETURN
+program address:  $80, program size:  150 bytes in RAM memory
+
+>run
+nombre :25
+run time error, syntax error
+
+ $D4   $0 $20  $E $80 $A5  $1  $3 $53 $51 $55 $41 $52 $45  $0
+   32 GOSUB SQUARE 
+last token id:    0
+>
+
+```
+Dans **RETURN** erreur de variable local utilisée pour récupéré le pointeur BASIC de retour. Dans *look_target_symbol* la chaîne du *label* n'était pas sautée. *call skip_string* ajouté. 
+
+
+* Ajouter des commandes et fonctions pour pousser des expressions sur le stack. Permet de passer des arguments aux fonctions. 
+	* __PUSH__ expr  empile une expression   
+	* __POP__  fonction pour dépiler une expression .
+	* __PICK__ *n* optient le nième élément de la pile. 
+	* __DROP__ *n* Jette le sommet de la pile.
+	* __PUT__  *n* *expr*  place *expr* sur le nième élément de la pile    
+	* __ALLOC__ *n*  réserver *n* enplacement sur la pile. 
+
+
 #### 2022-06-01
 
 * commit 21:04

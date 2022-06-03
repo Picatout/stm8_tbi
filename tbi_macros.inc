@@ -34,7 +34,7 @@
 	STACK_SIZE=140
 	STACK_EMPTY=RAM_SIZE-1  
         CELL_SIZE=3
-        XSTACK_SIZE=CELL_SIZE*20 ; 20 * int24
+        XSTACK_SIZE=20 ; 20 * int24
         XSTACK_EMPTY=STACK_EMPTY-STACK_SIZE 
 	FRUN=0 ; flags run code in variable flags
 	FTRAP=1 ; inside trap handler 

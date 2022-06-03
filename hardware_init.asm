@@ -42,7 +42,7 @@
 tib:: .ds TIB_SIZE             ; transaction input buffer
 block_buffer::                 ; use to write FLASH block (alias for pad )
 pad:: .ds PAD_SIZE             ; working buffer
-xstack_full:: .ds XSTACK_SIZE   ; expression stack 
+xstack_full:: .ds XSTACK_SIZE*CELL_SIZE   ; expression stack 
 xstack_unf:: ; xstack underflow 
 stack_full:: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
