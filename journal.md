@@ -1,3 +1,13 @@
+#### 2022-06-03
+
+* commit 23:02
+
+* Ajout de la commande **DIM** pour créer des variables situées après *txtend** 
+
+* Déboguer **LSHIFT** et **RSHIFT**. 
+
+* Supprimé la constante système **PORTH** puisque non disponible sur la carte NUCLEO-8S208RB.
+
 #### 2022-06-02
 
 * 21:29 commit 

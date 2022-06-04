@@ -91,14 +91,16 @@ free_eeprom: .blkw 1 ; start address of free eeprom
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
+dvar_bgn:: .blkw 1 ; DIM variables start address 
+dvar_end:: .blkw 1 ; DIM variables end address 
 ; 24 bits integer variables 
 vars:: .blkb 3*26 ; BASIC variables A-Z,
 
 	.area BTXT (ABS)
-	.org 0x7C  
+	.org 0x8C  
 ; keep 'free_ram' as last variable 
 ; basic code compiled here. 
-rsign: .blkw 1 ; "BC" 
+rsign: .blkw 1 ; "TB" 
 rsize: .blkw 1 ; code size 	 
 free_ram: ; from here RAM free for BASIC text 
 
@@ -295,6 +297,8 @@ clear_basic:
 	ldw x,#free_ram 
 	ldw txtbgn,x 
 	ldw txtend,x 
+	ldw dvar_bgn,x 
+	ldw dvar_end,x 
 	call clear_vars 
 	popw x
 	ret 
@@ -461,13 +465,58 @@ interp_loop:
 	call let_array 
 	jra interp_loop
 3$:	
+	cp a,#TK_LABEL
+	jrne 4$
+	call let_dvar  
+	jra interp_loop 
+4$: 
 	cp a,#TK_COLON 
 	jreq interp_loop
-4$: cp a,#TK_LABEL
-	jrne 5$
-	call skip_string 
-	jra interp_loop 
 5$:	jp syntax_error 
+
+
+;----------------------
+; when a label is met 
+; at interp_loop
+; it may be a variable 
+; assignement to DIM 
+; variable 
+;----------------------
+let_dvar:
+	pushw x 
+	call skip_string 
+	ldw x,basicptr 
+	addw x,in.w 
+	ld a,(x)
+	cp a,#TK_EQUAL 
+	jrne 9$ 
+; dvar assignment 
+	inc in  
+	call condition  
+	cp a,#TK_INTGR 
+	jreq 1$ 
+0$:	jp syntax_error 
+1$: pushw y 
+	ldw y,dvar_bgn 
+	ldw x,(3,sp) ; pointer to var name 
+	call search_name 
+	tnzw x 
+	jreq 0$ 
+	ld a,(x)
+	push a 
+	push #0 
+	addw x,(1,sp)
+	subw x,#CELL_SIZE 
+	ldw ptr16,x
+	_drop 2 
+	popw y  
+	_xpop 
+	ld [ptr16],a 
+	inc ptr8 
+	ldw [ptr16],x 
+9$: _drop 2 	
+	ret 
+
 
 ;--------------------------
 ; extract next token from
@@ -995,14 +1044,27 @@ factor:
 	jra 18$
 8$:
 	cp a,#TK_LABEL 
-	jrne 9$ 
+	jrne 9$
+	pushw y  
 	pushw x 
 	call skip_string
-	popw x 
-	call search_const 
+	ldw x,(1,sp) 
+	ldw y,#EEPROM_BASE 
+	call search_name
 	tnzw x 
-	jreq 16$
-	call get_const_value ; in A:X 
+	jrne 82$ 
+	ldw y,dvar_bgn
+	ldw x,(1,sp)
+	call search_name
+	tnzw x 
+	jrne 82$ 
+	popw x 
+	popw y 
+	jra 16$
+82$:
+	_drop 2  ; name pointer 
+	popw y   
+	call get_value ; in A:X 
 	jra 18$
 9$: 
 	cp a,#TK_CFUNC 
@@ -1340,17 +1402,9 @@ dec_base:
 ;   A:x		size 
 ;--------------------------
 free:
-	pushw y 
 	clr a 
 	ldw x,#tib 
-	ldw y,txtend 
-	cpw y,#app_space
-	jrult 1$
-	subw x,#free_ram 
-	jra 2$ 
-1$:	
-	subw x,txtend
-2$:	popw y 
+	subw x,dvar_end 
 	ret 
 
 ;------------------------------
@@ -1430,16 +1484,16 @@ let_eval:
 
 
 ;--------------------------
-; return constant value 
+; return constant/dvar value 
 ; from it's record address
 ; input:
 ;	X	*const record 
 ; output:
 ;   A:X   const  value
 ;--------------------------
-get_const_value: ; -- i 
+get_value: ; -- i 
 	ld a,(x) ; record size 
-	sub a,#3 ; * value 
+	sub a,#CELL_SIZE ; * value 
 	push a 
 	push #0 
 	addw x,(1,sp)
@@ -1471,7 +1525,7 @@ list_const:
 	ld a,#'= 
 	call putc 
 	ldw x,(YTEMP,sp)
-	call get_const_value 
+	call get_value 
 	ld acc24,a 
 	ldw acc16,x 
 	call prt_acc24
@@ -1531,10 +1585,10 @@ func_eefree:
 	ldw free_eeprom,x ; save in system variable 
 	ret 
 
-CONST_REC_XTRA_BYTES=5 
+REC_XTRA_BYTES=5 
 ;--------------------------
-; search constant name 
-; format of constant record  
+; search constant/dim_var name 
+; format of record  
 ;   .byte record length 
 ;         = strlen(name)+5 
 ;   .asciz name (variable length)
@@ -1543,47 +1597,54 @@ CONST_REC_XTRA_BYTES=5
 ; constants are saved in EEPROM  
 ; input:
 ;    X     *name
+;    Y     search from address 
 ; output:
 ;    X     address|0
 ; use:
 ;   A,Y, acc16 
 ;-------------------------
 	NAMEPTR=1 ; target name pointer 
-	EEPTR=3   ; walking pointer in EEPROM
+	WLKPTR=3   ; walking pointer in EEPROM||RAM 
 	RECLEN=5  ; record length of target
-	VSIZE=5
-search_const:
-	pushw y 
+	LIMIT=7   ; search area limit 
+	VSIZE=8  
+search_name:
 	_vars VSIZE
 	clr acc16 
 	call strlen 
-	add a,#CONST_REC_XTRA_BYTES
+	add a,#REC_XTRA_BYTES
 	ld (RECLEN,sp),a    
 	ldw (NAMEPTR,sp),x
-	ldw y,#EEPROM_BASE 
-1$:	ldw x,(NAMEPTR,sp)
-	ldw (EEPTR,sp),y
-	cpw y, free_eeprom 
+	cpw y,#EEPROM_BASE 
+	jrult 0$ 
+	ldw x,free_eeprom 
+	jra 10$ 
+0$: ldw x,dvar_end 
+10$: 
+	ldw (LIMIT,sp),x 
+1$:	ldw (WLKPTR,sp),y
+	ldw x,y 
+	cpw x, (LIMIT,sp) 
 	jruge 7$ ; no match found 
 	ld a,(y)
 	cp a,(RECLEN,sp)
 	jrne 2$ 
 	incw y 
+	ldw x,(NAMEPTR,sp)
 	call strcmp
 	jrne 8$ ; match found 
 2$: ; skip this one 	
-	ldW Y,(EEPTR,sp)
+	ldW Y,(WLKPTR,sp)
 	ld a,(y)
 	ld acc8,a 
 	addw y,acc16 
 	jra 1$  
 7$: ; no match found 
-	clr (EEPTR,sp)
-	clr (EEPTR+1,sp)
+	clr (WLKPTR,sp)
+	clr (WLKPTR+1,sp)
 8$: ; match found 
-	ldw x,(EEPTR,sp) ; record address 
+	ldw x,(WLKPTR,sp) ; record address 
 9$:	_DROP VSIZE
-	 popw y 
 	 ret 
 
 
@@ -1621,7 +1682,7 @@ cloop_1:
 	call skip_string
 	ldw x,(CNAME,sp)
 	call strlen  
-	add a,#CONST_REC_XTRA_BYTES 
+	add a,#REC_XTRA_BYTES 
 	ld (RECLEN,sp),a 
 ; copy name in buffer  
 	ldw y,(CNAME,sp) 
@@ -1636,7 +1697,7 @@ cloop_1:
 ; to point after name 
 	clrw x 
 	ld a,(RECLEN,sp)
-	sub a,#CONST_REC_XTRA_BYTES-1
+	sub a,#REC_XTRA_BYTES-1
 	ld xl,a  
 	addw x,(BUFPTR,sp)
 	ldw (BUFPTR,sp),x 
@@ -1657,7 +1718,8 @@ cloop_1:
 ; if exist and \U option then update  
 	clr farptr 
 	ldw x,(CNAME,sp)
-	call search_const 
+	ldw y,#EEPROM_BASE
+	call search_name 
 	tnzw x 
 	jreq 6$ ; new constant  
 	tnz (UPDATE,sp)
@@ -1688,6 +1750,78 @@ cloop_1:
 10$: 
 	_drop VSIZE 
 	popw y ; restore xstack pointer 
+	ret 
+
+;---------------------------------
+; BASIC: DIM var_name [var_name]* 
+; create named variables at end 
+; of BASIC program. 
+; These variables are initialized 
+; to 0. 
+; record format same ast CONST 
+; but r/w because stored in RAM 
+;---------------------------------
+	VAR_NAME=1 
+	REC_LEN=3 
+	VSIZE=4 
+cmd_dim:
+	btjt flags,#FRUN,cmd_dim1
+	ld a,#ERR_RUN_ONLY
+	jp tb_error 
+cmd_dim1:	
+	pushw y 
+	_vars VSIZE
+	clr (REC_LEN,sp ) 
+0$:	call next_token 
+	cp a,#TK_LABEL  
+	jreq 1$ 
+	jp syntax_error 
+1$: ldw (VAR_NAME,sp),x ; name pointer 
+	call strlen 
+	add a,#REC_XTRA_BYTES
+	ld (REC_LEN+1,sp),a
+	call skip_string 
+	ldw x,(VAR_NAME,sp) 
+	ldw y,dvar_bgn 
+	call search_name  
+	tnzw x 
+	jrne 4$ ; already exist 	
+	ldw x,dvar_end 
+	ld a,(REC_LEN+1,sp)
+	ld (x),a 
+	incw x 
+	ldw y,(VAR_NAME,sp)
+	call strcpy
+	decw x 
+	addw x,(REC_LEN,sp)
+	ldw dvar_end,x 
+	subw x,#CELL_SIZE  
+	clr (x)
+	clr (1,x)  
+	clr (2,x)
+4$: call next_token 
+	cp a,#TK_COMMA 
+	jreq 0$ 
+	cp a,#TK_EQUAL 
+	jrne 8$
+; initialize variable 
+	call condition 
+	cp a,#TK_INTGR
+	jreq 5$
+	jp syntax_error
+5$: ldw x,dvar_end 
+	subw x,#CELL_SIZE 
+	ldw ptr16,x 
+	_xpop 
+	ld [ptr16],a 
+	inc ptr8 
+	ldw [ptr16],x 
+	jra 4$ 
+8$:	
+	_unget_token 	
+	_drop VSIZE 
+	call ubound 
+	popw y 
 	ret 
 
 
@@ -2709,7 +2843,11 @@ run_it:
 	_drop 2 ; drop return address 
 run_it_02: 
     call ubound 
-	call clear_vars 
+	call clear_vars
+; initialize DIM variables pointers 
+	ldw x,txtend 
+	ldw dvar_bgn,x 
+	ldw dvar_end,x 	 
 ; clear data pointer 
 	clrw x 
 	ldw data_ptr,x 
@@ -3079,7 +3217,7 @@ erase:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 qsign: 
 	ldw x,app_sign 
-	cpw x,SIGNATURE ; "BC" 
+	cpw x,SIGNATURE ; "TB" 
 	ret 
 
 ;--------------------------------------
@@ -3130,6 +3268,7 @@ clear_block_buffer:
 ;---------------------------------------
 ; BASIC: SAVE
 ; write application from RAM to FLASH
+; at UFLASH address
 ;--------------------------------------
 	XTEMP=1
 	COUNT=3  ; last count bytes written 
@@ -3215,7 +3354,7 @@ save_app:
 	ret 
 
 
-SIGNATURE: .ascii "BC"
+SIGNATURE: .ascii "TB"
 CANT_DO: .asciz "Can't flash application, already one in FLASH\nuse ERASE \F before"
 NO_APP: .asciz "No application in RAM"
 
@@ -3381,6 +3520,7 @@ bad_port:
 ;-------------------------
 ; BASIC: UFLASH 
 ; return free flash address
+; align to BLOCK address 
 ; input:
 ;  none 
 ; output:
@@ -3569,8 +3709,7 @@ abs:
 ; logical shift left expr1 by 
 ; expr2 bits 
 ; output:
-; 	A 		TK_INTGR
-;   X 		result 
+; 	A:x 	result 
 ;------------------------------
 lshift:
 	call func_args
@@ -3578,17 +3717,17 @@ lshift:
 	jreq 1$
 	jp syntax_error
 1$: _xpop 
-    ldw y,x    
-	_at_top  ; T@ 
-	tnzw y 
+	ld a,xl 
+	push a      
+	_xpop  ; T>A:X 
+	tnz (1,sp) 
 	jreq 4$
 2$:	rcf 
 	rlcw x 
 	rlc a 
-	decw y 
+	dec (1,sp) 
 	jrne 2$
-4$: _store_top  ; T! 
-	ld a,#TK_INTGR
+4$: _drop 1 
 	ret
 
 ;------------------------------
@@ -3604,18 +3743,18 @@ rshift:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: _xpop 
-    ldw y,x   
-	_at_top  ; T@  
-	tnzw y 
+1$: _xpop ; T>A:X
+    ld a,xl 
+	push a    
+	_xpop  
+	tnz (1,sp)
 	jreq 4$
 2$:	rcf 
-	rrcw x
-	rrc a  
-	decw y 
+	rrc a 
+	rrcw x 
+	dec (1,sp) 
 	jrne 2$
-4$: _store_top  ; T! 
-	ld a,#TK_INTGR
+4$: _drop 1 
 	ret
 
 ;--------------------------
@@ -4084,10 +4223,6 @@ const_portf:
 	ret 
 const_portg:
 	ldw x,#PG_BASE 
-	clr a 
-	ret 
-const_porth:
-	ldw x,#PH_BASE 
 	clr a 
 	ret 
 const_porti:
@@ -4620,7 +4755,6 @@ kword_end:
 	_dict_entry,3,PUT,xput 
 	_dict_entry,4,PUSH,xpush   
 	_dict_entry,5+F_IFUNC,PORTI,const_porti 
-	_dict_entry,5+F_IFUNC,PORTH,const_porth 
 	_dict_entry,5+F_IFUNC,PORTG,const_portg 
 	_dict_entry,5+F_IFUNC,PORTF,const_portf
 	_dict_entry,5+F_IFUNC,PORTE,const_porte
@@ -4670,6 +4804,7 @@ kword_end:
 	_dict_entry,4,DROP,xdrop ; drop n element from xtack 
 	_dict_entry,5+F_IFUNC,DREAD,digital_read
 	_dict_entry,2,DO,do_loop
+	_dict_entry,3,DIM,cmd_dim 
 	_dict_entry,3,DEC,dec_base
 	_dict_entry,3+F_IFUNC,DDR,const_ddr 
 	_dict_entry,4,DATA,data  
@@ -4704,7 +4839,7 @@ code_addr::
 	.word let,list,log2,lshift,next,new ; 40..47
 	.word const_odr,pad_ref,pause,pin_mode,peek,const_input ; 48..55
 	.word poke,const_output,print,const_porta,const_portb,const_portc,const_portd,const_porte ; 56..63
-	.word const_portf,const_portg,const_porth,const_porti,qkey,read,cold_start,remark ; 64..71 
+	.word const_portf,const_portg,const_porti,qkey,read,cold_start,remark ; 64..71 
 	.word restore,return, random,rshift,run,free ; 72..79
 	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
 	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
