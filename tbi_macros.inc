@@ -55,6 +55,8 @@
 	TIB_SIZE=80
         PAD_SIZE=BLOCK_SIZE 
 
+        NAME_MAX_LEN=15  ; CONST and DIM variables maximum length 
+
 ;--------------------------------------
 ;   constantes related to Arduino 
 ;   API mapping 
@@ -138,6 +140,7 @@
     ERR_NO_FSPACE=14
     ERR_BUF_FULL=15
     ERR_OVERFLOW=16 
+    ERR_RD_ONLY=17
 
 ;--------------------------------------
 ;   assembler flags 

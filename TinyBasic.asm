@@ -310,7 +310,7 @@ err_msg:
 	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
 	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
 	.word err_no_access,err_no_data,err_no_prog,err_no_fspace,err_buf_full    
-	.word err_overflow 
+	.word err_overflow,err_read_only  
 
 err_mem_full: .asciz "Memory full\n" 
 err_syntax: .asciz "syntax error\n" 
@@ -328,6 +328,7 @@ err_no_prog: .asciz "No program in RAM!\n"
 err_no_fspace: .asciz "File system full.\n" 
 err_buf_full: .asciz "Buffer full\n"
 err_overflow: .asciz "overflow\n" 
+err_read_only: .asciz "constant can't be modified\n"
 
 rt_msg: .asciz "\nrun time error, "
 comp_msg: .asciz "\ncompile error, "
@@ -482,8 +483,13 @@ interp_loop:
 ; assignement to DIM 
 ; variable 
 ;----------------------
+	VAR_NAME=1 
+	REC_LEN=3
+	VSIZE=4 
 let_dvar:
-	pushw x 
+	_vars VSIZE 
+	ldw (VAR_NAME,sp),x
+	clr (REC_LEN,sp) 
 	call skip_string 
 	ldw x,basicptr 
 	addw x,in.w 
@@ -496,25 +502,27 @@ let_dvar:
 	cp a,#TK_INTGR 
 	jreq 1$ 
 0$:	jp syntax_error 
-1$: pushw y 
-	ldw y,dvar_bgn 
-	ldw x,(3,sp) ; pointer to var name 
+1$: 
+	ldw x,(VAR_NAME,sp) ; pointer to var name 
+	call strlen 
+	add a,#REC_XTRA_BYTES
+	ld (REC_LEN+1,sp),a 
 	call search_name 
 	tnzw x 
 	jreq 0$ 
 	ld a,(x)
-	push a 
-	push #0 
-	addw x,(1,sp)
+	jrpl 2$
+	ld a,#ERR_RD_ONLY 
+	jp tb_error 
+2$:
+	addw x,(REC_LEN,sp)
 	subw x,#CELL_SIZE 
 	ldw ptr16,x
-	_drop 2 
-	popw y  
 	_xpop 
 	ld [ptr16],a 
 	inc ptr8 
 	ldw [ptr16],x 
-9$: _drop 2 	
+9$: _drop VSIZE 	
 	ret 
 
 
@@ -1048,21 +1056,15 @@ factor:
 	pushw y  
 	pushw x 
 	call skip_string
-	ldw x,(1,sp) 
-	ldw y,#EEPROM_BASE 
+	popw x  
+	call strlen 
+	add a,#REC_XTRA_BYTES
 	call search_name
 	tnzw x 
 	jrne 82$ 
-	ldw y,dvar_bgn
-	ldw x,(1,sp)
-	call search_name
-	tnzw x 
-	jrne 82$ 
-	popw x 
 	popw y 
 	jra 16$
 82$:
-	_drop 2  ; name pointer 
 	popw y   
 	call get_value ; in A:X 
 	jra 18$
@@ -1493,6 +1495,7 @@ let_eval:
 ;--------------------------
 get_value: ; -- i 
 	ld a,(x) ; record size 
+	and a,#NAME_MAX_LEN
 	sub a,#CELL_SIZE ; * value 
 	push a 
 	push #0 
@@ -1596,8 +1599,8 @@ REC_XTRA_BYTES=5
 ; a constant record use 7+ bytes
 ; constants are saved in EEPROM  
 ; input:
+;    A     record_len 
 ;    X     *name
-;    Y     search from address 
 ; output:
 ;    X     address|0
 ; use:
@@ -1609,24 +1612,20 @@ REC_XTRA_BYTES=5
 	LIMIT=7   ; search area limit 
 	VSIZE=8  
 search_name:
+	pushw y 
 	_vars VSIZE
 	clr acc16 
-	call strlen 
-	add a,#REC_XTRA_BYTES
 	ld (RECLEN,sp),a    
 	ldw (NAMEPTR,sp),x
-	cpw y,#EEPROM_BASE 
-	jrult 0$ 
-	ldw x,free_eeprom 
-	jra 10$ 
-0$: ldw x,dvar_end 
-10$: 
+	ldw x,dvar_end 
 	ldw (LIMIT,sp),x 
+	ldw y,dvar_bgn
 1$:	ldw (WLKPTR,sp),y
 	ldw x,y 
 	cpw x, (LIMIT,sp) 
 	jruge 7$ ; no match found 
 	ld a,(y)
+	and a,#NAME_MAX_LEN
 	cp a,(RECLEN,sp)
 	jrne 2$ 
 	incw y 
@@ -1636,6 +1635,7 @@ search_name:
 2$: ; skip this one 	
 	ldW Y,(WLKPTR,sp)
 	ld a,(y)
+	and a,#NAME_MAX_LEN 
 	ld acc8,a 
 	addw y,acc16 
 	jra 1$  
@@ -1645,112 +1645,28 @@ search_name:
 8$: ; match found 
 	ldw x,(WLKPTR,sp) ; record address 
 9$:	_DROP VSIZE
+	popw y 
 	 ret 
-
 
 ;--------------------------------------------
 ; BASIC: CONST name=value [, name=value]*
 ; define constant(s) saved in EEPROM
+; share most of his code with cmd_dim 
 ;--------------------------------------------
-	CNAME=1 
-	BUFPTR=3
-	RECLEN=5
-	UPDATE=6
-	YSAVE=7
-	VSIZE=8 
+	VAR_NAME=1 
+	REC_LEN=3
+	RONLY=5
+	VSIZE=5
 cmd_const:
-	pushw y 
+	btjt flags,#FRUN,0$
+	ld a,#ERR_RUN_ONLY
+	jp tb_error 
+0$: 
 	_vars VSIZE 
-	clr (UPDATE,sp)
-	call next_token 
-	cp a,#TK_CHAR 
-	jrne 0$
-	call get_char 
-	and a,#0xDF 
-	cp a,#'U 
-	jrne 1$
-	cpl (UPDATE,sp)
-	jra const_loop 
-0$: cp a,#TK_LABEL 
-	jreq cloop_1
-1$: jp syntax_error
-const_loop: 
-	ld a,#TK_LABEL 
-	call expect  
-cloop_1: 
-	ldw (CNAME,sp),x ; *const_name
-	call skip_string
-	ldw x,(CNAME,sp)
-	call strlen  
-	add a,#REC_XTRA_BYTES 
-	ld (RECLEN,sp),a 
-; copy name in buffer  
-	ldw y,(CNAME,sp) 
-	ldw x,#tib  
-	ld a,(RECLEN,sp)
-	ld (x),a 
-	incw x  
-	call strcpy 
-	ldw (BUFPTR,sp),x 
-; x not updated by strcpy 
-; BUFPTR must be incremented 
-; to point after name 
-	clrw x 
-	ld a,(RECLEN,sp)
-	sub a,#REC_XTRA_BYTES-1
-	ld xl,a  
-	addw x,(BUFPTR,sp)
-	ldw (BUFPTR,sp),x 
-	ld a,#TK_EQUAL 
-	call expect 
-	ldw y,(YSAVE,sp) ; restore xstack pointer 
-	call expression 
-	cp a,#TK_INTGR 
-	jreq 5$ 
-	jp syntax_error 
-5$:	_xpop 
-	ldw (YSAVE,sp),y ; save xtack pointer 
-	ldw y,(BUFPTR,sp)
-	ld (y),a 
-	ldw (1,y),x 
-; record completed in buffer 
-; check if constant already exist 
-; if exist and \U option then update  
-	clr farptr 
-	ldw x,(CNAME,sp)
-	ldw y,#EEPROM_BASE
-	call search_name 
-	tnzw x 
-	jreq 6$ ; new constant  
-	tnz (UPDATE,sp)
-	jreq 8$ 
-	jra 7$	
-6$:	
-	ldw x,free_eeprom  
-7$:	
-	ldw farptr+1,x 
-	ldw x,#tib 
-	ld a,(RECLEN,sp)
-	call write_nbytes
-	tnz (UPDATE,sp)
-	jrne 8$ ; not a new constant, don't update free_eeprom
-; update free_eeprom 
-	clrw x 
-	ld a,(RECLEN,sp)
-	ld xl,a 
-	addw x,free_eeprom 
-	ldw free_eeprom,x
-8$: ; check for next constant 
-	call next_token 
-	cp a,#TK_COMMA 
-	jrne 9$ ; no other constant 
-	jp const_loop 
-9$: 
-	_unget_token    
-10$: 
-	_drop VSIZE 
-	popw y ; restore xstack pointer 
-	ret 
+	ld a,#128 
+	ld (RONLY,sp),a 
+	clr (REC_LEN,sp)
+	jra cmd_dim2 ; shared code with cmd_dim  
 
 ;---------------------------------
 ; BASIC: DIM var_name [var_name]* 
@@ -1761,38 +1677,41 @@ cloop_1:
 ; record format same ast CONST 
 ; but r/w because stored in RAM 
 ;---------------------------------
-	VAR_NAME=1 
-	REC_LEN=3 
-	VSIZE=4 
 cmd_dim:
 	btjt flags,#FRUN,cmd_dim1
 	ld a,#ERR_RUN_ONLY
 	jp tb_error 
 cmd_dim1:	
-	pushw y 
 	_vars VSIZE
-	clr (REC_LEN,sp ) 
+	clr (REC_LEN,sp )
+	clr (RONLY,sp)
+cmd_dim2: 
 0$:	call next_token 
 	cp a,#TK_LABEL  
 	jreq 1$ 
 	jp syntax_error 
 1$: ldw (VAR_NAME,sp),x ; name pointer 
-	call strlen 
+	call strlen
 	add a,#REC_XTRA_BYTES
 	ld (REC_LEN+1,sp),a
 	call skip_string 
+	ld a,(REC_LEN+1,sp)
 	ldw x,(VAR_NAME,sp) 
-	ldw y,dvar_bgn 
 	call search_name  
 	tnzw x 
-	jrne 4$ ; already exist 	
-	ldw x,dvar_end 
+	jreq 2$
+	ld a,#ERR_DUPLICATE
+	jp tb_error  
+2$:	ldw x,dvar_end 
 	ld a,(REC_LEN+1,sp)
+	or a,(RONLY,sp)
 	ld (x),a 
 	incw x 
-	ldw y,(VAR_NAME,sp)
+	pushw y 
+	ldw y,(VAR_NAME+2,sp)
 	call strcpy
-	decw x 
+	popw y 
+	decw x
 	addw x,(REC_LEN,sp)
 	ldw dvar_end,x 
 	subw x,#CELL_SIZE  
@@ -1821,7 +1740,6 @@ cmd_dim1:
 	_unget_token 	
 	_drop VSIZE 
 	call ubound 
-	popw y 
 	ret 
 
 

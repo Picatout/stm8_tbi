@@ -528,9 +528,9 @@ parse_keyword:
 	incw y
 	ldw x,y 
 	call strlen
-	cp a,#15 
+	cp a,#NAME_MAX_LEN 
 	jrule 22$ 
-	ld a,#15
+	ld a,#NAME_MAX_LEN 
 22$:	
 	push a 
 24$:
@@ -544,7 +544,7 @@ parse_keyword:
 3$: incw y 
 	_drop 1 
 	ld a,#TK_LABEL 
-	clrw x 	
+	clrw x 
 	jra 5$ 
 4$:	
 	ldw y,(XFIRST,sp)
@@ -842,7 +842,7 @@ compile::
 	jp tb_error
 1$:	ldw pad,x 
 	ldw y,#pad+3 
-2$:	cpw y,#stack_full 
+2$:	cpw y,#xstack_full 
 	jrult 3$
 	ld a,#ERR_BUF_FULL 
 	jp tb_error 

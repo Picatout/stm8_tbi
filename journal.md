@@ -1,3 +1,41 @@
+#### 2022-06-05
+
+* Ajouter **OPTION SPEED|KEEP_SYMBOL** 
+	* **SPEED** remplace les symboles par leur adresse pour accélérer l'exécution. Les numéros de ligne dans les GOTO,GOSUB sont aussi remplacés 
+	  par les adresses. Cette option affecte la compilation ainsi que la commande LIST.
+	
+	* **KEEP_SYMBOL**  Désactive l'option **SPEED**.
+
+	
+
+* Corrigé bogue dans *search_name*. La supression du bit indiquant qu'il s'agit d'une constante avait été oublié.
+```
+2$: ; skip this one 	
+	ldW Y,(WLKPTR,sp)
+	ld a,(y)
+	and a,#NAME_MAX_LEN ; cet ajustement avait été oublié.
+	ld acc8,a 
+	addw y,acc16 
+	jra 1$  
+```
+
+#### 2022-06-04
+
+*  bogue , ne peut créer 2 constantes 
+```
+>10 const test=1024, led2=20490
+
+>20 ? test led2
+
+>run
+1024 
+
+```
+
+* Modifié commande **CONST** pour enregistrer les constantes en RAM avec les variables. Le bit 7 de l'octet REC_LEN servira à les différencier. Si ce bit 
+est à **1** il s'agit d'une constante. Le but de cette modification est d'améliorer la vitesse des routines *factor* qui font la recherche. Il n'est plus
+nécessaire de rechercher dans 2 localisation différentes. 
+
 #### 2022-06-03
 
 * commit 23:02
