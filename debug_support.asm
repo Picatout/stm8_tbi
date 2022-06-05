@@ -1,75 +1,30 @@
 ;;
-; Copyright Jacques Deschênes 2019,2020 
-; This file is part of PABasic 
+; Copyright Jacques Deschênes 2019,2020,2021,2022  
+; This file is part of stm8_tbi 
 ;
-;     PABasic is free software: you can redistribute it and/or modify
+;     stm8_tbi is free software: you can redistribute it and/or modify
 ;     it under the terms of the GNU General Public License as published by
 ;     the Free Software Foundation, either version 3 of the License, or
 ;     (at your option) any later version.
 ;
-;     PABasic is distributed in the hope that it will be useful,
+;     stm8_tbi is distributed in the hope that it will be useful,
 ;     but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ;     GNU General Public License for more details.
 ;
 ;     You should have received a copy of the GNU General Public License
-;     along with PABasic.  If not, see <http://www.gnu.org/licenses/>.
+;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-;--------------------------------------
-;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  debug support
-;;;;;;;;;;;;;;;;;;;;
+;;  set DEBUG=1 in config.inc 
+;;  to enable it.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .if DEBUG 
 
     .area CODE
-
-;---------------------------------
-;; print actual registers states 
-;; as pushed on stack 
-;; {Y,X,CC,A}
-;---------------------------------
-	_argofs 0  
-	_arg R_Y 1 
-	_arg R_X 3
-	_arg R_A 5
-	_arg R_CC 6
-prt_regs::
-	ldw x,#regs_state 
-	call puts
-; register PC
-	ldw y,(1,sp)
-	ldw x,#REG_EPC 
-	call prt_reg16 
-; register CC 
-	ld a,(R_CC,sp)
-	ldw x,#REG_CC 
-	call prt_reg8 
-; register A 
-	ld a,(R_A,sp)
-	ldw x,#REG_A 
-	call prt_reg8 
-; register X 
-	ldw y,(R_X,sp)
-	ldw x,#REG_X 
-	call prt_reg16 
-; register Y 
-	ldw y,(R_Y,sp)
-	ldw x,#REG_Y 
-	call prt_reg16 
-; register SP 
-	ldw y,sp
-	addw y,#6+ARG_OFS  
-	ldw x,#REG_SP
-	call prt_reg16
-	ld a,#CR 
-	call putc
-	call putc   
-	ret 
-
-
-regs_state: .asciz "\nregisters state\n--------------------\n"
-
 
 ;--------------------
 ; print content at address in hex.
@@ -174,53 +129,89 @@ prt_reg16:
 ; print registers contents saved on
 ; stack by trap interrupt.
 ;------------------------------------
+	SAVE_ACC24=1 
+	SAVE_ACC16=2
+	VSIZE=3 
+	_argofs VSIZE ; TrapHandler saved acc24  
+	_arg R_PC, 8 
+	_arg R_PCE,7 
+	_arg R_Y 5 
+	_arg R_X 3
+	_arg R_A 2
+	_arg R_CC 1
 print_registers:
+	_vars VSIZE 
+	ld a,acc24 
+	ldw x,acc16 
+	ld (SAVE_ACC24,sp),a 
+	ldw (SAVE_ACC16,sp),x 
 	ldw x,#STATES
 	call puts
 ; print EPC 
+	mov base,#16
 	ldw x, #REG_EPC
 	call puts 
-	ld a, (11,sp)
+	ld a, (R_PCE,sp)
 	ld acc8,a 
-	ld a, (10,sp) 
-	ld acc16,a 
-	ld a,(9,sp) 
-	ld acc24,a
-	clrw x  
-	ld a,#16
-	call prt_acc24  
-; print X
+	ldw x,(R_PC,sp)
+	ld acc24,a 
+	ldw acc16,x 
+	clr a 
+	call prt_acc24 
+	mov base,#10  
+; print x
 	ldw x,#REG_X
-	ldw y,(5,sp)
+	ldw y,(R_X,sp)
 	call prt_reg16  
 ; print Y 
 	ldw x,#REG_Y
-	ldw y, (7,sp)
+	ldw y, (R_Y,sp)
 	call prt_reg16  
 ; print A 
 	ldw x,#REG_A
-	ld a, (4,sp) 
+	ld a, (R_A,sp) 
 	call prt_reg8
 ; print CC 
 	ldw x,#REG_CC 
-	ld a, (3,sp) 
+	ld a, (R_CC,sp) 
 	call prt_reg8 
 ; print SP 
 	ldw x,#REG_SP
 	ldw y,sp 
-	addw y,#12
+	addw y,#(VSIZE+2+9)
 	call prt_reg16  
 	ld a,#'\n' 
 	call putc
+	ld a,(SAVE_ACC24,sp)
+	ldw x,(SAVE_ACC16,sp)
+	ld acc24,a 
+	ldw acc16,x 
+	_drop VSIZE  	
 	ret
 
-STATES:  .asciz "\nRegisters state at abort point.\n--------------------------\n"
+STATES:  .asciz "\nRegisters state at TRAP point.\n--------------------------\n"
 REG_EPC: .asciz "EPC:"
 REG_Y:   .asciz "\nY:" 
 REG_X:   .asciz "\nX:"
 REG_A:   .asciz "\nA:" 
 REG_CC:  .asciz "\nCC:"
 REG_SP:  .asciz "\nSP:"
+
+;----------------------
+; input:
+;	Y    *input buffer 
+; output:
+;   acc24  integer 
+;----------------------
+parse_addr:
+	ld a,#SPACE 
+	call skip  	 
+	addw y,in.w 
+	ldw x,#pad 
+	call strcpy
+	ldw x,#pad
+	call atoi24 	
+	ret 
 
 ;----------------------------
 ; command interface
@@ -229,11 +220,30 @@ REG_SP:  .asciz "\nSP:"
 ;  'p [addr]' to print memory values 
 ;  's addr' to print string 
 ;----------------------------
-;local variable 
-	PSIZE=1
-	VSIZE=1 
+;local variable
+	PSIZE=11
+	SAV_COUNT=10
+	SAV_IN=9
+	SAV_ACC24=8
+	SAV_ACC16=6
+	R_Y=4
+	R_X=2
+	R_A=1
+	VSIZE=11
 cmd_itf:
-	sub sp,#VSIZE 
+	push cc 
+	_vars VSIZE
+	ld (R_A,sp),a
+	ld a,count 
+	ld (SAV_COUNT,sp),a 
+	ld a,in 
+	ld (SAV_IN,sp),a  
+	ldw (R_X,sp),x 
+	ldw (R_Y,sp),y
+	ld a,acc24 
+	ldw x,acc16 
+	ld (SAV_ACC24,sp),a 
+	ldw (SAV_ACC16,sp),x 
 	clr farptr 
 	clr farptr+1 
 	clr farptr+2  
@@ -253,10 +263,20 @@ repl:
 	cp a,#'Q 
 	jrne test_p
 repl_exit:
-	clr tib 
-	clr count 
-	clr in 
-	_drop #VSIZE 	
+; restore original context 
+	ld a,(SAV_ACC24,sp)
+	ldw x,(SAV_ACC16,sp)
+	ld acc24,a 
+	ldw acc16,x
+	ld a,(SAV_COUNT,sp)
+	ld count,a 
+	ld a,(SAV_IN,sp)
+	ld in,a 
+	ldw y,(R_Y,sp)
+	ldw x,(R_X,sp)
+	ld a,(R_A,sp)
+	_drop VSIZE
+	pop cc 
 	ret  
 invalid:
 	ldw x,#invalid_cmd 
@@ -267,20 +287,13 @@ test_p:
 	jreq mem_peek
     cp a,#'S 
 	jrne invalid 
-print_string:	
-	call get_token
-	cp a,#TK_INTGR 
-	jrne invalid 
+print_string:
+	call parse_addr 	
+	ldw x,acc16
 	call puts
 	jp repl 	
 mem_peek:
-	ld a,#SPACE 
-	call skip  	 
-	addw y,in.w 
-	ldw x,#pad 
-	call strcpy
-	ldw x,#pad
-	call atoi24 	
+	call parse_addr 
 	ld a, acc24 
 	or a,acc16 
 	or a,acc8 

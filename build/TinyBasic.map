@@ -58,47 +58,45 @@ CODE                                00008080    00003604 =       13828. bytes (R
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00008425  prt_regs                           HW_INIT
-     0000848F  prt_peek                           HW_INIT
-     000088A7  write_block                        HW_INIT
-     0000898B  putc                               HW_INIT
-     0000898B  uart1_putc                         HW_INIT
-     00008994  qgetc                              HW_INIT
-     00008994  uart1_qgetc                        HW_INIT
-     0000899B  getc                               HW_INIT
-     0000899B  uart1_getc                         HW_INIT
-     000089E8  puts                               HW_INIT
-     00008A55  spaces                             HW_INIT
-     00008AED  readln                             HW_INIT
-     00008CA3  print_hex                          HW_INIT
-     00008CBA  to_hex_char                        HW_INIT
-     00008CC5  search_lineno                      HW_INIT
-     00008E08  escaped                            HW_INIT
-     00008E9C  is_alpha                           HW_INIT
-     00008EAD  is_digit                           HW_INIT
-     00008EB6  is_alnum                           HW_INIT
-     00008F62  get_token                          HW_INIT
-     00009116  compile                            HW_INIT
-     000091C0  right_align                        HW_INIT
-     00009218  var_name                           HW_INIT
-     00009222  decompile                          HW_INIT
-     00009406  strlen                             HW_INIT
-     00009422  strcpy                             HW_INIT
-     00009432  move                               HW_INIT
-     000096E6  syntax_error                       HW_INIT
-     000096E8  tb_error                           HW_INIT
-     0000984A  next_token                         HW_INIT
-     000098CF  itoa                               HW_INIT
-     00009928  to_upper                           HW_INIT
-     00009934  atoi24                             HW_INIT
-     000099B5  search_dict                        HW_INIT
-     00009D2E  let                                HW_INIT
-     0000A1EE  remark                             HW_INIT
-     0000A653  beep_1khz                          HW_INIT
-     0000AA45  qkey                               HW_INIT
-     0000B4CD  kword_dict                         HW_INIT
+     0000841A  prt_peek                           HW_INIT
+     0000887A  write_block                        HW_INIT
+     0000895E  putc                               HW_INIT
+     0000895E  uart1_putc                         HW_INIT
+     00008967  qgetc                              HW_INIT
+     00008967  uart1_qgetc                        HW_INIT
+     0000896E  getc                               HW_INIT
+     0000896E  uart1_getc                         HW_INIT
+     000089BB  puts                               HW_INIT
+     00008A28  spaces                             HW_INIT
+     00008AC0  readln                             HW_INIT
+     00008C76  print_hex                          HW_INIT
+     00008C8D  to_hex_char                        HW_INIT
+     00008C98  search_lineno                      HW_INIT
+     00008DDB  escaped                            HW_INIT
+     00008E6F  is_alpha                           HW_INIT
+     00008E80  is_digit                           HW_INIT
+     00008E89  is_alnum                           HW_INIT
+     00008F35  get_token                          HW_INIT
+     000090E9  compile                            HW_INIT
+     00009193  right_align                        HW_INIT
+     000091EB  var_name                           HW_INIT
+     000091F5  decompile                          HW_INIT
+     000093D9  strlen                             HW_INIT
+     000093F5  strcpy                             HW_INIT
+     00009405  move                               HW_INIT
+     000096B9  syntax_error                       HW_INIT
+     000096BB  tb_error                           HW_INIT
+     0000981D  next_token                         HW_INIT
+     000098A2  itoa                               HW_INIT
+     000098FB  to_upper                           HW_INIT
+     00009907  atoi24                             HW_INIT
+     00009988  search_dict                        HW_INIT
+     00009D01  let                                HW_INIT
+     0000A1C1  remark                             HW_INIT
+     0000A626  beep_1khz                          HW_INIT
+     0000AA18  qkey                               HW_INIT
+     0000B4A0  kword_dict                         HW_INIT
      0000B680  app_space                          HW_INIT
-
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
 Hexadecimal  [32-Bits]
 

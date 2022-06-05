@@ -31,7 +31,6 @@
 	.include "config.inc" 
 	.include "tbi_macros.inc" 
 	.include "cmd_index.inc"
-	.include "dbg_macros.inc" 
   
 
 ;;-----------------------------------
@@ -54,9 +53,9 @@ stack_unf: ; stack underflow ; control_stack bottom
 
     int cold_start			; RESET vector 
 .if DEBUG
-	int TrapHandler 		;TRAP  software interrupt
+	int DebugHandler 		;TRAP  software interrupt
 .else
-	int NonHandledInterrupt ;TRAP  software interrupt
+	int SysCall ; TRAP  BASIC sys() calls 
 .endif
 	int NonHandledInterrupt ;int0 TLI   external top level interrupt
 	int AWUHandler          ;int1 AWU   auto wake up from halt
@@ -115,12 +114,13 @@ AWUHandler:
 ; software interrupt handler  
 ;------------------------------------
 .if DEBUG 
-TrapHandler:
-	bset flags,#FTRAP 
+DebugHandler:
 	call print_registers
-	call cmd_itf
-	bres flags,#FTRAP 	
 	iret
+.else 
+SysCall:
+
+	iret 
 .endif 
 
 ;------------------------------

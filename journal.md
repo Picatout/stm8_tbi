@@ -1,12 +1,10 @@
 #### 2022-06-05
 
-* Ajouter **OPTION SPEED|KEEP_SYMBOL** 
-	* **SPEED** remplace les symboles par leur adresse pour accélérer l'exécution. Les numéros de ligne dans les GOTO,GOSUB sont aussi remplacés 
-	  par les adresses. Cette option affecte la compilation ainsi que la commande LIST.
-	
-	* **KEEP_SYMBOL**  Désactive l'option **SPEED**.
+* commit 16:14
 
-	
+* Réparer le support au débogage. [debug_support.asm](debug_support.asm). Éliminé **dbg_macors.inc**.
+
+* commit 11:11	
 
 * Corrigé bogue dans *search_name*. La supression du bit indiquant qu'il s'agit d'une constante avait été oublié.
 ```

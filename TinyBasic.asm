@@ -700,9 +700,7 @@ itoa::
 	clr (x)
 itoa_loop:
     ld a,base
-;	ldw (PSTR,sp),x 
     call divu24_8 ; acc24/A 
-;	ldw x,(PSTR,sp)
     add a,#'0  ; remainder of division
     cp a,#'9+1
     jrmi 2$
