@@ -283,6 +283,8 @@ write_eeprom:
 3$: btjf FLASH_IAPSR,#FLASH_IAPSR_EOP,.
 	btjf FLASH_IAPSR,#FLASH_IAPSR_HVOFF,.
 write_exit:
+	incw x 
+	call incr_farptr
 	_drop VSIZE 
 	popw y
     ret

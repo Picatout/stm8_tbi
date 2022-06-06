@@ -1505,55 +1505,6 @@ get_value: ; -- i
 
 
 ;--------------------------
-; list constants in EEPROM 
-; call when using LIST \C 
-;-------------------------
-	COUNT=1
-	YTEMP=3
-	VSIZE=4 
-list_const:
-	pushw y 
-	_vars 4 
-	clrw x 
-	ldw (COUNT,sp),x  
-	ldw Y,#EEPROM_BASE 
-1$:	cpw y,free_eeprom 
-	jruge 9$
-    ldw (YTEMP,sp),y 
-	ldw x,y
-	incw x 
-	call puts  
-	ld a,#'= 
-	call putc 
-	ldw x,(YTEMP,sp)
-	call get_value 
-	ld acc24,a 
-	ldw acc16,x 
-	call prt_acc24
-	ld a,#CR 
-	call putc 
-	ldw x,(COUNT,sp)
-	incw x 
-	ldw (COUNT,sp),x 
-	clr acc16 
-	ldw y,(YTEMP,sp)
-	ld a,(y)
-	ld acc8,a
-	addw y,acc16 
-	jra 1$ 
-9$:	
-	ldw x,(COUNT,sp)
-	call prt_i16 
-	ldw x,#CONST_COUNT 
-	call puts 
-	_drop VSIZE 
-	popw y 
-	ret 
-
-CONST_COUNT: .asciz " constants in EEPROM\n"
-
-
-;--------------------------
 ; BASIC: EEFREE 
 ; eeprom_free 
 ; search end of data  
@@ -1799,17 +1750,6 @@ list:
 	ld a,#ERR_CMD_ONLY
 	jp tb_error
 0$:	 
-	call next_token 
-	cp a,#TK_CHAR 
-	jrne 2$
-	call get_char 
-	and a,#0xDF 
-	cp a,#'C 
-	jrne 1$
-	call list_const
-	ret 
-1$: jp syntax_error 
-2$:	_unget_token 
 	call prog_size 
 	jrugt 3$
 	ret 
@@ -3275,7 +3215,7 @@ CANT_DO: .asciz "Can't flash application, already one in FLASH\nuse ERASE \F bef
 NO_APP: .asciz "No application in RAM"
 
 ;---------------------
-; BASIC: WRITE expr1,expr2[,expr]* 
+; BASIC: WRITE expr1,expr2|char|string[,expr|char|string]* 
 ; write 1 or more byte to FLASH or EEPROM
 ; starting at address  
 ; input:
@@ -3297,7 +3237,13 @@ write:
 	cp a,#TK_COMMA 
 	jreq 2$ 
 	jra 9$ ; no more data 
-2$:	call expression
+2$:	call next_token 
+	cp a,#TK_CHAR 
+	jreq 4$ 
+	cp a,#TK_QSTR
+	jreq 6$
+	_unget_token 
+	call expression
 	cp a,#TK_INTGR
 	jreq 3$
 	jp syntax_error
@@ -3305,9 +3251,24 @@ write:
 	ld a,xl 
 	clrw x 
 	call write_byte
-	ldw x,#1 
-	call incr_farptr 
 	jra 1$ 
+4$: ; write character 
+	ld a,(x)
+	inc in 
+	clrw x 
+	call write_byte 
+	jra 1$ 
+6$: ; write string 
+	pushw x 
+	ld a,(x)
+	inc in 
+	clrw x 
+	call write_byte 
+	popw x 
+	ld a,(x)
+	jreq 1$
+	incw x 
+	jra 6$ 	
 9$:
 	ret 
 

@@ -1,5 +1,17 @@
 #### 2022-06-05
 
+* Modifié commande **SAVE** pour pouvoir sauvegarder plusieurs programme.
+
+* commit 21:33
+
+* Modifié *write_byte* dans [flash_prog.asm](flash_prog.asm) pour incrémenté *farptr* après l'écriture de l'octet.
+
+* Modifié la commande BASIC **WRITE** pour tenir compte de la modification à *writ_byte*. 
+
+* Modifié la commande **WRITE** pour accepter les caractères et les chaînes en argument. 
+
+* Élimininer l'Option __\E__ de la commande **LIST** puisque maintenant les constantes ne sont plus sauvegardées dans l'EEPROM.
+
 * commit 20:24
 
 * Modifié [debug_support.asm](debug_support.asm). N'utilise plus l'instruction machine **TRAP**. Utilise les macros:
