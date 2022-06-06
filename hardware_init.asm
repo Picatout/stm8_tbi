@@ -52,11 +52,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 ;;--------------------------------------
 
     int cold_start			; RESET vector 
-.if DEBUG
-	int DebugHandler 		;TRAP  software interrupt
-.else
 	int SysCall ; TRAP  BASIC sys() calls 
-.endif
 	int NonHandledInterrupt ;int0 TLI   external top level interrupt
 	int AWUHandler          ;int1 AWU   auto wake up from halt
 	int NonHandledInterrupt ;int2 CLK   clock controller
@@ -113,15 +109,9 @@ AWUHandler:
 ;------------------------------------
 ; software interrupt handler  
 ;------------------------------------
-.if DEBUG 
-DebugHandler:
-	call print_registers
-	iret
-.else 
 SysCall:
 
 	iret 
-.endif 
 
 ;------------------------------
 ; TIMER 4 is used to maintain 

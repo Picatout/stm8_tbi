@@ -22,6 +22,18 @@
 ;;  to enable it.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+	.macro _dbg_prt_regs
+	.if DEBUG 
+		call print_registers  
+	.endif 
+	.endm 
+
+	.macro _dbg_cmd_itf 
+	.if DEBUG 
+		call cmd_itf 
+	.endif 
+	.endm 
+
 .if DEBUG 
 
     .area CODE
@@ -129,36 +141,31 @@ prt_reg16:
 ; print registers contents saved on
 ; stack by trap interrupt.
 ;------------------------------------
-	SAVE_ACC24=1 
-	SAVE_ACC16=2
-	VSIZE=3 
-	_argofs VSIZE ; TrapHandler saved acc24  
-	_arg R_PC, 8 
-	_arg R_PCE,7 
-	_arg R_Y 5 
-	_arg R_X 3
-	_arg R_A 2
-	_arg R_CC 1
+	R_PC=10 
+	R_CC=9
+	SAV_ACC24=8
+	SAV_ACC16=6
+	R_Y=4
+	R_X=2
+	R_A=1
+	VSIZE=8 
 print_registers:
+	push cc 
 	_vars VSIZE 
+	ld (R_A,sp),a 
+	ldw (R_X,sp),x 
+	ldw (R_Y,sp),y
 	ld a,acc24 
 	ldw x,acc16 
-	ld (SAVE_ACC24,sp),a 
-	ldw (SAVE_ACC16,sp),x 
+	ld (SAV_ACC24,sp),a 
+	ldw (SAV_ACC16,sp),x 
 	ldw x,#STATES
 	call puts
-; print EPC 
-	mov base,#16
-	ldw x, #REG_EPC
-	call puts 
-	ld a, (R_PCE,sp)
-	ld acc8,a 
-	ldw x,(R_PC,sp)
-	ld acc24,a 
-	ldw acc16,x 
-	clr a 
-	call prt_acc24 
-	mov base,#10  
+; print PC 
+	ldw x, #REG_PC
+	ldw y, (R_PC,sp)
+	subw y,#3
+	call prt_reg16 
 ; print x
 	ldw x,#REG_X
 	ldw y,(R_X,sp)
@@ -178,19 +185,23 @@ print_registers:
 ; print SP 
 	ldw x,#REG_SP
 	ldw y,sp 
-	addw y,#(VSIZE+2+9)
+	addw y,#(VSIZE+3)
 	call prt_reg16  
 	ld a,#'\n' 
 	call putc
-	ld a,(SAVE_ACC24,sp)
-	ldw x,(SAVE_ACC16,sp)
+	ld a,(SAV_ACC24,sp)
+	ldw x,(SAV_ACC16,sp)
 	ld acc24,a 
 	ldw acc16,x 
-	_drop VSIZE  	
+	ld a,(R_A,sp)
+	ldw x,(R_X,sp)
+	ldw y,(R_Y,sp)
+	_drop VSIZE
+	pop cc   	
 	ret
 
-STATES:  .asciz "\nRegisters state at TRAP point.\n--------------------------\n"
-REG_EPC: .asciz "EPC:"
+STATES:  .asciz "\nRegisters state at break point.\n--------------------------\n"
+REG_PC: .asciz "PC:"
 REG_Y:   .asciz "\nY:" 
 REG_X:   .asciz "\nX:"
 REG_A:   .asciz "\nA:" 

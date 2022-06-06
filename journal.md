@@ -1,5 +1,14 @@
 #### 2022-06-05
 
+* commit 20:24
+
+* Modifié [debug_support.asm](debug_support.asm). N'utilise plus l'instruction machine **TRAP**. Utilise les macros:
+	* **_dbg_prt_regs**  affiche le contenu des registes au point d'arrêt et quitte. 
+	* **_dbg_cmd_itf**   petite interface de commandes pour examiner le contenu de la mémoire. Il n'y a que 3 commandes:
+		* __p addr__  Affiche les 8 octets à partir de l'adresse *addr*. 
+		* __s addr__  Imprime la chaîne .asciz qui est à cette adresse. 
+		* __q__  Quitte l'interface de commande et revient au BASIC.
+
 * commit 16:14
 
 * Réparer le support au débogage. [debug_support.asm](debug_support.asm). Éliminé **dbg_macors.inc**.
