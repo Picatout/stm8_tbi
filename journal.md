@@ -1,6 +1,13 @@
 #### 2022-06-05
 
-* Modifié commande **SAVE** pour pouvoir sauvegarder plusieurs programme.
+* commit 22:09
+
+* À faire:
+	* Modifié commande **SAVE** pour pouvoir sauvegarder plusieurs programme.
+	* Modifié la commande **EDIT**  pour sélectionner un programme à rééditer. 
+	* Ajouter commande **DIR** pour afficher la liste des programmes sauvegardés.
+
+* Modifié commadne **ERASE * pour ajouter une adresse optionnelle de début d'effacement. 
 
 * commit 21:33
 

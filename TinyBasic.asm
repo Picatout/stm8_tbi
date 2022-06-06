@@ -3001,15 +3001,21 @@ new:
 	ret 
 
 ;-----------------------------------
-; BASIC: ERASE \E | \F 
+; BASIC: ERASE \E | \F [address]
 ; erase all block in range from 
-;  'app_space' to FLASH end (0x20000)
+;  'app_space' to FLASH end (0x27fff)
 ;  or all EEPROM 
-; that contains a non zero byte.  
+; that contains a non zero byte. 
+; [address] is optional, if given 
+; erase at block containing this address  
 ;-----------------------------------
 	LIMIT=1 
 	VSIZE = 3 
 erase:
+	btjf flags,#FRUN,eras0
+	ld a,#ERR_CMD_ONLY
+	jp tb_error 
+eras0:	
 	clr farptr 
 	_vars VSIZE 
 	call next_token 
@@ -3040,6 +3046,41 @@ erase:
  ; operation done from RAM
  ; copy code to RAM in tib   
 	call move_erase_to_ram
+;
+; check address option 	
+	call next_token 
+	cp a,#TK_NONE 
+	jreq 4$ 
+	_unget_token 
+	call expression 
+	cp a,#TK_INTGR
+	jreq 32$
+	jp syntax_error
+32$: 
+	_xpop
+	tnz a 
+	jrne 38$
+	cpw x,#app_space
+	jruge 38$
+	cpw x,#EEPROM_BASE 
+	jrult 37$
+	cpw x,#EEPROM_END 
+	jrult 39$
+37$:
+	ld a,#ERR_BAD_VALUE
+	jp syntax_error 
+38$:	 
+	cp a,#2
+	jrugt 37$
+	jrult 39$ 
+	cpw x,0x7fff 
+	jrugt 37$ 
+39$:
+	ld farptr,a 
+	ld a,xl 
+	and a,#0x80
+	ld xl,a
+	ldw farptr+1,x
 4$:	 
     call scan_block 
 	jreq 5$  ; block already erased 
