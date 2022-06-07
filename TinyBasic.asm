@@ -1818,6 +1818,7 @@ list_exit:
 ;  to RAM for edition 
 ;-------------------------
 edit:
+	ldw x,#app_space
 	call qsign 
 	jreq 1$ 
 	ldw x,#NOT_SAVED 
@@ -3108,12 +3109,13 @@ eras0:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;  check for application signature 
+; input:
+;	x       address to check 
 ; output:
 ;   Carry    0 app present 
 ;            1 no app installed  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 qsign: 
-	ldw x,app_sign 
 	cpw x,SIGNATURE ; "TB" 
 	ret 
 
@@ -3176,31 +3178,29 @@ save_app:
 	pushw x 
 	pushw y 
 	_vars VSIZE
-	call qsign 
-	jrne 1$
+	call prog_size 
+	jrne 0$ 
+	ldw x,#NO_APP
+	call puts 
+	jp 9$
+0$:	ldw (TOWRITE,sp),x ; program size
+	call uflash
+	clr farptr 
+	ldw ptr16,x 
+	ldw x,#0xFFFF
+	subw x,ptr16 ; free flash 
+	subw x,#4 ; signature and size field 
+	cpw x,(TOWRITE,sp)
+	jruge 1$
 	ldw x,#CANT_DO 
 	call puts 
 	jp 9$
 1$: 
-	ldw x,txtbgn
-	cpw x,txtend 
-	jrult 2$ 
-	ldw x,#NO_APP
-	call puts 
-	jp 9$
-2$: 
 ; block programming flash
 ; must be done from RAM
 ; moved in tib  
 	call move_prg_to_ram
-; initialize farptr 
-; to app_sign address 
-	clr farptr 
-	ldw x,#app_sign 
-	ldw farptr+1,x
-; initialize local variables 
-	call prog_size
-	ldw (TOWRITE,sp),x
+; initialize written bytes count  
 	clr (COUNT,sp)
 ; first bock 
 ; containt signature 2 bytes 
@@ -3208,14 +3208,13 @@ save_app:
 ; use Y as pointer to block_buffer
 	call clear_block_buffer ; -- y=*block_buffer	
 ; write signature
-	ldw x,SIGNATURE ; "BC" 
+	ldw x,SIGNATURE ; "TB" 
 	ldw (y),x 
 	addw y,#2
 	ldw x,(TOWRITE,sp)
 	ldw (y),x
 	addw y,#2   
 	ld a,#(BLOCK_SIZE-4)
-	ld (CNT_LO,sp),a 
 	cpw x,#(BLOCK_SIZE-4) 
 	jrugt 3$
 	ld a,xl 
@@ -3252,8 +3251,54 @@ save_app:
 
 
 SIGNATURE: .ascii "TB"
-CANT_DO: .asciz "Can't flash application, already one in FLASH\nuse ERASE \F before"
+CANT_DO: .asciz "Can't save application, not enough free FLASH\n"
 NO_APP: .asciz "No application in RAM"
+
+;---------------------
+; BASIC: DIR 
+; list programs saved 
+; in flash 
+;--------------------
+	XTEMP=1 
+cmd_dir:
+	ldw x,#app_space 
+	pushw x 
+1$: ldw x,(x)
+	call qsign 
+	jrne 8$
+	ldw x,(1,sp)
+	addw x,#4
+	mov base,#16
+	call prt_i16
+	ld a,#SPACE 
+	call putc 
+	ldw x,(1,sp)
+	ldw x,(2,x)
+	mov base,#10 
+	call prt_i16 
+	ldw x,#STR_BYTES
+	call puts
+	ld a,#', 
+	call putc
+	ldw x,(1,sp)
+	addw x,#10
+	call puts 
+	ld a,#CR 
+	call putc
+	ldw x,(1,sp)
+	ldw acc16,x 
+	ldw x,(2,x)
+	addw x,acc16 
+	addw x,#4 
+	addw x,#BLOCK_SIZE 
+	ld a,xl 
+	and a,#128 
+	ld xl,a 
+	ldw (1,sp),x 
+	jra 1$  
+8$: ; done 
+	_drop 2 
+	ret 
 
 ;---------------------
 ; BASIC: WRITE expr1,expr2|char|string[,expr|char|string]* 
@@ -3445,20 +3490,26 @@ bad_port:
 ;	A		TK_INTGR
 ;   xstack	free address 
 ;---------------------------
+	SIGN_ADDR=1 
 uflash:
-	call qsign 
-	jrne 1$
 	ldw x,#app_space 
-	addw x,app_size 
+	pushw x 
+1$:	ldw x,(x) 
+	call qsign 
+	jrne 2$
+	ldw x,(1,sp)
+	ldw acc16,x 
+	ldw x,(2,x)
+	addw x,acc16  
 	addw x,#4
 ; align on 128 bytes block 
 	addw x,#BLOCK_SIZE 
 	ld a,xl 
 	and a,#0x80 
 	ld xl,a 
-	jra 2$
-1$:	ldw x,#app_space 
-2$:
+	ldw (1,sp),x 
+	jra 1$
+2$: popw x 
 	clr a 
 	ret 
 
@@ -4722,6 +4773,7 @@ kword_end:
 	_dict_entry,4,DROP,xdrop ; drop n element from xtack 
 	_dict_entry,5+F_IFUNC,DREAD,digital_read
 	_dict_entry,2,DO,do_loop
+	_dict_entry,3,DIR,cmd_dir
 	_dict_entry,3,DIM,cmd_dim 
 	_dict_entry,3,DEC,dec_base
 	_dict_entry,3+F_IFUNC,DDR,const_ddr 

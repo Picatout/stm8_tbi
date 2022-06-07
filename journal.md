@@ -1,9 +1,17 @@
+#### 2022-06-06
+
+* commit 23:12
+
+* Modifié commande **SAVE** pour pouvoir sauvegarder plusieurs programmes.
+
+* Ajouter commande **DIR** pour lister progammes sauvegardés en mémoire FLASH.
+
 #### 2022-06-05
 
 * commit 22:09
 
 * À faire:
-	* Modifié commande **SAVE** pour pouvoir sauvegarder plusieurs programme.
+	* Modifié commande **SAVE** pour pouvoir sauvegarder plusieurs programmes.
 	* Modifié la commande **EDIT**  pour sélectionner un programme à rééditer. 
 	* Ajouter commande **DIR** pour afficher la liste des programmes sauvegardés.
 

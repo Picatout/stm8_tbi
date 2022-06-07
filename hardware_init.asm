@@ -274,6 +274,7 @@ cold_start:
 	call system_information
 2$:	
 ; check for application in flash memory 
+	ldw x,app_space
 	call qsign 
 	jreq run_app
 	jp warm_start 
