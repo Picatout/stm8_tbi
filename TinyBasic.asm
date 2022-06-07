@@ -2673,15 +2673,34 @@ return:
 	jp (x)
 
 
+;---------------------------------
+; check if A:X contain the address 
+; of a program in FLASH 
+; output:
+;     Z    set is progam 
 ;----------------------------------
-; BASIC: RUN
+is_program_addr:
+	tnz a 
+	jrne 9$
+	cpw x,#app_space 
+	jrult 8$
+	pushw x 
+	subw x,#4 
+	call qsign 
+	popw x 
+	jreq 9$ 
+8$:	cpl a ; clr Z bit  
+9$:	ret 
+
+;----------------------------------
+; BASIC: RUN [addr]
 ; run BASIC program in RAM
 ;----------------------------------- 
 run: 
 	btjf flags,#FRUN,0$  
 	clr a 
 	ret
-0$: 
+0$: ; check for STOP condition 
 	btjf flags,#FBREAK,1$
 	_drop 2 
 	call rest_context
@@ -2689,7 +2708,23 @@ run:
 	bres flags,#FBREAK 
 	bset flags,#FRUN 
 	jp interpreter 
-1$:	ldw x,txtbgn
+1$:	; check for address option 
+	call next_token 
+	cp a,#TK_INTGR
+	jrne 3$
+	call get_int24 
+	call is_program_addr
+	jreq 2$
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+2$: ldw txtbgn,x 
+	subw x,#2 
+	ldw x,(x)
+	addw x,txtbgn 
+	ldw txtend,x 
+	jra run_it 	
+3$:	_unget_token 
+	ldw x,txtbgn
 	cpw x,txtend 
 	jrmi run_it 
 	ldw x,#err_no_prog
@@ -3112,11 +3147,14 @@ eras0:
 ; input:
 ;	x       address to check 
 ; output:
-;   Carry    0 app present 
-;            1 no app installed  
+;   Z      1  signature present 
+;          0 not app signature  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 qsign: 
+	pushw x 
+	ldw x,(x)
 	cpw x,SIGNATURE ; "TB" 
+	popw x 
 	ret 
 
 ;--------------------------------------
@@ -3263,10 +3301,9 @@ NO_APP: .asciz "No application in RAM"
 cmd_dir:
 	ldw x,#app_space 
 	pushw x 
-1$: ldw x,(x)
+1$: 
 	call qsign 
 	jrne 8$
-	ldw x,(1,sp)
 	addw x,#4
 	mov base,#16
 	call prt_i16
@@ -3483,33 +3520,32 @@ bad_port:
 ;-------------------------
 ; BASIC: UFLASH 
 ; return free flash address
-; align to BLOCK address 
+; scan all block starting at 
+; app_space and return 
+; address of first free block 
+; below extended memory.  
+; return 0 if no free block 
 ; input:
 ;  none 
 ; output:
-;	A		TK_INTGR
-;   xstack	free address 
+;	A:X		FLASH free address
 ;---------------------------
-	SIGN_ADDR=1 
 uflash:
+	clr farptr 
 	ldw x,#app_space 
 	pushw x 
-1$:	ldw x,(x) 
-	call qsign 
-	jrne 2$
+1$:	ldw ptr16,x 
+	call scan_block 
+	jreq 8$
 	ldw x,(1,sp)
-	ldw acc16,x 
-	ldw x,(2,x)
-	addw x,acc16  
-	addw x,#4
-; align on 128 bytes block 
 	addw x,#BLOCK_SIZE 
-	ld a,xl 
-	and a,#0x80 
-	ld xl,a 
+	jreq 7$ 
 	ldw (1,sp),x 
-	jra 1$
-2$: popw x 
+	jra 1$ 
+7$: ; no free block 
+	clr (1,sp) 
+	clr (2,sp)
+8$: popw x 
 	clr a 
 	ret 
 

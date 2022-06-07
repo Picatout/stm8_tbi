@@ -93,9 +93,9 @@ CODE                                00008080    00003684 =       13956. bytes (R
      00009987  search_dict                        HW_INIT
      00009D00  let                                HW_INIT
      0000A13B  remark                             HW_INIT
-     0000A5A0  beep_1khz                          HW_INIT
-     0000AA52  qkey                               HW_INIT
-     0000B4EB  kword_dict                         HW_INIT
+     0000A5DD  beep_1khz                          HW_INIT
+     0000AA8F  qkey                               HW_INIT
+     0000B524  kword_dict                         HW_INIT
      0000B700  app_space                          HW_INIT
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
 Hexadecimal  [32-Bits]

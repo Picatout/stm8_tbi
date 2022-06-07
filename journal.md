@@ -1,3 +1,11 @@
+#### 2022-06-07
+
+* Modifié **UFLASH** pour scanner tous les blocs à partir de *app_space* jusqu'à *0x10000*. Retourne l'adresse du premier block vide.
+
+* Modifié commande **RUN** pour accepter une adresse de programme en mémoire FLASH.
+
+* Modifié *qsign* et en conséquence: **UFLASH** et *cold_star*
+
 #### 2022-06-06
 
 * commit 23:12
