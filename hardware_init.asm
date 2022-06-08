@@ -273,18 +273,26 @@ cold_start:
 	call beep_1khz  
 	call system_information
 2$:	
-; check for application in flash memory 
-	ldw x,#app_space
-	call qsign 
+; check for autorun application
+	ldw x,EEPROM_BASE 
+	cpw x,AR_SIGN 
 	jreq run_app
 	jp warm_start 
 run_app:
+	clr a 
+	ldw x,EEPROM_BASE+2
+	call is_program_addr 
+	jreq 1$
+	jp warm_start
+1$:	
 ; run application in FLASH|EEPROM 
 	ldw y,XSTACK_EMPTY
 	call warm_init
-	ldw x,#app 
+	ldw x,EEPROM_BASE+2 
 	ldw txtbgn,x
-	addw x,app_size 
+	subw x,#2 
+	ldw x,(x)
+	addw x,txtbgn 
 	ldw txtend,x 
 	ldw x,#AUTO_RUN 
 	call puts 

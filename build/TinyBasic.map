@@ -21,7 +21,7 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000080  l_HOME                          
      00000082  l_DATA                          
      00000198  l_SSEG0                         
-     00003704  l_CODE                          
+     00003784  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -54,49 +54,49 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00003704 =       14084. bytes (REL,CON)
+CODE                                00008080    00003784 =       14212. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     0000841A  prt_peek                           HW_INIT
-     0000887A  write_block                        HW_INIT
-     0000895E  putc                               HW_INIT
-     0000895E  uart1_putc                         HW_INIT
-     00008967  qgetc                              HW_INIT
-     00008967  uart1_qgetc                        HW_INIT
-     0000896E  getc                               HW_INIT
-     0000896E  uart1_getc                         HW_INIT
-     000089BB  puts                               HW_INIT
-     00008A28  spaces                             HW_INIT
-     00008AC0  readln                             HW_INIT
-     00008C76  print_hex                          HW_INIT
-     00008C8D  to_hex_char                        HW_INIT
-     00008C98  search_lineno                      HW_INIT
-     00008DDB  escaped                            HW_INIT
-     00008E6F  is_alpha                           HW_INIT
-     00008E80  is_digit                           HW_INIT
-     00008E89  is_alnum                           HW_INIT
-     00008F35  get_token                          HW_INIT
-     000090E9  compile                            HW_INIT
-     00009193  right_align                        HW_INIT
-     000091EB  var_name                           HW_INIT
-     000091F5  decompile                          HW_INIT
-     000093D9  strlen                             HW_INIT
-     000093F5  strcpy                             HW_INIT
-     00009405  move                               HW_INIT
-     000096D7  syntax_error                       HW_INIT
-     000096D9  tb_error                           HW_INIT
-     0000983B  next_token                         HW_INIT
-     000098C0  itoa                               HW_INIT
-     00009919  to_upper                           HW_INIT
-     00009925  atoi24                             HW_INIT
-     000099A6  search_dict                        HW_INIT
-     00009D1F  let                                HW_INIT
-     0000A154  remark                             HW_INIT
-     0000A5F6  beep_1khz                          HW_INIT
-     0000AAC2  qkey                               HW_INIT
-     0000B557  kword_dict                         HW_INIT
-     0000B780  app_space                          HW_INIT
+     0000842A  prt_peek                           HW_INIT
+     0000888A  write_block                        HW_INIT
+     0000897F  putc                               HW_INIT
+     0000897F  uart1_putc                         HW_INIT
+     00008988  qgetc                              HW_INIT
+     00008988  uart1_qgetc                        HW_INIT
+     0000898F  getc                               HW_INIT
+     0000898F  uart1_getc                         HW_INIT
+     000089DC  puts                               HW_INIT
+     00008A49  spaces                             HW_INIT
+     00008AE1  readln                             HW_INIT
+     00008CA3  print_hex                          HW_INIT
+     00008CBA  to_hex_char                        HW_INIT
+     00008CC5  search_lineno                      HW_INIT
+     00008E08  escaped                            HW_INIT
+     00008E9C  is_alpha                           HW_INIT
+     00008EAD  is_digit                           HW_INIT
+     00008EB6  is_alnum                           HW_INIT
+     00008F62  get_token                          HW_INIT
+     00009116  compile                            HW_INIT
+     000091C0  right_align                        HW_INIT
+     00009218  var_name                           HW_INIT
+     00009222  decompile                          HW_INIT
+     00009406  strlen                             HW_INIT
+     00009422  strcpy                             HW_INIT
+     00009432  move                               HW_INIT
+     00009704  syntax_error                       HW_INIT
+     00009706  tb_error                           HW_INIT
+     00009868  next_token                         HW_INIT
+     000098ED  itoa                               HW_INIT
+     00009946  to_upper                           HW_INIT
+     00009952  atoi24                             HW_INIT
+     000099D3  search_dict                        HW_INIT
+     00009D4C  let                                HW_INIT
+     0000A181  remark                             HW_INIT
+     0000A620  beep_1khz                          HW_INIT
+     0000AB00  qkey                               HW_INIT
+     0000B5F5  kword_dict                         HW_INIT
+     0000B800  app_space                          HW_INIT
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
 Hexadecimal  [32-Bits]
 

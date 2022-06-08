@@ -755,6 +755,7 @@ to_upper::
 ; input:
 ;    x		* .asciz to convert
 ; output:
+;    A:X        int24_t 
 ;    acc24      int24_t
 ;------------------------------------
 	; local variables
@@ -2690,7 +2691,6 @@ is_program_addr:
 	cpw x,#app_space 
 	jrult 8$
 	pushw x 
-	subw x,#4 
 	call qsign 
 	popw x 
 	jreq 9$ 
@@ -3179,6 +3179,10 @@ eras0:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 qsign: 
 	pushw x 
+; align to block 
+	ld a,xl 
+	and a,#BLOCK_SIZE 
+	ld xl,a 
 	ldw x,(x)
 	cpw x,SIGNATURE ; "TB" 
 	popw x 
@@ -3229,6 +3233,64 @@ clear_block_buffer:
 	ret 
 
 
+;----------------------------------
+;  search  a free space space that 
+;  fit program size 
+; input:
+;    X    program size 
+; output:
+;    X    address | 0 
+;------------------------------------
+	PG_SIZE=1 
+	VSIZE=2 
+search_fit:
+	pushw x; PG_SIZE 
+	ldw x,#app_space 
+1$:	call is_erased 
+	jreq 4$
+	ld a,(x)
+	or a,(1,x)
+	jreq 9$ ; free space 
+2$:	call skip_to_next
+	tnzw x 
+	jrne 1$
+	jra 9$
+4$: ; erased program 
+    ; does it fit? 
+	ldw acc16,x 
+	ldw x,(2,x) ; size erased program 
+	cpw x,(1,sp) ; size program to save 
+	jruge 8$   ; fit 
+	ldw x,acc16 
+	jra 2$ 
+8$: ldw x,acc16 ; fit in this one 	
+9$:	_drop VSIZE 
+	ret  
+
+;-------------------------
+; erase header and 
+; size fields 
+; input: 
+;    X    program address 
+; output:
+;    X    unchanged 
+;-------------------------
+	COUNT=1 
+erase_header:
+	pushw x 
+	push #4 ; COUNT 
+	clr farptr 
+	ldw ptr16,x 
+	clr a 
+	clrw x 
+1$:	call write_byte 
+	dec (COUNT,sp)
+	jrne 1$
+	_drop 1 
+	popw x 
+	ldw ptr16,x 
+	ret 
+
 ;---------------------------------------
 ; BASIC: SAVE
 ; write application from RAM to FLASH
@@ -3239,28 +3301,33 @@ clear_block_buffer:
 	CNT_LO=4 ; count low byte 
 	TOWRITE=5 ; how bytes left to write  
 	VSIZE=6 
-save_app:
+cmd_save:
 	pushw x 
 	pushw y 
 	_vars VSIZE
 	call prog_size 
 	jrne 0$ 
-	ldw x,#NO_APP
-	call puts 
-	jp 9$
+	jp 9$ ; no program to save 
 0$:	ldw (TOWRITE,sp),x ; program size
-	call uflash
 	clr farptr 
+	call search_fit
 	ldw ptr16,x 
 	ldw x,#0xFFFF
 	subw x,ptr16 ; free flash 
 	subw x,#4 ; signature and size field 
 	cpw x,(TOWRITE,sp)
 	jruge 1$
-	ldw x,#CANT_DO 
-	call puts 
-	jp 9$
-1$: 
+	ld a,#ERR_MEM_FULL
+	jp tb_error 
+1$: ; check if header bytes are zero's 
+	ldw x,ptr16 
+	ld a,(x)
+	or a,(1,x)
+	or a,(2,x)
+	or a,(3,x)
+	jreq 2$
+	call erase_header ; preserve X and farptr 
+2$: 
 ; block programming flash
 ; must be done from RAM
 ; moved in tib  
@@ -3314,15 +3381,12 @@ save_app:
 	popw x 
 	ret 
 
-
 SIGNATURE: .ascii "TB"
 ERASED: .ascii "XX" 
-CANT_DO: .asciz "Can't save application, not enough free FLASH\n"
-NO_APP: .asciz "No application in RAM"
 
 ;---------------------
 ; check if there is 
-; an erase program 
+; an erased program 
 ; at this address 
 ; input:
 ;    X    address 
@@ -3331,10 +3395,40 @@ NO_APP: .asciz "No application in RAM"
 ;--------------------
 is_erased:
 	pushw x 
+; align to BLOCK 
+	ld a,xl 
+	and a,#BLOCK_SIZE 
+	ld xl,a 
 	ldw x,(x)
 	cpw x,ERASED 
 	popw x 
 	ret 
+
+;----------------------------
+;  skip to next program
+;  block 
+; input:
+;    X   actual program addr
+; output:
+;    X   next block 
+;        after program 
+;----------------------------
+skip_to_next:
+; align to block 
+	ld a,xl 
+	and a,#BLOCK_SIZE 
+	ld xl,a 
+	ldw acc16,x 
+	ldw x,(2,x)
+	addw x,acc16 ; blk_addr+prg_size 
+	addw x,#4 ; +header fields 
+; align to next block 
+	addw x,#BLOCK_SIZE-1 
+	ld a,xl 
+	and a,#0x80 
+	ld xl,a  
+	ret 
+
 
 ;---------------------
 ; BASIC: DIR 
@@ -3367,14 +3461,7 @@ cmd_dir:
 	ld a,#CR 
 	call putc
 	ldw x,(1,sp)
-3$:	ldw acc16,x 
-	ldw x,(2,x)
-	addw x,acc16 
-	addw x,#4 
-	addw x,#BLOCK_SIZE-1 
-	ld a,xl 
-	and a,#128 
-	ld xl,a 
+3$:	call skip_to_next
 	ldw (1,sp),x 
 	jra 1$
 4$: ; check if it is an erased program 
@@ -4751,6 +4838,52 @@ xpick:
 	ret 
 
 
+;----------------------------
+; BASIC: AUTORUN \E | addr 
+;  \E -> cancel autorun 
+;  addr -> register an 
+;    autorun program 
+;    this program execute at 
+;     reset/boot 
+;----------------------------
+cmd_auto_run:
+	call next_token 
+	cp a,#TK_INTGR
+	jreq 1$ 
+	cp a,#TK_CHAR 
+	jrne 0$ 
+	ld a,(x)
+	inc in 
+	and a,#0xDF 
+	cp a,#C 
+	jrne 0$ 
+	ldw x,EEPROM_BASE 
+	call erase_header
+	ret 
+0$:	jp syntax_error
+1$:	call get_int24
+	call is_program_addr
+	jreq 2$ 
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+2$: pushw x 
+	clr farptr 
+	ldw x,#EEPROM_BASE
+	ldw ptr16,x 
+	ld a,AR_SIGN 
+	clrw x 	 
+	call write_byte
+	ld a,AR_SIGN+1
+	call write_byte 
+	ld a,(1,sp)
+	call write_byte 
+	ld a,(2,sp)
+	call write_byte 
+	_drop 2 
+	ret 
+
+AR_SIGN: .ascii "AR" ; autorun signature 
+
 
 ;------------------------------
 ;      dictionary 
@@ -4794,7 +4927,7 @@ kword_end:
 	_dict_entry,5,SPIEN,spi_enable 
 	_dict_entry,5,SLEEP,sleep 
     _dict_entry,4,SIZE,cmd_size 
-	_dict_entry,4,SAVE,save_app 
+	_dict_entry,4,SAVE,cmd_save 
 	_dict_entry 3,RUN,run
 	_dict_entry,6+F_IFUNC,RSHIFT,rshift
 	_dict_entry,3+F_IFUNC,RND,random 
@@ -4872,6 +5005,7 @@ kword_end:
 	_dict_entry,4,BRES,bit_reset
 	_dict_entry,3+F_IFUNC,BIT,bitmask
 	_dict_entry,3,AWU,awu 
+	_dict_entry,7,AUTORUN,cmd_auto_run
 	_dict_entry,3+F_IFUNC,ASC,ascii
 	_dict_entry,3+F_AND,AND,TK_AND ; AND operator 
 	_dict_entry,5,ALLOC,xalloc ; allocate space on xtack 
@@ -4880,25 +5014,6 @@ kword_end:
 kword_dict::
 	_dict_entry,3+F_IFUNC,ABS,abs
 
-INDIRECT=0 
-.if INDIRECT 
-;comands and fonctions address table 	
-code_addr::
-	.word abs,power_adc,analog_read,ascii,awu,bitmask ; 0..7
-	.word bit_reset,bit_set,bit_test,bit_toggle,bye,func_char,const_cr2  ; 8..15
-	.word const_cr1,data,const_ddr,dec_base,do_loop,digital_read,digital_write ;16..23 
-	.word edit,const_eeprom_base,cmd_end,erase,fcpu,save_app,for,gosub,goto ; 24..31 
-	.word hex_base,const_idr,if,input_var,enable_iwdg,refresh_iwdg,key ; 32..39 
-	.word let,list,log2,lshift,next,new ; 40..47
-	.word const_odr,pad_ref,pause,pin_mode,peek,const_input ; 48..55
-	.word poke,const_output,print,const_porta,const_portb,const_portc,const_portd,const_porte ; 56..63
-	.word const_portf,const_portg,const_porti,qkey,read,cold_start,remark ; 64..71 
-	.word restore,return, random,rshift,run,free ; 72..79
-	.word sleep,spi_read,spi_enable,spi_select,spi_write,step,stop,get_ticks  ; 80..87
-	.word set_timer,timeout,to,tone,ubound,uflash,until,usr ; 88..95
-	.word wait,words,write,cmd_size,cmd_on,cmd_get,cmd_const ; 96..99
-	.word func_eefree,0 
-.endif 
 
 
 

@@ -74,7 +74,12 @@ Uart1RxHandler: ; console receive char
 	cp a,#CAN ; CTRL_X 
 	jrne 3$
 	jp cold_start 	
-3$:	push a 
+3$:	cp a,#CTRL_Z 
+	jrne 4$
+	call clear_autorun
+	jp cold_start 
+4$:
+	push a 
 	ld a,#rx1_queue 
 	add a,rx1_tail 
 	clrw x 
@@ -86,6 +91,11 @@ Uart1RxHandler: ; console receive char
 	and a,#RX_QUEUE_SIZE-1
 	ld rx1_tail,a 
 5$:	iret 
+
+clear_autorun:
+	ldw x,#EEPROM_BASE 
+	call erase_header 
+	ret 
 
 ;---------------------------------------------
 ; initialize UART1, 115200 8N1
@@ -520,7 +530,8 @@ delete_line:
 	LL = 2  ; accepted line length
 	CPOS=3  ; cursor position 
 	OVRWR=4 ; overwrite flag 
-	VSIZE=4 
+	YTEMP=5 ; 
+	VSIZE=6 
 readln::
 	pushw y 
 	_vars VSIZE 
@@ -592,14 +603,17 @@ readln_loop:
 	jrne 6$
 ;edit line number 
 	ldw x,#tib 
+	ldw (YTEMP,sp),y  
+	ldw y,(VSIZE+1,sp) ; restore xstack pointer 
 	call atoi24
-	ldw x,acc16
+	ldw y,(YTEMP,sp) ; restore tib pointer 
+	clr a
 	call search_lineno
 	tnzw x 
 	jrne 51$
-;	clr (LL,sp)
-;	ldw y,#tib
-;   clr (y) 	
+	clr (LL,sp)
+	ldw y,#tib
+    clr (y) 	
 	jp readln_quit  
 51$:
 	ldw basicptr,x

@@ -1,4 +1,25 @@
+#### 2022-06-08
+
+* commit 11:34
+
+* Réparer la fonction **CTRL+E** dans *readln** .  Le pointeur xtack n'était restaurer avant de faire l'appel à **atoi24**. 
+
+* Modifié **Uart1RxHandler** pour ajouter la fonction d'effacement autorun **CTRL+Z**. 
+
+* Réinstaurer commande **AUTORUN**.  Les 4 premiers octets de la mémoire EEPROM doivent-être réseverer pour la commande **AUTORUN**. 
+	* AUTORUN \C  annule l'autorun 
+	* AUTORUN *addr*  enregistre au début de l'EEPROM  **AR addr** 
+		* __AR__ est la signature de la commande autorun 
+		* __addr__ est l'adresse du programme à lancer au démarrage. 
+	* Si un programme **AUTORUN** bloque il est possible de l'annuler avec un **CTRL+Z**. Ceci a pour effet d'effacer les paramètres **AUTORUN** 
+	de l'EEPROM et de réinitialiser la carte. 
+
+
+* Modifié commande **SAVE** pour que la commande tienne compte des programmes suprimés. **SAVE** essai de sauvegarder dans le premier espace suffisamment large.
+
 #### 2022-06-07
+
+* Commit 22:56
 
 * Modifié la commande **ERASE \E|\F|addr** Si l'argument est une adresse de programme en mémoire FLASH seul ce programme est effacé à l'exception des 
 champs signature est grandeur. La signature est remplacée par **XX**. 
