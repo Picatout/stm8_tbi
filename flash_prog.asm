@@ -285,6 +285,7 @@ write_eeprom:
 write_exit:
 	incw x 
 	call incr_farptr
+	clrw x 
 	_drop VSIZE 
 	popw y
     ret

@@ -141,6 +141,7 @@
     ERR_BUF_FULL=15
     ERR_OVERFLOW=16 
     ERR_RD_ONLY=17
+    ERR_NO_PROGRAM=18
 
 ;--------------------------------------
 ;   assembler flags 

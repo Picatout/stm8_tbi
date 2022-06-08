@@ -1,5 +1,10 @@
 #### 2022-06-07
 
+* Modifié la commande **ERASE \E|\F|addr** Si l'argument est une adresse de programme en mémoire FLASH seul ce programme est effacé à l'exception des 
+champs signature est grandeur. La signature est remplacée par **XX**. 
+
+* Modifié la commande **EDIT** maintenant prend une adresse comme argument. L'adresse doit correspondre à celle d'un programme en mémoire FLASH.
+
 * commit 9:31
 
 * Modifié **UFLASH** pour scanner tous les blocs à partir de *app_space* jusqu'à *0x10000*. Retourne l'adresse du premier block vide.

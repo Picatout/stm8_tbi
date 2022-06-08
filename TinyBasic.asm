@@ -310,7 +310,7 @@ err_msg:
 	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
 	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
 	.word err_no_access,err_no_data,err_no_prog,err_no_fspace,err_buf_full    
-	.word err_overflow,err_read_only  
+	.word err_overflow,err_read_only,err_not_program  
 
 err_mem_full: .asciz "Memory full\n" 
 err_syntax: .asciz "syntax error\n" 
@@ -329,7 +329,9 @@ err_no_fspace: .asciz "File system full.\n"
 err_buf_full: .asciz "Buffer full\n"
 err_overflow: .asciz "overflow\n" 
 err_read_only: .asciz "constant can't be modified\n"
+err_not_program: .asciz "no program at this address\n"
 
+;-------------------------------------
 rt_msg: .asciz "\nrun time error, "
 comp_msg: .asciz "\ncompile error, "
 tk_id: .asciz "last token id: "
@@ -1813,32 +1815,35 @@ list_exit:
 
 
 ;--------------------------
-; BASIC: EDIT 
+; BASIC: EDIT addr 
 ;  copy program in FLASH 
 ;  to RAM for edition 
 ;-------------------------
 edit:
-	ldw x,#app_space
-	call qsign 
+	call next_token 
+	cp a,#TK_INTGR
+	jreq 0$ 
+	jp syntax_error 
+0$: call get_int24
+	call is_program_addr
 	jreq 1$ 
-	ldw x,#NOT_SAVED 
-	call puts 
-	ret 
-1$: 
-	ldw y,#app_sign ; source address 
-    ldw x,app_size  
+	ldw x,#ERR_NO_PROGRAM
+	jp tb_error 
+1$: pushw y 
+	ldw y,x ; source address 
+    subw x,#4 
+	ldw x,(2,x) ; program size 
 	addw x,#4 
 	ldw acc16,x  ; bytes to copy 
 	ldw x,#rsign ; destination address 
+	subw y,#4 
 	call move  
 	ldw x,#free_ram 
 	ldw txtbgn,x 
 	addw x,rsize  
-	ldw txtend,x 
+	ldw txtend,x
+	popw y  
 	ret 
-
-NOT_SAVED: .asciz "No application saved.\n"
-
 
 ;--------------------------
 ; decompile line from token list
@@ -2715,7 +2720,7 @@ run:
 	call get_int24 
 	call is_program_addr
 	jreq 2$
-	ld a,#ERR_BAD_VALUE
+	ld a,#ERR_NO_PROGRAM
 	jp tb_error 
 2$: ldw txtbgn,x 
 	subw x,#2 
@@ -3037,13 +3042,68 @@ new:
 	ret 
 
 ;-----------------------------------
-; BASIC: ERASE \E | \F [address]
+; erase program at specified address
+; keep signature and size fields. 
+; signature replaced by "XX"
+; input:
+;    X    address 
+;-----------------------------------
+	ADDR=1    ; program address
+	PRG_SIZE=3    ; program size 
+	BLOCKS=5 ; blocks to erase 
+	VSIZE=6
+erase_program:
+	call get_int24
+	call is_program_addr 
+	jrne 9$
+	call move_erase_to_ram
+	clr farptr 
+	_vars VSIZE 
+1$:	subw x,#4 
+	ldw (ADDR,sp),x
+	ldw x,(2,x)
+	ldw (PRG_SIZE,sp),x
+	ld a,#BLOCK_SIZE 
+	div x,a 
+	tnz a 
+	jreq 2$ 
+	incw x 
+2$:	ldw (BLOCKS,sp),x 
+	ldw x,(ADDR,sp)
+	ldw ptr16,x 
+3$:	call block_erase
+	ldw x,#BLOCK_SIZE 
+	call incr_farptr
+	ldw x,(BLOCKS,sp)
+	decw x 
+	ldw (BLOCKS,sp),x 
+	jrne 3$ 
+; write XX and size at addr 
+	ldw x,(ADDR,sp)
+	ldw ptr16,x 
+	ld a,#'X 
+	clrw x 
+	call write_byte 
+	call write_byte 
+	ld a,(PRG_SIZE,sp)
+	call write_byte 
+	ld a,(PRG_SIZE+1,sp)
+	call write_byte 
+	_drop VSIZE 
+9$:	
+	ret 
+
+;-----------------------------------
+; BASIC: ERASE \E | \F || address
 ; erase all block in range from 
 ;  'app_space' to FLASH end (0x27fff)
 ;  or all EEPROM 
 ; that contains a non zero byte. 
-; [address] is optional, if given 
-; erase at block containing this address  
+; if the argument is an address  
+; mark the program at this address 
+; as erased. Erase the blocks 
+; replace signature by 'XX' and 
+; keep size field.  
 ;-----------------------------------
 	LIMIT=1 
 	VSIZE = 3 
@@ -3053,8 +3113,10 @@ erase:
 	jp tb_error 
 eras0:	
 	clr farptr 
+	call next_token
+	cp a,#TK_INTGR
+	jreq erase_program  
 	_vars VSIZE 
-	call next_token 
 	cp a,#TK_CHAR 
 	jreq 0$ 
 	jp syntax_error
@@ -3079,44 +3141,9 @@ eras0:
 3$:
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x 
- ; operation done from RAM
- ; copy code to RAM in tib   
+; operation done from RAM
+; copy code to RAM in tib   
 	call move_erase_to_ram
-;
-; check address option 	
-	call next_token 
-	cp a,#TK_NONE 
-	jreq 4$ 
-	_unget_token 
-	call expression 
-	cp a,#TK_INTGR
-	jreq 32$
-	jp syntax_error
-32$: 
-	_xpop
-	tnz a 
-	jrne 38$
-	cpw x,#app_space
-	jruge 38$
-	cpw x,#EEPROM_BASE 
-	jrult 37$
-	cpw x,#EEPROM_END 
-	jrult 39$
-37$:
-	ld a,#ERR_BAD_VALUE
-	jp syntax_error 
-38$:	 
-	cp a,#2
-	jrugt 37$
-	jrult 39$ 
-	cpw x,0x7fff 
-	jrugt 37$ 
-39$:
-	ld farptr,a 
-	ld a,xl 
-	and a,#0x80
-	ld xl,a
-	ldw farptr+1,x
 4$:	 
     call scan_block 
 	jreq 5$  ; block already erased 
@@ -3289,8 +3316,25 @@ save_app:
 
 
 SIGNATURE: .ascii "TB"
+ERASED: .ascii "XX" 
 CANT_DO: .asciz "Can't save application, not enough free FLASH\n"
 NO_APP: .asciz "No application in RAM"
+
+;---------------------
+; check if there is 
+; an erase program 
+; at this address 
+; input:
+;    X    address 
+; output:
+;    Z    Set=erased program 
+;--------------------
+is_erased:
+	pushw x 
+	ldw x,(x)
+	cpw x,ERASED 
+	popw x 
+	ret 
 
 ;---------------------
 ; BASIC: DIR 
@@ -3303,7 +3347,7 @@ cmd_dir:
 	pushw x 
 1$: 
 	call qsign 
-	jrne 8$
+	jrne 4$
 	addw x,#4
 	mov base,#16
 	call prt_i16
@@ -3323,16 +3367,19 @@ cmd_dir:
 	ld a,#CR 
 	call putc
 	ldw x,(1,sp)
-	ldw acc16,x 
+3$:	ldw acc16,x 
 	ldw x,(2,x)
 	addw x,acc16 
 	addw x,#4 
-	addw x,#BLOCK_SIZE 
+	addw x,#BLOCK_SIZE-1 
 	ld a,xl 
 	and a,#128 
 	ld xl,a 
 	ldw (1,sp),x 
-	jra 1$  
+	jra 1$
+4$: ; check if it is an erased program 
+	call is_erased 
+	jreq 3$ 
 8$: ; done 
 	_drop 2 
 	ret 
