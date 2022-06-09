@@ -34,12 +34,12 @@ SSEG0                               00000000    00000198 =         408. bytes (A
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
-     00001690  tib                                HW_INIT
-     000016E0  block_buffer                       HW_INIT
-     000016E0  pad                                HW_INIT
-     00001760  xstack_full                        HW_INIT
-     0000179C  stack_full                         HW_INIT
-     0000179C  xstack_unf                         HW_INIT
+     00001668  tib                                HW_INIT
+     000016B8  block_buffer                       HW_INIT
+     000016B8  pad                                HW_INIT
+     00001738  xstack_full                        HW_INIT
+     00001774  stack_full                         HW_INIT
+     00001774  xstack_unf                         HW_INIT
 ASxxxx Linker V03.00 + NoICE + sdld,  page 3.
 Hexadecimal  [32-Bits]
 
@@ -72,30 +72,30 @@ CODE                                00008080    00003884 =       14468. bytes (R
      00008CA3  print_hex                          HW_INIT
      00008CBA  to_hex_char                        HW_INIT
      00008CC5  search_lineno                      HW_INIT
-     00008E08  escaped                            HW_INIT
-     00008E9C  is_alpha                           HW_INIT
-     00008EAD  is_digit                           HW_INIT
-     00008EB6  is_alnum                           HW_INIT
-     00008F62  get_token                          HW_INIT
-     00009116  compile                            HW_INIT
-     000091C0  right_align                        HW_INIT
-     00009218  var_name                           HW_INIT
-     00009222  decompile                          HW_INIT
-     00009406  strlen                             HW_INIT
-     00009422  strcpy                             HW_INIT
-     00009432  move                               HW_INIT
-     00009708  syntax_error                       HW_INIT
-     0000970A  tb_error                           HW_INIT
-     0000986F  next_token                         HW_INIT
-     000098F4  itoa                               HW_INIT
-     0000994D  to_upper                           HW_INIT
-     00009959  atoi24                             HW_INIT
-     000099DA  search_dict                        HW_INIT
-     00009D53  let                                HW_INIT
-     0000A185  remark                             HW_INIT
-     0000A64B  beep_1khz                          HW_INIT
-     0000AB37  qkey                               HW_INIT
-     0000B6FA  kword_dict                         HW_INIT
+     00008E10  escaped                            HW_INIT
+     00008EA8  is_alpha                           HW_INIT
+     00008EB9  is_digit                           HW_INIT
+     00008EC2  is_alnum                           HW_INIT
+     00008F6E  get_token                          HW_INIT
+     00009122  compile                            HW_INIT
+     000091CC  right_align                        HW_INIT
+     00009224  var_name                           HW_INIT
+     0000922E  decompile                          HW_INIT
+     00009412  strlen                             HW_INIT
+     0000942E  strcpy                             HW_INIT
+     0000943E  move                               HW_INIT
+     00009714  syntax_error                       HW_INIT
+     00009716  tb_error                           HW_INIT
+     0000987B  next_token                         HW_INIT
+     00009900  itoa                               HW_INIT
+     00009959  to_upper                           HW_INIT
+     00009965  atoi24                             HW_INIT
+     000099E6  search_dict                        HW_INIT
+     00009D5D  let                                HW_INIT
+     0000A19D  remark                             HW_INIT
+     0000A663  beep_1khz                          HW_INIT
+     0000AB4F  qkey                               HW_INIT
+     0000B712  kword_dict                         HW_INIT
      0000B900  app_space                          HW_INIT
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
 Hexadecimal  [32-Bits]

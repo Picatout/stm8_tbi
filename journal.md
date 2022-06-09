@@ -1,3 +1,9 @@
+#### 2022-06-09
+
+* Réparer *parse_integer*, le registre **Y** n'était pas initialisé sur XSTACK_EMPTY avant d'appeller *atio24*. 
+
+* Réparer commande **LIST**. Aussi remplacé virgule comme séparateur par **-** pour être conforme au BASIC tradtionnel, i.e. Commodore C64,VIC20,PET, etc.
+
 #### 2022-06-08
 
 * commit 20:38 

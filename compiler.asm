@@ -95,12 +95,14 @@ del_line:
 	call move
 	ldw y,txtend 
 	subw y,(LLEN,sp)
-	ldw txtend,y  
+	ldw txtend,y
+	ldw dvar_bgn,y 
+	ldw dvar_end,y   
 	_drop VSIZE     
 	ret 
 
 ;---------------------------------------------
-; create a gap in text area to 
+; open a gap in text area to 
 ; move new line in this gap
 ; input:
 ;    X 			addr gap start 
@@ -112,7 +114,9 @@ del_line:
 	SRC=3
 	LEN=5
 	VSIZE=6 
-create_gap:
+open_gap:
+	cpw x,txtend 
+	jruge 9$
 	_vars VSIZE
 	ldw (SRC,sp),x 
 	ldw (LEN,sp),y 
@@ -129,8 +133,10 @@ create_gap:
 	ldw x,txtend
 	addw x,(LEN,sp)
 	ldw txtend,x
-9$:	_drop VSIZE 
-	ret 
+	ldw dvar_bgn,x 
+	ldw dvar_end,x 
+	_drop VSIZE 
+9$:	ret 
 
 ;--------------------------------------------
 ; insert line in pad into text area 
@@ -149,70 +155,50 @@ create_gap:
 	VSIZE=8  
 insert_line:
 	_vars VSIZE 
-	ldw x,txtend  
-	cpw x,txtbgn 
-	jrne 0$
-;first text line 
-	ldw x,#2 
-	ld a,([ptr16],x)
-	cp a,#3
-	jreq insert_ln_exit
-	clrw x 
-	ld xl,a
-	ldw (LLEN,sp),x 
-	ldw x,txtbgn
-	ldw (DEST,sp),x 
-	ldw x,txtend 
-	jra 4$
-0$:	ldw x,[ptr16]
-; line number
+	ldw x,[ptr16]
 	ldw (LINENO,sp),x 
-	ldw x,#2 
-	ld a,([ptr16],x)
-	ld xl,a
-; line length
-	ldw (LLEN,sp),x
-; check if that line number already exit 	
-	ldw x,(LINENO,sp)
+	clr (LLEN,sp)
+	ldw x,ptr16 
+	ld a,(2,x)
+	ld (LLEN+1,sp),a 
 	clr a 
-	call search_lineno 
+	ldw x,(LINENO,sp)
+	call search_lineno
 	tnzw x 
-	jrne 2$
-; line doesn't exit
-; it will be inserted at this point.  	
-	ldw (DEST,sp),y 
-	jra 3$
-; line exit delete it.
-; it will be replaced by new one 	
-2$: ldw (DEST,sp),x 
-	call del_line
-3$: 
-; insert new line or leave if LLEN==3
-; LLEN==3 means empty line 
-	ld a,#3
+	jreq 0$ 
+	ldw (DEST,sp),x 
+	call del_line 
+	jra 1$
+0$: ldw (DEST,sp),y
+1$: ld a,#3 
 	cp a,(LLEN+1,sp)
-	jreq insert_ln_exit ; empty line exit.
-; if insertion point at txtend 
-; move no need to create a gap 
-	ldw x,(DEST,sp)
-	cpw x,txtend 
-	jreq 4$ 
-; must create a gap
-; at insertion point  
-	ldw x,(DEST,sp)
-	ldw y,(LLEN,sp)
-	call create_gap
-	jra 5$
-4$: 
+	jreq 9$
+; check for space 
+	ldw x,txtend 
 	addw x,(LLEN,sp)
-	ldw txtend,x 	 
+	cpw x,#tib-6 
+	jrult 3$
+	ld a,#ERR_MEM_FULL
+	jp tb_error 
+3$: ; create gap to insert line 
+	ldw x,(DEST,sp) 
+	ldw y,(LLEN,sp)
+	call open_gap 
 ; move new line in gap 
-5$:	ldw x,(LLEN,sp)
+	ldw x,(LLEN,sp)
 	ldw acc16,x 
 	ldw y,#pad ;SRC 
 	ldw x,(DEST,sp) ; dest address 
-	call move 
-insert_ln_exit:	
+	call move
+	ldw x,(DEST,sp)
+	cpw x,txtend 
+	jrult 9$ 
+	ldw x,(LLEN,sp)
+	addw x,txtend 
+	ldw txtend,x 
+	ldw dvar_bgn,x 
+	ldw dvar_end,x 
+9$:	
 	_drop VSIZE
 	ret
 
@@ -334,6 +320,7 @@ parse_integer: ; { -- n }
 3$: dec in 	
     clr (x)
 	ldw x,(XSAVE,sp)
+	ldw y,#XSTACK_EMPTY 
 	call atoi24
 	ldw y,(XSAVE,sp)
 	ld a,acc24 
@@ -840,7 +827,7 @@ compile::
 	jrpl 1$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error
-1$:	ldw pad,x 
+1$:	ldw pad,x ; line# 
 	ldw y,#pad+3 
 2$:	cpw y,#xstack_full 
 	jrult 3$
@@ -852,12 +839,12 @@ compile::
 	cp a,#TK_NONE 
 	jrne 2$ 
 ; compilation completed  
-	subw y,#pad
+	subw y,#pad ; compiled line length 
     ld a,yl
 	ldw x,#pad 
 	ldw ptr16,x 
 	ld (2,x),a 
-	ldw x,(x)
+	ldw x,(x)  ; line# 
 	jreq 10$
 	call insert_line
 	clr  count 

@@ -990,13 +990,11 @@ get_array_element:
 	jp tb_error 
 3$: tnzw  x
 	jreq 2$ 
-	pushw x 
-	sllw x 
-	addw x,(1,sp) ; index*size_of(int24)
-	ldw (1,sp),x  
+	ld a,#CELL_SIZE  
+	mul x,a 
+	ldw acc16,x   
 	ldw x,#tib ; array is below tib 
-	subw x,(1,sp)
-	_drop 2   
+	subw x,acc16 
 	ret 
 
 
@@ -1742,7 +1740,7 @@ RAM_MEM:   .asciz " in RAM memory"
 
 
 ;----------------------------
-; BASIC: LIST [[start][,end]]
+; BASIC: LIST [[start][-end]]
 ; list program lines 
 ; form start to end 
 ; if empty argument list then 
@@ -1767,33 +1765,42 @@ list:
 	ldw (FIRST,sp),x ; list from first line 
 	ldw x,#MAX_LINENO ; biggest line number 
 	ldw (LAST,sp),x 
-	call arg_list
-	tnz a
-	jreq list_loop 
-	cp a,#2 
-	jreq 4$
-	cp a,#1 
-	jreq first_line 
-	jp syntax_error 
-4$:	popw x 
-	ldw (LAST+2,sp),x 
-first_line:
-	popw x
-	ldw (FIRST,sp),x 
+	call next_token 
+	cp a,#TK_INTGR
+	jreq start_from 
+is_minus: 	
+	cp a,#TK_MINUS 
+	jreq end_at_line
+	_unget_token 
+	jra list_loop 
+start_from:	 
+	call get_int24
+	ldw (FIRST,sp),x	
 lines_skip:
-	ldw x,txtbgn
-2$:	ldw (LN_PTR,sp),x 
-	cpw x,txtend 
-	jrpl list_exit 
-	ldw x,(x) ;line# 
-	cpw x,(FIRST,sp)
-	jrpl list_loop 
-	ldw x,(LN_PTR,sp) 
-	ld a,(2,x)
-	ld acc8,a 
-	clr acc16 
-	addw x,acc16
-	jra 2$ 
+	pushw y 
+	clr a 
+	call search_lineno 
+	tnzw x 
+	jrne 1$
+	ldw x,y 
+1$:	popw y 
+	ldw (LN_PTR,sp),x 
+	call next_token 
+	cp a,#TK_MINUS 
+	jreq end_at_line 
+	ldw x,(FIRST,sp)
+	ldw (LAST,sp),x 
+	jra list_loop 
+end_at_line:
+; expect ending line# 
+    call next_token 
+	cp a,#TK_INTGR
+	jreq 1$
+	_unget_token 
+	jra list_loop
+1$:
+	call get_int24 
+	ldw (LAST,sp),x 
 ; print loop
 list_loop:
 	ldw x,(LN_PTR,sp)
@@ -1809,7 +1816,7 @@ list_loop:
 	ldw (LN_PTR,sp),x
 	ldw x,(x)
 	cpw x,(LAST,sp)  
-	jrslt list_loop
+	jrsle list_loop
 list_exit:
 	mov in,count 
 	ldw x,#pad 
@@ -2791,7 +2798,7 @@ cmd_end:
 	ldw x,(CHAIN_TXTEND,sp)
 	ldw txtend,x 
 	_drop CHAIN_CNTX_SIZE ; CHAIN saved data size  
-	jp interp_loop
+	jp interpreter 
 8$: ; clean stack 
 	ldw x,#STACK_EMPTY
 	ldw sp,x 

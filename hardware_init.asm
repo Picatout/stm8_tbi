@@ -37,7 +37,7 @@
     .area SSEG (ABS)
 ;; working buffers and stack at end of RAM. 	
 ;;-----------------------------------
-    .org RAM_SIZE-STACK_SIZE-XSTACK_SIZE-TIB_SIZE-PAD_SIZE 
+    .org RAM_SIZE-STACK_SIZE-XSTACK_SIZE*CELL_SIZE-TIB_SIZE-PAD_SIZE 
 tib:: .ds TIB_SIZE             ; transaction input buffer
 block_buffer::                 ; use to write FLASH block (alias for pad )
 pad:: .ds PAD_SIZE             ; working buffer
