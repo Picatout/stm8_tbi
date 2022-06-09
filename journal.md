@@ -1,5 +1,14 @@
 #### 2022-06-08
 
+* commit 20:38 
+
+* Modifié commandes **AUTORUN**,**EDIT**,**ERASE** et **RUN** pour accepter une étiquette au lieu d'une addresse de programme. 
+
+* réparé routine *search_fit*, il fallait arrondir la taille au block.
+
+* Ajout de la commande **CHAIN addr [, line#]**. Le programme appellant execute le programme à **addr** à partir de la ligne **line#**. Lorsque ce programme 
+se termine le programme appellant se poursuit. L'information de retour est conservée sur la pile de contrôle et prend 8 octets. Un programme chaîné peut utilisé **CHAIN**  pour appeller un autre programme. La profondeur est limitée par la taille de la pile de contrôle. La commande **END** a été modifiée en conséquence.
+
 * commit 11:34
 
 * Réparer la fonction **CTRL+E** dans *readln** .  Le pointeur xtack n'était restaurer avant de faire l'appel à **atoi24**. 

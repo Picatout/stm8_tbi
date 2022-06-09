@@ -61,10 +61,11 @@
     .area DATA 
 ;--------------------------------------	
 
+; keep the following 3 variables in this order 
 in.w::  .blkb 1 ; parser position in text line high-byte 
 in::    .blkb 1 ; low byte of in.w 
-in.saved:: .blkb 1 ; set by get_token before parsing next token, used by unget_token
 count:: .blkb 1 ; current BASIC line length and tib text length  
+in.saved:: .blkb 1 ; set by get_token before parsing next token, used by unget_token
 basicptr::  .blkb 2  ; point to current BASIC line address.
 data_ptr:  .blkw 1  ; point to DATA address
 data_ofs:  .blkb 1  ; index to next data item 
@@ -93,6 +94,7 @@ rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
 dvar_bgn:: .blkw 1 ; DIM variables start address 
 dvar_end:: .blkw 1 ; DIM variables end address 
+chain_level: .blkb 1 ; increment for each CHAIN command 
 ; 24 bits integer variables 
 vars:: .blkb 3*26 ; BASIC variables A-Z,
 
@@ -300,6 +302,7 @@ clear_basic:
 	ldw dvar_bgn,x 
 	ldw dvar_end,x 
 	call clear_vars 
+	clr chain_level 
 	popw x
 	ret 
 
@@ -443,8 +446,9 @@ next_line:
 	ldw x,basicptr
 	addw x,in.w 
 	cpw x,txtend 
-	jrpl warm_start
-	ldw basicptr,x ; start of next line  
+	jrmi 0$
+	call cmd_end 
+0$:	ldw basicptr,x ; start of next line  
 	ld a,(2,x)
 	ld count,a 
 	mov in,#3 ; skip first 3 bytes of line 
@@ -1816,23 +1820,23 @@ list_exit:
 
 
 ;--------------------------
-; BASIC: EDIT addr 
+; BASIC: EDIT label 
 ;  copy program in FLASH 
 ;  to RAM for edition 
 ;-------------------------
-edit:
-	call next_token 
-	cp a,#TK_INTGR
-	jreq 0$ 
-	jp syntax_error 
-0$: call get_int24
-	call is_program_addr
-	jreq 1$ 
+cmd_edit:
+	ld a,#TK_LABEL 
+	call expect  
+	pushw x 
+	call skip_string
+	popw x 
+	call search_program 
+    jrne 1$ 
 	ldw x,#ERR_NO_PROGRAM
 	jp tb_error 
 1$: pushw y 
 	ldw y,x ; source address 
-    subw x,#4 
+	subw x,#4
 	ldw x,(2,x) ; program size 
 	addw x,#4 
 	ldw acc16,x  ; bytes to copy 
@@ -2698,10 +2702,10 @@ is_program_addr:
 9$:	ret 
 
 ;----------------------------------
-; BASIC: RUN [addr]
+; BASIC: RUN [label]
 ; run BASIC program in RAM
 ;----------------------------------- 
-run: 
+cmd_run: 
 	btjf flags,#FRUN,0$  
 	clr a 
 	ret
@@ -2713,13 +2717,15 @@ run:
 	bres flags,#FBREAK 
 	bset flags,#FRUN 
 	jp interpreter 
-1$:	; check for address option 
+1$:	; check for label option 
 	call next_token 
-	cp a,#TK_INTGR
+	cp a,#TK_LABEL 
 	jrne 3$
-	call get_int24 
-	call is_program_addr
-	jreq 2$
+	pushw x 
+	call skip_string 
+	popw x  
+	call search_program
+	jrne 2$
 	ld a,#ERR_NO_PROGRAM
 	jp tb_error 
 2$: ldw txtbgn,x 
@@ -2764,8 +2770,29 @@ run_it_02:
 ; BASIC: END
 ; end running program
 ;---------------------- 
+	CHAIN_BP=1 
+	CHAIN_IN=3
+	CHAIN_TXTBGN=5
+	CHAIN_TXTEND=7
+	CHAIN_CNTX_SIZE=8  
 cmd_end: 
-; clean stack 
+	_drop 2 ; no need for return address 
+; check for chained program 
+	tnz chain_level
+	jreq 8$
+; restore chain context 
+	dec chain_level 
+	ldw x,(CHAIN_BP,sp) ; chain saved basicptr 
+	ldw basicptr,x 
+	ldw x,(CHAIN_IN,sp) ; chain saved in and count  
+	ldw in,x 
+	ldw x,(CHAIN_TXTBGN,sp)
+	ldw txtbgn,x 
+	ldw x,(CHAIN_TXTEND,sp)
+	ldw txtend,x 
+	_drop CHAIN_CNTX_SIZE ; CHAIN saved data size  
+	jp interp_loop
+8$: ; clean stack 
 	ldw x,#STACK_EMPTY
 	ldw sp,x 
 	jp warm_start
@@ -3053,9 +3080,11 @@ new:
 	BLOCKS=5 ; blocks to erase 
 	VSIZE=6
 erase_program:
-	call get_int24
-	call is_program_addr 
-	jrne 9$
+	pushw x 
+	call skip_string 
+	popw x 
+	call search_program 
+	jreq 9$
 	call move_erase_to_ram
 	clr farptr 
 	_vars VSIZE 
@@ -3107,14 +3136,14 @@ erase_program:
 ;-----------------------------------
 	LIMIT=1 
 	VSIZE = 3 
-erase:
+cmd_erase:
 	btjf flags,#FRUN,eras0
 	ld a,#ERR_CMD_ONLY
 	jp tb_error 
 eras0:	
 	clr farptr 
 	call next_token
-	cp a,#TK_INTGR
+	cp a,#TK_LABEL 
 	jreq erase_program  
 	_vars VSIZE 
 	cp a,#TK_CHAR 
@@ -3258,7 +3287,13 @@ search_fit:
 4$: ; erased program 
     ; does it fit? 
 	ldw acc16,x 
-	ldw x,(2,x) ; size erased program 
+	ldw x,(2,x) ; size erased program
+; top multiple of BLOCK_SIZE 
+	addw x,#4 
+	addw x,#BLOCK_SIZE-1 
+	ld a,xl 
+	and a,#BLOCK_SIZE 
+	ld xl,a  
 	cpw x,(1,sp) ; size program to save 
 	jruge 8$   ; fit 
 	ldw x,acc16 
@@ -3449,14 +3484,14 @@ cmd_dir:
 	call putc 
 	ldw x,(1,sp)
 	ldw x,(2,x)
-	mov base,#10 
+	mov base,#10  
 	call prt_i16 
 	ldw x,#STR_BYTES
 	call puts
 	ld a,#', 
 	call putc
 	ldw x,(1,sp)
-	addw x,#10
+	addw x,#8
 	call puts 
 	ld a,#CR 
 	call putc
@@ -4839,8 +4874,8 @@ xpick:
 
 
 ;----------------------------
-; BASIC: AUTORUN \E | addr 
-;  \E -> cancel autorun 
+; BASIC: AUTORUN \C | label  
+;  \C -> cancel autorun 
 ;  addr -> register an 
 ;    autorun program 
 ;    this program execute at 
@@ -4848,22 +4883,24 @@ xpick:
 ;----------------------------
 cmd_auto_run:
 	call next_token 
-	cp a,#TK_INTGR
+	cp a,#TK_LABEL 
 	jreq 1$ 
 	cp a,#TK_CHAR 
 	jrne 0$ 
 	ld a,(x)
 	inc in 
 	and a,#0xDF 
-	cp a,#C 
+	cp a,#'C 
 	jrne 0$ 
-	ldw x,EEPROM_BASE 
+	ldw x,#EEPROM_BASE 
 	call erase_header
 	ret 
 0$:	jp syntax_error
-1$:	call get_int24
-	call is_program_addr
-	jreq 2$ 
+1$:	pushw x 
+	call skip_string
+	popw x 
+	call search_program
+	jrne 2$ 
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
 2$: pushw x 
@@ -4883,6 +4920,139 @@ cmd_auto_run:
 	ret 
 
 AR_SIGN: .ascii "AR" ; autorun signature 
+
+;-------------------------------
+; search a program in flash 
+; memory with a label at first 
+; that correspond to name 
+; pointed by X 
+; input:
+;    x      *name 
+; output: 
+;    X     prog_addr|0
+;-------------------------------
+	WLKPTR=1 
+	PNAME=3
+	LIMIT=5
+	YSAVE=7
+	VSIZE=6 
+search_program:
+	pushw y 
+	_vars VSIZE 
+	ldw (PNAME,sp),x 
+	call uflash 
+	ldw (LIMIT,sp),x 
+	ldw x,#app_space 
+1$:	ldw (WLKPTR,sp),x  
+	clr a 
+	call is_program_addr
+	jrne 4$
+	addw x,#7 
+	ld a,(x)
+	cp a,#TK_LABEL 
+	jrne 4$ 
+	incw x 
+	ldw y,(PNAME,sp)
+	call strcmp
+	jrne 6$
+4$: 
+	call skip_to_next
+	cpw x,(LIMIT,sp)
+	jrult 1$
+	clrw x 
+	jra 8$
+6$: ; found label 
+	ldw x,(WLKPTR,sp)
+	addw x,#4 	
+8$:	
+	_drop VSIZE  
+	popw y 
+	ret 
+
+
+;-------------------------------
+; BASIC: CHAIN label [, line#]
+; Execute another program like it 
+; is a sub-routine. When the 
+; called program terminate 
+; execution continue at caller 
+; after CHAIN command. 
+; if a line# is given, the 
+; chained program start execution 
+; at this line#.
+;---------------------------------
+	CHAIN_LN=3 
+	CHAIN_ADDR=5 
+	CHAIN_BP=7
+	CHAIN_IN=9
+	CHAIN_COUNT=10 
+	CHAIN_TXTBGN=11 
+	CHAIN_TXTEND=13 
+	VSIZE=12 
+	DISCARD=4 
+cmd_chain:
+	popw x 
+	_vars VSIZE 
+	pushw x
+	clr (CHAIN_LN,sp) 
+	clr (CHAIN_LN+1,sp)  
+	ld a,#TK_LABEL 
+	call expect 
+	pushw x 
+	call skip_string
+	popw x 
+	call search_program 
+	tnzw x  
+	jrne 1$ 
+0$:	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+1$: ldw (CHAIN_ADDR,sp), x ; program addr 
+    call next_token 
+	cp a,#TK_COMMA 
+	jrne 4$
+	ld a,#TK_INTGR
+	call expect 
+	call get_int24 
+	ldw (CHAIN_LN,sp),x
+	jra 6$ 
+4$: _unget_token 
+6$: ; save chain context 
+	ldw x,basicptr 
+	ldw (CHAIN_BP,sp),x 
+	ldw x,in
+	ldw (CHAIN_IN,sp),x
+	ldw x,txtbgn 
+	ldw (CHAIN_TXTBGN,sp),x
+	ldw x,txtend 
+	ldw (CHAIN_TXTEND,sp),x  
+; set chained program context 	
+	ldw x,(CHAIN_ADDR,sp)
+	ldw basicptr,x 
+	ldw txtbgn,x 
+	subw x,#2
+	ldw x,(x)
+	addw x,(CHAIN_ADDR,sp)
+	ldw txtend,x  
+	ldw x,(CHAIN_ADDR,sp)
+	ld a,(2,x)
+	ld count,a 
+	mov in,#3 
+	ldw x,(CHAIN_LN,sp)
+	tnzw x 
+	jreq 8$ 
+	pushw y
+	clr a  
+	call search_lineno
+	popw y 
+	tnzw x 
+	jreq 0$ 
+	ldw basicptr,x 
+	ld a,(2,x)
+	ld count,a 
+8$: inc chain_level
+	popw x 
+	_drop DISCARD
+	jp (x)
 
 
 ;------------------------------
@@ -4928,7 +5098,7 @@ kword_end:
 	_dict_entry,5,SLEEP,sleep 
     _dict_entry,4,SIZE,cmd_size 
 	_dict_entry,4,SAVE,cmd_save 
-	_dict_entry 3,RUN,run
+	_dict_entry 3,RUN,cmd_run
 	_dict_entry,6+F_IFUNC,RSHIFT,rshift
 	_dict_entry,3+F_IFUNC,RND,random 
 	_dict_entry,6,RETURN,return 
@@ -4980,11 +5150,11 @@ kword_end:
 	_dict_entry,4+F_IFUNC,FREE,free
 	_dict_entry,3,FOR,for 
 	_dict_entry,4,FCPU,fcpu 
-	_dict_entry,5,ERASE,erase 
+	_dict_entry,5,ERASE,cmd_erase 
 	_dict_entry,3,END,cmd_end  
 	_dict_entry,6+F_IFUNC,EEPROM,const_eeprom_base   
 	_dict_entry,6+F_IFUNC,EEFREE,func_eefree 
-	_dict_entry,4,EDIT,edit 
+	_dict_entry,4,EDIT,cmd_edit 
 	_dict_entry,6+F_CMD,DWRITE,digital_write
 	_dict_entry,4,DROP,xdrop ; drop n element from xtack 
 	_dict_entry,5+F_IFUNC,DREAD,digital_read
@@ -4998,6 +5168,7 @@ kword_end:
 	_dict_entry,3+F_IFUNC,CR1,const_cr1 
 	_dict_entry,5,CONST,cmd_const 
 	_dict_entry,4+F_CFUNC,CHAR,func_char
+	_dict_entry,5,CHAIN,cmd_chain
 	_dict_entry,3,BYE,bye 
 	_dict_entry,5,BTOGL,bit_toggle
 	_dict_entry,5+F_IFUNC,BTEST,bit_test 

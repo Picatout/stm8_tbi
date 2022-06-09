@@ -19,9 +19,9 @@ Area                                    Addr        Size        Decimal Bytes (A
      00000001  s_DATA                          
      00000004  l_BTXT1                         
      00000080  l_HOME                          
-     00000082  l_DATA                          
+     00000083  l_DATA                          
      00000198  l_SSEG0                         
-     00003784  l_CODE                          
+     00003884  l_CODE                          
      00008000  s_HOME                          
      00008080  s_CODE                          
 
@@ -54,7 +54,7 @@ Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-CODE                                00008080    00003784 =       14212. bytes (REL,CON)
+CODE                                00008080    00003884 =       14468. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
@@ -84,32 +84,32 @@ CODE                                00008080    00003784 =       14212. bytes (R
      00009406  strlen                             HW_INIT
      00009422  strcpy                             HW_INIT
      00009432  move                               HW_INIT
-     00009704  syntax_error                       HW_INIT
-     00009706  tb_error                           HW_INIT
-     00009868  next_token                         HW_INIT
-     000098ED  itoa                               HW_INIT
-     00009946  to_upper                           HW_INIT
-     00009952  atoi24                             HW_INIT
-     000099D3  search_dict                        HW_INIT
-     00009D4C  let                                HW_INIT
-     0000A181  remark                             HW_INIT
-     0000A620  beep_1khz                          HW_INIT
-     0000AB00  qkey                               HW_INIT
-     0000B5F5  kword_dict                         HW_INIT
-     0000B800  app_space                          HW_INIT
+     00009708  syntax_error                       HW_INIT
+     0000970A  tb_error                           HW_INIT
+     0000986F  next_token                         HW_INIT
+     000098F4  itoa                               HW_INIT
+     0000994D  to_upper                           HW_INIT
+     00009959  atoi24                             HW_INIT
+     000099DA  search_dict                        HW_INIT
+     00009D53  let                                HW_INIT
+     0000A185  remark                             HW_INIT
+     0000A64B  beep_1khz                          HW_INIT
+     0000AB37  qkey                               HW_INIT
+     0000B6FA  kword_dict                         HW_INIT
+     0000B900  app_space                          HW_INIT
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.
 Hexadecimal  [32-Bits]
 
 Area                                    Addr        Size        Decimal Bytes (Attributes)
 --------------------------------        ----        ----        ------- ----- ------------
-DATA                                00000001    00000082 =         130. bytes (REL,CON)
+DATA                                00000001    00000083 =         131. bytes (REL,CON)
 
       Value  Global                              Global Defined In Module
       -----  --------------------------------   ------------------------
      00000001  in.w                               HW_INIT
      00000002  in                                 HW_INIT
-     00000003  in.saved                           HW_INIT
-     00000004  count                              HW_INIT
+     00000003  count                              HW_INIT
+     00000004  in.saved                           HW_INIT
      00000005  basicptr                           HW_INIT
      0000000B  base                               HW_INIT
      0000000C  acc32                              HW_INIT
@@ -124,7 +124,7 @@ DATA                                00000001    00000082 =         130. bytes (R
      00000024  tab_width                          HW_INIT
      00000031  dvar_bgn                           HW_INIT
      00000033  dvar_end                           HW_INIT
-     00000035  vars                               HW_INIT
+     00000036  vars                               HW_INIT
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 6.
 Hexadecimal  [32-Bits]
