@@ -302,7 +302,7 @@ clear_basic:
 	ldw dvar_bgn,x 
 	ldw dvar_end,x 
 	call clear_vars 
-	clr chain_level 
+	clr chain_level
 	popw x
 	ret 
 
@@ -315,7 +315,7 @@ err_msg:
 	.word err_no_access,err_no_data,err_no_prog,err_no_fspace,err_buf_full    
 	.word err_overflow,err_read_only,err_not_program  
 
-err_mem_full: .asciz "Memory full\n" 
+err_mem_full: .asciz "Rejected, memory full\n" 
 err_syntax: .asciz "syntax error\n" 
 err_math_ovf: .asciz "math operation overflow\n"
 err_div0: .asciz "division by 0\n" 
@@ -1750,7 +1750,7 @@ RAM_MEM:   .asciz " in RAM memory"
 	LAST=3 
 	LN_PTR=5
 	VSIZE=6 
-list:
+cmd_list:
 	btjf flags,#FRUN,0$
 	ld a,#ERR_CMD_ONLY
 	jp tb_error
@@ -1822,9 +1822,13 @@ list_exit:
 	ldw x,#pad 
 	ldw basicptr,x 
 	_drop VSIZE 
-	call program_info 
+	call program_info
+	btjf flags,#FLN_REJECTED,9$
+	ldw x,#LINES_REJECTED
+	call puts
+9$: 
 	ret
-
+LINES_REJECTED: .asciz "WARNING: lines missing in this program.\n"
 
 ;--------------------------
 ; BASIC: EDIT label 
@@ -3071,7 +3075,7 @@ break_point: .asciz "\nbreak point, RUN to resume.\n"
 new: 
 	btjf flags,#FRUN,0$ 
 	ret 
-0$:	
+0$:	clr flags 
 	call clear_basic 
 	ret 
 
@@ -5142,7 +5146,7 @@ kword_end:
 	_dict_entry,3,NEW,new
 	_dict_entry,6+F_IFUNC,LSHIFT,lshift
 	_dict_entry,4+F_IFUNC,LOG2,log2 
-	_dict_entry 4,LIST,list
+	_dict_entry 4,LIST,cmd_list
 	_dict_entry 3,LET,let 
 	_dict_entry,3+F_CFUNC,KEY,key 
 	_dict_entry,7,IWDGREF,refresh_iwdg

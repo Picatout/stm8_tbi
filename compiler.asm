@@ -176,10 +176,12 @@ insert_line:
 ; check for space 
 	ldw x,txtend 
 	addw x,(LLEN,sp)
-	cpw x,#tib-6 
+	cpw x,#tib-10*CELL_SIZE ; keep 10 slots space for @() array.  
 	jrult 3$
-	ld a,#ERR_MEM_FULL
-	jp tb_error 
+	bset flags,#FLN_REJECTED
+	ldw x,#err_mem_full 
+	call puts 
+	jra 9$  
 3$: ; create gap to insert line 
 	ldw x,(DEST,sp) 
 	ldw y,(LLEN,sp)

@@ -1,5 +1,13 @@
 #### 2022-06-09
 
+* commit 16:19
+
+* Modifié commande **LIST** pour indiquer que le programme a possiblement des lignes manquante, flag **FLN_REJECTED** activé par le compilateur.
+
+* Modifié *insert_line* pour initialiser un flag lorsqu'une insertion est refusée  *memory full*. 
+
+* commit 15:34
+
 * Réparer *parse_integer*, le registre **Y** n'était pas initialisé sur XSTACK_EMPTY avant d'appeller *atio24*. 
 
 * Réparer commande **LIST**. Aussi remplacé virgule comme séparateur par **-** pour être conforme au BASIC tradtionnel, i.e. Commodore C64,VIC20,PET, etc.

@@ -42,7 +42,7 @@
 	FSLEEP=3 ; halt produit par la commande SLEEP 
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 
-
+        FLN_REJECTED=6 ; a memory full error occured while in *insert_line*. 
 
         FIRST_DATA_ITEM=6 ; first DATA item offset on line.
 
