@@ -895,6 +895,31 @@ search_exit:
 	_drop VSIZE 
 	ret 
 
+;--------------------------------
+;  called by command that should 
+;  be invoked only from command 
+;  line.
+;  Display an error if 
+;  invoked from program.
+;---------------------------------
+cmd_line_only:
+	btjf flags,#FRUN,0$
+	ld a,#ERR_CMD_ONLY
+	jp tb_error 
+0$: ret 
+
+;--------------------------------
+; called by command/function that 
+; should be invoked only at run time
+; Display an error if invoked from 
+; command line. 
+;---------------------------------
+runtime_only:
+	btjt flags,#FRUN,0$ 
+	ld a,#ERR_RUN_ONLY
+	jp tb_error 
+0$:	ret 
+
 ;---------------------
 ; check if next token
 ;  is of expected type 
@@ -1612,10 +1637,7 @@ search_name:
 	RONLY=5
 	VSIZE=5
 cmd_const:
-	btjt flags,#FRUN,0$
-	ld a,#ERR_RUN_ONLY
-	jp tb_error 
-0$: 
+	call runtime_only
 	_vars VSIZE 
 	ld a,#128 
 	ld (RONLY,sp),a 
@@ -1632,9 +1654,7 @@ cmd_const:
 ; but r/w because stored in RAM 
 ;---------------------------------
 cmd_dim:
-	btjt flags,#FRUN,cmd_dim1
-	ld a,#ERR_RUN_ONLY
-	jp tb_error 
+	call runtime_only
 cmd_dim1:	
 	_vars VSIZE
 	clr (REC_LEN,sp )
@@ -1751,10 +1771,7 @@ RAM_MEM:   .asciz " in RAM memory"
 	LN_PTR=5
 	VSIZE=6 
 cmd_list:
-	btjf flags,#FRUN,0$
-	ld a,#ERR_CMD_ONLY
-	jp tb_error
-0$:	 
+	call cmd_line_only
 	call prog_size 
 	jrugt 3$
 	ret 
@@ -1836,6 +1853,7 @@ LINES_REJECTED: .asciz "WARNING: lines missing in this program.\n"
 ;  to RAM for edition 
 ;-------------------------
 cmd_edit:
+	call cmd_line_only
 	ld a,#TK_LABEL 
 	call expect  
 	pushw x 
@@ -2551,9 +2569,7 @@ look_target_symbol:
 ; selective goto or gosub 
 ;--------------------------------
 cmd_on:
-	btjt flags,#FRUN,0$ 
-	ld a,#ERR_RUN_ONLY
-	jp tb_error 
+	call runtime_only
 0$:	call expression 
 	cp a,#TK_INTGR
 	jreq 1$
@@ -2630,9 +2646,7 @@ cmd_on:
 ; here cstack is 2 call deep from interpreter 
 ;------------------------
 goto:
-	btjt flags,#FRUN,goto_1  
-	ld a,#ERR_RUN_ONLY
-	jp tb_error 
+	call runtime_only
 goto_1:
 	call get_target_line
 jp_to_target:
@@ -2655,10 +2669,7 @@ jp_to_target:
 	RET_INW=5  ; in.w return point 
 	VSIZE=4 
 gosub:
-	btjt flags,#FRUN,gosub_1 
-	ld a,#ERR_RUN_ONLY
-	jp tb_error 
-	ret 
+	call runtime_only
 gosub_1:
 	call get_target_line 
 	ldw ptr16,x
@@ -2679,10 +2690,7 @@ gosub_2:
 ; exit from BASIC subroutine 
 ;------------------------
 return:
-	btjt flags,#FRUN,0$ 
-	ld a,#ERR_RUN_ONLY
-	jp tb_error 
-0$:	
+	call runtime_only
 	ldw x,(RET_BPTR,sp) 
 	ldw basicptr,x
 	ld a,(2,x)
@@ -2692,7 +2700,6 @@ return:
 	popw x 
 	_drop VSIZE 
 	jp (x)
-
 
 ;---------------------------------
 ; check if A:X contain the address 
@@ -3046,7 +3053,6 @@ digital_write:
 ;-------------------------
 stop:
 	btjt flags,#FRUN,2$
-	clr a
 	ret 
 2$:	 
 ; create space on cstack to save context 
@@ -3073,8 +3079,7 @@ break_point: .asciz "\nbreak point, RUN to resume.\n"
 ; and clear variables 
 ;------------------------
 new: 
-	btjf flags,#FRUN,0$ 
-	ret 
+	call cmd_line_only
 0$:	clr flags 
 	call clear_basic 
 	ret 
@@ -3148,10 +3153,7 @@ erase_program:
 	LIMIT=1 
 	VSIZE = 3 
 cmd_erase:
-	btjf flags,#FRUN,eras0
-	ld a,#ERR_CMD_ONLY
-	jp tb_error 
-eras0:	
+	call cmd_line_only
 	clr farptr 
 	call next_token
 	cp a,#TK_LABEL 
@@ -3348,6 +3350,7 @@ erase_header:
 	TOWRITE=5 ; how bytes left to write  
 	VSIZE=6 
 cmd_save:
+	call cmd_line_only
 	pushw x 
 	pushw y 
 	_vars VSIZE
@@ -3483,6 +3486,7 @@ skip_to_next:
 ;--------------------
 	XTEMP=1 
 cmd_dir:
+	call cmd_line_only
 	ldw x,#app_space 
 	pushw x 
 1$: 
@@ -3664,38 +3668,6 @@ qkey::
 	ld a,#255    
 9$: 
 	ret 
-
-;---------------------
-; BASIC: GPIO(port,reg)
-; return gpio register address 
-; expr {PORTA..PORTI}
-; input:
-;   none 
-; output:
-;   A:X 	gpio register address
-;----------------------------
-;	N=PORT
-;	T=REG 
-gpio:
-	call func_args 
-	cp a,#2
-	jreq 1$
-	jp syntax_error  
-1$:	_at_next 
-	cpw x,#PA_BASE 
-	jrmi bad_port
-	cpw x,#PI_BASE+1 
-	jrpl bad_port
-	pushw x 
-	_xpop
-	addw x,(1,sp)
-	_drop 2 
-	clr a 
-	ret
-bad_port:
-	ld a,#ERR_BAD_VALUE
-	jp tb_error
-
 
 ;-------------------------
 ; BASIC: UFLASH 
@@ -4056,7 +4028,8 @@ arduino_to_8s208:
 ; BASIC: RND(expr)
 ; return random number 
 ; between 1 and expr inclusive
-; xorshift16 ref: http://b2d-f9r.blogspot.com/2010/08/16-bit-xorshift-rng-now-with-more.html
+; xorshift16 
+; ref: http://b2d-f9r.blogspot.com/2010/08/16-bit-xorshift-rng-now-with-more.html
 ; input:
 ; 	none 
 ; output:
@@ -4145,6 +4118,7 @@ random:
 	WCNT=3 ; count words printed 
 	VSIZE=3 
 words:
+	call cmd_line_only
 	pushw y
 	_vars VSIZE
 	clr (LLEN,sp)
@@ -4508,6 +4482,7 @@ is_data_line:
 ; the program is interrupted. 
 ;---------------------------------
 restore:
+	call runtime_only
 	clrw x 
 	ldw data_ptr,x 
 	ldw data_ofs,x 
@@ -4588,6 +4563,7 @@ data_error:
 	INT24=5
 	VSIZE=7 
 read:
+	call runtime_only
 	_vars  VSIZE 
 	call save_context
 read01:	
@@ -4893,6 +4869,7 @@ xpick:
 ;     reset/boot 
 ;----------------------------
 cmd_auto_run:
+	call cmd_line_only
 	call next_token 
 	cp a,#TK_LABEL 
 	jreq 1$ 

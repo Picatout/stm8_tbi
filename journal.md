@@ -1,5 +1,11 @@
 #### 2022-06-09
 
+* commit 22:30
+
+* Mise à jour de [tb_reference.md](tb_reference.md).
+
+* Création des routines *cmd_line_only* et *runtime_only* pour réduire la répétion de code. 
+
 * commit 16:19
 
 * Modifié commande **LIST** pour indiquer que le programme a possiblement des lignes manquante, flag **FLN_REJECTED** activé par le compilateur.

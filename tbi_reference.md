@@ -17,11 +17,13 @@
 
 * [Référence des commandes et fonctions](#index)
 
+* [fichiers en mémoire FLASH](#fichiers)
+
 * [Installation](#install)
 
 * [Utilisation](#utilisation)
 
-* [transfert de fichiers](#send)
+* [transfert de fichiers BASIC à la carte](#send)
 
 * [Code source](#sources)
 
@@ -229,8 +231,10 @@ nom|abrévation
 [ABS](#abs)|AB
 [ADCON](#adcon)|ADCO
 [ADCREAD](#adcread)|ADCR
+[ALLOC](#alloc)|AL 
 [AND](#and)|AN
 [ASC](#asc)|AS
+[AUTORUN](#autorun)|AU 
 [AWU](#awu)|AW 
 [BIT](#bit)|BI
 [BRES](#bres)|BR
@@ -238,6 +242,7 @@ nom|abrévation
 [BTEST](#btest)|BTE
 [BTOGL](#btogl)|BTO
 [BYE](#bye)|BY
+[CHAIN](#chain)|CHAI 
 [CHAR](#char)|CH
 [CONST](#const)|CO 
 [CR1](#cr1)|CR1
@@ -245,8 +250,11 @@ nom|abrévation
 [DATA](#data)|DATA
 [DDR](#ddr)|DD
 [DEC](#dec)|DE
+[DIM](#dim)|DIM 
+[DIR](#dir)|DI 
 [DO](#do)|DO
-[DREAD](#dread)|DR
+[DREAD](#dread)|DRE
+[DROP](#drop)|DR
 [DWRITE](#dwrite)|DW
 [EDIT](#edit)|ED
 [EEFREE](#eefree)|EEF
@@ -268,7 +276,7 @@ nom|abrévation
 [KEY](#key)|KE
 [LET](#let)|LE
 [LIST](#list)|LI
-[LOG](#log)|LOG
+[LOG2](#log)|LO
 [LSHIFT](#lshift)|LS
 [NEW](#new)|NE
 [NEXT](#next)|NEX
@@ -279,20 +287,23 @@ nom|abrévation
 [PAD](#pad)|PA
 [PAUSE](#pause)|PA
 [PEEK](#peek)|PE
+[PICK](#pick)|PIC
 [PINP](#pinp)|PI
 [PMODE](#pmode)|PM
-[POKE](#poke)|PO
-[POUT](#pout)|POU
+[POKE](#poke)|POK
+[POP](#pop)|POP 
+[POUT](#pout)|POU 
 [PRINT](#print)|?
-[PORTA](#prtx)|PRTA
-[PORTB](#prtx)|PRTB
-[PORTC](#prtx)|PRTC
-[PORTD](#prtx)|PRTD
-[PORTE](#prtx)|PRTE
-[PORTF](#prtx)|PRTF
-[PORTG](#prtx)|PRTG
-[PORTH](#prtx)|PRTH
-[PORTI](#prtx)|PRTI
+[PORTA](#prtx)|PORTA
+[PORTB](#prtx)|PORTB
+[PORTC](#prtx)|PORTC
+[PORTD](#prtx)|PORTD
+[PORTE](#prtx)|PORTE
+[PORTF](#prtx)|PORTF
+[PORTG](#prtx)|PORTG
+[PORTI](#prtx)|PORTI
+[PUSH](#push)|PUS
+[PUT](#put)|PU
 [QKEY](#qkey)|QK
 [READ](#read)|REA
 [REBOOT](#reboot)|REB
@@ -372,6 +383,11 @@ Lecture d'une des 6 entrées analogiques reliées au connecteur CN4. L'argument 
 ```
 
 [index](#index)
+<a id="alloc"></a>
+### ALLOC n {C,P}
+Réserve *n* éléments sur la pile des expressions. Ces éléments peuvent-être utilisées comme variables locales jeter après usage avec la commande [DROP n](#drop). 
+
+[index](#index)
 <a id="and"></a>
 ### *expr1|rel1|cond1* AND *expr2|rel2|cond2* {C,P}
 Opérateur logique bit à bit entre les 2 expressions. L'équivalent de l'opérateur **&** en C. Cependant cet opérateur peut aussi être utilisé comme opérateur en logique combinatoire.  s'il est situé entre 2 relations plutôt qu'entre 2 expressions arithmétiques.
@@ -404,6 +420,13 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
 
     >
 ```
+[index](#index)
+<a id="autorun"></a>
+### AUTORUN \C|name {C}
+Cette commande sert à sélectionner un programme qui a été sauvegardé en mémoire FLASH pour qu'il démarre automatiquement lors de l'initialisation du système. 
+* **\E**  Annule la fonction autorun 
+* *name* est le nom du programme a démarrarer automatiquement. Voir [fichiers](#fichiers) pour savoir comment nommer un programme.
+
 [index](#index)
 <a id="awu"></a>
 ### AWU *expr*  {C,P}
@@ -476,6 +499,11 @@ Inverse l'état de la LED2 sur la carte.
 Met le microcontrôleur en mode sommeil profond. Dans ce mode tous les oscilleurs sont arrêtés et la consommation électrique est minimale. Une interruption extérieure ou un *reset* redémarre le MCU. Sur la care **NUCLEO-8S208RB** il y a un bouton **RESET** et un bouton **USER**. Le bouton **USER** est connecté à l'interruption externe **INT4** donc permet de réveiller le MCU. Au réveil le MCU est réinitialisé.
 
 [index](#index)
+<a id="chain"></a>
+### CHAIN name,line# {P}
+Cette commande permet de lancer l'exécution d'un programme à partir d'un autre programme. Lorsque le programme ainsi lancer se termine l'exécution poursuit dans le programme qui à lancer ce dernier après la commande **CHAIN**. Un programme lancer par **CHAIN** peut à son tour lancer un autre programme de la même façon. Chaque appel par cete commande utilise 8 octets sur la pile de contrôle. Il faut donc faire attention de ne pas créer une chaîne trop longue. La pile de contrôle est de 140 octets et est utilisées pour les boucles et les GOSUB, les interruptions et les appels de sous-routines en code machine. Les programmes appellés par **CHAIN** doivent résidés en mémoire FLASH. 
+
+[index](#index)
 <a id="char"></a>
 ### CHAR(*expr*) {C,P}
 La fonction *character* retourne le caractère ASCII correspondant aux 7 bits les moins significatifs de l'expression utilisée en argument. Pour l'interpréteur cette fonction retourne un jeton de type **TK_CHAR** qui n'est reconnu que par les commandes **PRINT** et **ASC**.
@@ -487,9 +515,8 @@ La fonction *character* retourne le caractère ASCII correspondant aux 7 bits le
 
 [index](#index)
 <a id="const"></a>
-### CONST [\U] nom=valeur [,nom=valeur] {C,P}
-Cette commande sert à créer des constantes qui sont conservées en permanence dans la mémoire EEPROM.
- * L'option **\U**  permet de mettre à jour une constante déjà existante. Sans cette option la commande de créer une constante avec un nom déjà existant est ignorée. 
+### CONST nom=valeur [,nom=valeur] {P}
+Cette commande sert à créer des constantes qui utilisent la mémoire RAM disponible après le programme.
  * **nom** est le nom de la constante. 
  * **valeur** est la valeur de cette constante. Il peut s'agit d'une expression. 
  * Plusieurs constantes peuvent-être définies dans la même commande en les séparant par une virgule.
@@ -579,6 +606,13 @@ Voir aussi [HEX](#hex).
 $FFFFF6
 -10
 ```
+[index](#index)
+<a id="dim"></a>
+### DIM var_name[=expr][,var_name[=expr]] {P}
+La commande DIM sert à déclarer des variables autres que les 26 variables **A..Z** du tinyBASIC. Il s'agit d'une extension au langage TinyBASIC disponible depuis la version **2.x**. Les noms de variables obéissent au même règles que les noms d'étiquettes.   
+* **nom** est le nom de la variable. 
+ * **valeur** est la valeur d'initialisation de la variable. Il peut s'agit d'une expression. Les variables sont initialisées par défaut à 0. 
+ * Plusieurs variables peuvent-être définies dans la même commande en les séparant par une virgule.
 
 [index](#index)
 <a id="do"></a>
@@ -595,7 +629,19 @@ Mot réservé qui débute une boucle **DO ... UNTIL** Les instructions entre  **
 >run
    1   2   3   4   5   6   7   8   9  10
 ``` 
+[index](#index)
+<a id="dir"></a>
+## DIR {C}
+Cette commande sert à afficher la liste des programmes sauvegardés en mémoire FLASH du MCU. Contrairement à la vesion **1.x** qui sauvegardait les fichiers dans les 96Ko de mémoire étendue du STM8S208R, la version **2.x** Utilise seulement la mémoire FLASH après le système BASIC et 0xFFFF. La raison en est que les programmes sauvegardés sont maintenant exécutés in situ plutôt que copiés en mémoire RAM. Pour les raisons suivantes: 
 
+1. Ça libère la RAM pour les données de l'applciation. 
+1. L'interpréteur BASIC ne peut exécuter du code en mémoire étendue. Il serait cependant possible de le modifier pour qu'il exécute des programmes en mémoire FLASH étendue mais avec une pénalité de performance. 
+voir les commandes [SAVE](#save),[ERASE](#erase) et [AUTORUN](#autorun).
+```
+>dir
+$B984   97 bytes,BLINK
+$BA04  138 bytes,FIBONACCI
+```
 [index](#index)
 <a id="dread"></a>
 ### DREAD *pin*
@@ -606,6 +652,13 @@ Lorsqu'elle est configuré avec **PMODE** en mode entrée. Cette fonction retour
 20 ? DREAD(5)
 ```
 [index](#index)
+<a id="drop"></a>
+### DROP *n* {C,P}
+Cette commande jette *n* éléments préalablement réservés sur la pile des expressions avec la commande [ALLOC](#alloc). 
+
+
+[index](#index)
+
 <a id="dwrite"></a>
 ### DWRITE *pin*,*level* 
 Le connecteur **CN8**  de la carte **NUCLEO** indentifie les broches selon la convention *Arduino*. Ainsi les broches notées **D0...D15** peuvent-être utilisées en entrée ou sortie digitales, i.e. leur niveau est à 0 volt ou à Vdd.  **DWRITE** est une commande qui porte le même nom que la fonction Arduino et qui permet d'écrire **0|1** sur l'une de ces broche lorsqu'elle est configurée en mode sortie. *pin* est une numéro entre **0...15** et *level* est soit **PINP** ou **POUT**. Avant d'utiliser **DWRITE** sur une broche il faut utiliser **PMODE** pour configurée la broche en sortie. 
@@ -615,9 +668,9 @@ Le connecteur **CN8**  de la carte **NUCLEO** indentifie les broches selon la co
 ```
 
 [index](#index)
-<a id="edit></a>
-### EDIT {C}
-Copie le programme sauvegardé en mémoire FLASH dans la RAM pour modification.
+<a id="edit"></a>
+### EDIT name {C}
+Copie le programme *name* sauvegardé en mémoire FLASH dans la RAM pour modification.
 ```
 Tiny BASIC for STM8
 Copyright, Jacques Deschenes 2019,2022
@@ -627,10 +680,11 @@ running application at address: $AA84 479
 >size
 program address: $AA84 program size: 106 bytes
 
->edit
+>edit PERFORMANCE 
 
 >list
 program size: 106 bytes
+   1  PERFORMANCE
   10  ' ceci est un test de performance 
   20  T=TICKS
   30  FOR I=1 TO 10000 GOSUB 100 NEXT I
@@ -706,10 +760,12 @@ Cette commande arrête l'exécution d'un programme et retourne le contrôle à l
 ```
 [index](#index)
 <a id=erase></a>
-### ERASE \E|\F {C}
-Avec l'option **\F** cette commande efface le programme qui a été sauvegardé en mémoire FLASH pour la rendre prête pour un autre [SAVE](#save). 
+### ERASE \E|\F|NAME {C}
+Cette commande sert à effacer la mémoire EEPROM ou FLASH ou un programme en mémoire FLASH.
 
-Avec l'option **\E** elle efface le contenu de la mémoire EEPROM.
+* **ERASE \E** Efface tout le contenue de la mémoire EEPROM. 
+* **ERASE \F** Efface tout le contenue de la mémoire FLASH après le système BASIC. Le système BASIC n'est pas affecté. 
+* **ERASE nom** Sert à effacer un seul programme qui a été sauvegardé en mémoire FLASH. Voir [DIR](#dir).
 
 [index](#index)
 <a id="fcpu"></a>
@@ -1218,6 +1274,26 @@ Retourne la valeur de l'octet situé à l'adresse représentée par *expr*. Mêm
 
 >
 ```
+[index](#index)
+<a id="pick"></a>
+## PICK(*n*) {C,P}
+Cette fonction retourne le nième élément de la pile des expression sans le retirer de la pile. L'élément au sommet de la pile est d'indice **0**, le second d'indice **1**, etc.
+
+Les autres commandes et fonctions qui permettent d'utiliser directement la pile des expressions sont les suivantes:
+
+* [ALLOC n](#alloc) Réserve *n* éléments au sommet de la pile.
+* [PUSH expr](#push)  Empile la valeur de *expr*. 
+* [POP](#pop) Retire l'élément au sommet de la pile. 
+* [DROP n](#drop)  Jette les *n* éléments du sommet de la pile.
+* [PUT n,expr](#put) Dépose la valeur *expr* à la position *n* de la pile.  
+
+```
+>push 1 push 2 ? pick(0) pick(1)
+   2    1 
+
+>
+```
+
 
 [index](#index)
 <a id="pinp"></a>  {C,P}
@@ -1242,6 +1318,17 @@ Dépose la valeur de *expr2* à l'adresse de *expr1*. Même si expr2 est un enti
 A
 >
 ```
+[index](#index)
+<a id="pop"></a>
+## POP {C,P}
+Cette fonction dépile la valeur au sommet de la pile des expression et la retourne. 
+```
+>push 1 push 2 ? pop pop 
+   2    1 
+
+>
+```
+
 [index](#index)
 <a id="pout"></a>
 ### POUT  {C,P} 
@@ -1300,6 +1387,40 @@ sur le MCU STM8S208, **PORTA**...**PORTI**
 
 >bset portc+odr,bit(5) ' allume LD2
 ```
+[index](#index)
+<a id="push"></a>
+## PUSH expr {C,P}
+Cette commande sert à empiler sur la pile des expressions la valeur de *expr*. C'est l'inveerse de la commande [POP](#pop). 
+```
+>push 1 push 2 ? pop pop 
+   2    1 
+
+>
+```
+
+[index](#index)
+<a id="put"></a>
+## PUT n,expr {C,P}
+Cette commande sert à déposé sur la pile des expressions la valeur de *expr* à la position *n*. Cette commande est utilisée en conjonction avec la commande [ALLOC](#alloc). Ces commandes permettent l'utilisation de variables locales temporaires. 
+```
+>li
+    1  XSTACK 
+    2 ' test xtack functions and commands 
+   10 ALLOC 3
+   20 PUT 0,-1 PUT 1,-2 PUT 2,-3
+   30 PRINT PICK(0) PICK(1) PICK(2)
+   40 PUT 2,-5
+   50 PRINT PICK(2)
+program address:  $90, program size:  169 bytes in RAM memory
+
+>run
+  -1   -2   -3 
+  -5 
+
+>
+
+```
+
 [index](#index)
 <a id="qkey"></a>
 ### QKEY {C,P}
@@ -1451,13 +1572,24 @@ Voir aussi [LSHIFT](#lshift)
 ```
 [index](#index)
 <a id="run"></a>
-### RUN {C}
-Lance l'exécution du programme qui est chargé en mémoire. Si aucun programme n'est chargé il ne se passe rien.  la combinaison **CTRL+C** permet d'interrompre le programme et de retombé sur la ligne de commande.
+### RUN [nom] {C}
+Lance l'exécution du programme qui est chargé en mémoire RAM. Si aucun programme n'est chargé il ne se passe rien.  la combinaison **CTRL+C** permet d'interrompre le programme et de retombé sur la ligne de commande.
+
+Si un *nom* de programme sauvegardé en mémoire FLASH est donné à la commande ce dernier est exécuté.
+```
+>dir
+$B984   97 bytes,BLINK
+$BA04  138 bytes,FIBONACCI
+
+>run fibonacci
+   0    1    1    2    3    5    8   13   21   34   55   89  144  233  377  610  987 1597 2584 4181 6765 10946 17711 28657 46368 75025 121393 196418 317811 514229 832040 1346269 2178309 3524578 5702887
+>    
+```
 
 [index](#index)
 <a id="save"></a>
 ### SAVE {C}
-Cette commande copie le programme qui est en mémoire RAM dans la mémoire FLASH le rendant ainsi persistant. Ce programme va par la suite s'exécuter automatiquement au démarrage du MCU. 
+Cette commande copie le programme qui est en mémoire RAM dans la mémoire FLASH le rendant ainsi persistant. Plusieurs programmes peuvent-être sauvegardés. Voir la commande [DIR](#dir). 
 
 [index](#index)
 <a id="size"></a>
@@ -1809,6 +1941,17 @@ Cet opérateur applique la fonction **ou exclusif** bit à bit entre les 2 epxre
 
 [index principal](#index-princ)
 <hr>
+
+<a id="fichiers"></a>
+## Programmes sauvegardés en mémoire FLASH.
+La commande [SAVE](#save) permet de sauvegarder des programmes en mémoire FLASH du MCU. Ces programmes sont exécutés à partir de la mémoire FLASH contrairement à la vesion **1.x** alors qu'ils étaient copiés en mémoire RAM pour exécution. Pour nommer un programme la méthode est différente de la version **1.x**. À partir de la version **2.x** le nom du programme est déterminé par une étiquette situé au début de la première ligne du programme. la commande [DIR](#dir) lit cette étiquette et l'affiche comme nom de fichier. Voir les commandes suivantes pour en savoir plus sur les programmes en mémoire FLASH.
+
+* [SAVE](#save) Sauvegarde le programme en RAM dans la mémoire FLASH.
+* [DIR](#dir) Affiche la liste des programmes sauvegardés. 
+* [ERASE](#erase) Supprime un fichier. 
+* [AUTORUN](#autorun) Sélectionne un fichier pour démarrage automatique lors de l'initialisation du système. 
+
+[index principal](#index-princ)
 
 <a id="install"></a>
 

@@ -1,4 +1,5 @@
 NEW
+1  FIBONACCI 
 5 ' suite de fibonacci 
 10 A=0:B=1:C=1
 20 PRINT  A , 
