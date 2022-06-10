@@ -1,6 +1,6 @@
 ## 2022-06-10, version 2.0
 
-* Nombreuses modfications par rapport à la version __1.x__.
+* Nombreuses modfications par rapport à la version __1.x__. TinyBASIC est de moins en moins Tiny. Il ressemble de plus en plus à Microsoft BASIC tel qu'il existait sur les ordinateur 8 bits des années 80, tel que le Apple II, Commode VIC-20,C64 et Tandy TRS-80. Le comportement de plusieurs commandes a été modifié. Il faut consulter le [manuel de référence](tbi_reference.md).
 
   1. Les entiers sont maintenant de 24 bits au lieu de 16 bits. Ce qui permet d'accéder la mémoire étendue pour y enregistrer des données avec la commande
   **WRITE** et de les relire avec la commande **PEEK**. 
