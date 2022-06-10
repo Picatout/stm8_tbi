@@ -1,5 +1,11 @@
 #### 2022-06-10
 
+* Repassé à la branche v2 et réactivation du support DEBUG. 
+
+* reconstruire master avec DEBUG=0. 
+
+* 15:41 checkout master et merge branche V2. 
+
 * commit 15:40
 
 * Mise à jour de l'information sur la commande **PRINT** dans [tbi_reference.md](tbi_reference.md)

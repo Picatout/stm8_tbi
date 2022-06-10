@@ -1,3 +1,27 @@
+## 2022-06-10, version 2.0
+
+* Nombreuses modfications par rapport à la version __1.x__.
+
+  1. Les entiers sont maintenant de 24 bits au lieu de 16 bits. Ce qui permet d'accéder la mémoire étendue pour y enregistrer des données avec la commande
+  **WRITE** et de les relire avec la commande **PEEK**. 
+
+  1. Les commandes **GOTO** et **GOSUB** acceptent maintenant une étiquette comme cible.  Une étiquette (label) peut-être inscrit au début d'une ligne 
+  à cet effet.
+
+  1. Concernant la sauvegarde des programmes dans la mémoire FLASH du MCU. Il n'y a plus de sauvegarde dans la mémoire étendue. Cette mémoire n'est plus utilisée par le système BASIC. Cependant les applications peuvent l'utiliser avec la commande **WRITE** et la fonction **PEEK**. Puisque maintenant les entiers sont de 24 bits au lieu de 16 bits les adresses au delà de 65535 sont maintenant accessibles à ces 2 commandes. Les programmes sont conservés mainteant dans la mémoire sous l'adresse 65536 dans la partie qui n'est pas utilisée par le système BASIC.  En ce moment il reste environ 19000 octets 
+  de libres. Ça va diminuer ave l'ajout de nouvelles fonctionnalités au système BASIC. 
+
+  1. La commande **SAVE** n'accepte plus de nom de fichier. Le nom du programme doit-être indiqué sur la première ligne de celui-ci sous la forme d'une 
+  étiquette (label). 
+  
+  1. La commande **FORGET** a été remplacé par la commande **ERASE**. Il est maintenant possible d'effacer un seul fichier. 
+
+  1. Plusieurs commandes ont étées ajoutées. Voir le [manuel de référence](tbi_reference.md).
+
+  1. Les fonctions **OR**, **AND** et **XOR** ont étées transformées en opérateurs infixes.
+
+  1. De nombreux bogues ont étés détectés et corrigés.
+  
 ## 2022-04-21 version 2.0
 
 J'ai décidé de laisser tomber le système de fichier en mémoire flash étendue. Un seul programme est sauvegardé en mémoire FLASH et il s'exécute automatiquement au démarrage du MCU. Les commandes suivante sont donc disparues 
