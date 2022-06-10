@@ -1,5 +1,5 @@
 ;;
-; Copyright Jacques Deschênes 2019,2020,2021,2022  
+; Copyright Jacques Deschênes 2019,2022  
 ; This file is part of stm8_tbi 
 ;
 ;     stm8_tbi is free software: you can redistribute it and/or modify
@@ -24,21 +24,19 @@
 
     .include "config.inc"
 
-  	.include "inc/nucleo_8s208.inc"
 	.include "inc/stm8s208.inc"
+  	.include "inc/nucleo_8s208.inc"
 	.include "inc/ascii.inc"
 	.include "inc/gen_macros.inc" 
 	.include "config.inc" 
 	.include "tbi_macros.inc" 
-	.include "cmd_index.inc"
   
-
 ;;-----------------------------------
     .area SSEG (ABS)
 ;; working buffers and stack at end of RAM. 	
 ;;-----------------------------------
     .org RAM_SIZE-STACK_SIZE-XSTACK_SIZE*CELL_SIZE-TIB_SIZE-PAD_SIZE 
-tib:: .ds TIB_SIZE             ; transaction input buffer
+tib:: .ds TIB_SIZE             ; terminal input buffer
 block_buffer::                 ; use to write FLASH block (alias for pad )
 pad:: .ds PAD_SIZE             ; working buffer
 xstack_full:: .ds XSTACK_SIZE*CELL_SIZE   ; expression stack 
@@ -93,12 +91,12 @@ stack_unf: ; stack underflow ; control_stack bottom
 ; reset MCU
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 NonHandledInterrupt:
-	_swreset 
+	_swreset ; see "inc/gen_macros.inc"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; auto wakeup from halt
 ; at iret, program continue 
-; after hatl instruction
+; after halt instruction
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 AWUHandler:
 	bres AWU_CSR,#AWU_CSR_AWUEN
@@ -107,7 +105,7 @@ AWUHandler:
 	iret
 
 ;------------------------------------
-; software interrupt handler  
+; system call handler  
 ;------------------------------------
 SysCall:
 
@@ -118,6 +116,7 @@ SysCall:
 ; a milliseconds 'ticks' counter
 ; and decrement 'timer' varaiable
 ; ticks range {0..2^23-1}
+; timer range {0..65535}
 ;--------------------------------
 Timer4UpdateHandler:
 	clr TIM4_SR 
@@ -245,12 +244,10 @@ cold_start:
     bset PC_CR1,#LED2_BIT
     bset PC_CR2,#LED2_BIT
     bset PC_DDR,#LED2_BIT
-	bres PC_ODR,#LED2_BIT 
+	bres PC_ODR,#LED2_BIT ; turn off LD2 
 ; disable schmitt triggers on Arduino CN4 analog inputs
 	mov ADC_TDRL,0x3f
-; disable peripherals clocks
-;	clr CLK_PCKENR1 
-;	clr CLK_PCKENR2
+; initialize auto wakeup with LSI clock
 	clr AWU_TBR 
 	bset CLK_PCKENR2,#CLK_PCKENR2_AWU ; enable LSI for AWU 
 ; select internal clock no divisor: 16 Mhz 	
@@ -258,20 +255,25 @@ cold_start:
 	clrw x  
     call clock_init 
 	call timer4_init
-	call timer2_init
+	call timer2_init	
 ; UART1 at 115200 BAUD
+; used for user interface 
+; via USB emulation through STLINK programmer.
 	call uart1_init
 ; activate PE_4 (user button interrupt)
     bset PE_CR2,#USR_BTN_BIT 
 ; display system information
 	rim ; enable interrupts 
+; RND function seed 
+; must be initialized 
+; to value other than 0.
 	inc seedy+1 
 	inc seedx+1 
-	call func_eefree 
-	call ubound 
+	call func_eefree ; eeprom free address 
+	call ubound ; @() size 
 	call clear_basic
-	call beep_1khz  
-	call system_information
+	call beep_1khz  ; 
+	call system_information ; display system information 
 2$:	
 ; check for autorun application
 	ldw x,EEPROM_BASE 
@@ -283,7 +285,7 @@ run_app:
 	ldw x,EEPROM_BASE+2
 	call is_program_addr 
 	jreq 1$
-	jp warm_start
+	jp warm_start ; no autorun application.
 1$:	
 ; run application in FLASH|EEPROM 
 	ldw y,XSTACK_EMPTY

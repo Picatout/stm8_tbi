@@ -88,25 +88,33 @@ add_space:
 
 ;--------------------------
 ;  align text in buffer 
-;  to tab_width padding 
-;  left with  SPACE 
+;  by  padding left  
+;  with  SPACE 
 ; input:
 ;   X      str*
-;   A      str_length 
+;   A      width  
 ; output:
+;   A      strlen
 ;   X      ajusted
 ;--------------------------
+	WIDTH=1 ; column width 
+	SLEN=2  ; string length 
+	VSIZE=2 
 right_align::
-	push a 
-0$: ld a,(1,sp)
-	cp a,tab_width 
+	_vars VSIZE 
+	ld (WIDTH,sp),a 
+	call strlen 
+0$:	ld (SLEN,sp),a  
+	cp a,(WIDTH,sp) 
 	jrpl 1$
-	ld a,#SPACE 
 	decw x
+	ld a,#SPACE 
 	ld (x),a  
-	inc (1,sp)
+	ld a,(SLEN,sp)
+	inc a 
 	jra 0$ 
-1$: pop a 	
+1$: ld a,(SLEN,sp)	
+	_drop VSIZE 
 	ret 
 
 ;--------------------------
@@ -189,23 +197,20 @@ var_name::
 ;   Y           after string  
 ;------------------------------------
 	BASE_SAV=1
-	WIDTH_SAV=2
-	STR=3
-	VSIZE=4 
+	STR=2
+	VSIZE=3 
 decompile::
 	_vars VSIZE
 	ld a,base
 	ld (BASE_SAV,sp),a  
-	ld a,tab_width 
-	ld (WIDTH_SAV,sp),a 
 	ldw (STR,sp),y   
 	ldw x,[basicptr] ; line number 
 	mov base,#10
-	mov tab_width,#5
 	clr acc24 
 	ldw acc16,x
 	clr a ; unsigned conversion 
 	call itoa  
+	ld a,#5 
 	call right_align 
 	push a 
 1$:	ldw y,x ; source
@@ -218,7 +223,6 @@ decompile::
 	ld a,#SPACE 
 	ld (y),a 
 	incw y 
-	clr tab_width
 	ldw x,#3
 	ldw in.w,x 
 decomp_loop:
@@ -290,10 +294,6 @@ decomp_loop:
 50$:
 	clrw x 
 	ld xl,a 
-;	sub a,#TK_NOT  
-;	sll a 
-;	ld xl,a 
-;	addw x,#NOT_IDX
 54$: ; insert command name 
 	call add_space  
 	pushw y
@@ -334,7 +334,7 @@ decomp_loop:
 	jp decomp_loop
 7$:
 	cp a,#TK_CHAR 
-	jrne 8$
+	jrne 9$
 ;; TK_CHAR
 	call add_space 
 	ld a,#'\ 
@@ -342,24 +342,20 @@ decomp_loop:
 	incw y
 	ld a,(x)
 	inc in  
-	jra 81$
-8$: cp a,#TK_COLON 
-	jrne 9$
-	ld a,#':
-81$:
+8$:
 	ld (y),a 
 	incw y 
 82$:
 	jp decomp_loop
 9$: 
-	cp a,#TK_SHARP
+	cp a,#TK_SEMIC 
 	jrugt 10$ 
 	sub a,#TK_ARRAY 
 	clrw x 
 	ld xl,a
 	addw x,#single_char 
 	ld a,(x)
-	jra 81$ 
+	jra 8$ 
 10$: 
 	cp a,#TK_MINUS 
 	jrugt 11$
@@ -368,7 +364,7 @@ decomp_loop:
 	ld xl,a 
 	addw x,#add_char 
 	ld a,(x)
-	jra 81$
+	jra 8$
 11$:
     cp a,#TK_MOD 
 	jrugt 12$
@@ -377,7 +373,7 @@ decomp_loop:
 	ld xl,a 
 	addw x,#mul_char
 	ld a,(x)
-	jra 81$
+	jra 8$
 12$:
 	sub a,#TK_GT  
 	sll a 
@@ -390,21 +386,19 @@ decomp_loop:
 	ld (y),a
 	incw y 
 	ld a,(x)
-	jrne 81$
+	jrne 8$
 	jp decomp_loop 
 20$: 
 	clr (y)
 	ldw x,(STR,sp)
 	ld a,(BASE_SAV,sp)
 	ld base,a 
-	ld a,(WIDTH_SAV,sp)
-	ld tab_width,a
 	subw y,(STR,sp) 
 	ld a,yl 
 	_drop VSIZE 
 	ret 
 
-single_char: .byte '@','(',')',',','#'
+single_char: .byte '@','(',')',',',':',';' 
 add_char: .byte '+','-'
 mul_char: .byte '*','/','%'
 relop_str: .word gt,equal,ge,lt,ne,le 

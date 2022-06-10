@@ -1,5 +1,5 @@
 ;;
-; Copyright Jacques Deschênes 2019,2020,2021,2022  
+; Copyright Jacques Deschênes 2019,2022  
 ; This file is part of stm8_tbi 
 ;
 ;     stm8_tbi is free software: you can redistribute it and/or modify
@@ -87,7 +87,6 @@ txtend:: .blkw 1 ; tokenized BASIC text end address
 loop_depth: .blkb 1 ; level of nested loop. Conformity check   
 array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
 flags:: .blkb 1 ; various boolean flags
-tab_width:: .blkb 1 ; print colon width (default 6)
 free_eeprom: .blkw 1 ; start address of free eeprom 
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx1_head:  .blkb 1 ; rx1_queue head pointer
@@ -261,7 +260,6 @@ system_information:
 	ld acc8,a 
 	clrw x 
 	ldw acc24,x
-	clr tab_width  
 	mov base, #10 
 	call prt_acc24 
 	ld a,#'.
@@ -280,7 +278,6 @@ warm_init:
 	ldw y,#XSTACK_EMPTY  
 	clr flags 
 	clr loop_depth 
-	mov tab_width,#TAB_WIDTH 
 	mov base,#10 
 	ldw x,#0 
 	ldw basicptr,x 
@@ -645,7 +642,6 @@ prt_i16:
 ; input:
 ;	acc24 		integer to print 
 ;	'base' 		numerical base for conversion 
-;   'tab_width' field width 
 ;    A 			signed||unsigned conversion
 ;  output:
 ;    A          string length
@@ -653,7 +649,6 @@ prt_i16:
 prt_acc24:
 	ld a,#255  ; signed conversion  
     call itoa  ; conversion entier en  .asciz
-	call right_align  
 	push a 
 	call puts
 	pop a 
@@ -667,8 +662,6 @@ print_top:
 	ld acc24,a 
 	ldw acc16,x 
 	call prt_acc24 
-	ld a,#SPACE
-	call putc 
 	ret 
 
 ;------------------------------------
@@ -734,7 +727,12 @@ itoa_loop:
     ld (x),a
 	inc (LEN,sp)
 10$:
+; add a space
+	decw x 
+	ld a,#SPACE 
+	ld (x),a
 	ld a,(LEN,sp)
+	inc a 
 	_drop VSIZE
 	ret
 
@@ -1909,12 +1907,12 @@ prt_basic_line:
 ; BASIC: PRINT|? arg_list 
 ; print values from argument list
 ;----------------------------------
-	CCOMMA=1
+	SEMICOL=1
 	VSIZE=1
 print:
 	_vars VSIZE 
-reset_comma:
-	clr (CCOMMA,sp)
+reset_semicol:
+	clr (SEMICOL,sp)
 prt_loop:
 	call next_token
 	cp a,#CMD_END 
@@ -1933,9 +1931,9 @@ prt_loop:
 	jreq 2$ 
 	cp a,#TK_CFUNC 
 	jreq 3$
-	cp a,#TK_COMMA 
+	cp a,#TK_SEMIC  
 	jreq 4$
-	cp a,#TK_SHARP 
+	cp a,#TK_COMMA
 	jreq 5$
 	jra 7$ 
 1$:	; print string 
@@ -1943,39 +1941,33 @@ prt_loop:
 	incw x
 	subw x,basicptr 
 	ldw in.w,x  
-	jra reset_comma
+	jra reset_semicol
 2$:	; print character 
 	call get_char 
 	call putc 
-	jra reset_comma 
+	jra reset_semicol 
 3$: ; print character function value  	
 	_get_code_addr 
 	call (x)
 	call putc
-	jra reset_comma 
-4$: ; set comma state 
-	cpl (CCOMMA,sp)
-	jra prt_loop   
-5$: ; # character must be followed by an integer   
-	call next_token
-	cp a,#TK_INTGR 
-	jreq 6$
-	jp syntax_error 
-6$: ; set tab width
-	call get_int24 
-	ld a,xl 
-	and a,#15 
-	ld tab_width,a 
-	jra reset_comma 
+	jra reset_semicol 
+4$: ; set semi-colon  state 
+	cpl (SEMICOL,sp)
+	jra prt_loop 
+5$: ; skip to next terminal tabulation
+     ; terminal TAB are 8 colons 
+     ld a,#9 
+	 call putc 
+	 jra reset_semicol	    
 7$:	
 	_unget_token 
 	call condition
 	tnz a 
 	jreq 8$    
     call print_top
-	jra reset_comma 
+	jp reset_semicol 
 8$:
-	tnz (CCOMMA,sp)
+	tnz (SEMICOL,sp)
 	jrne 9$
 	ld a,#CR 
     call putc 

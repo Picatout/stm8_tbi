@@ -1336,22 +1336,33 @@ Constante utilisée par la commande [PMODE](#pmode) pour définir une broche en 
 
 [index](#index)
 <a id="print"></a>
-### PRINT [#n]|[*string*|*expr*|*char*][,*string*|*expr*|*char*][','] {C,P}
-La commande **PRINT** sans argument envoie le curseur du terminal sur la ligne suivante. Si la commande se termine par une virgule il n'y a pas de saut à la ligne suivante et la prochaine commande **PRINT** se fera sur  la même ligne. Les arguments sont séparés optionnelement par la virgule, lorsqu'il y a embiguité sur la fin d'une expression. 
+### PRINT [#n]|[*string*|*expr*|*char*][,*string*|*expr*|*char*][';'] {C,P}
+La commande **PRINT** sans argument envoie le curseur du terminal sur la ligne suivante. Si la commande se termine par une point-virgule il n'y a pas de saut à la ligne suivante et la prochaine commande **PRINT** se fera sur  la même ligne. Les arguments sont séparés optionnelement par la virgule, ou le point-virgule lorsqu'il y a ambiguité sur la fin d'une expression. 
+
+* La virgule envoie un caractère ASCII 9 (Horizontal tabulation) au terminal. La largeur des colonnes de tabulation horizontal dépendent de la configuration du terminal. Sur GTKTerm elle est de 8 caractères.
+
+* Le point-virgule à la fin de la commande **PRINT** annule le retour à la ligne suivante. Entre 2 items elle n'a aucun effet.
 
 l'option **#n** sert à fixer la largeur de champ réservé pour l'imprssion d'un entier.
 
 ```
->? #6 3
-     3 
+>? 3
+ 3
 
->? #4 3
-   3 
+>?,3
+	 3
 
->? #0 3
-3 
+>? "hello";" world!"
+hello world!
+
+>? "hello","world!"
+hello	world!
+
+>? "hello" "world!"
+helloworld!
 
 >
+
 ```
 
 Le **'?'** peut-être utilisé à la place de **PRINT**.

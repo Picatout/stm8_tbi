@@ -82,6 +82,8 @@
 		RS=30		 ; record separator 
 		US=31 		 ; unit separator 
 		SPACE = 32
-		COMMA = 44 
+		COMMA = 44
+		COLON = 58 
+		SEMIC = 59  
 		SHARP = 35
 		TICK = 39

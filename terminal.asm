@@ -19,12 +19,14 @@
 ; This file is for functions 
 ; interfacing with VT100 terminal
 ; emulator.
-; except for getc and putc which
-; are in TinyBasic.asm 
-; exported functions:
-;   puts 
-;   readln 
-;   spaces 
+; defined functions:
+;   getc   wait for a character 
+;   qgetc  check if char available 
+;   putc   send a char to terminal
+;   puts   print a string to terminal
+;   readln  read text line from terminal 
+;   spaces  print n spaces on terminal 
+;   print_hex  print hex value from A 
 ;------------------------------
 
     .module TERMINAL
@@ -39,9 +41,6 @@
 	.include "tbi_macros.inc" 
 .endif 
 
-;    .list 
-
-
     .area CODE 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -54,14 +53,17 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Uart1 intterrupt handler 
-;;; on receive 
+;;; on receive character 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;--------------------------
 ; UART1 receive character
+; in a FIFO buffer 
 ; CTRL+C (ASCII 3)
 ; cancel program execution
 ; and fall back to command line
 ; CTRL+X reboot system 
+; CTLR+Z erase EEPROM autorun 
+;        information and reboot
 ;--------------------------
 Uart1RxHandler: ; console receive char 
 	btjf UART1_SR,#UART_SR_RXNE,5$
@@ -94,11 +96,12 @@ Uart1RxHandler: ; console receive char
 
 clear_autorun:
 	ldw x,#EEPROM_BASE 
-	call erase_header 
+	call erase_header ; in TinyBasic.asm 
 	ret 
 
 ;---------------------------------------------
 ; initialize UART1, 115200 8N1
+; called from cold_start in hardware_init.asm 
 ; input:
 ;	none
 ; output:
@@ -193,7 +196,7 @@ uart1_getc::
 ;  ANSI sequence received 
 ;  from terminal.
 ;  These are the ANSI sequences
-;  accepted by function readln
+;  accepted by readln function
 ;------------------------------
     ARROW_LEFT=128
     ARROW_RIGHT=129

@@ -388,83 +388,126 @@ number:
 	jp syntax_error
 1$:	ret
 
+;----------------------
+; called by show_row 
+; print character 
+; corresponding to hex 
+; in row
+; characters stored in pad 
+; input:
+;    A count  
+;------------------------
+print_chars:
+	push a 
+	ldw x,#pad 
+1$:	ld a,(x)
+	cp a,#SPACE 
+	jrult 2$
+	cp a,#127 
+	jruge 2$ 
+	jra 3$ 
+2$: ld a,#'_ 
+3$:	
+	call putc 
+	incw x 
+	dec (1,sp)
+	jrne 1$
+	pop a 
+	ret 
+
 
 ;---------------------
 ; display n bytes row 
 ; from memory.
 ; input:
-;   A   bytes to print 
-;	X   start address 
+;   A        bytes to print 
+;	farptr   address 
 ; output:
-;   X   address after last shown  
+;   farptr  address after last shown  
 ;---------------------
-	CNT=1 
-	ADR=2 
+	CNT=1
+	CNTDWN=2 
+	BYTE=3
 	VSIZE=3 
 show_row:
 	tnz a 
 	jrne 1$
 	ret 
 1$:	
-	pushw x  
-	push a 
-	mov tab_width,#4 
-	call prt_i16 
-	ld a,#SPACE  
-	call putc
+	_vars VSIZE 
+	ld (CNT,sp),a 
+	ld (CNTDWN,sp),a 
+	ld a,farptr 
+	ldw x,ptr16 
+	ld acc24,a 
+	ldw acc16,x 
+	call itoa 
+	ld a,#7 
+	call right_align
+	call puts 
+	ld a,#9 
+	call putc 
 row_loop:
-	ldw x,(ADR,sp)
-	ld a,(x)
+	ldf a,[farptr]
+	ld (BYTE,sp),a
+	ld a,(CNT,sp)
+	sub a,(CNTDWN,sp)
 	clrw x 
 	ld xl,a 
-	call prt_i16 
-	ldw x,(ADR,sp)
-	incw x 
-	ldw (ADR,sp),x 
-	dec (CNT,sp)
+	addw x,#pad 
+	ld a,(BYTE,sp)
+	ld (x),a 
+	clr acc24 
+	clr acc16 
+	ld acc8,a 
+	call itoa 
+	ld a,#4
+	call right_align 
+	call puts 
+	ldw x,#1 	
+	call incr_farptr
+	dec (CNTDWN,sp)
 	jrne row_loop
-	_drop VSIZE  		
-	mov tab_width,#4
+	ld a,#SPACE 
+	call putc
+	ld a,(CNT,sp) 
+	call print_chars 
 	ld a,#CR 
 	call putc 
+	_drop VSIZE   
 	ret 
 
 ;--------------------------
 ; print memory content 
 ; in hexadecimal format
 ;  input:
-;    X    start address 
-;    Y    count 
+;    farptr  start address 
+;    X       count bytes to print 
 ;--------------------------
 	BCNT=1
 	BASE=3
-	TABW=4
-	VSIZE=4   
+	VSIZE=3   
 hex_dump:
 	push a 
 	_vars VSIZE
 	ld a,base
 	ld (BASE,sp),a 
 	mov base,#16
-	ld a,tab_width 
-	ld (TABW,sp),a
 	ld a,#CR 
 	call putc 
-1$: ldw (BCNT,sp),y
+1$: ldw (BCNT,sp),x
 	ld a,#16
-	cpw y,#16
+	cpw x,#16
 	jrpl 2$
-	ld a,yl
+	ld a,xl
 2$: 	
 	call show_row 
-	ldw y,(BCNT,sp) 
-	subw y,#16 
-	cpw y,#1
+	ldw x,(BCNT,sp) 
+	subw x,#16 
+	cpw x,#1
 	jrpl 1$
 	ld a,(BASE,sp)
 	ld base,a
-	ld a,(TABW,sp)
-	ld tab_width,a 
 	_drop VSIZE
 	pop a 
 	ret 

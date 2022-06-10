@@ -1,3 +1,28 @@
+#### 2022-06-10
+
+* commit 15:40
+
+* Mise à jour de l'information sur la commande **PRINT** dans [tbi_reference.md](tbi_reference.md)
+
+* Retravaillé  *hex_dump* et *show_row* dans [debug_support.asm](debug_support.asm).
+
+* Retravaillé *decompile* dans [decompiler.asm](decompiler.asm).
+
+* Supprimé la variable système *tab_width* ainsi que l'utilisation de caractère **#** dans la commande **PRINT** qui servait à ajuster la valeur de 
+*tab_width*.
+
+* Modifié *itoa* ajoute maintenant un espace au début.
+
+* Modifié *print_top* n'ajoute plus d'espace après l'impression du nombre.
+
+* Modifié *prt_acc24* n'appelle plus *right_align*.   
+
+* Pour créer un espace entre les items imprimés il faut maintenant les séparer par une virgule. 
+
+* Modifié commande **PRINT**  Ajout du jeton TK_SEMIC i.e. le caractère **;** qui annule l'espacement entre les items imprimés ainsi que le retour à la ligne.  Maintenant le jeton **TK_COMMA** sert à sauter à la prochaine colonne dont la largeur est définie par la variable système *tab_width*. Cet modification a pour but d'être conforme au comportement de Microsoft BASIC utilisé dans les ordinateurs 8 bits des années 80. i.e. Apple II, Commodore PET,C64,VIC-20, Tandy TRS-80, etc. Ce projet tend à s'aligner sur Microsoft BASIC version 1.x.  
+
+* Révision du code.
+
 #### 2022-06-09
 
 * commit 22:30

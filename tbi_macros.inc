@@ -87,13 +87,13 @@
         TK_QSTR=2       ; quoted string  
         TK_LABEL=3      ; used for defined, constants, variables
         TK_CHAR=4       ; ASCII character 
-        TK_ARRAY=5     ; array variable '@' 
+        TK_ARRAY=5      ; array variable '@' 
         TK_LPAREN=6     ; left parenthesis '('
         TK_RPAREN=7     ; right parenthesis ')'
-        TK_COMMA=8     ; item separator ',' 
-        TK_SHARP=9     ; print colon width '#' 
-        TK_COLON=0xa      ; command separator ':' 
-        
+        TK_COMMA=8      ; item separator ',' 
+        TK_COLON=9      ; command separator ':' 
+        TK_SEMIC=10     ; used in PRINT command.  ';' 
+
         TK_PLUS=0x10    ; addition operator '+'
         TK_MINUS=0x11   ; subtraction operator '-'
         TK_MULT=0x20    ; multiplication operator '*'

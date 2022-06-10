@@ -579,7 +579,7 @@ skip:
 ;	X 		pointer to buffer where 
 ;	        token id and value are copied 
 ; use:
-;	Y   pointer to text in tib 
+;	Y       pointer to text in tib 
 ; output:
 ;   A       token attribute 
 ;   X 		token value
@@ -673,13 +673,13 @@ colon_tst:
 	ld a,#TK_COLON 
 	jp token_char  
 comma_tst:
-	_case COMMA sharp_tst 
+	_case COMMA semic_tst 
 	ld a,#TK_COMMA
 	jp token_char
-sharp_tst:
-	_case SHARP dash_tst 
-	ld a,#TK_SHARP
-	jp token_char  	 	 
+semic_tst:
+	_case SEMIC dash_tst
+	ld a,#TK_SEMIC 
+	jp token_char 	
 dash_tst: 	
 	_case '-' at_tst 
 	ld a,#TK_MINUS  
@@ -799,8 +799,8 @@ token_exit:
 ; save this list in pad buffer 
 ;  compiled line format: 
 ;    line_no  2 bytes {0...32767}
-;    count    1 byte  
-;    tokens   variable length 
+;    line length    1 byte  
+;    tokens list  variable length 
 ;   
 ; input:
 ;   none
@@ -812,7 +812,7 @@ token_exit:
 	XSAVE=1
 	VSIZE=2
 compile::
-	pushw y 
+	pushw y ; preserve xstack pointer 
 	_vars VSIZE 
 	mov basicptr,txtbgn
 	bset flags,#FCOMP 
