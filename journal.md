@@ -1,3 +1,13 @@
+#### 2022-06-11
+
+* commit 16:20
+
+* renommé routine *list* en *cmd_list* et *print* en *cmd_print*.
+
+* Travail sur [tbi_reference.md](tbi_reference.md).
+
+* Modifié commande **LIST** pour capturer les erreurs de syntaxe.
+
 #### 2022-06-10
 
 * Création d'un vidéo de démonstration des nouvelles fonctionnalités.

@@ -29,7 +29,7 @@
 
 <a id="data"></a>
 ### Type de données 
-Le seul type de donné numérique est l'entier 24 bits donc dans l'intervalle **-8388607...8388607**.  
+Le seul type de donné numérique est l'entier 24 bits donc dans l'intervalle **-8388608...8388607**.  
 
 Cependant pour des fins d'impression des chaînes de caractères entre guillemets sont disponibles. Seul les commandes **PRINT** et **INPUT** utilisent ces chaînes comme arguments. 
 
@@ -44,9 +44,22 @@ Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()
 
 Le nombre des variables est limité à 26 et chacune d'elle est représentée par une lettre de l'alphabet. 
 
+La version **2.x** ajoute les variables définies par la commande [DIM](#dim). Ces variables peuvent avoir un nom d'un maximum de 15 caractères.
+
 ### Tableau 
 
 Il n'y a qu'un seul tableau appelé **@** et dont la taille dépend de la taille du programme. En effet ce tableau utilise la mémoire RAM laissée libre par le programme. Un programme peut connaître la taille de ce tableau en invoquant la fonction **UBOUND**. Si le programme s'exécute à partir de la mémoire FLASH alors toute la RAM à l'exception de celle utilisée par le système BASIC est disponible pour le tableau **@**. 
+
+### Symboles et étiquettes
+
+Depuis la version **2.x** Il est possible de définir des noms symboliques d'au maximum 15 caractères. Ces noms doivent débuté par une lettre suivit de lettres, chiffres et du caractère **_**.  Ces symboles ont 3 usages.
+
+* Une __Étiquette__ est un symbole placé en début de ligne et qui peut servir de cible à une commande [GOTO](#goto) ou [GOSUB](#gosub). Une étiqutte sur la permière ligne d'un programme sert à identifié le nom du programme pour la commande [DIR](#dir).
+
+* La version **2.x** ajoute la directive  [CONST](#const) qui permet de définir des constantes symboliques dans un programme. Les noms de constantes obéissent aux même critères que les étiquettes.  
+
+* La version **2.x** ajoute la directive [DIM](#dim) qui permet de définir des variables symboliques dans un programme. Les noms de variables obéissent aux même critères ques les étiquettes.
+Donc la version **2.x** n'est plus limitées au 26 lettres de l'alphabet comme nom de variables. Notez cependant que les variables nommées par une lettre **A..Z** sont plus rapide d'accès puisque leur adresse est connue par le compilateur alors que les variables définies par [DIM](#dim) doivent-être recherchées dans un table à chaque invocation.
 
 [index principal](#index-princ)
 <a id="expressions"></a>
@@ -1996,6 +2009,45 @@ Bytes written: 7808
 <a id="utilisation"></a>
 # Utilisation de TinyBASIC sur STM8
 Vous trouverez dans le manuel de l'[utilisateur de tiny BASIC](manuel_util_tb.md) des exemples d'utilisation. 
+
+[index principal](#index-princ)
+
+# Structure interne du système
+Utilisation de la Mémoire carte __NUCLEO-8S208RB__
+
+RAM 0x00..0x17ff<br> 
+EEPROM 0x4000-0x47FF<br> 
+FLASH 0x8000-0xffff<br> 
+XFLASH 0x10000-0x27FFF<br>
+
+addr | utilisation
+-|-
+0x00-0x8B | variables système
+0x8C-0x8F | signature "TB" et grandeur du programme
+0x90-0x1649 | mémoire pour les programmes
+0x164A-0x1667 |  @() réserve 10 éléments mininum.
+0x1668-0x16B7 | tampon TIB (Terminal Input Buffer)
+0x16B8-0x1737 | tampon PAD<sup>1</sup> (usage varié) 
+0x1738-0x1773 | pile des expressions 
+0x1774-0x17ff | pile de contrôle 
+0x4000-0x4003 | information AUTORUN
+0x8000-0x807F | table des vecteurs d'interruption
+0x8080-0xB47F<sup>2</sup> | système BASIC
+0xB480-0xFFFF | programmes BASIC sauvegardés.
+
+1. Le tampon **PAD** est utilisé par le compilateur, pour la conversion des entiers en chaîne de caractères et comme tampon pour l'écriture de bloc mémoire FLASH. 
+1. L'adresse **0xB47F** varie selon la version du système. l'adresse 
+réservé pour les programme BASIC débutr au prochain bloc libre et est donc toujour alignée sur 128 octets. 
+
+## utilisation des registres du MCU
+
+1. Les entiers 24 bits sont chargé dans **A:X**
+
+* **A** bits 23..16 
+* **X** bits 15..0
+
+2. **Y**  est réservé comme pointeur pour la pile des 
+expressions. Il doit-être préservé lorsqu'utilisé par une sous-routine.  
 
 [index principal](#index-princ)
 

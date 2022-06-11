@@ -694,7 +694,7 @@ qmark_tst:
 	ld (x),a 
 	incw x 
 	ldw y,x 
-	ldw x,#print
+	ldw x,#cmd_print
 	ldw (y),x 
 	addw y,#2
 	jp token_exit

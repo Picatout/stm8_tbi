@@ -1786,8 +1786,11 @@ cmd_list:
 is_minus: 	
 	cp a,#TK_MINUS 
 	jreq end_at_line
-	_unget_token 
-	jra list_loop 
+	cp a,#TK_NONE
+	jreq list_loop
+	cp a,#TK_COLON 
+	jreq list_loop
+	jp syntax_error
 start_from:	 
 	call get_int24
 	ldw (FIRST,sp),x	
@@ -1803,6 +1806,12 @@ lines_skip:
 	call next_token 
 	cp a,#TK_MINUS 
 	jreq end_at_line 
+	cp a,#TK_NONE 
+	jreq 2$
+	cp a,#TK_COLON 
+	jreq 2$
+	jp syntax_error 
+2$:
 	ldw x,(FIRST,sp)
 	ldw (LAST,sp),x 
 	jra list_loop 
@@ -1811,8 +1820,11 @@ end_at_line:
     call next_token 
 	cp a,#TK_INTGR
 	jreq 1$
-	_unget_token 
-	jra list_loop
+	cp a,#TK_NONE 
+	jreq list_loop 
+	cp a,#TK_COLON 
+	jreq list_loop 
+	jp syntax_error 
 1$:
 	call get_int24 
 	ldw (LAST,sp),x 
@@ -1909,7 +1921,7 @@ prt_basic_line:
 ;----------------------------------
 	SEMICOL=1
 	VSIZE=1
-print:
+cmd_print:
 	_vars VSIZE 
 reset_semicol:
 	clr (SEMICOL,sp)
@@ -5097,7 +5109,7 @@ kword_end:
 	_dict_entry,5+F_IFUNC,PORTC,const_portc
 	_dict_entry,5+F_IFUNC,PORTB,const_portb
 	_dict_entry,5+F_IFUNC,PORTA,const_porta 
-	_dict_entry 5,PRINT,print 
+	_dict_entry 5,PRINT,cmd_print 
 	_dict_entry,4+F_IFUNC,POUT,const_output
 	_dict_entry,3+F_IFUNC,POP,xpop 
 	_dict_entry,4,POKE,poke 
