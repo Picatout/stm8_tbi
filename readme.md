@@ -22,6 +22,11 @@
 
   1. De nombreux bogues ont étés détectés et corrigés.
   
+## vidéo des nouvelles fonctionnalités
+
+[vidéo des nouvelles fonctionnalités](https://youtu.be/BShutntojic)
+
+
 ## 2022-04-21 version 2.0
 
 J'ai décidé de laisser tomber le système de fichier en mémoire flash étendue. Un seul programme est sauvegardé en mémoire FLASH et il s'exécute automatiquement au démarrage du MCU. Les commandes suivante sont donc disparues 

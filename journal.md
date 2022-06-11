@@ -1,5 +1,7 @@
 #### 2022-06-10
 
+* Création d'un vidéo de démonstration des nouvelles fonctionnalités.
+
 * Repassé à la branche v2 et réactivation du support DEBUG. 
 
 * reconstruire master avec DEBUG=0. 
