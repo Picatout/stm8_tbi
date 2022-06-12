@@ -1,3 +1,12 @@
+#### 2022-06-12
+
+* Mofifié *strcmp*,  inversé signification du flag **Z**, Z=1 indique que le chaînes sont égles. Et s'arrure maintenant que les 2 chaînes sont de la même longueur.
+ 
+
+* Modifié *tb_error* ne doit pas afficher le message *rt_msg* lorsque l'erreur se produit sur l'exécution en mode interactif.
+
+* Modifié *search_name*, *factor*, *cmd_dim*,*let_dvar*, REC_XTRA_BYTES ajouté au nom recherché.
+
 #### 2022-06-11
 
 * Corrigé bogue dans *search_name*  et *get_value* la longueur de l'enregistrement n'était pas masqué correctement utilisait NAME_MAX_LEN ce qui n'est pas correct car avec l'ajout de REC_XTRA_BYTES à la longueur du nom ça peut faire plus que 15.

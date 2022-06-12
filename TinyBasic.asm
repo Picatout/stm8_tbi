@@ -139,16 +139,13 @@ strcmp:
 	ld a,(x)
 	jreq 5$ 
 	cp a,(y) 
-	jrne 4$ 
+	jrne 9$ 
 	incw x 
 	incw y 
 	jra strcmp 
-4$: ; not same  
-	clr a 
-	ret 
-5$: ; same 
-	ld a,#1 
-	ret 
+5$: ; same
+	cp a,(y)
+9$:	ret 
 
 
 ;---------------------------------------
@@ -342,9 +339,10 @@ syntax_error::
 tb_error::
 	btjt flags,#FCOMP,1$
 	push a 
+	btjf flags,#FRUN,0$ 
 	ldw x, #rt_msg 
 	call puts 
-	pop a 
+0$:	pop a 
 	ldw x, #err_msg 
 	clr acc16 
 	sll a
@@ -354,13 +352,6 @@ tb_error::
 	ldw x,(x)
 	call puts
 	ldw x,basicptr 
-.if DEBUG 
-ld a,count 
-clrw y 
-rlwa y  
-call hex_dump
-ldw x,basicptr
-.endif 
 	ld a,in 
 	call prt_basic_line
 	ldw x,#tk_id 
@@ -510,7 +501,6 @@ let_dvar:
 	call strlen 
 	add a,#REC_XTRA_BYTES
 	ld (REC_LEN+1,sp),a 
-	sub a,#REC_XTRA_BYTES
 	call search_name 
 	tnzw x 
 	jreq 0$ 
@@ -1085,6 +1075,7 @@ factor:
 	call skip_string
 	popw x  
 	call strlen 
+	add a,#REC_XTRA_BYTES
 	call search_name
 	tnzw x 
 	jrne 82$ 
@@ -1576,7 +1567,7 @@ func_eefree:
 ; a constant record use 7+ bytes
 ; constants are saved in EEPROM  
 ; input:
-;    A     name_len 
+;    A     name_len+REC_XTRA_BYTES 
 ;    X     *name
 ; output:
 ;    X     address|0
@@ -1602,14 +1593,13 @@ search_name:
 	cpw x, (LIMIT,sp) 
 	jruge 7$ ; no match found 
 	ld a,(y)
-	sub a,#REC_XTRA_BYTES
-	and a,#NAME_MAX_LEN
+	and a,#REC_LEN_MASK
 	cp a,(NLEN,sp)
 	jrne 2$ 
 	incw y 
 	ldw x,(NAMEPTR,sp)
 	call strcmp
-	jrne 8$ ; match found 
+	jreq 8$ ; match found 
 2$: ; skip this one 	
 	ldW Y,(WLKPTR,sp)
 	ld a,(y)
@@ -1669,7 +1659,6 @@ cmd_dim2:
 	ld (REC_LEN+1,sp),a
 	call skip_string 
 	ld a,(REC_LEN+1,sp)
-	sub a,#REC_XTRA_BYTES
 	ldw x,(VAR_NAME,sp) 
 	call search_name  
 	tnzw x 
@@ -2560,7 +2549,7 @@ look_target_symbol:
 	addw y,#4 ; label string 
 	ldw x,(3,sp) ; target string 
 	call strcmp
-	jrne 4$
+	jreq 4$
 	popw y 
 	jra 2$ 
 4$: ; target found 
@@ -4948,7 +4937,7 @@ search_program:
 	incw x 
 	ldw y,(PNAME,sp)
 	call strcmp
-	jrne 6$
+	jreq 6$
 4$: 
 	call skip_to_next
 	cpw x,(LIMIT,sp)
