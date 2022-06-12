@@ -52,7 +52,7 @@ Il n'y a qu'un seul tableau appelé **@** et dont la taille dépend de la taille
 
 ### Symboles et étiquettes
 
-Depuis la version **2.x** Il est possible de définir des noms symboliques d'au maximum 15 caractères. Ces noms doivent débuté par une lettre suivit de lettres, chiffres et du caractère **_**.  Ces symboles ont 3 usages.
+Depuis la version **2.x** Il est possible de définir des noms symboliques d'au maximum 15 caractères. Ces noms doivent débuté par une lettre suivit de lettres, chiffres et des caractères **'_'**, **'.'** ainsi que **'?'**.  Ces symboles ont 3 usages.
 
 * Une __Étiquette__ est un symbole placé en début de ligne et qui peut servir de cible à une commande [GOTO](#goto) ou [GOSUB](#gosub). Une étiqutte sur la permière ligne d'un programme sert à identifié le nom du programme pour la commande [DIR](#dir).
 
@@ -286,7 +286,8 @@ nom|abrévation
 [INPUT](#input)|IN
 [IWDGEN](#iwdgen)|IDGE
 [IWDGREF](#iwdgref)|IWGR
-[KEY](#key)|KE
+[KEY](#key)|KEY
+[KEY?](#qkey)|KE
 [LET](#let)|LE
 [LIST](#list)|LI
 [LOG2](#log)|LO
@@ -317,7 +318,6 @@ nom|abrévation
 [PORTI](#prtx)|PORTI
 [PUSH](#push)|PUS
 [PUT](#put)|PU
-[QKEY](#qkey)|QK
 [READ](#read)|REA
 [REBOOT](#reboot)|REB
 [REM](#rem)|'
@@ -1005,7 +1005,7 @@ Active l'*Independant WatchDog timer*. *expr* représente le délais de la minut
 >li
     5 ' indepencdent watchdog timer test 
    10 IWDGEN 16383 ' enable **IWDG** with 1 second delay  
-   20 IF QKEY:GOTO 40
+   20 IF KEY?  GOTO 40
    30 PRINT \.,:PAUSE 100:IWDGREF ' refresh **IWDG** before it expire. 
    34 GOTO 20
    40 PRINT "\nThe IWDG will reset MCU in 1 second ."
@@ -1040,6 +1040,17 @@ Press a key to continue...
 
 >? k
   13 
+
+>
+```
+
+[index](#index)
+<a id="qkey"></a>
+### KEY? {C,P}
+Cette fonction vérifie s'il y a un caractère en attente dans le tampon de réception du terminal. Retourne **-1** si c'est le cas sinon retourne **0**.
+```
+>do a=key? until a : ? a,key
+  -1 v
 
 >
 ```
@@ -1446,17 +1457,6 @@ program address:  $90, program size:  169 bytes in RAM memory
 ```
 
 [index](#index)
-<a id="qkey"></a>
-### QKEY {C,P}
-Cette fonction vérifie s'il y a un caractère en attente dans le tampon de réception du terminal. Retourne **-1** si c'est le cas sinon retourne **0**.
-```
->do a=qkey until a : ? a,key
-  -1 v
-
->
-```
-
-[index](#index)
 <a id="read"></a>
 ### READ {P}
 Cette fonction retourne l'entier pointé par le pointeur de donné initialisé avec la commande [RESTORE](#restore). À chaque appel de **READ** le pointeur est avancé à l'item suivant et s'il y a plusieurs lignes [DATA](#data) dans le programme et que la ligne courante est épuisée, le pointeur passe à la ligne suivante. C'est une erreur fatale d'invoquer  [DATA](#data) lorsque toutes les données ont étées lues. Cependant le pointeur peut-être réinitialisé avec la commande [RESTORE](#restore).  
@@ -1827,7 +1827,7 @@ Retourne l'adresse du début de la mémoire FLASH disponible à l'utilisateur. S
 ```
 >li
     5 ' Blink LED2 on card 
-   10 DO BTOGL PORTC,BIT(5) PAUSE 250 UNTIL QKEY
+   10 DO BTOGL PORTC,BIT(5) PAUSE 250 UNTIL KEY?
    20 BRES PORTC,BIT(5)
    30 END
 program address:  $80, program size:   87 bytes in RAM memory
@@ -1923,9 +1923,9 @@ Affiche la liste de tous les mots qui sont dans le dictionnaire. Le dictionnaire
 >words
 ABS ADCON ADCREAD AND ASC AWU BIT BRES BSET BTEST BTOGL BYE CHAR CONST CR1
 CR2 DATA DDR DEC DO DREAD DWRITE EDIT EEFREE EEPROM END ERASE FCPU FOR FREE
-GET GOSUB GOTO HEX IDR IF INPUT IWDGEN IWDGREF KEY LET LIST LOG2 LSHIFT
+GET GOSUB GOTO HEX IDR IF INPUT IWDGEN IWDGREF KEY KEY? LET LIST LOG2 LSHIFT
 NEW NEXT NOT ODR ON OR PAD PAUSE PEEK PINP PMODE POKE POUT PRINT PORTA PORTB
-PORTC PORTD PORTE PORTF PORTG PORTH PORTI QKEY READ REBOOT REM RESTORE RETURN
+PORTC PORTD PORTE PORTF PORTG PORTH PORTI READ REBOOT REM RESTORE RETURN
 RND RSHIFT RUN SAVE SIZE SLEEP SPIEN SPIRD SPISEL SPIWR STEP STOP TICKS
 TIMEOUT TIMER TO TONE UBOUND UFLASH UNTIL USR WAIT WORDS WRITE XOR 
   98 words in dictionary

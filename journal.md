@@ -1,5 +1,17 @@
 #### 2022-06-11
 
+* commit 22:01
+
+* Modifié *add_space* in [decompiler.asm](decompiler.asm). Remplacé *call is_alnum* apr *call is_symbol_char*. 
+
+* Mise à jour de [tbi_reference.md](tbi_reference.md).
+
+* Modifié macro *_dict_entry* pour enlevrt l'étiquette *name:* qui était inutile et m'empêchait de renommer **QKEY** en **KEY?**.
+
+* Renommé **QKEY** en **KEY?**. 
+
+* Ajouter les caractères __','__ et __'?'__ comme valides dans les symboles. 
+
 * commit 16:20
 
 * renommé routine *list* en *cmd_list* et *print* en *cmd_print*.

@@ -78,7 +78,7 @@ add_space:
 	incw y
 	cp a,#') 
 	jreq 0$
-	call is_alnum 
+	call is_symbol_char
 	jrnc 1$
 0$: 
 	ld a,#SPACE 

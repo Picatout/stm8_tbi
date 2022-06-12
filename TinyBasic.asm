@@ -444,7 +444,7 @@ next_line:
 	addw x,in.w 
 	cpw x,txtend 
 	jrmi 0$
-	call cmd_end 
+	call cmd_end ; end program 
 0$:	ldw basicptr,x ; start of next line  
 	ld a,(2,x)
 	ld count,a 
@@ -5058,7 +5058,6 @@ cmd_chain:
 	.macro _dict_entry len,name,code_addr 
 	.word LINK 
 	LINK=.
-name:
 	.byte len   	
 	.ascii "name"
 	.word code_addr  
@@ -5098,7 +5097,6 @@ kword_end:
 	_dict_entry 3,REM,remark 
 	_dict_entry,6,REBOOT,cold_start
 	_dict_entry,4+F_IFUNC,READ,read  
-	_dict_entry,4+F_IFUNC,QKEY,qkey
 	_dict_entry,3,PUT,xput 
 	_dict_entry,4,PUSH,xpush   
 	_dict_entry,5+F_IFUNC,PORTI,const_porti 
@@ -5129,6 +5127,7 @@ kword_end:
 	_dict_entry,4+F_IFUNC,LOG2,log2 
 	_dict_entry 4,LIST,cmd_list
 	_dict_entry 3,LET,let 
+	_dict_entry,4+F_IFUNC,KEY?,qkey
 	_dict_entry,3+F_CFUNC,KEY,key 
 	_dict_entry,7,IWDGREF,refresh_iwdg
 	_dict_entry,6,IWDGEN,enable_iwdg

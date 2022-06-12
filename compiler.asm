@@ -433,7 +433,7 @@ is_alnum::
 ;-----------------------------
 ; check if character in A 
 ; is a valid symbol character 
-; valid: Upper case LETTER,DIGIT,'_' 
+; valid: Upper case LETTER,DIGIT,'_','.','?' 
 ; input:
 ;    A   character to validate
 ; output:
@@ -442,9 +442,13 @@ is_alnum::
 is_symbol_char: 
 	cp a,#'_ 
 	jrne 1$
-	scf 
+0$:	scf 
 	jra 9$ 
-1$:	call is_alnum 
+1$:	cp a,#'.
+	jreq 0$
+	cp a,#'? 
+	jreq 0$ 
+	call is_alnum 
 9$: ret 
 
 ;---------------------------
