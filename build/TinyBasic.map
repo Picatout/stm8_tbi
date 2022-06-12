@@ -85,16 +85,16 @@ CODE                                00008080    00003404 =       13316. bytes (R
      00009165  move                               HW_INIT
      0000943D  syntax_error                       HW_INIT
      0000943F  tb_error                           HW_INIT
-     00009597  next_token                         HW_INIT
-     00009614  itoa                               HW_INIT
-     00009672  to_upper                           HW_INIT
-     0000967E  atoi24                             HW_INIT
-     000096FF  search_dict                        HW_INIT
+     00009599  next_token                         HW_INIT
+     00009616  itoa                               HW_INIT
+     00009674  to_upper                           HW_INIT
+     00009680  atoi24                             HW_INIT
+     00009701  search_dict                        HW_INIT
      00009A8C  let                                HW_INIT
-     00009EF4  remark                             HW_INIT
-     0000A39D  beep_1khz                          HW_INIT
-     0000A888  qkey                               HW_INIT
-     0000B427  kword_dict                         HW_INIT
+     00009EF8  remark                             HW_INIT
+     0000A3A1  beep_1khz                          HW_INIT
+     0000A88C  qkey                               HW_INIT
+     0000B42B  kword_dict                         HW_INIT
      0000B480  app_space                          HW_INIT
 
 ASxxxx Linker V03.00 + NoICE + sdld,  page 5.

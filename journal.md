@@ -1,5 +1,19 @@
 #### 2022-06-11
 
+* Corrigé bogue dans *search_name*  et *get_value* la longueur de l'enregistrement n'était pas masqué correctement utilisait NAME_MAX_LEN ce qui n'est pas correct car avec l'ajout de REC_XTRA_BYTES à la longueur du nom ça peut faire plus que 15.
+
+* bogue. programme gèle lorsque référence un nom de la constante dépassant 9 caractères.
+```
+>li
+    1  LABEL_TROP_LONG 
+   10 CONST HELLO.WORLD = 11
+   20 PRINT HELLO.WORLD 
+program address:  $90, program size:  63 bytes in RAM memory
+
+>run
+```
+
+
 * commit 22:01
 
 * Modifié *add_space* in [decompiler.asm](decompiler.asm). Remplacé *call is_alnum* apr *call is_symbol_char*. 

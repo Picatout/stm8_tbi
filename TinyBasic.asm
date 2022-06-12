@@ -510,6 +510,7 @@ let_dvar:
 	call strlen 
 	add a,#REC_XTRA_BYTES
 	ld (REC_LEN+1,sp),a 
+	sub a,#REC_XTRA_BYTES
 	call search_name 
 	tnzw x 
 	jreq 0$ 
@@ -1084,7 +1085,6 @@ factor:
 	call skip_string
 	popw x  
 	call strlen 
-	add a,#REC_XTRA_BYTES
 	call search_name
 	tnzw x 
 	jrne 82$ 
@@ -1521,7 +1521,7 @@ let_eval:
 ;--------------------------
 get_value: ; -- i 
 	ld a,(x) ; record size 
-	and a,#NAME_MAX_LEN
+	and a,#REC_LEN_MASK 
 	sub a,#CELL_SIZE ; * value 
 	push a 
 	push #0 
@@ -1565,7 +1565,7 @@ func_eefree:
 	ldw free_eeprom,x ; save in system variable 
 	ret 
 
-REC_XTRA_BYTES=5 
+ 
 ;--------------------------
 ; search constant/dim_var name 
 ; format of record  
@@ -1576,7 +1576,7 @@ REC_XTRA_BYTES=5
 ; a constant record use 7+ bytes
 ; constants are saved in EEPROM  
 ; input:
-;    A     record_len 
+;    A     name_len 
 ;    X     *name
 ; output:
 ;    X     address|0
@@ -1585,14 +1585,14 @@ REC_XTRA_BYTES=5
 ;-------------------------
 	NAMEPTR=1 ; target name pointer 
 	WLKPTR=3   ; walking pointer in EEPROM||RAM 
-	RECLEN=5  ; record length of target
+	NLEN=5  ;  length of target name 
 	LIMIT=7   ; search area limit 
 	VSIZE=8  
 search_name:
 	pushw y 
 	_vars VSIZE
 	clr acc16 
-	ld (RECLEN,sp),a    
+	ld (NLEN,sp),a    
 	ldw (NAMEPTR,sp),x
 	ldw x,dvar_end 
 	ldw (LIMIT,sp),x 
@@ -1602,8 +1602,9 @@ search_name:
 	cpw x, (LIMIT,sp) 
 	jruge 7$ ; no match found 
 	ld a,(y)
+	sub a,#REC_XTRA_BYTES
 	and a,#NAME_MAX_LEN
-	cp a,(RECLEN,sp)
+	cp a,(NLEN,sp)
 	jrne 2$ 
 	incw y 
 	ldw x,(NAMEPTR,sp)
@@ -1612,7 +1613,7 @@ search_name:
 2$: ; skip this one 	
 	ldW Y,(WLKPTR,sp)
 	ld a,(y)
-	and a,#NAME_MAX_LEN 
+	and a,#REC_LEN_MASK  
 	ld acc8,a 
 	addw y,acc16 
 	jra 1$  
@@ -1668,6 +1669,7 @@ cmd_dim2:
 	ld (REC_LEN+1,sp),a
 	call skip_string 
 	ld a,(REC_LEN+1,sp)
+	sub a,#REC_XTRA_BYTES
 	ldw x,(VAR_NAME,sp) 
 	call search_name  
 	tnzw x 
