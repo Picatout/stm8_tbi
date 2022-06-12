@@ -1,7 +1,13 @@
 #### 2022-06-12
 
+* Commit 11:34 
+
+* Mise à jour [tbi_reference.md](tbi_reference.md).
+
+* Supprimer l'utilisation des raccourcis pour les mots réservés. Mise à jour de [tbi_reference.md](tbi_reference.md).
+
 * Mofifié *strcmp*,  inversé signification du flag **Z**, Z=1 indique que le chaînes sont égles. Et s'arrure maintenant que les 2 chaînes sont de la même longueur.
- 
+
 
 * Modifié *tb_error* ne doit pas afficher le message *rt_msg* lorsque l'erreur se produit sur l'exécution en mode interactif.
 

@@ -489,7 +489,12 @@ let_dvar:
 	addw x,in.w 
 	ld a,(x)
 	cp a,#TK_EQUAL 
-	jrne 9$ 
+	jreq dvar_assign
+	btjt flags,#FRUN,1$
+	jp syntax_error
+1$: _drop VSIZE 
+	ret 
+dvar_assign: 	 
 ; dvar assignment 
 	inc in  
 	call condition  
@@ -865,6 +870,8 @@ no_match:
 ;try next 
 	jra search_next
 str_match:
+	tnz (NLEN,sp)
+	jrne no_match
 	ldw x,(XSAVE,sp)
 	ld a,(X)
 	ld (NLEN,sp),a ; needed to test keyword type  
@@ -1506,9 +1513,9 @@ let_eval:
 ; return constant/dvar value 
 ; from it's record address
 ; input:
-;	X	*const record 
+;	X	*record 
 ; output:
-;   A:X   const  value
+;   A:X   value
 ;--------------------------
 get_value: ; -- i 
 	ld a,(x) ; record size 

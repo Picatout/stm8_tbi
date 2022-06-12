@@ -35,14 +35,14 @@ Cependant pour des fins d'impression des chaînes de caractères entre guillemet
 
 Le type caractère est aussi disponible sous la forme **\c** i.e. un *backslash* suivit d'un caractère ASCII. 
 
-Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()**. Qui retourne un jeton de type **TK_CHAR**. Ce type de donnée ne peut-être sauvegardé dans une variable sauf en utilisant la fonction **ASC()** qui le convertie ent type **TK_INTGR** qui peut-être sauvegardé dans une variable ou utilisé dans une expression.  
+Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()**. Qui retourne un jeton de type **TK_CHAR**. Les fonctions qui retourne un jeton **TK_CHAR** peuvent-être utilisées dans une expression arithmétique, dans ce cas la valeur est convertie en type **TK_INTGR** automatiquement.  
 
 [index principal](#index-princ)
 
 <a id="variables"></a>
 ### Variables 
 
-Le nombre des variables est limité à 26 et chacune d'elle est représentée par une lettre de l'alphabet. 
+Dans la version **1.x**, Le nombre des variables était limité à 26, chacune d'elle étant représentée par une lettre de l'alphabet. 
 
 La version **2.x** ajoute les variables définies par la commande [DIM](#dim). Ces variables peuvent avoir un nom d'un maximum de 15 caractères.
 
@@ -50,15 +50,18 @@ La version **2.x** ajoute les variables définies par la commande [DIM](#dim). C
 
 Il n'y a qu'un seul tableau appelé **@** et dont la taille dépend de la taille du programme. En effet ce tableau utilise la mémoire RAM laissée libre par le programme. Un programme peut connaître la taille de ce tableau en invoquant la fonction **UBOUND**. Si le programme s'exécute à partir de la mémoire FLASH alors toute la RAM à l'exception de celle utilisée par le système BASIC est disponible pour le tableau **@**. 
 
+Depuis la version **2.0**.  Le tableau **@** partage la mémoire RAM restante avec les constantes définies avec la directive [CONST](#const) et les variables définies avec la directive [DIM](#dim). Cependant le système réserve l'espace pour un tableau **@** de dimension **10**. 
+
 ### Symboles et étiquettes
 
 Depuis la version **2.x** Il est possible de définir des noms symboliques d'au maximum 15 caractères. Ces noms doivent débuté par une lettre suivit de lettres, chiffres et des caractères **'_'**, **'.'** ainsi que **'?'**.  Ces symboles ont 3 usages.
 
-* Une __Étiquette__ est un symbole placé en début de ligne et qui peut servir de cible à une commande [GOTO](#goto) ou [GOSUB](#gosub). Une étiqutte sur la permière ligne d'un programme sert à identifié le nom du programme pour la commande [DIR](#dir).
+<a id="label"></a>
+1. Une __Étiquette__ est un symbole placé en début de ligne et qui peut servir de cible à une commande [GOTO](#goto) ou [GOSUB](#gosub). Une étiqutte sur la permière ligne d'un programme sert à identifié le nom du programme pour la commande [DIR](#dir).
 
-* La version **2.x** ajoute la directive  [CONST](#const) qui permet de définir des constantes symboliques dans un programme. Les noms de constantes obéissent aux même critères que les étiquettes.  
+1. La version **2.x** ajoute la directive  [CONST](#const) qui permet de définir des constantes symboliques dans un programme. Les noms de constantes obéissent aux même critères que les étiquettes.  
 
-* La version **2.x** ajoute la directive [DIM](#dim) qui permet de définir des variables symboliques dans un programme. Les noms de variables obéissent aux même critères ques les étiquettes.
+1. La version **2.x** ajoute la directive [DIM](#dim) qui permet de définir des variables symboliques dans un programme. Les noms de variables obéissent aux même critères ques les étiquettes.
 Donc la version **2.x** n'est plus limitées au 26 lettres de l'alphabet comme nom de variables. Notez cependant que les variables nommées par une lettre **A..Z** sont plus rapide d'accès puisque leur adresse est connue par le compilateur alors que les variables définies par [DIM](#dim) doivent-être recherchées dans un table à chaque invocation.
 
 [index principal](#index-princ)
@@ -67,7 +70,7 @@ Donc la version **2.x** n'est plus limitées au 26 lettres de l'alphabet comme n
 
 Il y a 5 opérateurs arithmétiques par ordre de précédence:
 1. **'(' ')'** les expressions entre parenthèses ont la plus hautre priorité.  
-1. **'-'**  moins unaire, qui a la plus haute priorité.
+1. **'-'**  moins unaire, qui a la plus haute priorité après les parenthèses.
 1.  __'*'__ mulitipliation, **'/'** division, **'%'** modulo 
 1. **'+'** addition, **'-'** soustraction.
 
@@ -77,7 +80,7 @@ La division est tronquée vers le zéro et le quotient à le même signe que le 
 
 Les opérateurs relationnels ont une priorités inférieure à celle des opérateurs arithmétiques. Le résultat d'une relation est **0 si fuax et -1 si vrai**. Ce résultat peut-être utilisé dans une expression arithmérique. Puisque les relations sont de moindre priorité elle doivent-être misent entre parenthèses lorsqu'elles sont utilisées dans une expression arithmétique.
 
-1. **'&gt;'**   Retourne vrai si le premier terme est plus grand que le deuxième.
+1. **'&gt;'**   Retourne vrai si le premier terme est plus grand que le second.
 1. **'&lt;'** Retourne vrai si le premier terme est plus petit que le second.
 1. **'&gt;='** Retourne vrai si le premier terme est plus grand ou égal au second. 
 1. **'&lt;='** Retourne vrai si le premier terme est plus petit ou égal au second. 
@@ -89,15 +92,17 @@ Les opérateurs relationnels ont une priorités inférieure à celle des opérat
 Les opérateurs **AND**,**NOT**, **OR** et **XOR** effectuent des opérations bit à bit mais peuvent-être aussi utilisés comme opérateurs en logique combinatoire. Si ces opérateurs sont utilisés avec le résultat d'une relation alors le résultat est le même que pour un opérateur logique du même nom. C'est à dire que le résultat sera **0** ou **-1**.
 par exemple:
 ```
-> ? 3 AND 5 
-   1  
+a=3 ? a and 5
+ 1
+
 ``` 
 Dans cet exemple le **AND** agit comme un opérateur bit à bit comme l'instruction machine du même nom. 
 ```
-> a=3: if a>2 and a<4 ? a
-   3 
+>? a>2 and a<4
+ -1
+>
 ```
-Dans ce 2ième exemple l'opérateur **AND** agit comme un  opérateur en logique combinatoire. 
+Dans ce 2ième exemple l'opérateur **AND** agit comme un  opérateur en logique combinatoire et retourne -1 (VRAI).
 
 Ces opérateurs ont une plus faible priorité que les opérateurs de comparaison. Entre eux ils ont la priorité suivante.
 
@@ -123,24 +128,22 @@ Les opérateurs de priorité identiques sont évalués de gauche à droite. Les 
 
 Le code utilisé pour le texte est le code [ASCII](https://fr.wikipedia.org/wiki/American_Standard_Code_for_Information_Interchange).
 
-Un programme débute par un numéro de ligne suivit d'une ou plusieurs commandes séparées par le caractère **':'**. Ce caractère est facultatif, l'espace entre les commandes est suffisant pour les distinguées.  Par exemple:
+Un programme débute par un numéro de ligne suivit d'une ou plusieurs commandes séparées par l'espace ou le caractère **':'**. Ce caractère est facultatif, l'espace entre les commandes est suffisant pour les distinguées.  Par exemple:
 ```
 >t=ticks for i=1 to 10000 a=10 next i ? ticks-t
-395 
+392 
 ```
 fonctionne sans problème.
 
 Une commande est suivie de ses arguments séparés par une virgule. Les arguments des fonctions doivent-être mis entre parenthèses. Par fonction j'entends une sous-routine qui retourne une valeur. Cependant une fonction qui n'utilise pas d'arguments n'est pas suivie de parenthèses. Les commandes , c'est à dire les sous-routines qui ne retoune pas de valeur, reçoivent leur arguments sans parenthèses. 
 
-Les *espaces* entre les *unitées lexicales* sont facultatifs sauf s'il y a ambiguité. Par exemple si le nom d'un commande est immédiatement suivit par le nom d'une variable un espace doit les séparer. 
+l'espace entre les unités lexicales est optionnel s'il n'y a pas d'embuiguité sur la séparation des unités lexicale.
 ```
->t=ticks for i=1to10000 a=10 next i ? ticks-t
-run time error, syntax error
+?3*5  ' ici il n'y a pas d'ambiguité.
+ 15 
 
->t=ticks for i=1to 10000 a=10 next i ? ticks-t
- 395 
+> for i=1to 100 ? i; next i  ' ici il faut un espace entre 'to' et '100' 
 ```
-Dans le premier cas il y a une erreur car il doit y avoir un espace entre le **TO** et le **10000**. Puisque les chiffres peuvent-être utilisés dans les noms d'étiquettes ou de constantes l'analyseur lexical voit **TO10000** comme 1 seul mot. 
 
 Cependant il n'est pas nécessaire de mettre un espace entre le *1** et le **TO** car lorsqu'une unité lexicale commence par un chiffre 
 il est évident que c'est un entier et l'analyseur s'arrête au dernier chiffre de l'entier. 
@@ -149,6 +152,12 @@ Les commandes peuvent-être entrées indifféremment en minuscule ou majuscule.
 L'analyseur lexical convertie les lettres en  majuscule sauf à l'intérieur d'une chaîne entre guillemets.
 
 Les commandes peuvent-être abrégées au plus court à 2 caractères à condition qu'il n'y est pas d'ambiguité entre 2 commandes. L'abréviation doit-être d'au moins 2 lettres pour éviter la confusion avec les variables. Par exemple **GOTO** peut-être abrégé **GO** et **GOSUB** peut-être abrégé **GOS**. La recherche dans le dictionnaire se fait de la fin vers le début donc le **GOTO** est atteint avant le **GOSUB** voilà pourquoi **GO** peut-être utilisée pour le représenté.
+
+Depuis la version **2.x** les abbréviations de commandes ne fonctionnent plus. Elles venaient en conflit avec les noms de variables court. Par exemple:
+```
+10 DIM PI=31416 
+```
+Le compilateur recherchait **PI** dans le dictionnaire des mots réservés et trouvait **PICK** ce qui générait une erreur au moment de l'exécution. J'ai donc modifié la routine *search_dict* pour refuser les abbréviations.
 
 Certaines commandes sont représentées facultativement par une caractère unique. Par exemple la commande **PRINT** peut-être remplacée par le caractère **'?'**. La commande **REM** peut-être remplacée par un apostrophe (**'**). 
 
@@ -208,9 +217,9 @@ version 2.0
 
 Certaines commandes ne peuvent-être utilisées qu'à l'intérieur d'un programme et d'autres seulement en mode ligne de commande. L'exécution est interrompue et un message d'erreur est affiché si une commande est utilisée dans un contexte innaproprié. 
 
-Le programme en mémoire RAM est perdu à chaque réinitialiation du processeur sauf s'il a été sauvegardé en mémoire flash avec la commande [SAVE](#save). Le programme sauvegardé en mémoire flash s'exécute automatiquement lors de la mise sous tension ou d'une réinitialisation de la carte.
+Le programme en mémoire RAM est perdu à chaque réinitialiation du processeur sauf s'il a été sauvegardé en mémoire flash avec la commande [SAVE](#save). Si un programme doit-être sauvegardé en mémoire FLASH il doit comprendre au début de la première ligne une [étiquette](#label) pour être identifié par la commande [DIR](#dir). 
 
-Notez qu'il peut-être intéressant d'écrire vos programmes sur le PC avec un éditeur de texte qui accepte  l'encodage ASCII ou UTF8. Les fichiers sur le PC peuvent-être envoyé à la carte avec le script [send.sh](send.sh) qui est dans le répertoire racine. Ce script fait appel à l'utilitaire [SendFile](BASIC/SendFile).
+Notez qu'il peut-être intéressant d'écrire vos programmes sur le PC avec un éditeur de texte qui accepte  l'encodage ASCII ou UTF8. Les fichiers sur le PC peuvent-être envoyer à la carte avec le script [send.sh](send.sh) qui est dans le répertoire racine. Ce script fait appel à l'utilitaire [SendFile](BASIC/SendFile).
 
 ### Commandes d'édition
 
@@ -239,115 +248,115 @@ la remarque **{C,P}** après le nom de chaque commande indique dans quel context
 
 <a id="index"></a>
 ## INDEX du vocabulaire
-nom|abrévation
+nom|description 
 -|-
-[ABS](#abs)|AB
-[ADCON](#adcon)|ADCO
-[ADCREAD](#adcread)|ADCR
-[ALLOC](#alloc)|AL 
-[AND](#and)|AN
-[ASC](#asc)|AS
-[AUTORUN](#autorun)|AU 
-[AWU](#awu)|AW 
-[BIT](#bit)|BI
-[BRES](#bres)|BR
-[BSET](#bset)|BS
-[BTEST](#btest)|BTE
-[BTOGL](#btogl)|BTO
-[BYE](#bye)|BY
-[CHAIN](#chain)|CHAI 
-[CHAR](#char)|CH
-[CONST](#const)|CO 
-[CR1](#cr1)|CR1
-[CR2](#cr2)|CR2
-[DATA](#data)|DATA
-[DDR](#ddr)|DD
-[DEC](#dec)|DE
-[DIM](#dim)|DIM 
-[DIR](#dir)|DI 
-[DO](#do)|DO
-[DREAD](#dread)|DRE
-[DROP](#drop)|DR
-[DWRITE](#dwrite)|DW
-[EDIT](#edit)|ED
-[EEFREE](#eefree)|EEF
-[EEPROM](#eeprom)|EE 
-[END](#end)|EN
-[ERASE](#erase)|ER 
-[FCPU](#fcpu)|FC 
-[FOR](#for)|FO
-[FREE](#free)|FR
-[GET](#get)|GE 
-[GOSUB](#gosub)|GOS
-[GOTO](#goto)|GOT
-[HEX](#hex)|HE
-[IDR](#idr)|ID
-[IF](#if)|IF
-[INPUT](#input)|IN
-[IWDGEN](#iwdgen)|IDGE
-[IWDGREF](#iwdgref)|IWGR
-[KEY](#key)|KEY
-[KEY?](#qkey)|KE
-[LET](#let)|LE
-[LIST](#list)|LI
-[LOG2](#log)|LO
-[LSHIFT](#lshift)|LS
-[NEW](#new)|NE
-[NEXT](#next)|NEX
-[NOT](#not)|NO
-[ODR](#odr)|OD
-[ON](#on)|ON 
-[OR](#or)|OR
-[PAD](#pad)|PA
-[PAUSE](#pause)|PA
-[PEEK](#peek)|PE
-[PICK](#pick)|PIC
-[PINP](#pinp)|PI
-[PMODE](#pmode)|PM
-[POKE](#poke)|POK
-[POP](#pop)|POP 
-[POUT](#pout)|POU 
-[PRINT](#print)|?
-[PORTA](#prtx)|PORTA
-[PORTB](#prtx)|PORTB
-[PORTC](#prtx)|PORTC
-[PORTD](#prtx)|PORTD
-[PORTE](#prtx)|PORTE
-[PORTF](#prtx)|PORTF
-[PORTG](#prtx)|PORTG
-[PORTI](#prtx)|PORTI
-[PUSH](#push)|PUS
-[PUT](#put)|PU
-[READ](#read)|REA
-[REBOOT](#reboot)|REB
-[REM](#rem)|'
-[RESTORE](#restore)|RES
-[RETURN](#return)|RET
-[RND](#rnd)|RN
-[RSHIFT](#rshift)|RS
-[RUN](#run)|RU
-[SAVE](#save)|SA 
-[SIZE](#size)|SI 
-[SLEEP](#sleep)|SL
-[SPIEN](#spien)|SPIE
-[SPIRD](#spird)|SPIR
-[SPISEL](#spisel)|SPIS
-[SPIWR](#spiwr)|SPIW
-[STEP](#step)|STE
-[STOP](#stop)|ST
-[TICKS](#ticks)|TI
-[TIMEOUT](#timeout)|TIMEO
-[TIMER](#timer)|TIMER
-[TO](#to)|TO
-[TONE](#tone)|TON
-[UBOUND](#ubound)|UB
-[UFLASH](#uflash)|UF
-[UNTIL](#until)|UN
-[USR](#usr)|US
-[WAIT](#wait)|WA
-[WORDS](#words)|WO
-[WRITE](#write)|WR
-[XOR](#xor)|XO
+[ABS](#abs)|Fonction qui retourne la valeur absolue.
+[ADCON](#adcon)|active ou désactive le convertisseur analogue/numérique
+[ADCREAD](#adcread)|Lecture analogique d'une broche.
+[ALLOC](#alloc)| allocation d'espace sur la pile des expressions
+[AND](#and)| opérateur binaire ET
+[ASC](#asc)|Fonction qui retourne la valeur ASCII d'un caractère.
+[AUTORUN](#autorun)|Active l'exécution automatique d'un programme.
+[AWU](#awu)| met la carte en sommeil pour un temps déterminé.
+[BIT](#bit)| calcule le masque d'un bit. 
+[BRES](#bres)|met un bit à zéro.
+[BSET](#bset)|met un bit à 1.
+[BTEST](#btest)|Vérifie l'état d'un bit.
+[BTOGL](#btogl)|Inverse l'état d'un bit.
+[BYE](#bye)|met la carte en sommeil.
+[CHAIN](#chain)|Chaîne l'exécution d'un programme. 
+[CHAR](#char)|Fonction qui retourne le caractère ASCII correspondant au code.
+[CONST](#const)|Directive pour définir des constantes.
+[CR1](#cr1)|Constante système qui retourne l'offset du registre CR1 d'un port GPIO
+[CR2](#cr2)|Constante système qui retourne l'offset du registre CR2 d'un port GPIO
+[DATA](#data)|Directive débutant une ligne de données.
+[DDR](#ddr)|Constante système qui retourne l'offset du registre DDR d'un port GPIO
+[DEC](#dec)|Définie la base décimale pour l'impresssion des nombres.
+[DIM](#dim)|Directive pour définir des variables symboliques.
+[DIR](#dir)|Commande pour afficher la liste des programmes sauvegardés en mémoire FLASH.
+[DO](#do)|Directive débutant une boucle DO..UNTIL.
+[DREAD](#dread)|Lecture d'une broche GPIO en mode numérique.
+[DROP](#drop)| libère n éléments du sommet de la pile des expressions.
+[DWRITE](#dwrite)|Écriture d'une broche en mode numérique.
+[EDIT](#edit)|Charge en mémoire RAM un programme sauvegardé pour édition.
+[EEFREE](#eefree)|Retourne la première adresse EEPROM libre.
+[EEPROM](#eeprom)|Retourne l'adresse de début de l'EEPROM.
+[END](#end)|Termine l'exécution d'un programme.
+[ERASE](#erase)|Supprime un programme sauvegardé en mémoire FLASH.
+[FCPU](#fcpu)|Sélectionne la fréquence de fonctionnement du MCU.
+[FOR](#for)|Directive qui débute une boucle FOR..NEXT 
+[FREE](#free)|Retourne le nombre d'octets libre en mémoire rAM.
+[GET](#get)|Lecture d'un carctère dans une variable.
+[GOSUB](#gosub)|Appel d'une sous-routine
+[GOTO](#goto)|Branchement inconditionnel
+[HEX](#hex)|Définie la base hexadécimal comme fomrat pour l'impression des nombres.
+[IDR](#idr)|Constante système qui retourne l'offset du registre IDR d'un port GPIO.
+[IF](#if)|Directive d'exécution conditionnelle.
+[INPUT](#input)|Directive de lecture d'un nombre dans une variable.
+[IWDGEN](#iwdgen)|Activation de l'Independant Watchdog Timer.
+[IWDGREF](#iwdgref)|Raffrachie le IDWD avant qu'il n'expire.
+[KEY](#key)|Attend un caractère du termnal.
+[KEY?](#qkey)|Vérifie si un caractère es disponible du terminal.
+[LET](#let)|Affectation de varaiable.
+[LIST](#list)|Commande pour afficher le texte d'un programme.
+[LOG2](#log)|Retourne le log base 2 d'un entier.
+[LSHIFT](#lshift)|Décalage d'un entier vers la gauche.
+[NEW](#new)|Vide la mémoire RAM.
+[NEXT](#next)|Termine une boucle FOR..NEXT.
+[NOT](#not)|Opérateur d'inversion des bits d'un entier. i.e complément à 1.
+[ODR](#odr)|Constante système qui retourne l'offset du registre ODR d'un port GPIO
+[ON](#on)|Directive GOTO ou GOSUB sélectif. 
+[OR](#or)|Opérateur binaire OU.
+[PAD](#pad)|Constante système qui retourne l'adresse d'un tampon de 128 octets.
+[PAUSE](#pause)|suspend l'excétion pour un certains nombre de millisecondes.
+[PEEK](#peek)|Retourne la valeur de l'octet à l'adresse passé en argument.
+[PICK](#pick)|Retourne la valeur de l'entier à la position n sur la pile des expressions.
+[PINP](#pinp)|Lecture d'une broche en mode numérique sur un des connecteurs D.
+[PMODE](#pmode)|Sélectionne le mode entrée|sortie d'une broche sur un des connecteurs D.
+[POKE](#poke)|Dépose une valeur octet à l'adresse passée en argument.
+[POP](#pop)|Retire et retourne le sommet de la pile des arguments.
+[POUT](#pout)|Modifie la sortie numérique d'une des broches sur un connecteur D.
+[PRINT ou ?](#print)| Imprime sur le terminal une liste de valeurs. 
+[PORTA](#prtx)|Constante système qui retourne l'adresse du port GPIO A 
+[PORTB](#prtx)|Constante système qui retourne l'adresse du port GPIO B
+[PORTC](#prtx)|Constante système qui retourne l'adresse du port GPIO C
+[PORTD](#prtx)|Constante système qui retourne l'adresse du port GPIO D
+[PORTE](#prtx)|Constante système qui retourne l'adresse du port GPIO E
+[PORTF](#prtx)|Constante système qui retourne l'adresse du port GPIO F
+[PORTG](#prtx)|Constante système qui retourne l'adresse du port GPIO G
+[PORTI](#prtx)|Constante système qui retourne l'adresse du port GPIO I
+[PUSH](#push)|Empile la valeur de l'expression qui suit sur la pile des expressions.
+[PUT](#put)|Insère à la position n la valeur de l'expression sur la pile des expressions.
+[READ](#read)|Lecture d'une donnée sur une ligne DATA.
+[REBOOT](#reboot)|Redémarre la carte.
+[REM ou '](#rem)| Débute un commentaire.
+[RESTORE](#restore)|Réinitialise le pointeur DATA.
+[RETURN](#return)|Quitte une sous-routine.
+[RND](#rnd)|Retourne un nombre aléatoire.
+[RSHIFT](#rshift)|Décalage vers la droite d'un entier.
+[RUN](#run)|Commande pour lancer l'exécution d'un programme.
+[SAVE](#save)| Sauvegarde le programme en mémoire FLASH. 
+[SIZE](#size)| Commande qui affiche  l'information sur le programme actif.
+[SLEEP](#sleep)|Met le MCU en sommeil. Il peut-être réactivé par une interruption externe.
+[SPIEN](#spien)|Active un périphérique SPI
+[SPIRD](#spird)|Lecture du périphérique SPI
+[SPISEL](#spisel)|Sélectionne le périphérique SPI
+[SPIWR](#spiwr)|Écriture sur un périphérique SPI.
+[STEP](#step)|Détermine l'incrément dans une boucle FOR..NEXT.
+[STOP](#stop)|Arrête l'exécution d'un programme et renvoie à la ligne de commande.
+[TICKS](#ticks)|Retourne le nombre de millisecondes depuis le démarrage de la carte.
+[TIMEOUT](#timeout)|Fonction qui retourne VRAI si le TIMER a expiré.
+[TIMER](#timer)|Démarre la minuterie.
+[TO](#to)|Directive déterminant la limite d'une boucle FOR..NEXT.
+[TONE](#tone)|Génère une toanlité.
+[UBOUND](#ubound)|Retourne l'indice maximum du tableau @.
+[UFLASH](#uflash)|Retourne la première adresse libre de la mémoire FLASH.
+[UNTIL](#until)|Directive qui termine une boucle DO..UNTIL.
+[USR](#usr)|Apple d'une routine écrite en code machine.
+[WAIT](#wait)|Moditeur l'état d'une broche et attend jusqu'à l'état désiré 
+[WORDS](#words)|Affiche la liste des mots réservés.
+[WRITE](#write)|Écriture de donnés dans la mémoire FLASH ou EEPROM.
+[XOR](#xor)|opérateur binaire OU exclusif.
 
 [index principal](#index-princ)
 <hr>
