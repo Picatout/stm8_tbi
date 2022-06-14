@@ -1,3 +1,13 @@
+#### 2022-06-14
+
+* Modifié routine *decompile* pour décompiler directement vers le terminal sans passer par un tampon.
+
+* Ajout de la commande **TRACE** qui envoie au terminal le no de ligne en cours d'exécution.
+
+#### 2022-06-13
+
+* Écriture de [i2c_test.bas](BASIC/i2c_test_.bas) 
+
 #### 2022-06-12
 
 * Commit 11:34 

@@ -150,6 +150,7 @@ prt_reg16:
 	R_A=1
 	VSIZE=8 
 print_registers:
+	push base 
 	push cc 
 	_vars VSIZE 
 	ld (R_A,sp),a 
@@ -197,7 +198,8 @@ print_registers:
 	ldw x,(R_X,sp)
 	ldw y,(R_Y,sp)
 	_drop VSIZE
-	pop cc   	
+	pop cc  
+	pop base  	
 	ret
 
 STATES:  .asciz "\nRegisters state at break point.\n--------------------------\n"

@@ -440,6 +440,9 @@ next_line:
 	ld a,(2,x)
 	ld count,a 
 	mov in,#3 ; skip first 3 bytes of line 
+	btjf flags,#FTRACE,interp_loop 
+	ldw x,(x)
+	call prt_i16
 interp_loop:
 	call next_token
 	cp a,#TK_NONE 
@@ -2121,7 +2124,7 @@ remark::
 
 
 ;---------------------
-; BASIC: WAIT addr,mask[,xor_mask] 
+; BASIC: WAIT addr,mask[,xor_mask]
 ; read in loop 'addr'  
 ; apply & 'mask' to value 
 ; loop while result==0.  
@@ -2129,10 +2132,10 @@ remark::
 ; invert the wait logic.
 ; i.e. loop while not 0.
 ;---------------------
-	XMASK=1 
-	MASK=2
-	ADDR=3
-	VSIZE=4
+	XMASK=1 ; 1 byte 
+	MASK=2  ; 1 byte 
+	ADDR=3  ; 1 word 
+	VSIZE=4 
 wait: 
 	_vars VSIZE
 	clr (XMASK,sp) 
@@ -2148,7 +2151,7 @@ wait:
 1$: _xpop ; mask
     ld a,xl  
 	ld (MASK,sp),a 
-	_xpop ; address 
+	_xpop ; address
 2$:	ld a,(x)
 	and a,(MASK,sp)
 	xor a,(XMASK,sp)
@@ -2656,7 +2659,10 @@ jp_to_target:
 	ld a,(2,x)
 	ld count,a 
 	mov in,#3 
-	ret 
+	btjf flags,#FTRACE,9$ 
+	ldw x,(x)
+	call prt_i16 
+9$:	ret 
 
 
 ;--------------------
@@ -5045,6 +5051,24 @@ cmd_chain:
 	jp (x)
 
 
+;-----------------------------
+; BASIC TRACE 0|1 
+; disable|enable line# trace 
+;-----------------------------
+cmd_trace:
+	call runtime_only
+	call next_token
+	cp a,#TK_INTGR
+	jreq 1$ 
+	jp syntax_error 
+1$: call get_int24 
+    tnzw x 
+	jrne 2$ 
+	bres flags,#FTRACE 
+	ret 
+2$: bset flags,#FTRACE 
+	ret 
+
 ;------------------------------
 ;      dictionary 
 ; format:
@@ -5073,6 +5097,7 @@ kword_end:
 	_dict_entry,5,UNTIL,until 
 	_dict_entry,6+F_IFUNC,UFLASH,uflash 
 	_dict_entry,6+F_IFUNC,UBOUND,ubound
+	_dict_entry,5,TRACE,cmd_trace 
 	_dict_entry,4,TONE,tone  
 	_dict_entry,2,TO,to
 	_dict_entry,5,TIMER,set_timer
