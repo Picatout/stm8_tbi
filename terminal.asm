@@ -137,13 +137,56 @@ uart1_set_baud:
 	pop a  
 	ret
 
+
+;---------------------------------
+;  set output vector 
+;  input:
+;     A     STDOUT -> uart1 
+;           BUFOUT -> [ptr16]
+;---------------------------------
+set_output:
+	cp a,#STDOUT 
+	jreq 1$
+	cp a,#BUFOUT 
+	jrne 9$  
+	ldw ptr16,x 
+	ldw x,#buf_putc 
+	ldw out,x 
+	ret 
+1$: ldw x,#uart1_putc 
+	ldw out,x 
+9$:	ret 
+
+
+;---------------------------------
+;  vectorized character output 
+;---------------------------------
+putc:
+	pushw x 
+	ldw x,out 
+	call (x)
+	popw x 
+	ret 
+
+;---------------------------------
+; output character to a buffer 
+; pointed by ptr16
+;---------------------------------
+buf_putc:
+	ld [ptr16],a
+	inc ptr8 
+	jrnc 9$
+	inc ptr16 
+9$:	clr [ptr16] 
+	ret 
+
+
 ;---------------------------------
 ; uart1_putc
 ; send a character via UART1
 ; input:
 ;    A  	character to send
 ;---------------------------------
-putc:: ; console output always on UART1
 uart1_putc:: 
 	btjf UART1_SR,#UART_SR_TXE,.
 	ld UART1_DR,a 
@@ -383,6 +426,14 @@ move_right:
 
 
 ;--------------------------
+; output a single space
+;--------------------------
+space:
+	ld a,#SPACE 
+	call putc 
+	ret 
+
+;--------------------------
 ; print n spaces on terminal
 ; input:
 ;  X 		number of spaces 
@@ -606,10 +657,8 @@ readln_loop:
 	jrne 6$
 ;edit line number 
 	ldw x,#tib 
-	ldw (YTEMP,sp),y  
 	ldw y,(VSIZE+1,sp) ; restore xstack pointer 
 	call atoi24
-	ldw y,(YTEMP,sp) ; restore tib pointer 
 	clr a
 	call search_lineno
 	tnzw x 
@@ -622,8 +671,13 @@ readln_loop:
 	ldw basicptr,x
 	ld a,(2,x)
 	ld count,a 
-	ldw y,#tib 
-	call decompile 
+	ldw x,#tib 
+	ld a,#BUFOUT 
+	call set_output
+	mov in,#3
+	call decompile
+	ld a,#STDOUT 
+	call set_output 
 	clr (LL_HB,sp)
 	ld a,#CR 
 	call putc 

@@ -259,7 +259,9 @@ cold_start:
 ; UART1 at 115200 BAUD
 ; used for user interface 
 ; via USB emulation through STLINK programmer.
-	call uart1_init
+	ldw x,#uart1_putc 
+	ldw out,x 
+	call uart1_init 
 ; activate PE_4 (user button interrupt)
     bset PE_CR2,#USR_BTN_BIT 
 ; display system information

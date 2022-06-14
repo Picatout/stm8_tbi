@@ -1,5 +1,11 @@
 #### 2022-06-14
 
+* commit 16:30
+
+* Vectorisé la routine *putc* à travers la variable système ajoutée *out*. 
+
+* Ajout des routines *set_output* et *buf_output* dans [terminal.asm](terminal.asm).
+
 * Modifié routine *decompile* pour décompiler directement vers le terminal sans passer par un tampon.
 
 * Ajout de la commande **TRACE** qui envoie au terminal le no de ligne en cours d'exécution.

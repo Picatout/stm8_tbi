@@ -59,6 +59,10 @@
         NAME_MAX_LEN=15  ; CONST and DIM variables maximum length 
         REC_XTRA_BYTES=5 
         REC_LEN_MASK=31
+
+        STDOUT=1 ; output to uart1 
+        BUFOUT=3 ; buffered output  
+
 ;--------------------------------------
 ;   constantes related to Arduino 
 ;   API mapping 

@@ -37,55 +37,6 @@
 
     .area  CODE 
 
-;-------------------------
-; copy command name to buffer  
-; input:
-;   X 	name address 
-;   Y   destination buffer 
-; output:
-;   Y   point after name  
-;--------------------------
-cpy_cmd_name:
-	tnzw x 
-	jreq 10$
-	ld a,(x)
-	incw x
-	and a,#15  
-	push a 
-    tnz (1,sp) 
-	jreq 9$
-1$:	ld a,(x)
-	ld (y),a  
-	incw x
-	incw y 
-	dec (1,sp)	 
-	jrne 1$
-9$: pop a 
-10$: 
-	ret	
-
-;--------------------------
-; add a space after letter or 
-; digit.
-; input:
-;   Y     pointer to buffer 
-; output:
-;   Y    moved to end 
-;--------------------------
-add_space:
-	decw y 
-	ld a,(y)
-	incw y
-	cp a,#') 
-	jreq 0$
-	call is_symbol_char
-	jrnc 1$
-0$: 
-	ld a,#SPACE 
-	ld (y),a 
-	incw y 
-1$: ret 
-
 ;--------------------------
 ;  align text in buffer 
 ;  by  padding left  
@@ -123,15 +74,10 @@ right_align::
 ; to backslash sequence
 ; input:
 ;   X        char *
-;   Y        dest. buffer 
-; output:
-;   X        moved forward 
-;   Y        moved forward 
 ;-----------------------------
-cpy_quote:
+prt_quote:
 	ld a,#'"
-	ld (y),a 
-	incw y 
+	call putc 
 	pushw x 
 	call skip_string 
 	popw x 
@@ -140,18 +86,15 @@ cpy_quote:
 	incw x 
 	cp a,#SPACE 
 	jrult 3$
-	ld (y),a
-	incw y 
+	call putc 
 	cp a,#'\ 
 	jrne 1$ 
 2$:
-	ld (y),a
-	incw y  
+	call putc 
 	jra 1$
 3$: push a 
 	ld a,#'\
-	ld (y),a 
-	incw y  
+	call putc  
 	pop a 
 	sub a,#7
 	ld acc8,a 
@@ -160,12 +103,12 @@ cpy_quote:
 	ldw x,#escaped 
 	addw x,acc16 
 	ld a,(x)
+	call putc 
 	popw x
-	jra 2$
-9$: ld a,#'"
-	ld (y),a 
-	incw y  
-	incw x 
+	jra 1$
+9$:
+	ld a,#'"
+	call putc  
 	ret
 
 ;--------------------------
@@ -185,26 +128,22 @@ var_name::
 		ret 
 
 
-
 ;-------------------------------------
 ; decompile tokens list 
 ; to original text line 
 ; input:
-;   [basicptr]  pointer at line 
-;   Y           output buffer
-; output:
-;   A           length 
-;   Y           after string  
+;   basicptr  pointer at line 
+;   count     stop position.
+;   in.w      #3 
 ;------------------------------------
-	BASE_SAV=1
-	STR=2
-	VSIZE=3 
+	BASE_SAV=1 ; 1 byte 
+	PSTR=2     ;  1 word 
+	VSIZE=3
 decompile::
 	_vars VSIZE
 	ld a,base
 	ld (BASE_SAV,sp),a  
-	ldw (STR,sp),y   
-	ldw x,[basicptr] ; line number 
+	ldw x,[basicptr]
 	mov base,#10
 	clr acc24 
 	ldw acc16,x
@@ -212,37 +151,26 @@ decompile::
 	call itoa  
 	ld a,#5 
 	call right_align 
-	push a 
-1$:	ldw y,x ; source
-	ldw x,(STR+1,sp) ; destination
-	call strcpy 
-	clrw y 
-	pop a 
-	ld yl,a 
-	addw y,(STR,sp)
+	call puts
 	ld a,#SPACE 
-	ld (y),a 
-	incw y 
-	ldw x,#3
-	ldw in.w,x 
+	call putc   
 decomp_loop:
-	pushw y
-	call next_token 
-	popw y 
+	ld a,in 
+	cp a,count
+	jrult 0$ 
+	jp decomp_exit 
+0$:	call next_token 
 	tnz a  
-	jrne 1$
-	jp 20$
 1$:	jrmi 2$
 	jp 6$
 2$: ;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR|TK_AND|TK_OR|TK_XOR 
 	cp a,#TK_VAR 
 	jrne 3$
 ;; TK_VAR 
-	call add_space
+	call space
 	call get_addr   
 	call var_name
-	ld (y),a 
-	incw y  
+	call putc  
 	jra decomp_loop
 3$:
 	cp a,#TK_INTGR
@@ -251,43 +179,21 @@ decomp_loop:
 	call get_int24 
 	ld acc24,a 
 	ldw acc16,x 
-	call add_space
-	pushw y 
-	ld a,#255 ; signed conversion 
-	call itoa  
-	ldw y,(1,sp) 
-	push a 
-	exgw x,y 
-	call strcpy 
-	clrw y
-	pop a  
-	ld yl,a 
-	addw y,(1,sp)
-	_drop 2 
+	call prt_acc24
 	jra decomp_loop
 4$: ; dictionary keyword
 	cp a,#TK_NOT 
 	jruge 50$ 
-	ldw x,(x)
-	inc in 
-	inc in 
+	call get_addr
 	cpw x,#remark 
 	jrne 5$
-	ldw x,basicptr 
-; copy comment to buffer 
-	call add_space
+; print comment
 	ld a,#''
-	ld (y),a 
-	incw y 
-46$:
-	ld a,([in.w],x)
-	inc in  
-	ld (y),a 
-	incw y 
-	ld a,in 
-	cp a,count 
-	jrmi 46$
-	jp 20$  
+	call putc
+	ldw x,basicptr
+	addw x,in.w 
+	call puts 
+	jp decomp_exit 
 5$: cpw x,#let  
 	jrne 54$
 	jp decomp_loop ; down display LET
@@ -295,56 +201,47 @@ decomp_loop:
 	clrw x 
 	ld xl,a 
 54$: ; insert command name 
-	call add_space  
-	pushw y
+	call space  
+	pushw y 
 	call cmd_name
 	popw y 
-	call cpy_cmd_name
+	call print_word  
 	jp decomp_loop 
 6$:
 ; label?
 	cp a,#TK_LABEL 
 	jrne 64$
-; copy label string to output buffer   	
-	ld a,#32 
-	ld (y),a 
-	incw y 
-61$:
+; print label   	
+	ld a,in
+	cp a,#4 
+	jreq 62$
+	call space 
+62$:
 	pushw x 
-	call skip_string 
+	call skip_string
 	popw x 
-62$:	
-	ld a,(x)
-	jreq 63$ 
-	incw x  
-	ld (y),a 
-	incw y 
-	jra 62$ 
-63$: 
-	ld a,#32 
-	ld (y),a 
-	incw y 
+_dbg_prt_regs	
+	call puts 
+	call space 
 	jp decomp_loop
 64$:
 	cp a,#TK_QSTR 
 	jrne 7$
 ;; TK_QSTR
-	call add_space
-	call cpy_quote  
+	call space
+	call prt_quote  
 	jp decomp_loop
 7$:
 	cp a,#TK_CHAR 
 	jrne 9$
 ;; TK_CHAR
-	call add_space 
+	call space 
 	ld a,#'\ 
-	ld (y),a 
-	incw y
+	call putc 
 	ld a,(x)
 	inc in  
 8$:
-	ld (y),a 
-	incw y 
+	call putc  
 82$:
 	jp decomp_loop
 9$: 
@@ -383,18 +280,13 @@ decomp_loop:
 	ldw x,(x)
 	ld a,(x)
 	incw x 
-	ld (y),a
-	incw y 
+	call putc 
 	ld a,(x)
 	jrne 8$
 	jp decomp_loop 
-20$: 
-	clr (y)
-	ldw x,(STR,sp)
+decomp_exit: 
 	ld a,(BASE_SAV,sp)
 	ld base,a 
-	subw y,(STR,sp) 
-	ld a,yl 
 	_drop VSIZE 
 	ret 
 

@@ -94,6 +94,8 @@ rx1_tail:   .blkb 1 ; rx1_queue tail pointer
 dvar_bgn:: .blkw 1 ; DIM variables start address 
 dvar_end:: .blkw 1 ; DIM variables end address 
 chain_level: .blkb 1 ; increment for each CHAIN command 
+out: .blkw 1 ; output char routine address 
+
 ; 24 bits integer variables 
 vars:: .blkb 3*26 ; BASIC variables A-Z,
 
@@ -272,7 +274,9 @@ system_information:
 	ret
 
 warm_init:
-	ldw y,#XSTACK_EMPTY  
+	ldw y,#XSTACK_EMPTY
+	ldw x,#uart1_putc 
+	ldw out,x ; standard output   
 	clr flags 
 	clr loop_depth 
 	mov base,#10 
@@ -1890,7 +1894,7 @@ cmd_edit:
 	popw y  
 	ret 
 
-;--------------------------
+;---------------------------------
 ; decompile line from token list
 ; and print it. 
 ; input:
@@ -1898,21 +1902,14 @@ cmd_edit:
 ;   X 		pointer at line
 ; output:
 ;   none 
-;--------------------------	
+;----------------------------------	
 prt_basic_line:
-	pushw y 
+	ldw basicptr,x
 	ld count,a 
-	ld a,(2,x)
-	cp a,count 
-	jrpl 1$ 
-	ld count,a 
-1$:	ldw basicptr,x 
-	ldw y,#tib  
-	call decompile 
-	call puts 
+    mov in,#3 
+	call decompile
 	ld a,#CR 
 	call putc 
-	popw y 
 	ret 
 
 
@@ -4121,38 +4118,30 @@ random:
 ; dictionnaire ainsi que le nombre
 ; de mots.
 ;---------------------------------
-	WLEN=1 ; word length
-	LLEN=2 ; character sent to console
-	WCNT=3 ; count words printed 
-	VSIZE=3 
+	COL_CNT=1 ; column counter 
+	WCNT=2 ; count words printed 
+	VSIZE=2 
 words:
 	call cmd_line_only
 	pushw y
 	_vars VSIZE
-	clr (LLEN,sp)
+	ld a,#5 
+	ld (COL_CNT,sp),a 
 	clr (WCNT,sp)
 	ldw y,#kword_dict+2
 0$:	ldw x,y
-	ld a,(x)
-	and a,#15 
-	ld (WLEN,sp),a 
+	call print_word 
 	inc (WCNT,sp)
-1$:	incw x 
-	ld a,(x)
+	dec (COL_CNT,sp)
+	jreq 2$    
+	ld a,#TAB  
+	call putc
 	call putc 
-	inc (LLEN,sp)
-	dec (WLEN,sp)
-	jrne 1$
-	ld a,#70
-	cp a,(LLEN,sp)
-	jrmi 2$   
-	ld a,#SPACE 
-	call putc 
-	inc (LLEN,sp) 
 	jra 3$
 2$: ld a,#CR 
 	call putc 
-	clr (LLEN,sp)
+	ld a,#5 
+	ld (COL_CNT,sp),a 
 3$:	subw y,#2 
 	ldw y,(y)
 	jrne 0$ 
@@ -4168,6 +4157,25 @@ words:
 	popw y 
 	ret 
 words_count_msg: .asciz " words in dictionary\n"
+
+;---------------------------
+;  print counted string 
+;  input:
+;    X     *ctring 
+;--------------------------
+	WLEN=1 ;1 byte 
+print_word: 
+	ld a,(x)
+	and a,#NAME_MAX_LEN
+	push a 
+1$: incw x 
+	ld a,(x)
+	call putc 
+	dec (WLEN,sp)
+	jrne 1$ 
+	pop a 		
+	ret 
+
 
 
 ;-----------------------------
