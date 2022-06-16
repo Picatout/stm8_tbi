@@ -75,11 +75,11 @@ Uart1RxHandler: ; console receive char
 2$:
 	cp a,#CAN ; CTRL_X 
 	jrne 3$
-	jp cold_start 	
+	_swreset 	
 3$:	cp a,#CTRL_Z 
 	jrne 4$
 	call clear_autorun
-	jp cold_start 
+	_swreset 
 4$:
 	push a 
 	ld a,#rx1_queue 
@@ -145,21 +145,21 @@ uart1_set_baud:
 ;           BUFOUT -> [ptr16]
 ;---------------------------------
 set_output:
+	ldw ptr16,x 
+	ldw x,#uart1_putc 
 	cp a,#STDOUT 
 	jreq 1$
 	cp a,#BUFOUT 
 	jrne 9$  
-	ldw ptr16,x 
 	ldw x,#buf_putc 
-	ldw out,x 
-	ret 
-1$: ldw x,#uart1_putc 
-	ldw out,x 
+1$: ldw out,x 
 9$:	ret 
 
 
 ;---------------------------------
 ;  vectorized character output 
+;  input:
+;     A   character to send 
 ;---------------------------------
 putc:
 	pushw x 
@@ -171,6 +171,8 @@ putc:
 ;---------------------------------
 ; output character to a buffer 
 ; pointed by ptr16
+; input:
+;    A     character to save 
 ;---------------------------------
 buf_putc:
 	ld [ptr16],a

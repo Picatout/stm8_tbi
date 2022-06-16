@@ -95,6 +95,9 @@ dvar_bgn:: .blkw 1 ; DIM variables start address
 dvar_end:: .blkw 1 ; DIM variables end address 
 chain_level: .blkb 1 ; increment for each CHAIN command 
 out: .blkw 1 ; output char routine address 
+i2c_buf: .blkw 1 ; i2c buffer address 
+i2c_cnt: .blkb 1 ; buffer size 
+i2c_status: .blkb 1 ; error status 
 
 ; 24 bits integer variables 
 vars:: .blkb 3*26 ; BASIC variables A-Z,
@@ -5078,6 +5081,120 @@ cmd_trace:
 	ret 
 
 ;------------------------------
+; BASIC: REBOOT 
+; reinitialize MCU 
+;------------------------------
+cmd_reboot:
+	_swreset
+	
+;---------------------------------
+; BASIC: BUFFER(name, size) 
+; name: buffer name 
+; size: in bytes 
+;  253-length(name) bytes maximum 
+;---------------------------------
+	BNAME=1
+	NLEN=3 
+	BSIZE=5
+	VSIZE=6 
+alloc_buffer:
+	call runtime_only
+	_vars VSIZE
+	clr (NLEN,sp)
+	ld a,#TK_LPAREN 
+	call expect 
+	ld a,#TK_LABEL 
+	call expect  
+	ldw (BNAME,sp),x 
+	call strlen 
+	ld (NLEN+1,sp),a 
+	call skip_string 
+	ld a,#TK_COMMA 
+	call expect 
+	call expression 
+	cp a,#TK_INTGR
+	jreq 1$
+	jp syntax_error 
+1$: ld a,#TK_RPAREN 
+	call expect 
+	_xpop
+	cpw x,#252
+	jrult 2$
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+2$:
+	ldw (BSIZE,sp),x 
+	call free
+	subw x,#2
+	subw x,(NLEN,sp)  
+	cpw x,(BSIZE,sp)
+	jruge 3$ 
+	ld a,#ERR_MEM_FULL
+	jp tb_error 
+3$: ldw x,(NLEN,sp)
+	addw x,#2 
+	addw x,(BSIZE,sp)
+	ld a,xl 
+	ldw x,dvar_end 
+	ld (x),a 
+	incw x 
+	pushw y 
+	ldw y,(BNAME,sp)
+	call strcpy
+	popw y 
+	addw x,(NLEN,sp)
+	incw x 
+	pushw x 
+4$: ; zero buffer 
+	clr (x)
+	dec (BSIZE,sp)
+	jrne 4$
+	popw x 
+	clr a  
+	_drop VSIZE
+	ret 
+
+;-----------------------------------
+; BASIC: #tb_var|#dim_var|#const_name|#@(expr) 
+; return the data field address 
+;-----------------------------------
+dereference:
+	call next_token 
+	cp a,#TK_LABEL 
+	jreq 4$ 
+	cp a,#TK_VAR
+	jreq 1$
+	cp a,#TK_ARRAY 
+	jreq 2$
+	jp syntax_error 
+1$:	call get_addr 
+	jra 9$ 
+2$: call get_array_element
+	jra 9$
+4$: ; label 
+	pushw x 
+	call skip_string 
+	popw x 
+	call strlen 
+	add a,#REC_XTRA_BYTES
+	call search_name 
+	tnzw x
+	jrne 9$ 
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+9$: clr a
+	incw x 
+	call strlen 
+	inc a 
+	push a 
+	push #0 
+	addw x,(1,sp)
+	clr a 
+	_drop 2
+	ret 
+
+
+;------------------------------
 ;      dictionary 
 ; format:
 ;   link:   2 bytes 
@@ -5126,7 +5243,7 @@ kword_end:
 	_dict_entry,6,RETURN,return 
 	_dict_entry,7,RESTORE,restore 
 	_dict_entry 3,REM,remark 
-	_dict_entry,6,REBOOT,cold_start
+	_dict_entry,6,REBOOT,cmd_reboot 
 	_dict_entry,4+F_IFUNC,READ,read  
 	_dict_entry,3,PUT,xput 
 	_dict_entry,4,PUSH,xpush   
@@ -5192,6 +5309,7 @@ kword_end:
 	_dict_entry,4+F_CFUNC,CHAR,func_char
 	_dict_entry,5,CHAIN,cmd_chain
 	_dict_entry,3,BYE,bye 
+	_dict_entry,6+F_IFUNC,BUFFER,alloc_buffer 
 	_dict_entry,5,BTOGL,bit_toggle
 	_dict_entry,5+F_IFUNC,BTEST,bit_test 
 	_dict_entry,4,BSET,bit_set 
@@ -5206,7 +5324,4 @@ kword_end:
 	_dict_entry,5,ADCON,power_adc 
 kword_dict::
 	_dict_entry,3+F_IFUNC,ABS,abs
-
-
-
 

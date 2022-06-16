@@ -70,7 +70,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int16 TIM3 Capture/compare
 	int NonHandledInterrupt ;int17 UART1 TX completed
 	int Uart1RxHandler		;int18 UART1 RX full ; default user communication channel.
-	int NonHandledInterrupt ;int19 I2C 
+	int I2cIsrHandler       ;int19 I2C 
 	int NonHandledInterrupt ;int20 UART3 TX completed
 	int NonHandledInterrupt ;int21 UART3 RX full
 	int NonHandledInterrupt ;int22 ADC2 end of conversion

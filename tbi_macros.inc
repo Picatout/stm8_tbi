@@ -99,7 +99,8 @@
         TK_COMMA=8      ; item separator ',' 
         TK_COLON=9      ; command separator ':' 
         TK_SEMIC=10     ; used in PRINT command.  ';' 
-
+        TK_SHARP=11     ; derefenrecing operator 
+        
         TK_PLUS=0x10    ; addition operator '+'
         TK_MINUS=0x11   ; subtraction operator '-'
         TK_MULT=0x20    ; multiplication operator '*'

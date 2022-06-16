@@ -186,7 +186,7 @@ decomp_loop:
 	jruge 50$ 
 	call get_addr
 	cpw x,#remark 
-	jrne 5$
+	jrne 42$
 ; print comment
 	ld a,#''
 	call putc
@@ -194,6 +194,11 @@ decomp_loop:
 	addw x,in.w 
 	call puts 
 	jp decomp_exit 
+42$: cpw x,#dereference 
+     jrne 5$ 
+	 ld a,#'#
+	 call putc 
+	 jp decomp_loop 
 5$: cpw x,#let  
 	jrne 54$
 	jp decomp_loop ; down display LET
@@ -220,7 +225,6 @@ decomp_loop:
 	pushw x 
 	call skip_string
 	popw x 
-_dbg_prt_regs	
 	call puts 
 	call space 
 	jp decomp_loop
@@ -245,7 +249,7 @@ _dbg_prt_regs
 82$:
 	jp decomp_loop
 9$: 
-	cp a,#TK_SEMIC 
+	cp a,#TK_SHARP 
 	jrugt 10$ 
 	sub a,#TK_ARRAY 
 	clrw x 
@@ -290,7 +294,7 @@ decomp_exit:
 	_drop VSIZE 
 	ret 
 
-single_char: .byte '@','(',')',',',':',';' 
+single_char: .byte '@','(',')',',',':',';','#'
 add_char: .byte '+','-'
 mul_char: .byte '*','/','%'
 relop_str: .word gt,equal,ge,lt,ne,le 

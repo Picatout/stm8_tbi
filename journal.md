@@ -1,10 +1,38 @@
+#### 2022-06-15
+
+* commit 22:28
+
+* bogue dans editeur **CTRL_E**. Corrigé, le bogue était dans *decompile*, introduit lors de la modification pour traiter l'opérateur **#**.
+
+```
+>list
+   10  PRINT BUFFER( TEST , 10)
+   20  CONST C1 = 10
+   30  DIM V1 = 30
+   40  PRINT# V1 ,# C1 
+program address:  $90, program size:  73 bytes in RAM memory
+
+>40
+>   40  1,#c1
+```
+
+* Ajout de l'opérateur **#** pour déréférencer les variables. 
+
+* Ajout de la function **BUFFER name, size**  qui réserve de la mémoire pour un tampon. 
+
+* Travail sur pilote de périphérique pour I2C, fichier [i2c.asm](i2c.asm).
+
+* Test périphérique i2c.
+
+* Modifié commande **REBBOT** et routine *Uart1RxHandler* pour utiliser la macro *_swreset* au lieu d'un saut vers cold_start.
+
 #### 2022-06-14
 
 * commit 16:30
 
 * Vectorisé la routine *putc* à travers la variable système ajoutée *out*. 
 
-* Ajout des routines *set_output* et *buf_output* dans [terminal.asm](terminal.asm).
+* Ajout des routines *set_output* et *buf_putc* dans [terminal.asm](terminal.asm).
 
 * Modifié routine *decompile* pour décompiler directement vers le terminal sans passer par un tampon.
 

@@ -435,6 +435,7 @@ PI = 40
   SPI_SR_BSY=7
 
 ; I2C
+ I2C_BASE_ADDR = 0x5210 
  I2C_CR1  = (0x5210)
  I2C_CR2  = (0x5211)
  I2C_FREQR  = (0x5212)
@@ -494,6 +495,9 @@ PI = 40
  I2C_ITR_ITEVTEN = (1)
  I2C_ITR_ITERREN = (0)
 
+ I2C_CCRH_FAST = 7 
+ I2C_CCRH_DUTY = 6 
+ 
 ; Precalculated values, all in KHz
  I2C_CCRH_16MHZ_FAST_400 = 0x80
  I2C_CCRL_16MHZ_FAST_400 = 0x0D
