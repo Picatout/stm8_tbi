@@ -28,18 +28,76 @@ I2C_STATUS_OK=7 ; bit 7 of i2c_status used indicate OK status
 ;------------------------------
 ; i2c global interrupt handler
 ;------------------------------
-I2cIsrHandler:
+I2cIntHandler:
     ld a,I2C_SR2 ; errors status 
     clr I2C_SR2 
     and a,#15 
     ld i2c_status,a 
     jreq 1$
+ld a,#'E 
+call putc
     bset I2C_CR2,#I2C_CR2_SWRST
-    nop 
+    _usec_dly 1
     bres I2C_CR2,#I2C_CR2_SWRST
     iret 
 1$: ; no error detected 
+; handle events 
+    clrw x 
+    ld a,i2c_idx 
+    ld xl,a 
+    btjt I2C_SR1,#I2C_SR1_SB,evt_sb 
+;    btjt I2C_SR1,#I2C_SR1_TXE,evt_txe 
+    btjt I2C_SR1,#I2C_SR1_BTF,evt_txe 
+    btjt I2C_SR1,#I2C_SR1_ADDR,evt_addr 
+    btjt I2C_SR1,#I2C_SR1_ADD10,evt_add10
+    btjt I2C_SR1,#I2C_SR1_RXNE,evt_rxne 
+    btjt I2C_SR1,#I2C_SR1_STOPF,evt_stopf 
+    btjt I2C_SR1,#I2C_SR2_WUFH,evt_wufh 
+    iret 
 
+evt_sb: ; start bit, send address 
+    ld a,([i2c_buf],x)
+    ld I2C_DR,a 
+    inc i2c_idx 
+    dec i2c_count 
+    iret 
+
+evt_txe:
+    tnz i2c_count
+    jreq evt_btf  
+    ld a,([i2c_buf],x)
+    ld I2C_DR,a
+    inc i2c_idx 
+    dec i2c_count
+4$: iret  
+
+evt_btf:
+    bset I2C_CR2,#I2C_CR2_STOP 
+    iret 
+
+evt_addr: 
+    ld a,I2C_SR3
+    jra evt_txe        
+
+evt_add10:
+    btjt I2C_SR1,#I2C_SR1_TXE,evt_txe        
+    iret     
+
+evt_rxne: 
+    ld a,#I2C_DR 
+    ld ([i2c_buf],x),a  
+    inc i2c_idx 
+    dec i2c_count 
+    jreq evt_stopf
+    iret 
+
+evt_stopf:
+    bset I2C_CR2,#I2C_CR2_STOP
+    bset i2c_status,#7 ; reception completed 
+    iret 
+
+evt_wufh:
+    iret 
 
 
 ; error message 
@@ -101,15 +159,18 @@ i2c_display_error:
 
 
 ;--------------------------------
-; BASIC: I2C.open ack, freq 
+; BASIC: I2C.open admode,ack, freq 
 ; enable I2C peripheral
+; admode: address mode 7|10 bits 
+;    0   7 bits 
+;    1   10 bits 
 ; ack: 
 ;   0 don't send ACK, 
 ;   1 send ACK on byte recieved.
 ; freq:
 ;   SCL in Khz 
 ;--------------------------------
-i2c_on:
+i2c_open:
 ; enable peripheral clock
 	bset CLK_PCKENR1,#CLK_PCKENR1_I2C 	
     ldw x,#16 ; peripheral clock frequency 
@@ -119,20 +180,31 @@ i2c_on:
     jreq 0$ 
     bres CLK_PCKENR1,#CLK_PCKENR1_I2C
     jp syntax_error 
-0$: call get_int24 
+0$: ; address mode 7 or 10 bits 
+    ld a,#0x40 
+    ld I2C_OARH,a 
+    call get_int24 
     tnzw x 
     jreq 1$
-    bset I2C_CR2,#I2C_CR2_ACK  
+    ld a,#0xC0
+    ld I2C_OARH,a    
 1$: 
     ld a,#TK_COMMA 
     call expect 
-; clock period 
-    call next_token 
-    cp a,#TK_INTGR
-    jreq 2$
-    call i2c_close  
-    jp syntax_error 
-2$: ; frequency Khz
+; Send ACK after byte received 
+    bres I2C_CR2,#I2C_CR2_ACK
+    ld a,#TK_INTGR
+    call expect 
+    call get_int24 
+    tnzw x
+    jreq 2$ 
+    bset I2C_CR2,#I2C_CR2_ACK
+2$: ld a,#TK_COMMA 
+    call expect 
+    ; clock period
+    ld a,#TK_INTGR
+    call expect  
+ ; frequency Khz
     clr I2C_CCRH 
     call get_int24 
     pushw y 
@@ -214,17 +286,38 @@ i2c_stop:
     ret 
 
 ;--------------------------------
-; BASIC: I2C_WRITE count, buf_addr 
+; BASIC: I2C.WRITE count, buf_addr 
 ; write bytes to i2c device 
 ; count: of bytes to write 
 ; buf_addr:  address of buffer 
 ;---------------------------------
 i2c_write:
-
+    bres I2C_CR2,#I2C_CR2_SWRST
+    bres I2C_CR2,#I2C_CR2_STOP 
+    ld a,#TK_INTGR
+    call expect 
+    call get_int24  
+    ld a,xl 
+    ld i2c_count,a 
+    ld a,#TK_COMMA 
+    call expect 
+    call expression
+    _xpop 
+    ldw i2c_buf,x
+    clr i2c_idx  
+    bset I2C_CR2,#I2C_CR2_START
+    ldw x,#50 
+    ldw timer,x 
+1$: ld a,#i2c_count 
+    jreq 9$ 
+    ldw x,timer 
+    jrne 1$ 
+    call i2c_display_error
+9$:
     ret 
 
 ;-----------------------------------
-; BASIC: I2C_READ count, buf_addr 
+; BASIC: I2C.READ count, buf_addr 
 ; read bytes from device 
 ; count: of bytes to read 
 ; buf_addr: buffer address 

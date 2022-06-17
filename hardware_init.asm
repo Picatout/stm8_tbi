@@ -70,7 +70,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int16 TIM3 Capture/compare
 	int NonHandledInterrupt ;int17 UART1 TX completed
 	int Uart1RxHandler		;int18 UART1 RX full ; default user communication channel.
-	int I2cIsrHandler       ;int19 I2C 
+	int I2cIntHandler       ;int19 I2C 
 	int NonHandledInterrupt ;int20 UART3 TX completed
 	int NonHandledInterrupt ;int21 UART3 RX full
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
@@ -82,9 +82,8 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int28  not used
 	int NonHandledInterrupt ;int29  not used
 
-;---------------------------------------
-    .area CODE
-;---------------------------------------
+
+	.area CODE
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; non handled interrupt 
@@ -159,15 +158,17 @@ user_interrupted:
 	jra UBTN_Handler_exit 
 4$:	; program interrupted by user 
 	bres flags,#FRUN 
-	ldw x,#USER_ABORT
-	call puts 
+;	ldw x,#USER_ABORT
+;	call puts 
 UBTN_Handler_exit:
     ldw x,#STACK_EMPTY 
     ldw sp,x
 	rim 
 5$:	jp warm_start
 
-USER_ABORT: .asciz "\nProgram aborted by user.\n"
+
+
+;USER_ABORT: .asciz "\nProgram aborted by user.\n"
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;    peripherals initialization
@@ -275,7 +276,7 @@ cold_start:
 	call ubound ; @() size 
 	call clear_basic
 	call beep_1khz  ; 
-	call system_information ; display system information 
+	call system_information ; display system information
 2$:	
 ; check for autorun application
 	ldw x,EEPROM_BASE 

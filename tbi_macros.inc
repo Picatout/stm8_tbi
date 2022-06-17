@@ -159,7 +159,7 @@
     ldw x,#(16*n-2)/4
     decw x
     nop 
-    jrne .-4
+    jrne .-2
     .endm 
     
     ; load X register with 

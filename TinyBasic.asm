@@ -58,7 +58,8 @@
 .endif 
 
 ;--------------------------------------
-    .area DATA 
+    .area DATA (ABS)
+	.org 0 
 ;--------------------------------------	
 
 ; keep the following 3 variables in this order 
@@ -96,13 +97,14 @@ dvar_end:: .blkw 1 ; DIM variables end address
 chain_level: .blkb 1 ; increment for each CHAIN command 
 out: .blkw 1 ; output char routine address 
 i2c_buf: .blkw 1 ; i2c buffer address 
-i2c_cnt: .blkb 1 ; buffer size 
+i2c_count: .blkb 1 ; bytes to transmit 
+i2c_idx: .blkb 1 ; index in buffer
 i2c_status: .blkb 1 ; error status 
 
 ; 24 bits integer variables 
 vars:: .blkb 3*26 ; BASIC variables A-Z,
 
-	.area BTXT (ABS)
+;	.area BTXT (ABS)
 	.org 0x8C  
 ; keep 'free_ram' as last variable 
 ; basic code compiled here. 
@@ -111,7 +113,6 @@ rsize: .blkw 1 ; code size
 free_ram: ; from here RAM free for BASIC text 
 
 	.area CODE 
-
 
 ;-------------------------------------
 ; retrun string length
@@ -4136,9 +4137,12 @@ words:
 	call print_word 
 	inc (WCNT,sp)
 	dec (COL_CNT,sp)
-	jreq 2$    
+	jreq 2$
+	cp a,#8 
+	jruge 1$    
 	ld a,#TAB  
 	call putc
+1$:	ld a,#TAB 
 	call putc 
 	jra 3$
 2$: ld a,#CR 
@@ -4170,13 +4174,15 @@ words_count_msg: .asciz " words in dictionary\n"
 print_word: 
 	ld a,(x)
 	and a,#NAME_MAX_LEN
-	push a 
+	push a
+	push a  
 1$: incw x 
 	ld a,(x)
 	call putc 
 	dec (WLEN,sp)
 	jrne 1$ 
-	pop a 		
+	pop a
+	pop a  		
 	ret 
 
 
@@ -4891,18 +4897,20 @@ cmd_auto_run:
 	call cmd_line_only
 	call next_token 
 	cp a,#TK_LABEL 
-	jreq 1$ 
+	jreq set_autorun  
 	cp a,#TK_CHAR 
 	jrne 0$ 
 	ld a,(x)
 	inc in 
 	and a,#0xDF 
 	cp a,#'C 
-	jrne 0$ 
+	jreq clear_autorun 
+0$:	jp syntax_error  
+clear_autorun:	
 	ldw x,#EEPROM_BASE 
 	call erase_header
 	ret 
-0$:	jp syntax_error
+set_autorun: 	
 1$:	pushw x 
 	call skip_string
 	popw x 
@@ -5282,6 +5290,11 @@ kword_end:
 	_dict_entry,5,INPUT,input_var  
 	_dict_entry,2,IF,if 
 	_dict_entry,3+F_IFUNC,IDR,const_idr 
+	_dict_entry,9,I2C.WRITE,i2c_write
+	_dict_entry,8,I2C.STOP,i2c_stop
+	_dict_entry,8,I2C.OPEN,i2c_open
+	_dict_entry,9,I2C.ERROR,i2c_display_error
+	_dict_entry,9,I2C.CLOSE,i2c_close
 	_dict_entry,3,HEX,hex_base
 	_dict_entry,4,GOTO,goto 
 	_dict_entry,5,GOSUB,gosub 

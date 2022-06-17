@@ -36,7 +36,7 @@
 
 .if DEBUG 
 
-    .area CODE
+;    .area CODE
 
 ;--------------------
 ; print content at address in hex.

@@ -41,7 +41,7 @@
 	.include "tbi_macros.inc" 
 .endif 
 
-    .area CODE 
+;    .area CODE 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;   UART1 subroutines
@@ -50,6 +50,10 @@
 ;;   settings: 
 ;;		115200 8N1 no flow control
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;---------------------------------------
+;	.area CODE 
+;---------------------------------------
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Uart1 intterrupt handler 
@@ -70,7 +74,6 @@ Uart1RxHandler: ; console receive char
 	ld a,UART1_DR 
 	cp a,#CTRL_C 
 	jrne 2$
-	call putc 
 	jp user_interrupted
 2$:
 	cp a,#CAN ; CTRL_X 
@@ -94,10 +97,6 @@ Uart1RxHandler: ; console receive char
 	ld rx1_tail,a 
 5$:	iret 
 
-clear_autorun:
-	ldw x,#EEPROM_BASE 
-	call erase_header ; in TinyBasic.asm 
-	ret 
 
 ;---------------------------------------------
 ; initialize UART1, 115200 8N1

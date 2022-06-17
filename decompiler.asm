@@ -35,7 +35,7 @@
 .endif 
 
 
-    .area  CODE 
+;    .area  CODE 
 
 ;--------------------------
 ;  align text in buffer 

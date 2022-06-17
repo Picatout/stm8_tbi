@@ -1,3 +1,11 @@
+#### 2022-06-16
+
+* commit 22:24
+
+* Travail sur [i2c.asm](i2c.asm)
+
+* Corrigé macro _usec_dly  dans [tbi_macros.inc](tbi_macros.in).
+
 #### 2022-06-15
 
 * commit 22:28

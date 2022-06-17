@@ -33,7 +33,7 @@
 	.include "tbi_macros.inc" 
 .endif 
 
-    .area  CODE 
+;    .area  CODE 
 
 ;-------------------------------------
 ; search text area for a line#
