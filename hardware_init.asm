@@ -50,7 +50,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 ;;--------------------------------------
 
     int cold_start			; RESET vector 
-	int SysCall ; TRAP  BASIC sys() calls 
+	int TrapHandler         ; trap instruction 
 	int NonHandledInterrupt ;int0 TLI   external top level interrupt
 	int AWUHandler          ;int1 AWU   auto wake up from halt
 	int NonHandledInterrupt ;int2 CLK   clock controller
@@ -70,7 +70,11 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int16 TIM3 Capture/compare
 	int NonHandledInterrupt ;int17 UART1 TX completed
 	int Uart1RxHandler		;int18 UART1 RX full ; default user communication channel.
+.if INCLUDE_I2C 
 	int I2cIntHandler       ;int19 I2C 
+.else
+	int NonHandledInterrupt ;int19 I2C 
+.endif 
 	int NonHandledInterrupt ;int20 UART3 TX completed
 	int NonHandledInterrupt ;int21 UART3 RX full
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
@@ -104,10 +108,9 @@ AWUHandler:
 	iret
 
 ;------------------------------------
-; system call handler  
+; sofware interrupt handler  
 ;------------------------------------
-SysCall:
-
+TrapHandler:
 	iret 
 
 ;------------------------------
@@ -144,16 +147,26 @@ Timer4UpdateHandler:
 ;------------------------------------
 UserButtonHandler:
 ; wait button release
-	clrw x
-1$: decw x 
-	jrne 1$
-	btjf USR_BTN_PORT,#USR_BTN_BIT, 1$
+	clrw x ; debounce counter 
+1$: btjt PE_IDR,##USR_BTN_BIT,2$
+	tnzw x 
+	jreq 1$
+	decw x 
+	jra 1$
+2$: incw x 
+	cpw x,#0xffff ; ~ 16 msec delay 
+	jrult 1$ 
 ; if MCU suspended by SLEEP resume program
-    btjf flags,#FSLEEP,2$
+    btjf flags,#FSLEEP,3$
 	bres flags,#FSLEEP 
 	iret
-2$:	
+3$:	
 user_interrupted:
+.if INCLUDE_I2C 
+; in case system infinite
+; loop in i2cIntHandler 
+	bset I2C_CR2,#I2C_CR2_SWRST
+.endif
     btjt flags,#FRUN,4$
 	jra UBTN_Handler_exit 
 4$:	; program interrupted by user 
@@ -218,7 +231,61 @@ timer4_init:
 	mov TIM4_ARR,#125 ; set for 1msec.
 	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
 	bset TIM4_IER,#TIM4_IER_UIE
+; set int level to 1 
+	ld a,#ITC_SPR_LEVEL1 
+	ldw x,#INT_TIM4_OVF 
+	call set_int_priority
 	ret
+
+;--------------------------
+; set software interrupt 
+; priority 
+; input:
+;   A    priority 1,2,3 
+;   X    vector 
+;---------------------------
+	SPR_ADDR=1 
+	PRIORITY=3
+	SLOT=4
+	MASKED=5  
+	VSIZE=5
+set_int_priority::
+	_vars VSIZE
+	and a,#3  
+	ld (PRIORITY,sp),a 
+	ld a,#4 
+	div x,a 
+	sll a  ; slot*2 
+	ld (SLOT,sp),a
+	addw x,#ITC_SPR1 
+	ldw (SPR_ADDR,sp),x 
+; build mask
+	ldw x,#0xfffc 	
+	ld a,(SLOT,sp)
+	jreq 2$ 
+	scf 
+1$:	rlcw x 
+	dec a 
+	jrne 1$
+2$:	ld a,xl 
+; apply mask to slot 
+	ldw x,(SPR_ADDR,sp)
+	and a,(x)
+	ld (MASKED,sp),a 
+; shift priority to slot 
+	ld a,(PRIORITY,sp)
+	ld xl,a 
+	ld a,(SLOT,sp)
+	jreq 4$
+3$:	sllw x 
+	dec a 
+	jrne 3$
+4$:	ld a,xl 
+	or a,(MASKED,sp)
+	ldw x,(SPR_ADDR,sp)
+	ld (x),a 
+	_drop VSIZE 
+	ret 
 
 ;-------------------------------------
 ;  initialization entry point 
@@ -255,7 +322,6 @@ cold_start:
 	ld a,#CLK_SWR_HSI 
 	clrw x  
     call clock_init 
-	call timer4_init
 	call timer2_init	
 ; UART1 at 115200 BAUD
 ; used for user interface 
@@ -265,6 +331,8 @@ cold_start:
 	call uart1_init 
 ; activate PE_4 (user button interrupt)
     bset PE_CR2,#USR_BTN_BIT 
+; initialize TICKS timer 
+	call timer4_init
 ; display system information
 	rim ; enable interrupts 
 ; RND function seed 

@@ -1,4 +1,37 @@
+#### 2022-06-21
+
+* commit 20:48
+
+* Enfin réussi à faire fonctionner le périphérique **I2C** pour écrire et lire dans une mémoire EEPROM 24LC512. 
+
+* Modifié *UserButtonHandler*  les rebonds du bouton n'étaient pas filtré correctement. 
+
+#### 2022-06-20
+
+* Après 1 semaine à essayer de faire fonctionner correctement le périphérique I2C avec une mémoire EEPROM 24LC512 j'ai décidé de faire un test avec 
+une version I2C entièrement logicielle (bit-bang).  [i2c_soft.asm](i2c_soft.ams).
+
+#### 2022-06-19
+
+* Ajout de la routine *set_int_priority* dans [hardware_init.asm](hardware_init.asm).
+
+#### 2022-06-18
+
+* Supprimer opérateur '#' inutile. 
+
+* Modifié **BUFFER** qui maintenant est une commande plutôt qu'une fonction. 
+
+* Travail sur périphérique I2C. 
+
+#### 2022-06-17
+
+* Test I2C sur mémoire 24LC512.  
+
+* Modifié priorité interruption timer4 pour niveau 1.
+
 #### 2022-06-16
+
+* Commande **BUFFER**  à corriger.
 
 * commit 22:24
 

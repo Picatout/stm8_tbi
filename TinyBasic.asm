@@ -89,6 +89,7 @@ loop_depth: .blkb 1 ; level of nested loop. Conformity check
 array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
 flags:: .blkb 1 ; various boolean flags
 free_eeprom: .blkw 1 ; start address of free eeprom 
+end_free_ram: .blkw 1 ; where free RAM end 
 rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
 rx1_head:  .blkb 1 ; rx1_queue head pointer
 rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
@@ -96,16 +97,18 @@ dvar_bgn:: .blkw 1 ; DIM variables start address
 dvar_end:: .blkw 1 ; DIM variables end address 
 chain_level: .blkb 1 ; increment for each CHAIN command 
 out: .blkw 1 ; output char routine address 
+.if INCLUDE_I2C 
 i2c_buf: .blkw 1 ; i2c buffer address 
 i2c_count: .blkb 1 ; bytes to transmit 
 i2c_idx: .blkb 1 ; index in buffer
 i2c_status: .blkb 1 ; error status 
+i2c_devid: .blkb 1 ; device identifier  
+.endif 
 
 ; 24 bits integer variables 
 vars:: .blkb 3*26 ; BASIC variables A-Z,
-
 ;	.area BTXT (ABS)
-	.org 0x8C  
+;	.org 0x8C  
 ; keep 'free_ram' as last variable 
 ; basic code compiled here. 
 rsign: .blkw 1 ; "TB" 
@@ -288,6 +291,9 @@ warm_init:
 	ldw basicptr,x 
 	ldw in.w,x 
 	clr count
+	ldw x,#tib 
+	subw x,#10*CELL_SIZE 
+	ldw end_free_ram,x 
 	ret 
 
 ;---------------------------
@@ -1440,7 +1446,7 @@ dec_base:
 ;--------------------------
 free:
 	clr a 
-	ldw x,#tib 
+	ldw x,end_free_ram
 	subw x,dvar_end 
 	ret 
 
@@ -1683,7 +1689,15 @@ cmd_dim2:
 	jreq 2$
 	ld a,#ERR_DUPLICATE
 	jp tb_error  
-2$:	ldw x,dvar_end 
+2$:	
+;check if enough space 
+	call free 
+	cpw x,(REC_LEN,sp)
+	jruge 3$
+	ld a,#ERR_MEM_FULL
+	jp tb_error
+3$:
+	ldw x,dvar_end 
 	ld a,(REC_LEN+1,sp)
 	or a,(RONLY,sp)
 	ld (x),a 
@@ -5096,10 +5110,13 @@ cmd_reboot:
 	_swreset
 	
 ;---------------------------------
-; BASIC: BUFFER(name, size) 
+; BASIC: BUFFER name, size 
+; Create a byte buffer in 
+; free RAM 
+; 
 ; name: buffer name 
+;
 ; size: in bytes 
-;  253-length(name) bytes maximum 
 ;---------------------------------
 	BNAME=1
 	NLEN=3 
@@ -5109,12 +5126,11 @@ alloc_buffer:
 	call runtime_only
 	_vars VSIZE
 	clr (NLEN,sp)
-	ld a,#TK_LPAREN 
-	call expect 
 	ld a,#TK_LABEL 
 	call expect  
 	ldw (BNAME,sp),x 
 	call strlen 
+	and a,#NAME_MAX_LEN
 	ld (NLEN+1,sp),a 
 	call skip_string 
 	ld a,#TK_COMMA 
@@ -5123,82 +5139,50 @@ alloc_buffer:
 	cp a,#TK_INTGR
 	jreq 1$
 	jp syntax_error 
-1$: ld a,#TK_RPAREN 
-	call expect 
-	_xpop
-	cpw x,#252
-	jrult 2$
-	ld a,#ERR_BAD_VALUE
-	jp tb_error 
-2$:
+1$: _xpop
 	ldw (BSIZE,sp),x 
 	call free
-	subw x,#2
+	subw x,#REC_XTRA_BYTES
 	subw x,(NLEN,sp)  
 	cpw x,(BSIZE,sp)
 	jruge 3$ 
 	ld a,#ERR_MEM_FULL
 	jp tb_error 
 3$: ldw x,(NLEN,sp)
-	addw x,#2 
-	addw x,(BSIZE,sp)
-	ld a,xl 
+	addw x,#REC_XTRA_BYTES  
+	ld a,xl
+	or a,#128 ; this is a CONST that content buffer address  
 	ldw x,dvar_end 
 	ld (x),a 
 	incw x 
 	pushw y 
-	ldw y,(BNAME,sp)
+	ldw y,(BNAME+2,sp) ; +2 because we have pushed Y 
 	call strcpy
 	popw y 
 	addw x,(NLEN,sp)
 	incw x 
-	pushw x 
-4$: ; zero buffer 
+	ldw ptr16,x
+; allocate buffer space at end of 
+; free RAM  
+	ldw x,end_free_ram 
+	subw x,(BSIZE,sp)
+	clr [ptr16]
+	inc ptr8 
+	jrnc 4$
+	inc ptr16
+4$:  
+	ldw [ptr16],x 
+5$: ; zero buffer 
 	clr (x)
-	dec (BSIZE,sp)
-	jrne 4$
-	popw x 
-	clr a  
-	_drop VSIZE
-	ret 
-
-;-----------------------------------
-; BASIC: #tb_var|#dim_var|#const_name|#@(expr) 
-; return the data field address 
-;-----------------------------------
-dereference:
-	call next_token 
-	cp a,#TK_LABEL 
-	jreq 4$ 
-	cp a,#TK_VAR
-	jreq 1$
-	cp a,#TK_ARRAY 
-	jreq 2$
-	jp syntax_error 
-1$:	call get_addr 
-	jra 9$ 
-2$: call get_array_element
-	jra 9$
-4$: ; label 
-	pushw x 
-	call skip_string 
-	popw x 
-	call strlen 
-	add a,#REC_XTRA_BYTES
-	call search_name 
-	tnzw x
-	jrne 9$ 
-	ld a,#ERR_BAD_VALUE
-	jp tb_error 
-9$: clr a
 	incw x 
-	call strlen 
-	inc a 
-	push a 
-	push #0 
-	addw x,(1,sp)
-	clr a 
-	_drop 2
+	dec (BSIZE,sp)
+	jrne 5$
+	ldw x,[ptr16] 
+	ldw end_free_ram,x
+	ldw x,ptr16
+	addw x,#2 
+	ldw dvar_end,x 
+	_drop VSIZE
 	ret 
 
 
@@ -5290,11 +5274,13 @@ kword_end:
 	_dict_entry,5,INPUT,input_var  
 	_dict_entry,2,IF,if 
 	_dict_entry,3+F_IFUNC,IDR,const_idr 
+.if INCLUDE_I2C 
 	_dict_entry,9,I2C.WRITE,i2c_write
-	_dict_entry,8,I2C.STOP,i2c_stop
+	_dict_entry,8,I2C.READ,i2c_read 
 	_dict_entry,8,I2C.OPEN,i2c_open
 	_dict_entry,9,I2C.ERROR,i2c_display_error
 	_dict_entry,9,I2C.CLOSE,i2c_close
+.endif ; INLCUDE_I2C 
 	_dict_entry,3,HEX,hex_base
 	_dict_entry,4,GOTO,goto 
 	_dict_entry,5,GOSUB,gosub 
@@ -5322,7 +5308,7 @@ kword_end:
 	_dict_entry,4+F_CFUNC,CHAR,func_char
 	_dict_entry,5,CHAIN,cmd_chain
 	_dict_entry,3,BYE,bye 
-	_dict_entry,6+F_IFUNC,BUFFER,alloc_buffer 
+	_dict_entry,6,BUFFER,alloc_buffer 
 	_dict_entry,5,BTOGL,bit_toggle
 	_dict_entry,5+F_IFUNC,BTEST,bit_test 
 	_dict_entry,4,BSET,bit_set 

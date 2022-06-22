@@ -195,8 +195,11 @@
     .macro _xpop 
     ld a,(y)
     ldw x,y 
-    ldw x,(1,x)
     addw y,#CELL_SIZE 
+; last op in macro 
+; so no need to do a tnzw x 
+; after macro invocation
+    ldw x,(1,x) 
     .endm 
 
     ; push A:X  to XSTACK 

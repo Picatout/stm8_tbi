@@ -10,7 +10,8 @@ CFLAGS=-mstm8 -lstm8 -L$(LIB_PATH) -I../inc
 INC=../inc/
 INCLUDES=$(INC)stm8s208.inc $(INC)ascii.inc $(INC)gen_macros.inc $(INC)nucleo_8s208.inc cmd_idx.inc tbi_macros.inc dbg_macros.inc 
 BUILD=build/
-SRC=hardware_init.asm arithm24.asm debug_support.asm flash_prog.asm terminal.asm compiler.asm i2c.asm decompiler.asm $(NAME).asm app.asm 
+I2C=i2c.asm
+SRC=hardware_init.asm arithm24.asm debug_support.asm flash_prog.asm terminal.asm compiler.asm $(I2C) decompiler.asm $(NAME).asm app.asm 
 OBJECT=$(BUILD)$(NAME).rel
 OBJECTS=$(BUILD)$(SRC:.asm=.rel)
 LIST=$(BUILD)$(NAME).lst

@@ -1,5 +1,5 @@
 ;;
-; Copyright Jacques Deschênes 2019,2020,2021,2022  
+; Copyright Jacques Deschênes 2019,2022  
 ; This file is part of stm8_tbi 
 ;
 ;     stm8_tbi is free software: you can redistribute it and/or modify

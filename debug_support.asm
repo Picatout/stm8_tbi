@@ -24,7 +24,7 @@
 
 	.macro _dbg_prt_regs
 	.if DEBUG 
-		call print_registers  
+		call print_registers    
 	.endif 
 	.endm 
 
@@ -141,7 +141,7 @@ prt_reg16:
 ; print registers contents saved on
 ; stack by trap interrupt.
 ;------------------------------------
-	R_PC=10 
+	R_PC=11 
 	R_CC=9
 	SAV_ACC24=8
 	SAV_ACC16=6
@@ -149,7 +149,7 @@ prt_reg16:
 	R_X=2
 	R_A=1
 	VSIZE=8 
-print_registers:
+print_registers::
 	push base 
 	push cc 
 	_vars VSIZE 

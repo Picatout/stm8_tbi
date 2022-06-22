@@ -693,7 +693,7 @@ at_tst:
 	ld a,#TK_ARRAY 
 	jp token_char
 qmark_tst:
-	_case '?' sharp_tst 
+	_case '?' tick_tst 
 	ld a,#TK_CMD  
 	ld (x),a 
 	incw x 
@@ -702,16 +702,6 @@ qmark_tst:
 	ldw (y),x 
 	addw y,#2
 	jp token_exit
-sharp_tst:
-	_case '#' tick_tst 
-	ld a,#TK_IFUNC  
-	ld (x),a 
-	incw x 
-	ldw y,x 
-	ldw x,#dereference 
-	ldw (y),x 
-	addw y,#2 
-	jp token_exit 
 tick_tst: ; comment 
 	_case TICK plus_tst 
 	ld a,#TK_CMD

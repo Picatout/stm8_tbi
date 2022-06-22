@@ -186,7 +186,7 @@ decomp_loop:
 	jruge 50$ 
 	call get_addr
 	cpw x,#remark 
-	jrne 42$
+	jrne 5$
 ; print comment
 	ld a,#''
 	call putc
@@ -194,11 +194,6 @@ decomp_loop:
 	addw x,in.w 
 	call puts 
 	jp decomp_exit 
-42$: cpw x,#dereference 
-     jrne 5$ 
-	 ld a,#'#
-	 call putc 
-	 jp decomp_loop 
 5$: cpw x,#let  
 	jrne 54$
 	jp decomp_loop ; down display LET
@@ -294,7 +289,7 @@ decomp_exit:
 	_drop VSIZE 
 	ret 
 
-single_char: .byte '@','(',')',',',':',';','#'
+single_char: .byte '@','(',')',',',':',';'
 add_char: .byte '+','-'
 mul_char: .byte '*','/','%'
 relop_str: .word gt,equal,ge,lt,ne,le 

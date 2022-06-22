@@ -1050,15 +1050,19 @@ UART3_PORT=PD
  CFG_GCR_AL = 1
  CFG_GCR_SWIM = 0
 
-; interrupt control registers
- ITC_SPR1   = (0x7F70)
- ITC_SPR2   = (0x7F71)
- ITC_SPR3   = (0x7F72)
- ITC_SPR4   = (0x7F73)
- ITC_SPR5   = (0x7F74)
- ITC_SPR6   = (0x7F75)
- ITC_SPR7   = (0x7F76)
- ITC_SPR8   = (0x7F77)
+; interrupt software priority 
+ ITC_SPR1   = (0x7F70) ; (0..3) 0->resreved,AWU..EXT0 
+ ITC_SPR2   = (0x7F71) ; (4..7) EXT1..EXT4 RX 
+ ITC_SPR3   = (0x7F72) ; (8..11) beCAN RX..TIM1 UPDT/OVR  
+ ITC_SPR4   = (0x7F73) ; (12..15) TIM1 CAP/CMP .. TIM3 UPDT/OVR 
+ ITC_SPR5   = (0x7F74) ; (16..19) TIM3 CAP/CMP..I2C  
+ ITC_SPR6   = (0x7F75) ; (20..23) UART3 TX..TIM4 CAP/OVR 
+ ITC_SPR7   = (0x7F76) ; (24..29) FLASH WR..
+ ITC_SPR8   = (0x7F77) ; (30..32) ..
+
+ITC_SPR_LEVEL1=1 
+ITC_SPR_LEVEL2=0
+ITC_SPR_LEVEL3=3 
 
 ; SWIM, control and status register
  SWIM_CSR   = (0x7F80)
