@@ -3791,11 +3791,7 @@ pause:
 pause02:
 	ldw timer,x 
 1$: ldw x,timer 
-	tnzw x 
-	jreq 2$
-	wfi 
-	jrne 1$
-2$:	
+	jrne 1$ 
 	ret 
 
 ;------------------------------
@@ -4608,18 +4604,25 @@ read:
 read01:	
 	ld a,data_ofs
 	cp a,data_len 
-	jreq 2$ ; end of line  
+	jreq 2$ ; end of line
 0$:
 	ldw x,data_ptr 
 	ldw basicptr,x 
 	mov in,data_ofs 
-	mov count,data_len  
+	mov count,data_len  	
 	call expression 
 	cp a,#TK_INTGR 
 	jreq 1$ 
 	jp syntax_error 
 1$:
 	call next_token ; skip comma
+	cp a,#TK_COMMA 
+	jreq 3$
+; if not comma skip
+; to end of line.	
+	ld a,count 
+	ld in,a 
+3$:
 	ldw x,basicptr 
 	ldw data_ptr,x 
 	mov data_ofs,in 
@@ -5278,7 +5281,6 @@ kword_end:
 	_dict_entry,9,I2C.WRITE,i2c_write
 	_dict_entry,8,I2C.READ,i2c_read 
 	_dict_entry,8,I2C.OPEN,i2c_open
-	_dict_entry,9,I2C.ERROR,i2c_display_error
 	_dict_entry,9,I2C.CLOSE,i2c_close
 .endif ; INLCUDE_I2C 
 	_dict_entry,3,HEX,hex_base

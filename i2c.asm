@@ -23,7 +23,7 @@
 ;   SDA -> PE2 -> CN8:9  | CN9:5 
 ; 
 ;  Support only 7 bit addressing 
-;  in master mode 
+;  and master mode 
 ;--------------------------------
 
 .if INCLUDE_I2C

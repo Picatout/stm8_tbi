@@ -1,4 +1,34 @@
+#### 2022-06-24
+
+* commit 22:13
+
+* [BASIC/i2c_oled.bas](BASIC/i2c_oled.bas) fonctionne maintenant.
+
+* Modifié **READ** pour accepter commentaire à la fin de la ligne. 
+
+* Travail sur [BASIC/i2c_oled.bas](BASIC/i2c_oled.bas).
+
+	* Mode d'adressage horizontal: <br>
+	Les 128 colonnes d'une page doivent-être mise à jour dans la même commande sinon le pointeur de colonne est remis à zéro à chaque commande.
+	Par contre le pointeur de page n'est pas remis à zéro à la fin d'une commande. 
+
+#### 2022-06-23
+
+* Travail sur [BASIC/i2c_oled.bas](BASIC/i2c_oled.bas).
+	* Affichage allume mais pointeur addresse ne fonctionne pas correctement.
+
+#### 2022-06-22
+
+* Création de [BASIC/i2c_oled.bas](BASIC/i2c_oled.bas) pour teste l'interface **I2C** avec un affichage OLED avec controller SSD1306.
+
 #### 2022-06-21
+
+* Supprimé commande BASIC **I2C.ERROR**. Les commandes disponibles sont:
+	* **I2C.OPEN**
+	* **I2C.CLOSE**
+	* **I2C.READ**
+	* **I2C.WRITE**
+
 
 * commit 20:48
 

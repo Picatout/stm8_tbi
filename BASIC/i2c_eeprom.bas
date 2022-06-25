@@ -3,7 +3,7 @@ NEW
   2 ' Test I2C EEPROM 24LC512
     5 CONST STP=0, NO_STP=1 
    10  DIM DEV.ID=$A0, EE.ADR : BUFFER TBUF , 16
-   20  I2C.OPEN 100
+   20  I2C.OPEN 400
    22  INPUT "1 -> READ, 2 WRITE, 3 WRITE+READ" N 
    30  GOSUB SET.ADDR 
    38 ' fill buffer with data 
