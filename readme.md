@@ -1,3 +1,19 @@
+## 2022-06-25, version 2.1 
+
+Ajout de plusieurs commandes. 
+
+  * **BUFFER** *nom*, *greandeur* &nbsp;&nbsp; permet d'allouer un tampon de *grandeur* octets en mémoire. Ce tampon est référencé par *nom* qui retourne son addresse.
+
+  * Ajout de 4 fonctions pour utiliser le périphérique **I2C** du **STM8S208** 
+    * **I2C.OPEN** 
+    * **I2C.CLOSE** 
+    * **I2C.WRITE**
+    * **I2C.READ** 
+
+  * Avec cette version, lorsque le programme est compilé sans le support [DEBUG](config.inc) il occupe 14340 octets dans la mémoire FLASH.
+
+  * Un vidéo de démonstration de l'utilisation du périphérique I2C est disponible sur [youtube](https://youtu.be/WRrV2kTRoWk).
+  
 ## 2022-06-10, version 2.0
 
 * Nombreuses modfications par rapport à la version __1.x__. TinyBASIC est de moins en moins Tiny. Il ressemble de plus en plus à Microsoft BASIC tel qu'il existait sur les ordinateur 8 bits des années 80, tel que le Apple II, Commode VIC-20,C64 et Tandy TRS-80. Le comportement de plusieurs commandes a été modifié. Il faut consulter le [manuel de référence](tbi_reference.md).

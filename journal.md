@@ -1,3 +1,15 @@
+#### 2022-06-25
+
+* commit 21:04
+
+* mise à jour du [readme.md](readme.md)
+
+* Mise à jour du [manuel de référence](tbi_reference.md).
+
+* Incrémenté le numéro de version à 2.1
+
+* Création d'un vidéo de démonstration du périphérique **I2C**
+
 #### 2022-06-24
 
 * commit 22:13

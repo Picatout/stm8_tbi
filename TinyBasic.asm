@@ -256,7 +256,7 @@ clear_vars:
 ;  information 
 ;-----------------------
 	MAJOR=2
-	MINOR=0 
+	MINOR=1 
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
 
 system_information:

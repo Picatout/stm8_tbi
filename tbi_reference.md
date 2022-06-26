@@ -263,6 +263,7 @@ nom|description
 [BSET](#bset)|met un bit à 1.
 [BTEST](#btest)|Vérifie l'état d'un bit.
 [BTOGL](#btogl)|Inverse l'état d'un bit.
+[BUFFER](#buffer)|alloue un tampon mémoire.
 [BYE](#bye)|met la carte en sommeil.
 [CHAIN](#chain)|Chaîne l'exécution d'un programme. 
 [CHAR](#char)|Fonction qui retourne le caractère ASCII correspondant au code.
@@ -290,6 +291,10 @@ nom|description
 [GOSUB](#gosub)|Appel d'une sous-routine
 [GOTO](#goto)|Branchement inconditionnel
 [HEX](#hex)|Définie la base hexadécimal comme fomrat pour l'impression des nombres.
+[I2C.CLOSE](#i2c_close)| ferme le périphérique I2C. 
+[I2C.OPEN](#i2c_open)| ouvre le périphérique I2C.
+[I2C.READ](#i2c_read)| lecture de données d'un dispositif I2C.
+[I2C.WRITE](#i2c_write)| envoie de commandes ou données à un dispositif I2C.
 [IDR](#idr)|Constante système qui retourne l'offset du registre IDR d'un port GPIO.
 [IF](#if)|Directive d'exécution conditionnelle.
 [INPUT](#input)|Directive de lecture d'un nombre dans une variable.
@@ -514,6 +519,27 @@ La commande **bit toggle** inverse les bits de l'octet situé à *addr*. Seul le
 ```
 
 Inverse l'état de la LED2 sur la carte. 
+
+[index](#index)
+<a id="buffer"></a>
+### BUFFER *nom*, *grandeur* {P}
+Cette commande permet de réserver de la mémoire RAM pour utilisation comme tampon d'octets. Les données sont écrites dans le tampon avec la commande [POKE](#poke) et lus avec la fonction [PEEK](#peek). Voir les programmes [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) et [i2c_oled.bas](BASIC/i2c_oled.bas) pour des exemples d'utilisation de cette commande. 
+
+* *nom* est le nom de la variable qui retourne l'adresse du tampon.
+
+* *grandeur* est la taille en octets du tampon. 
+
+```
+>list
+   10  BUFFER BUF , 16
+   20  FOR I= BUF  TO I+ 15 POKE I, RND( 255) NEXT I
+   30  FOR I= BUF  TO I+ 15 PRINT PEEK( I); NEXT I
+program address:  $90, program size:  108 bytes in RAM memory
+
+>run
+ 215 248 88 147 11 229 252 86 214 192 27 194 136 88 227 115
+>
+```
 
 [index](#index)
 <a id="bye"></a>
@@ -938,6 +964,39 @@ Voir auddi [DEC](#dec).
 $FFFFF6
   -10
 ```
+[index](#index)
+
+<a id="i2c_close"></a>
+## I2C.CLOSE {C,P}
+Cette commande sert à fermer le périphérique I2C du MCU. voir [I2C.OPEN](#i2c_open).
+
+[index](#index)
+
+<a id="i2c_open"></a>
+## I2C.OPEN *freq* (C,P)
+Cette commande sert à ouvrir le périphérique I2C du MCU. Ce périphérique est connecté aux broches PE:1 et PE:2 du MCU. Voir les programmes [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) et [i2c_oled.bas](BASIC/i2c_oled.bas)  pour des exemples de son utilisation.
+
+[index](#index)
+
+<a id="i2c_read"></a>
+## I2C.READ *dev_id*,*count*,*buf*,*stop* {C,P}
+Commande pour la lecture de données en provenance d'un dispositif utilisant l'interface I2C. Voir les programmes [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) et [i2c_oled.bas](BASIC/i2c_oled.bas)  pour des exemples de son utilisation.
+
+* *dev_id*  est l'adresse I2C du dispositif. 
+* *count*   est le nombre d'octets qui doivent-être lus. 
+* *buf*     est l'adresse du tampon mémoire qui doit recevoir les octets lus.
+* *stop*    Prend les valeurs **0** ou **1**. **0** -> libère le bus de l'interface après la transatcion. **1** ne libère pas le bus.
+
+[index](#index)
+
+<a id="i2c_write"></a>
+## I2C.WRITE *dev_id*,*count*,*buf*,*stop* {C,P}
+Commande pour l'envoie de données vers un dispositif utilisant l'interface I2C. Voir les programmes [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) et [i2c_oled.bas](BASIC/i2c_oled.bas)  pour des exemples de son utilisation.
+
+* *dev_id*  est l'adresse I2C du dispositif. 
+* *count*   est le nombre d'octets qui doivent-être lus. 
+* *buf*     est l'adresse du tampon mémoire qui contient les octets à envoyer au périphérique.
+* *stop*    Prend les valeurs **0** ou **1**. **0** -> libère le bus de l'interface après la transatcion. **1** ne libère pas le bus.
 
 [index](#index)
 <a id="idr"></a>
@@ -963,6 +1022,7 @@ Nucleo board LD2 ODR address:20490
 ```
 
 [index](#index)
+
 <a id="if"></a>
 ### IF *condition* : cmd [:cmd]* {C,P}
 Le **IF** permet d'exécuter les instructions qui suivent sur la même ligne si l'évalution de *condition* est vrai. Toute valeur différente de zéro est considérée comme vrai.  Si la résultat de *CONDITION* est zéro les instructions qui suivent le **IF** sont ignorées.  Il n'y a pas de **ENDIF** ni de **ELSE**. Toutes les instructions à exécuter doivent-être sur la même ligne que le **IF**. 
@@ -977,6 +1037,7 @@ vrai   1
 ```
 
 [index](#index)
+
 <a id="input"></a>
 ### INPUT [*string*]*var* [,[*string*]*var*]+  {C,P}
 Cette commande permet de saisir un entier fourni par l'utilisateur. Cet entier est déposé dans la variable donnée en argument. Plusieurs variables peuvent-être saisies en une seule commande en les séparant par la virgule. 
@@ -1005,6 +1066,7 @@ woman still young
 >
 ```
 [index](#index)
+
 <a id="iwdgen"></a>
 ### IWDGEN *expr* {C,P}
 Active l'*Independant WatchDog timer*. *expr* représente le délais de la minuterie en mulitiple de **62,5µsec** avant la réinialiation du MCU. Le compteur du **IWDG** doit-être rafraîchie avant la fin de ce délais sinon le MCU est réinitialisé. Un **WatchDog timer** sert à détecter les pannes matérielles ou logicielles. Une fois activé le **IWDG** ne peut-être désactivé que par une réiniatiliation du MCU.  La commande [IWDGREF](#iwdgref)  doit-être utilisée en boucle pour empêcher une réinitialisation intempestive du MCU. *expr* doit-être dans l'interval {1..16383}.
@@ -1034,12 +1096,14 @@ version 2.0
 ```
 
 [index](#index)
+
 <a id="iwdgref"></a>
 ### IWDGREF  {C,P}
 Cette commande sert à rafraîchir le compteur du **IWDG** avant l'expiration de son délais.
 Voir commande [IWDGEN](#iwdgen).
 
 [index](#index)
+
 <a id="key"></a>
 ### KEY {C,P}
 Attend qu'un caractère soit reçu de la console. Si ce caractère est affecté à une variable il sera automatiquement converti en entier. 
