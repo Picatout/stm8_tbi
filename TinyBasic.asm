@@ -57,65 +57,7 @@
 	.include "tbi_macros.inc" 
 .endif 
 
-;--------------------------------------
-    .area DATA (ABS)
-	.org 0 
-;--------------------------------------	
 
-; keep the following 3 variables in this order 
-in.w::  .blkb 1 ; parser position in text line high-byte 
-in::    .blkb 1 ; low byte of in.w 
-count:: .blkb 1 ; current BASIC line length and tib text length  
-in.saved:: .blkb 1 ; set by get_token before parsing next token, used by unget_token
-basicptr::  .blkb 2  ; point to current BASIC line address.
-data_ptr:  .blkw 1  ; point to DATA address
-data_ofs:  .blkb 1  ; index to next data item 
-data_len:  .blkb 1  ; length of data line 
-base::  .blkb 1 ; nemeric base used to print integer 
-acc32:: .blkb 1 ; 32 bit accumalator upper-byte 
-acc24:: .blkb 1 ; 24 bits accumulator upper-byte 
-acc16:: .blkb 1 ; 16 bits accumulator, acc24 high-byte
-acc8::  .blkb 1 ;  8 bits accumulator, acc24 low-byte  
-ticks: .blkb 3 ; milliseconds ticks counter (see Timer4UpdateHandler)
-timer:: .blkw 1 ;  milliseconds count down timer 
-seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
-seedy: .blkw 1  ; xorshift 16 seed y  used by RND() funcion
-farptr: .blkb 1 ; 24 bits pointer used by file system, upper-byte
-ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte 
-ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
-txtbgn:: .blkw 1 ; tokenized BASIC text beginning address 
-txtend:: .blkw 1 ; tokenized BASIC text end address 
-loop_depth: .blkb 1 ; level of nested loop. Conformity check   
-array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
-flags:: .blkb 1 ; various boolean flags
-free_eeprom: .blkw 1 ; start address of free eeprom 
-end_free_ram: .blkw 1 ; where free RAM end 
-rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
-rx1_head:  .blkb 1 ; rx1_queue head pointer
-rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
-dvar_bgn:: .blkw 1 ; DIM variables start address 
-dvar_end:: .blkw 1 ; DIM variables end address 
-chain_level: .blkb 1 ; increment for each CHAIN command 
-out: .blkw 1 ; output char routine address 
-.if INCLUDE_I2C 
-i2c_buf: .blkw 1 ; i2c buffer address 
-i2c_count: .blkb 1 ; bytes to transmit 
-i2c_idx: .blkb 1 ; index in buffer
-i2c_status: .blkb 1 ; error status 
-i2c_devid: .blkb 1 ; device identifier  
-.endif 
-
-; 24 bits integer variables 
-vars:: .blkb 3*26 ; BASIC variables A-Z,
-;	.area BTXT (ABS)
-;	.org 0x8C  
-; keep 'free_ram' as last variable 
-; basic code compiled here. 
-rsign: .blkw 1 ; "TB" 
-rsize: .blkw 1 ; code size 	 
-free_ram: ; from here RAM free for BASIC text 
-
-	.area CODE 
 
 ;-------------------------------------
 ; retrun string length
@@ -256,25 +198,37 @@ clear_vars:
 ;  information 
 ;-----------------------
 	MAJOR=2
-	MINOR=1 
+	MINOR=1
+	REV=2
+
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
 
 system_information:
 	ldw x,#software 
 	call puts 
-	ld a,#MAJOR 
-	ld acc8,a 
+	mov acc8,#MAJOR 
 	clrw x 
 	ldw acc24,x
 	mov base, #10 
 	call prt_acc24 
 	ld a,#'.
 	call putc 
-	ld a,#MINOR 
-	ld acc8,a 
+	mov acc8,#MINOR 
 	clrw x 
 	ldw acc24,x 
-	call prt_acc24
+	clr a
+	call itoa 
+	incw x 
+	call puts 
+	ld a,#'R 
+	call putc 
+	mov acc8,#REV 
+	clrw x 
+	ldw acc24,x
+	clr a
+	call itoa 
+	incw x 
+	call puts  
 	ld a,#CR 
 	call putc
 ;call test 
@@ -459,32 +413,33 @@ next_line:
 	call prt_i16
 interp_loop:
 	call next_token
-	cp a,#TK_NONE 
-	jreq next_line 
 	cp a,#TK_CMD
 	jrne 1$
-	_get_code_addr
+	_get_addr
 	call(x)
 	jra interp_loop 
 1$:	 
-	cp a,#TK_VAR
-	jrne 2$
-	call let_var  
-	jra interp_loop 
-2$:	
-	cp a,#TK_ARRAY 
-	jrne 3$
-	call let_array 
-	jra interp_loop
-3$:	
 	cp a,#TK_LABEL
-	jrne 4$
+	jrne 2$
 	call let_dvar  
 	jra interp_loop 
+2$:	
+	cp a,#TK_VAR
+	jrne 3$
+	call let_var  
+	jra interp_loop 
+3$:	
+	cp a,#TK_ARRAY 
+	jrne 4$
+	call let_array 
+	jra interp_loop
 4$: 
+	tnz a  
+	jreq next_line 
+5$:
 	cp a,#TK_COLON 
 	jreq interp_loop
-5$:	jp syntax_error 
+	jp syntax_error 
 
 
 ;----------------------
@@ -513,7 +468,7 @@ let_dvar:
 	ret 
 dvar_assign: 	 
 ; dvar assignment 
-	inc in  
+	_inc in  
 	call condition  
 	cp a,#TK_INTGR 
 	jreq 1$ 
@@ -536,7 +491,7 @@ dvar_assign:
 	ldw ptr16,x
 	_xpop 
 	ld [ptr16],a 
-	inc ptr8 
+	_inc ptr8 
 	ldw [ptr16],x 
 9$: _drop VSIZE 	
 	ret 
@@ -564,7 +519,7 @@ next_token::
 	addw x,in.w 
 	ld a,(x)
 	incw x
-	inc in   
+	_inc in   
 9$: ret 
 
 ;-------------------------
@@ -585,21 +540,6 @@ skip_string:
 	ldw in.w,x 
 	ret 
 
-;---------------------
-; extract 16 bits  
-; address from BASIC
-; code 
-; input:
-;    X    *address
-; output:
-;    X    address 
-;-------------------- 
-get_addr:
-	ldw x,(x)
-	inc in 
-	inc in 
-	ret 
-
 ;--------------------
 ; extract int24_t  
 ; value from BASIC 
@@ -613,23 +553,11 @@ get_int24:
 	ld a,(x)
 	ldw x,(1,x)
 ; skip 3 bytes 
-	inc in 
-	inc in 
-	inc in 
+	_inc in 
+	_inc in 
+	_inc in 
 	ret 
 
-;-------------------------
-; get character from 
-; BASIC code 
-; input:
-;    X   *char 
-; output:
-;    A    char 
-;-------------------------
-get_char:
-	ld a,(x)
-	inc in  
-    ret 
 
 ;-----------------------------------
 ; print a 16 bit integer 
@@ -687,10 +615,9 @@ print_top:
 ;   X  		pointer to first char of string
 ;   A       string length
 ;------------------------------------
-	SIGN=1  ; integer sign 
-	LEN=2 
-	PSTR=3
-	VSIZE=4 ;locals size
+	SIGN=1  ; 1 byte, integer sign 
+	LEN=2   ; 1 byte, string length 
+	VSIZE=2 ;locals size
 itoa::
 	_vars VSIZE
 	clr (LEN,sp) ; string length  
@@ -706,8 +633,9 @@ itoa::
 	call neg_acc24
 1$:
 ; initialize string pointer 
+; build string below tib
 	ldw x,#tib 
-	addw x,#TIB_SIZE
+;	addw x,#TIB_SIZE
 	decw x 
 	clr (x)
 itoa_loop:
@@ -1070,7 +998,7 @@ factor:
 41$:	
 	cp a,#TK_IFUNC 
 	jrne 5$ 
-	_get_code_addr 
+	_get_addr 
 	call (x); result in A:X  
 	jra 18$ 
 5$:
@@ -1086,7 +1014,7 @@ factor:
 7$:
 	cp a,#TK_VAR 
 	jrne 8$
-	call get_addr 
+	_get_addr 
 71$: ; put value in A:X
 	ld a,(x)
 	ldw x,(1,x)
@@ -1112,7 +1040,7 @@ factor:
 9$: 
 	cp a,#TK_CFUNC 
 	jrne 12$
-	_get_code_addr 
+	_get_addr 
 	call(x)
 	clrw x 
 	rlwa x  ; char>int24 in A:X 
@@ -1505,7 +1433,7 @@ let_array:
 	call get_array_element
 	jra let_eval 
 let_var:
-	call get_addr
+	_get_addr
 let_eval:
 	ldw ptr16,x  ; variable address 
 	call next_token 
@@ -1521,7 +1449,7 @@ let_eval:
 	_xpop ; value 
 3$:
 	ld [ptr16],a
-	inc ptr8  
+	_inc ptr8  
 	ldw [ptr16],x 
 	ret 
 
@@ -1728,7 +1656,7 @@ cmd_dim2:
 	ldw ptr16,x 
 	_xpop 
 	ld [ptr16],a 
-	inc ptr8 
+	_inc ptr8 
 	ldw [ptr16],x 
 	jra 4$ 
 8$:	
@@ -1971,11 +1899,11 @@ prt_loop:
 	ldw in.w,x  
 	jra reset_semicol
 2$:	; print character 
-	call get_char 
+	_get_char 
 	call putc 
 	jra reset_semicol 
 3$: ; print character function value  	
-	_get_code_addr 
+	_get_addr 
 	call (x)
 	call putc
 	jra reset_semicol 
@@ -2074,7 +2002,7 @@ input_loop:
 1$: cp a,#TK_VAR  
 	jreq 2$ 
 	jp syntax_error
-2$:	call get_addr
+2$:	_get_addr
 	ldw ptr16,x 
 	tnz (SKIP,sp)
 	jrne 21$ 
@@ -2110,7 +2038,7 @@ input_loop:
 	ld a,acc24 
 	ldw x,acc16 
 	ld [ptr16],a
-	inc ptr8  
+	_inc ptr8  
 	ldw [ptr16],x 
 	call rest_context
 	call next_token 
@@ -2365,7 +2293,7 @@ for: ; { -- var_addr }
 	pushw x  ; RETL1 
 	ld a,#TK_VAR 
 	call expect
-	call get_addr
+	_get_addr
 	ldw (CVAR,sp),x  ; control variable 
 	call let_eval 
 	bset flags,#FLOOP 
@@ -2374,7 +2302,7 @@ for: ; { -- var_addr }
 	jreq 1$
 	jp syntax_error
 1$:  
-	_get_code_addr
+	_get_addr
 	cpw x,#to   
 	jreq to
 	jp syntax_error 
@@ -2400,7 +2328,7 @@ to: ; { var_addr -- var_addr limit step }
 	jreq 4$ 
 	cp a,#TK_CMD
 	jrne 3$
-	_get_code_addr
+	_get_addr
 	cpw x,#step 
 	jreq step
 3$:	
@@ -2445,7 +2373,7 @@ store_loop_addr:
 	ldw x,in.w 
 	ldw (INW,sp),x   
 	bres flags,#FLOOP 
-	inc loop_depth  
+	_inc loop_depth  
 	ret 
 
 ;--------------------------------
@@ -2464,7 +2392,7 @@ next: ; {var limit step retl1 -- [var limit step ] }
 1$: 
 	ld a,#TK_VAR 
 	call expect
-	call get_addr 
+	_get_addr 
 ; check for good variable after NEXT 	 
 	cpw x,(CVAR,sp)
 	jreq 2$  
@@ -2477,7 +2405,7 @@ next: ; {var limit step retl1 -- [var limit step ] }
 	addw x,(FSTEP+1,sp) ; var+step 
 	adc a,(FSTEP,sp)
 	ld [ptr16],a
-	inc ptr8  
+	_inc ptr8  
 	ldw [ptr16],x 
 	ld acc24,a 
 	ldw acc16,x 
@@ -2604,7 +2532,7 @@ cmd_on:
 	cp a,#TK_CMD 
 	jreq 2$ 
 	jp syntax_error 
-2$: _get_code_addr
+2$: _get_addr
 ;; must be a GOTO or GOSUB 
 	cpw x,#goto 
 	jreq 4$
@@ -2848,15 +2776,15 @@ cmd_get:
 	cp a,#TK_VAR 
 	jreq 0$
 	jp syntax_error 
-0$: call get_addr 
+0$: _get_addr 
 	ldw ptr16,x 
 	call qgetc 
 	jreq 2$
 	call getc  
 2$: clr [ptr16]
-	inc ptr8 
+	_inc ptr8 
 	clr [ptr16]
-	inc ptr8 
+	_inc ptr8 
 	ld [ptr16],a 
 	ret 
 
@@ -2866,6 +2794,7 @@ cmd_get:
 ;-----------------
 beep_1khz:: 
 	pushw y 
+	pushw x 
 	ldw x,#100
 	ldw y,#1000
 	jra beep
@@ -2879,7 +2808,8 @@ beep_1khz::
 ;    expr2   duration msec.
 ;---------------------------
 tone:
-	pushw y 
+	pushw y
+	pushw x  
 	call arg_list 
 	cp a,#2 
 	jreq 1$
@@ -2917,6 +2847,7 @@ beep:
 	call pause02
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
+	popw x 
 	popw y 
 	ret 
 
@@ -3185,7 +3116,7 @@ cmd_erase:
 	cp a,#TK_CHAR 
 	jreq 0$ 
 	jp syntax_error
-0$: call get_char 
+0$: _get_char 
 	and a,#0XDF 
 	cp a,#'E
 	jrne 1$
@@ -3201,8 +3132,8 @@ cmd_erase:
 2$:
 	ldw x,#app_space  
 	ldw farptr+1,x 
-	ld a,#(FLASH_END>>16)&0XFF 
-	ldw x,#FLASH_END&0xffff
+	clr a
+	ldw x,#0xffff
 3$:
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x 
@@ -3544,6 +3475,28 @@ cmd_dir:
 	_drop 2 
 	ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;
+; check if farptr address 
+; read only zone 
+;;;;;;;;;;;;;;;;;;;;;;;;;
+check_forbidden: 
+	tnz farptr 
+	jrne rw_zone 
+; memory 0x8000..0xffff	
+	ldw x,ptr16 
+	cpw x,#app_space
+	jruge rw_zone 
+	cpw x,#EEPROM_BASE
+	jrult forbidden 
+	cpw x,#EEPROM_END 
+	jruge forbidden
+	ret 
+forbidden:
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+rw_zone:	
+	ret 
+
 ;---------------------
 ; BASIC: WRITE expr1,expr2|char|string[,expr|char|string]* 
 ; write 1 or more byte to FLASH or EEPROM
@@ -3561,7 +3514,8 @@ write:
 	jp syntax_error
 0$: _xpop 
 	ld farptr,a 
-	ldw ptr16,x 
+	ldw ptr16,x
+	call check_forbidden 
 1$:	
 	call next_token 
 	cp a,#TK_COMMA 
@@ -3584,14 +3538,14 @@ write:
 	jra 1$ 
 4$: ; write character 
 	ld a,(x)
-	inc in 
+	_inc in 
 	clrw x 
 	call write_byte 
 	jra 1$ 
 6$: ; write string 
 	pushw x 
 	ld a,(x)
-	inc in 
+	_inc in 
 	clrw x 
 	call write_byte 
 	popw x 
@@ -3649,7 +3603,7 @@ ascii:
 	pop a  	
 	jra 3$ 
 2$: ; character 
-	call get_char 
+	_get_char 
 3$:	clrw x 
 	rlwa x   
 4$:	_xpush  
@@ -4354,7 +4308,7 @@ do_loop:
 	ldw (DOLP_ADR,sp),x
 	ldw x,in.w 
 	ldw (DOLP_INW,sp),x
-	inc loop_depth 
+	_inc loop_depth 
 	ret 
 
 ;--------------------------------
@@ -4881,7 +4835,7 @@ xput:
 	pop a 
 	popw x 
 	ld [ptr16],a 
-	inc ptr8 
+	_inc ptr8 
 	ldw [ptr16],x 
 	ret 
 
@@ -4918,7 +4872,7 @@ cmd_auto_run:
 	cp a,#TK_CHAR 
 	jrne 0$ 
 	ld a,(x)
-	inc in 
+	_inc in 
 	and a,#0xDF 
 	cp a,#'C 
 	jreq clear_autorun 
@@ -5081,7 +5035,7 @@ cmd_chain:
 	ldw basicptr,x 
 	ld a,(2,x)
 	ld count,a 
-8$: inc chain_level
+8$: _inc chain_level
 	popw x 
 	_drop DISCARD
 	jp (x)
@@ -5170,9 +5124,9 @@ alloc_buffer:
 	ldw x,end_free_ram 
 	subw x,(BSIZE,sp)
 	clr [ptr16]
-	inc ptr8 
+	_inc ptr8 
 	jrnc 4$
-	inc ptr16
+	_inc ptr16
 4$:  
 	ldw [ptr16],x 
 5$: ; zero buffer 

@@ -24,7 +24,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-    .area CODE 
 	.bndry 128 ; align on FLASH block.
 ; space for user application  
 app_space::

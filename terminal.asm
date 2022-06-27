@@ -142,6 +142,7 @@ uart1_set_baud:
 ;  input:
 ;     A     STDOUT -> uart1 
 ;           BUFOUT -> [ptr16]
+;     X     buffer address 
 ;---------------------------------
 set_output:
 	ldw ptr16,x 
@@ -175,9 +176,9 @@ putc:
 ;---------------------------------
 buf_putc:
 	ld [ptr16],a
-	inc ptr8 
-	jrnc 9$
-	inc ptr16 
+	_inc ptr8 
+	jrne 9$
+	_inc ptr16 
 9$:	clr [ptr16] 
 	ret 
 

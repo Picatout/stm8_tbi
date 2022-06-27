@@ -168,7 +168,7 @@ decomp_loop:
 	jrne 3$
 ;; TK_VAR 
 	call space
-	call get_addr   
+	_get_addr   
 	call var_name
 	call putc  
 	jra decomp_loop
@@ -178,13 +178,13 @@ decomp_loop:
 ;; TK_INTGR
 	call get_int24 
 	ld acc24,a 
-	ldw acc16,x 
+	ldw acc16,x
 	call prt_acc24
 	jra decomp_loop
 4$: ; dictionary keyword
 	cp a,#TK_NOT 
 	jruge 50$ 
-	call get_addr
+	_get_addr
 	cpw x,#remark 
 	jrne 5$
 ; print comment
@@ -238,7 +238,7 @@ decomp_loop:
 	ld a,#'\ 
 	call putc 
 	ld a,(x)
-	inc in  
+	_inc in  
 8$:
 	call putc  
 82$:

@@ -87,7 +87,65 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int29  not used
 
 
-	.area CODE
+;--------------------------------------
+    .area DATA (ABS)
+	.org 0 
+;--------------------------------------	
+
+; keep the following 3 variables in this order 
+in.w::  .blkb 1 ; parser position in text line high-byte 
+in::    .blkb 1 ; low byte of in.w 
+count:: .blkb 1 ; current BASIC line length and tib text length  
+in.saved:: .blkb 1 ; set by get_token before parsing next token, used by unget_token
+basicptr::  .blkb 2  ; point to current BASIC line address.
+data_ptr:  .blkw 1  ; point to DATA address
+data_ofs:  .blkb 1  ; index to next data item 
+data_len:  .blkb 1  ; length of data line 
+base::  .blkb 1 ; nemeric base used to print integer 
+acc32:: .blkb 1 ; 32 bit accumalator upper-byte 
+acc24:: .blkb 1 ; 24 bits accumulator upper-byte 
+acc16:: .blkb 1 ; 16 bits accumulator, acc24 high-byte
+acc8::  .blkb 1 ;  8 bits accumulator, acc24 low-byte  
+ticks: .blkb 3 ; milliseconds ticks counter (see Timer4UpdateHandler)
+timer:: .blkw 1 ;  milliseconds count down timer 
+seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
+seedy: .blkw 1  ; xorshift 16 seed y  used by RND() funcion
+farptr: .blkb 1 ; 24 bits pointer used by file system, upper-byte
+ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte 
+ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
+txtbgn:: .blkw 1 ; tokenized BASIC text beginning address 
+txtend:: .blkw 1 ; tokenized BASIC text end address 
+loop_depth: .blkb 1 ; level of nested loop. Conformity check   
+array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
+flags:: .blkb 1 ; various boolean flags
+free_eeprom: .blkw 1 ; start address of free eeprom 
+end_free_ram: .blkw 1 ; where free RAM end 
+rx1_queue: .ds RX_QUEUE_SIZE ; UART1 receive circular queue 
+rx1_head:  .blkb 1 ; rx1_queue head pointer
+rx1_tail:   .blkb 1 ; rx1_queue tail pointer  
+dvar_bgn:: .blkw 1 ; DIM variables start address 
+dvar_end:: .blkw 1 ; DIM variables end address 
+chain_level: .blkb 1 ; increment for each CHAIN command 
+out: .blkw 1 ; output char routine address 
+.if INCLUDE_I2C 
+i2c_buf: .blkw 1 ; i2c buffer address 
+i2c_count: .blkb 1 ; bytes to transmit 
+i2c_idx: .blkb 1 ; index in buffer
+i2c_status: .blkb 1 ; error status 
+i2c_devid: .blkb 1 ; device identifier  
+.endif 
+
+; 24 bits integer variables 
+vars:: .blkb 3*26 ; BASIC variables A-Z,
+;	.area BTXT (ABS)
+;	.org 0x8C  
+; keep 'free_ram' as last variable 
+; basic code compiled here. 
+rsign: .blkw 1 ; "TB" 
+rsize: .blkw 1 ; code size 	 
+free_ram: ; from here RAM free for BASIC text 
+
+	.area CODE 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; non handled interrupt 
@@ -160,7 +218,8 @@ UserButtonHandler:
     btjf flags,#FSLEEP,3$
 	bres flags,#FSLEEP 
 	iret
-3$:	
+3$:	; jpf user_interrupted
+
 user_interrupted:
 .if INCLUDE_I2C 
 ; in case system infinite
@@ -338,8 +397,8 @@ cold_start:
 ; RND function seed 
 ; must be initialized 
 ; to value other than 0.
-	inc seedy+1 
-	inc seedx+1 
+	_inc seedy+1 
+	_inc seedx+1 
 	call func_eefree ; eeprom free address 
 	call ubound ; @() size 
 	call clear_basic

@@ -377,7 +377,7 @@ row_align:
 	ldw x,farptr+1 
 	addw x,#BLOCK_SIZE 
 	jrnc 0$
-	inc farptr 
+	_inc farptr 
 0$: ld a,xl 
 	and a,#0x80
 	ld xl,a
@@ -393,7 +393,7 @@ row_align:
 incr_farptr:
 	addw x,farptr+1 
 	jrnc 1$
-	inc farptr 
+	_inc farptr 
 1$:	ldw farptr+1,x  
 	ret 
 

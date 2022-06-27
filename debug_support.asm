@@ -141,14 +141,16 @@ prt_reg16:
 ; print registers contents saved on
 ; stack by trap interrupt.
 ;------------------------------------
-	R_PC=11 
-	R_CC=9
-	SAV_ACC24=8
-	SAV_ACC16=6
-	R_Y=4
-	R_X=2
-	R_A=1
-	VSIZE=8 
+	R_PC=13     ; 1 word 
+	SAV_BASE=12 ; 1 BYTE 
+	R_CC=11     ; 1 byte 
+	SAV_OUT=9   ; 1 word 
+	SAV_ACC24=8 ; 1 byte 
+	SAV_ACC16=6 ; 1 word 
+	R_Y=4       ; 1 word 
+	R_X=2       ; 1 word 
+	R_A=1       ; 1 byte 
+	VSIZE=10
 print_registers::
 	push base 
 	push cc 
@@ -160,6 +162,10 @@ print_registers::
 	ldw x,acc16 
 	ld (SAV_ACC24,sp),a 
 	ldw (SAV_ACC16,sp),x 
+	ldw x,out 
+	ldw (SAV_OUT,sp),x
+	ldw x,#uart1_putc
+	ldw out,x 
 	ldw x,#STATES
 	call puts
 ; print PC 
@@ -188,8 +194,10 @@ print_registers::
 	ldw y,sp 
 	addw y,#(VSIZE+3)
 	call prt_reg16  
-	ld a,#'\n' 
+	ld a,#CR 
 	call putc
+	ldw x,(SAV_OUT,sp)
+	ldw out,x 
 	ld a,(SAV_ACC24,sp)
 	ldw x,(SAV_ACC16,sp)
 	ld acc24,a 

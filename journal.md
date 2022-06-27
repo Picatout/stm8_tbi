@@ -1,3 +1,47 @@
+#### 2022-06-26
+
+* commit 21:41
+
+* Ajout du démo [pwm-soft.bas](BASIC/pwm-soft.bas).
+
+* Réorganisé l'ordre des comparaisons dans *interp_loop* mettant les plus probables en premier. Légé gain en rapidité.
+
+* Suppression de la sous-routine *get_addr* et renommé  macro *_get_code_addr* en *_get_addr*. Remplacé *call get_addr* par la macro *_get_addr*.  Ainsi 4 cycles 
+machines sont sauvé à chaque appel. 
+
+* Suppression de sous routine *get_char* pour la remplacé par la macro *_get_char*. 
+
+* Déboguer *decompile* sort du garbage quand il décompile dans un tampon. Le bogue était and *buf_putc*. l'instruction machine *inc* n'affecte pas le carry flag.
+
+version boguée:
+```
+buf_putc:
+	ld [ptr16],a
+	inc ptr8 
+	jrnc 9$    ; erreur carry flag pas modifié par **inc**
+	inc ptr16 
+9$:	clr [ptr16] 
+	ret 
+```
+version corrigée:
+```
+buf_putc:
+	ld [ptr16],a
+	inc ptr8 
+	jrne 9$
+	inc ptr16 
+9$:	clr [ptr16] 
+	ret 
+```
+
+* Modifié *print_registers* dans [debug_support.asm](debug_support.asm) pour sauvegarder la variable système *out*. 
+
+* Modifié *tone* pour préserver registre **X**. 
+
+* Début du travail sur la version 2.1R2 
+
+* Ajout d'un numéro de révision pour avoir un meilleur traçage des versions.
+
 #### 2022-06-25
 
 * commit 21:04

@@ -78,7 +78,7 @@ evt_txe:
 evt_txe_1:
     ld a,([i2c_buf],x)
     ld I2C_DR,a
-    inc i2c_idx 
+    _inc i2c_idx 
     dec i2c_count
 1$: iret 
 
@@ -96,7 +96,7 @@ evt_rxne:
     jreq evt_stopf  
 1$: ld a,I2C_DR 
     ld ([i2c_buf],x),a  
-    inc i2c_idx 
+    _inc i2c_idx 
     dec i2c_count
     jrne 4$
     bres I2C_CR2,#I2C_CR2_ACK

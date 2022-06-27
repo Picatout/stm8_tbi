@@ -225,7 +225,7 @@ parse_quote:
 2$:	
 	ld a,([in.w],y)
 	jreq 6$
-	inc in 
+	_inc in 
 	ld (CURR,sp),a 
 	ld a,#'\
 	cp a, (PREV,sp)
@@ -306,7 +306,7 @@ parse_integer: ; { -- n }
 2$:	ld (x),a 
 	incw x 
 	ld a,([in.w],y)
-	inc in 
+	_inc in 
 	call to_upper 
 	ld (TCHAR,sp),a 
 	call is_digit 
@@ -356,7 +356,7 @@ parse_binary: ; { -- n }
 	push #0
 2$:	
 	ld a,([in.w],y)
-	inc in 
+	_inc in 
 	cp a,#'0 
 	jreq 3$
 	cp a,#'1 
@@ -471,7 +471,7 @@ symb_loop:
 	ld (x), a 
 	incw x
 	ld a,([in.w],y)
-	inc in 
+	_inc in 
 	call is_symbol_char 
 	jrc symb_loop 
 	clr (x)
@@ -571,7 +571,7 @@ skip:
 	jreq 2$
 	cp a,(C,sp)
 	jrne 2$
-	inc in
+	_inc in
 	jra 1$
 2$: _drop 1 
 	ret
@@ -615,7 +615,7 @@ get_token::
 	jrne 1$
 	ldw y,x 
 	jp token_exit ; end of line 
-1$:	inc in 
+1$:	_inc in 
 	call to_upper 
 	ld (TCHAR,sp),a 
 ; check for quoted string
@@ -663,7 +663,7 @@ bkslsh_tst: ; character token
 	ld (x),a 
 	incw x
 	ldw y,x 	 
-	inc in  
+	_inc in  
 	clrw x 
 	ld xl,a 
 	ld a,#TK_CHAR 
@@ -749,7 +749,7 @@ gt_tst:
 	ld a,#TK_GT 
 	ld (ATTRIB,sp),a 
 	ld a,([in.w],y)
-	inc in 
+	_inc in 
 	cp a,#'=
 	jrne 1$
 	ld a,#TK_GE 
@@ -766,7 +766,7 @@ lt_tst:
 	ld a,#TK_LT 
 	ld (ATTRIB,sp),a 
 	ld a,([in.w],y)
-	inc in 
+	_inc in 
 	cp a,#'=
 	jrne 1$
 	ld a,#TK_LE 

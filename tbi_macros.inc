@@ -176,16 +176,26 @@
      mov in,in.saved  
     .endm
 
-
-    ; extract code address for 
-    ; TK_CMD|TK_FUNC|TK_IFUNC|TK_CFUNC 
-    .macro _get_code_addr
-        ldw x,(x)
-        inc in 
-        inc in 
+    ;  increment variable in page 0 
+    .macro _inc v 
+        .byte 0x3c, v 
     .endm 
 
+    ; extract 16 bits address from BASIC code  
+    .macro _get_addr
+        ldw x,(x)
+        _inc in 
+        _inc in
+        ;.byte 0x3C, in 
+        ; .byte 0x3c, in  
+    .endm 
 
+    ; extract character from BASIC code 
+    .macro _get_char 
+        ld a,(x)
+        _inc in 
+    .endm 
+    
 
 ;---------------------------------------
 ;    xtack manipulation macros 
