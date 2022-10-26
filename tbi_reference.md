@@ -357,8 +357,8 @@ nom|description
 [UBOUND](#ubound)|Retourne l'indice maximum du tableau @.
 [UFLASH](#uflash)|Retourne la première adresse libre de la mémoire FLASH.
 [UNTIL](#until)|Directive qui termine une boucle DO..UNTIL.
-[USR](#usr)|Apple d'une routine écrite en code machine.
-[WAIT](#wait)|Moditeur l'état d'une broche et attend jusqu'à l'état désiré 
+[USR](#usr)|Appel d'une routine écrite en code machine.
+[WAIT](#wait)|Moniteur l'état d'une broche et attend jusqu'à l'état désiré 
 [WORDS](#words)|Affiche la liste des mots réservés.
 [WRITE](#write)|Écriture de donnés dans la mémoire FLASH ou EEPROM.
 [XOR](#xor)|opérateur binaire OU exclusif.

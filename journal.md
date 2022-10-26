@@ -1,3 +1,7 @@
+#### 2022-10-25 
+
+* Corrigé une erreur d'orthographe dans [tbi_reference.md](tbi_reference.md)
+
 #### 2022-06-26
 
 * commit 21:41
