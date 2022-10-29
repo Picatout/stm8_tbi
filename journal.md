@@ -1,8 +1,12 @@
-#### 2022-10-25 
+### 2022-10-29
+
+* Début du travail d'optimisation de l'interpréteur à partir de la version 2.1R2 
+
+### 2022-10-25 
 
 * Corrigé une erreur d'orthographe dans [tbi_reference.md](tbi_reference.md)
 
-#### 2022-06-26
+### 2022-06-26
 
 * commit 21:41
 
@@ -46,7 +50,7 @@ buf_putc:
 
 * Ajout d'un numéro de révision pour avoir un meilleur traçage des versions.
 
-#### 2022-06-25
+### 2022-06-25
 
 * commit 21:04
 
@@ -58,7 +62,7 @@ buf_putc:
 
 * Création d'un vidéo de démonstration du périphérique **I2C**
 
-#### 2022-06-24
+### 2022-06-24
 
 * commit 22:13
 
@@ -72,16 +76,16 @@ buf_putc:
 	Les 128 colonnes d'une page doivent-être mise à jour dans la même commande sinon le pointeur de colonne est remis à zéro à chaque commande.
 	Par contre le pointeur de page n'est pas remis à zéro à la fin d'une commande. 
 
-#### 2022-06-23
+### 2022-06-23
 
 * Travail sur [BASIC/i2c_oled.bas](BASIC/i2c_oled.bas).
 	* Affichage allume mais pointeur addresse ne fonctionne pas correctement.
 
-#### 2022-06-22
+### 2022-06-22
 
 * Création de [BASIC/i2c_oled.bas](BASIC/i2c_oled.bas) pour teste l'interface **I2C** avec un affichage OLED avec controller SSD1306.
 
-#### 2022-06-21
+### 2022-06-21
 
 * Supprimé commande BASIC **I2C.ERROR**. Les commandes disponibles sont:
 	* **I2C.OPEN**
@@ -96,16 +100,16 @@ buf_putc:
 
 * Modifié *UserButtonHandler*  les rebonds du bouton n'étaient pas filtré correctement. 
 
-#### 2022-06-20
+### 2022-06-20
 
 * Après 1 semaine à essayer de faire fonctionner correctement le périphérique I2C avec une mémoire EEPROM 24LC512 j'ai décidé de faire un test avec 
 une version I2C entièrement logicielle (bit-bang).  [i2c_soft.asm](i2c_soft.ams).
 
-#### 2022-06-19
+### 2022-06-19
 
 * Ajout de la routine *set_int_priority* dans [hardware_init.asm](hardware_init.asm).
 
-#### 2022-06-18
+### 2022-06-18
 
 * Supprimer opérateur '#' inutile. 
 
@@ -113,13 +117,13 @@ une version I2C entièrement logicielle (bit-bang).  [i2c_soft.asm](i2c_soft.ams
 
 * Travail sur périphérique I2C. 
 
-#### 2022-06-17
+### 2022-06-17
 
 * Test I2C sur mémoire 24LC512.  
 
 * Modifié priorité interruption timer4 pour niveau 1.
 
-#### 2022-06-16
+### 2022-06-16
 
 * Commande **BUFFER**  à corriger.
 
@@ -129,7 +133,7 @@ une version I2C entièrement logicielle (bit-bang).  [i2c_soft.asm](i2c_soft.ams
 
 * Corrigé macro _usec_dly  dans [tbi_macros.inc](tbi_macros.in).
 
-#### 2022-06-15
+### 2022-06-15
 
 * commit 22:28
 
@@ -157,7 +161,7 @@ program address:  $90, program size:  73 bytes in RAM memory
 
 * Modifié commande **REBBOT** et routine *Uart1RxHandler* pour utiliser la macro *_swreset* au lieu d'un saut vers cold_start.
 
-#### 2022-06-14
+### 2022-06-14
 
 * commit 16:30
 
@@ -169,11 +173,11 @@ program address:  $90, program size:  73 bytes in RAM memory
 
 * Ajout de la commande **TRACE** qui envoie au terminal le no de ligne en cours d'exécution.
 
-#### 2022-06-13
+### 2022-06-13
 
 * Écriture de [i2c_test.bas](BASIC/i2c_test_.bas) 
 
-#### 2022-06-12
+### 2022-06-12
 
 * Commit 11:34 
 
@@ -188,7 +192,7 @@ program address:  $90, program size:  73 bytes in RAM memory
 
 * Modifié *search_name*, *factor*, *cmd_dim*,*let_dvar*, REC_XTRA_BYTES ajouté au nom recherché.
 
-#### 2022-06-11
+### 2022-06-11
 
 * Corrigé bogue dans *search_name*  et *get_value* la longueur de l'enregistrement n'était pas masqué correctement utilisait NAME_MAX_LEN ce qui n'est pas correct car avec l'ajout de REC_XTRA_BYTES à la longueur du nom ça peut faire plus que 15.
 
@@ -224,7 +228,7 @@ program address:  $90, program size:  63 bytes in RAM memory
 
 * Modifié commande **LIST** pour capturer les erreurs de syntaxe.
 
-#### 2022-06-10
+### 2022-06-10
 
 * Création d'un vidéo de démonstration des nouvelles fonctionnalités.
 
@@ -257,7 +261,7 @@ program address:  $90, program size:  63 bytes in RAM memory
 
 * Révision du code.
 
-#### 2022-06-09
+### 2022-06-09
 
 * commit 22:30
 
@@ -277,7 +281,7 @@ program address:  $90, program size:  63 bytes in RAM memory
 
 * Réparer commande **LIST**. Aussi remplacé virgule comme séparateur par **-** pour être conforme au BASIC tradtionnel, i.e. Commodore C64,VIC20,PET, etc.
 
-#### 2022-06-08
+### 2022-06-08
 
 * commit 20:38 
 
@@ -305,7 +309,7 @@ se termine le programme appellant se poursuit. L'information de retour est conse
 
 * Modifié commande **SAVE** pour que la commande tienne compte des programmes suprimés. **SAVE** essai de sauvegarder dans le premier espace suffisamment large.
 
-#### 2022-06-07
+### 2022-06-07
 
 * Commit 22:56
 
@@ -322,7 +326,7 @@ champs signature est grandeur. La signature est remplacée par **XX**.
 
 * Modifié *qsign* et en conséquence: **UFLASH** et *cold_star*
 
-#### 2022-06-06
+### 2022-06-06
 
 * commit 23:12
 
@@ -330,7 +334,7 @@ champs signature est grandeur. La signature est remplacée par **XX**.
 
 * Ajouter commande **DIR** pour lister progammes sauvegardés en mémoire FLASH.
 
-#### 2022-06-05
+### 2022-06-05
 
 * commit 22:09
 
@@ -377,7 +381,7 @@ champs signature est grandeur. La signature est remplacée par **XX**.
 	jra 1$  
 ```
 
-#### 2022-06-04
+### 2022-06-04
 
 *  bogue , ne peut créer 2 constantes 
 ```
@@ -394,7 +398,7 @@ champs signature est grandeur. La signature est remplacée par **XX**.
 est à **1** il s'agit d'une constante. Le but de cette modification est d'améliorer la vitesse des routines *factor* qui font la recherche. Il n'est plus
 nécessaire de rechercher dans 2 localisation différentes. 
 
-#### 2022-06-03
+### 2022-06-03
 
 * commit 23:02
 
@@ -404,7 +408,7 @@ nécessaire de rechercher dans 2 localisation différentes.
 
 * Supprimé la constante système **PORTH** puisque non disponible sur la carte NUCLEO-8S208RB.
 
-#### 2022-06-02
+### 2022-06-02
 
 * 21:29 commit 
 
@@ -443,7 +447,7 @@ Dans **RETURN** erreur de variable local utilisée pour récupéré le pointeur 
 	* __ALLOC__ *n*  réserver *n* enplacement sur la pile. 
 
 
-#### 2022-06-01
+### 2022-06-01
 
 * commit 21:04
 
@@ -458,7 +462,7 @@ Dans **RETURN** erreur de variable local utilisée pour récupéré le pointeur 
 ```
 
 
-#### 2022-05-29
+### 2022-05-29
 
 * 22:26 commit 
 
@@ -468,13 +472,13 @@ Dans **RETURN** erreur de variable local utilisée pour récupéré le pointeur 
 
 * Réécriture de *mul24* et *mulu24_8* ainsi que de *itoa24* affecté par la modification arithmétique.
 
-#### 2022-05-28
+### 2022-05-28
 
 * 22:13 commit.
 
 * Corrigé bogue and *mul24*  **N2** n'était pas sauvegardé sur la pile lorsque positif. Réécris *mulu24_8*.
 
-#### 2022-05-27
+### 2022-05-27
 
 * bogue
 ```
@@ -537,7 +541,7 @@ program address:  $80, program size:   33 bytes in RAM memory
 
 * Travail de mise à jousr du fichier [tbi_reference.md](tbi_reference.md).
 
-#### 2022-05-26
+### 2022-05-26
 
 * 22:28  commit 
 
@@ -689,7 +693,7 @@ insert_char:
 >
 ```
 
-#### 2022-05-25
+### 2022-05-25
 
 * commit 20:06
 
@@ -713,7 +717,7 @@ insert_char:
 
 	* Les opérateurs de précédenc
 
-#### 2022-05-24
+### 2022-05-24
 
 * Commit 
 
@@ -736,7 +740,7 @@ insert_char:
 
 * Corrigé bogue dans **PRINT**, *relation* et *cp24*. Réécris *cp24_ax*
 
-#### 2022-05-23
+### 2022-05-23
 
 * bogue 
 ```
@@ -755,7 +759,7 @@ insert_char:
 
 * Réparé bogue dans **RND**. Appellais *div24* au lieu de *mod24*.   euh!!!!
 
-#### 2022-05-22
+### 2022-05-22
 
 * Travail sur **RND**  ne semble pas correct. 
 
@@ -787,7 +791,7 @@ insert_char:
 * Corrigé bogue dans *factor*
 
 
-#### 2022-05-21
+### 2022-05-21
 
 * Corrigé bogue dans *mul24* et *div24* du fichier [arithm24.asm](arithm24.asm).
 
@@ -829,7 +833,7 @@ last token id:    0
 
 * corrigé bogue dans *inerp_loop* 
 
-#### 2022-05-20
+### 2022-05-20
 
 * bogue 
 ```
@@ -843,7 +847,7 @@ run time error, syntax error
 
 run time error, syntax error
 ```
-#### 2022-05-19
+### 2022-05-19
 
 * Modification de *next_token* pour simplifier et améliorer la performance. Maintenant retourne seulement la constant TK_ID dans A et l'adresse de sa valeur dans X. La récupération de la valeur et la mise à jour de **in.w** est à la charge du client. 
 
@@ -851,7 +855,7 @@ run time error, syntax error
 
 * Bogue  
 
-#### 2022-05-18
+### 2022-05-18
 
 * Création du fichier [arithm24.asm](arithm24.asm) transféré les routines arithmétiques sur entier 24 bits dans ce fichier. 
 
@@ -864,13 +868,13 @@ run time error, syntax error
 	* Ajout d'une pile pour les expressions.  *xstack*  avec la variable pointeur *xsp* pour cette pile.
 
 
-#### 2022-05-17
+### 2022-05-17
 
 * Réécriture de la sous-routine  *mulu24_8* dans [TinyBasic.asm](TinyBasic.asm). 
 
 * Travail sur test arithmétique sur entiers 24 bits [test.asm](test.asm)
 
-#### 2022-05-15
+### 2022-05-15
 
 * Modification de *itoa* dans [TinyBasic.asm](TinyBasic.asm). 
 	
@@ -878,16 +882,16 @@ run time error, syntax error
 
 	* Ajouté paramètre d'entrée dans A pour convesion signée **A&lt;&gt;0** ou non signée **A=0**. 
 
-#### 2022-05-13 
+### 2022-05-13 
 
 * Création du fichier [float.asm](float.asm) dans le but d'ajouter les opérations arithmétiques sur le type float32 au format [IEEE-754](https://fr.wikipedia.org/wiki/IEEE_754).
 
-#### 2022-05-11
+### 2022-05-11
 
 * 8:30   la branche V2 a été fusionné à la branche master.  Retour à la branche V2 pour le développement.
 
 
-#### 2022-05-10
+### 2022-05-10
 
 * Mettre à jour [tbi_reference.md](tbi_reference.md). 
 
@@ -901,7 +905,7 @@ run time error, syntax error
 
 *  Modifié routine *factor* pour accepter les *TK_LABEL*. 
 
-#### 2022-05-09
+### 2022-05-09
 
 * À faire:  Modifié le compilateur pour qu'il remplace les TK_LABEL qui sont des constantes par leur valeur. 
 
@@ -913,11 +917,11 @@ run time error, syntax error
 
 * Modifié *next_token* qui maintenant saute par dessus la chaîne des **TK_LABEL* et renvoie le pointeur sur la chaîne dans X. *skip_label* devenu inutile a été supprimé. *Décompile*, *interp_loop* ont étés modifié pour tenir compte de la modification à TK_LABEL 
 
-#### 2022-05-08
+### 2022-05-08
 
 * Ajout de la commande **CONST** qui permet de définir des constantes qui sont sauvegardées dans la mémoire EEPROM.
 
-#### 2022-05-07
+### 2022-05-07
 
 * bogue dans *decompile*  opérateur **&lt;&gt;** décompilé comme **&lt;=**. 
 
@@ -968,7 +972,7 @@ next_token::
 * Création routine **program_info** appellée par la commande **LIST** et par *run_app* in *cold_start*. 
 
 
-#### 2022-05-06
+### 2022-05-06
 
 * Ajout de la commande **GET** *var* qui vérifie s'il y a un caractère de reçu. Si c'est le cas la valeur ASCII du caractère est assignée à la varable sinon **0**. **GET** n'attend pas la réception d'un caractère. 
 
@@ -976,7 +980,7 @@ next_token::
 
 * Ajouté et testé  cible symboliques pour les commandes **GOTO** et **GOSUB** voir test [BASIC/target.bas](BASIC/target.bas)
 
-#### 2022-05-05
+### 2022-05-05
 
 * À faire:
 	
@@ -995,7 +999,7 @@ next_token::
 * Corrigé bogue dans commande **INPUT** qui n'acceptait pas les entiers négatifs. 
 
 
-#### 2022-05-01
+### 2022-05-01
 
 * Réorganisation de code. 
 	
@@ -1005,12 +1009,12 @@ next_token::
 
 	* Déplacé code d'initialisation UART1 et routines dans [terminal.asm](terminal.asm) 
 
-#### 2022-04-30
+### 2022-04-30
 
 * Optimisation de next_token 
 
 
-#### 2022-04-29 
+### 2022-04-29 
 
 * Renommé **FLASHAPP** en **SAVE** 
 
@@ -1018,7 +1022,7 @@ next_token::
 
 * Débogage 
 
-#### 2022-04-27
+### 2022-04-27
 
 * Ajout de la commande **FLASHAPP**  à déboguer 
 
@@ -1084,7 +1088,7 @@ BC
 vars:: .blkw 26 ; BASIC variables A-Z, keep it as but last .
 ```
 
-#### 2022-04-26
+### 2022-04-26
 
 * ajouter commandes **TORAM** et **TOFLASH**. 
 
@@ -1181,7 +1185,7 @@ modifié:
 
 * Mise à jour du [manuel de référence](tbi_reference.md).
 
-##### 2022-04-25 
+#### 2022-04-25 
 
 * Création de la branche de développement **v2**.
 
@@ -1211,13 +1215,13 @@ modifié:
 	ldw y,(code_addr,y) 
 ```
 
-#### 2022-04-23 
+### 2022-04-23 
 
 * Modifié  **search_lineno**  le registe **A** détermine maintenant si la rechere débute au début du texte ou à partir de la ligne courante du programme.
     * Si A=0  cherche à partir de *txtbgn*. 
     * Si A=1  cherche a partir de la ligne où est rendu le compteur ordinal de la VM.
     
-#### 2022-04-21
+### 2022-04-21
 
 * Création d'un nouveau dépôt pour **stm8 TinyBASIC V2.0** 
 

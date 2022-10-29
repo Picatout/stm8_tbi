@@ -867,3 +867,31 @@ compile::
 	popw y 
 	ret 
 
+;---------------------------------
+; speed optimization by replacing 
+; GOTO|GOSUB target line# by 
+; line address. 
+; This apply only to programs 
+; saved in flash memory 
+; BASIC: OPTIMIZE label 
+;   command line only 
+;---------------------------------
+optimize:
+	call cmd_line_only
+	ld a,#TK_LABEL 
+	call expect  
+	pushw x 
+	call skip_string
+	popw x 
+	call search_program 
+    jrne 1$ 
+	ldw x,#ERR_NO_PROGRAM
+	jp tb_error 
+1$: pushw y 
+	ldw y,x ; source address 
+	subw x,#4
+	ldw x,(2,x) ; program size 
+	addw x,#4 
+
+	popw y 
+	ret 

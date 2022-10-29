@@ -371,7 +371,8 @@ cmd_line: ; user interface
 	tnz count 
 	jreq cmd_line
 	call compile
-;;;;;;;;;;;;;;;;;;;;;;	
+;;;;;;;;;;;;;;;;;;;;;;
+;; dump compiled BASIC 	
 ;pushw y 
 ;ldw x,txtbgn  
 ;ldw y,txtend
