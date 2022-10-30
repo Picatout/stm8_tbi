@@ -1,5 +1,6 @@
 ### 2022-10-29
 
+* Création de la branche V3. 
 * Début du travail d'optimisation de l'interpréteur à partir de la version 2.1R2 
 
 * Avant optimisation 
