@@ -1,3 +1,54 @@
+### 2022-11-04
+
+* Travail d'optimisation vitesse d'exécution.
+
+* Corrigé bogue dans *func_char*. 
+
+* bogue:
+```
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version  2.1R2
+
+>? a
+
+>let a=23*4+5
+
+>? a
+
+>? 23*4+5
+
+>? a
+
+>? 23*4+5: ? a
+ 97
+
+>? 23*4+5:
+ 97
+
+>? a: 
+ 0
+
+>let a=23*4+5:
+syntax error
+ 5816  A= 23* 4+ 5u
+>? a:
+ 97
+
+>
+
+```
+
+### 2022-11-03
+
+* Création de la branche V2_5. 
+
+* Rendre obligatoire le mot réservé **LET** et le séparateur de commande **:**.
+
+* Différencier les étiquettes cible en début de ligne de celles en argument des **GOSUB|GOTO**
+
+* les identifiants symboliques de variables et constantes sont identifiés par **TK_DVAR** et **TK_CONST**. 
+
 ### 2022-10-29
 
 * Début du travail d'optimisation de l'interpréteur à partir de la version 2.1R2 

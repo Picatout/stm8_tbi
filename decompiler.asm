@@ -132,9 +132,9 @@ var_name::
 ; decompile tokens list 
 ; to original text line 
 ; input:
-;   basicptr  pointer at line 
+;   line.addr start of line 
+;   basicptr  at first token 
 ;   count     stop position.
-;   in.w      #3 
 ;------------------------------------
 	BASE_SAV=1 ; 1 byte 
 	PSTR=2     ;  1 word 
@@ -143,7 +143,7 @@ decompile::
 	_vars VSIZE
 	ld a,base
 	ld (BASE_SAV,sp),a  
-	ldw x,[basicptr]
+	ldw x,line.addr
 	mov base,#10
 	clr acc24 
 	ldw acc16,x
@@ -155,12 +155,10 @@ decompile::
 	ld a,#SPACE 
 	call putc   
 decomp_loop:
-	ld a,in 
-	cp a,count
-	jrult 0$ 
-	jp decomp_exit 
-0$:	call next_token 
-	tnz a  
+	call next_token 
+	tnz a
+	jrne 1$ 
+	jp decomp_exit   
 1$:	jrmi 2$
 	jp 6$
 2$: ;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR|TK_AND|TK_OR|TK_XOR 

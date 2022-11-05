@@ -93,11 +93,12 @@ stack_unf: ; stack underflow ; control_stack bottom
 ;--------------------------------------	
 
 ; keep the following 3 variables in this order 
-in.w::  .blkb 1 ; parser position in text line high-byte 
+bp.saved: ; saved value of basicptr, overlay in.w  
+in.w::  .blkb 1 ; used by compiler 
 in::    .blkb 1 ; low byte of in.w 
 count:: .blkb 1 ; current BASIC line length and tib text length  
-in.saved:: .blkb 1 ; set by get_token before parsing next token, used by unget_token
-basicptr::  .blkb 2  ; point to current BASIC line address.
+line.addr:: .blkw 1 ; BASIC line start at this address. 
+basicptr::  .blkw 1  ; BASIC interperter program pointer.
 data_ptr:  .blkw 1  ; point to DATA address
 data_ofs:  .blkb 1  ; index to next data item 
 data_len:  .blkb 1  ; length of data line 

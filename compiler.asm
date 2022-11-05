@@ -547,8 +547,6 @@ parse_keyword:
 	incw y 
 	jra 5$ 
 41$:	
-	cpw x,#let  
-	jreq 5$  ; don't compile LET command 
 	ld (y),a 
 	incw y 
 	ldw (y),x
@@ -610,7 +608,7 @@ get_token::
 	ldw y,#tib    	
 	ld a,#SPACE
 	call skip
-	mov in.saved,in 
+;	mov in.saved,in 
 	ld a,([in.w],y)
 	jrne 1$
 	ldw y,x 
@@ -845,6 +843,8 @@ compile::
 	cp a,#TK_NONE 
 	jrne 2$ 
 ; compilation completed  
+	clr (y)
+	incw y 
 	subw y,#pad ; compiled line length 
     ld a,yl
 	ldw x,#pad 
@@ -853,45 +853,18 @@ compile::
 	ldw x,(x)  ; line# 
 	jreq 10$
 	call insert_line
-	clr  count 
+	clr  count
+	clr  a ; not immediate command  
 	jra  11$ 
 10$: ; line# is zero 
 	ldw x,ptr16  
-	ldw basicptr,x 
 	ld a,(2,x)
-	ld count,a 
-	mov in,#3 
+	ld count,a
+	ldw line.addr,x 
+	addw x,#3
+	ldw basicptr,x 
 11$:
 	_drop VSIZE 
 	bres flags,#FCOMP 
-	popw y 
-	ret 
-
-;---------------------------------
-; speed optimization by replacing 
-; GOTO|GOSUB target line# by 
-; line address. 
-; This apply only to programs 
-; saved in flash memory 
-; BASIC: OPTIMIZE label 
-;   command line only 
-;---------------------------------
-optimize:
-	call cmd_line_only
-	ld a,#TK_LABEL 
-	call expect  
-	pushw x 
-	call skip_string
-	popw x 
-	call search_program 
-    jrne 1$ 
-	ldw x,#ERR_NO_PROGRAM
-	jp tb_error 
-1$: pushw y 
-	ldw y,x ; source address 
-	subw x,#4
-	ldw x,(2,x) ; program size 
-	addw x,#4 
-
 	popw y 
 	ret 

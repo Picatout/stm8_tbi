@@ -320,14 +320,13 @@ tb_error::
 	ldw x,(x)
 	call puts
 	ldw x,basicptr 
-	ld a,in 
+	subw x,line.addr 
+	ld a,xl 
+	ldw x,line.addr 
 	call prt_basic_line
 	ldw x,#tk_id 
 	call puts 
-	ld a,in.saved 
-	clrw x 
-	ld xl,a 
-	addw x,basicptr 
+	ldw x,basicptr 
 	ld a,(x)
 	clrw x 
 	ld xl,a 
@@ -371,46 +370,44 @@ cmd_line: ; user interface
 	tnz count 
 	jreq cmd_line
 	call compile
+	jreq cmd_line ; not direct command 
+;; direct command 
+;; interpret 
+
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; dump compiled BASIC 	
-;pushw y 
-;ldw x,txtbgn  
-;ldw y,txtend
-;ldw acc16,x   
-;subw y,acc16 
-;call hex_dump
-;popw y 
+.if 0 ; DEBUG 
+	pushw y 
+	ldw x,txtbgn  
+	ldw y,txtend
+	ldw acc16,x   
+	subw y,acc16 
+	call hex_dump
+	popw y 
+.endif 
 ;;;;;;;;;;;;;;;;;;;;;;
 
-; if text begin with a line number
-; the compiler set count to zero    
-; so code is not interpreted
-	tnz count 
-	jreq cmd_line
-	
-; if direct command 
-; it's ready to interpret 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; This is the interpreter loop
 ;; for each BASIC code line. 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
 interpreter: 
-	ld a,in 
-	cp a,count 
-	jrmi interp_loop
+	ldw x,basicptr 
+	ld a,(x) 
+	jrne interp_loop
 next_line:
-	btjf flags, #FRUN, cmd_line
+;	btjf flags, #FRUN, cmd_line
 	ldw x,basicptr
-	addw x,in.w 
 	cpw x,txtend 
 	jrmi 0$
 	call cmd_end ; end program 
 0$:	ldw basicptr,x ; start of next line  
 	ld a,(2,x)
 	ld count,a 
-	mov in,#3 ; skip first 3 bytes of line 
+	addw x,#3 ; skip first 3 bytes of line 
+	ldw basicptr,x 
 	btjf flags,#FTRACE,interp_loop 
-	ldw x,(x)
+	ldw x,[line.addr]
 	call prt_i16
 interp_loop:
 	call next_token
@@ -421,81 +418,10 @@ interp_loop:
 	jra interp_loop 
 1$:	 
 	cp a,#TK_LABEL
-	jrne 2$
-	call let_dvar  
+	jrne 4$ 
+	call skip_string  
 	jra interp_loop 
-2$:	
-	cp a,#TK_VAR
-	jrne 3$
-	call let_var  
-	jra interp_loop 
-3$:	
-	cp a,#TK_ARRAY 
-	jrne 4$
-	call let_array 
-	jra interp_loop
-4$: 
-	tnz a  
-	jreq next_line 
-5$:
-	cp a,#TK_COLON 
-	jreq interp_loop
-	jp syntax_error 
-
-
-;----------------------
-; when a label is met 
-; at interp_loop
-; it may be a variable 
-; assignement to DIM 
-; variable 
-;----------------------
-	VAR_NAME=1 
-	REC_LEN=3
-	VSIZE=4 
-let_dvar:
-	_vars VSIZE 
-	ldw (VAR_NAME,sp),x
-	clr (REC_LEN,sp) 
-	call skip_string 
-	ldw x,basicptr 
-	addw x,in.w 
-	ld a,(x)
-	cp a,#TK_EQUAL 
-	jreq dvar_assign
-	btjt flags,#FRUN,1$
-	jp syntax_error
-1$: _drop VSIZE 
-	ret 
-dvar_assign: 	 
-; dvar assignment 
-	_inc in  
-	call condition  
-	cp a,#TK_INTGR 
-	jreq 1$ 
-0$:	jp syntax_error 
-1$: 
-	ldw x,(VAR_NAME,sp) ; pointer to var name 
-	call strlen 
-	add a,#REC_XTRA_BYTES
-	ld (REC_LEN+1,sp),a 
-	call search_name 
-	tnzw x 
-	jreq 0$ 
-	ld a,(x)
-	jrpl 2$
-	ld a,#ERR_RD_ONLY 
-	jp tb_error 
-2$:
-	addw x,(REC_LEN,sp)
-	subw x,#CELL_SIZE 
-	ldw ptr16,x
-	_xpop 
-	ld [ptr16],a 
-	_inc ptr8 
-	ldw [ptr16],x 
-9$: _drop VSIZE 	
-	ret 
+4$: jp syntax_error
 
 
 ;--------------------------
@@ -508,20 +434,25 @@ dvar_assign:
 ;   X 		*token_value 
 ;----------------------------------------
 next_token::
-;	clrw x 
-	ld a,in 
-	ld in.saved,a ; in case "_unget_token" needed 
-; don't replace sub by "cp a,count" 
-; if end of line must return with A=0   	
-	sub a,count 
-	jreq 9$ ; end of line 
-0$: 
-	ldw x,basicptr 
-	addw x,in.w 
-	ld a,(x)
-	incw x
-	_inc in   
-9$: ret 
+	.byte 0xbe, basicptr ; ldw x,basicptr ; 2 cy 
+	.byte 0xbf, bp.saved ; ldw bp.saved, x ; 2 cy 
+	ld a,(x) ; 1 cy 
+	jreq end_of_line  ; 1 cy 
+	incw x   ; 1 cy 
+	.byte 0xbf,basicptr  ; ldw basicptr, x ; 2 cy 
+	 ret ; 4 cy = 13 cy 
+end_of_line:
+	incw x 
+	cpw x,txtend 
+	jrpl 2$
+	ld a,(2,x)
+	ld count,a  
+	ldw line.addr,x 
+	addw x,#3
+	ldw basicptr,x 
+	clr a 
+	ret 
+2$: jp cmd_end 
 
 ;-------------------------
 ;  skip .asciz in BASIC line 
@@ -537,8 +468,7 @@ skip_string:
 	incw x 
 	jra skip_string 
 1$: incw x 	
-	subw x,basicptr 
-	ldw in.w,x 
+	ldw basicptr,x 
 	ret 
 
 ;--------------------
@@ -551,12 +481,14 @@ skip_string:
 ;    A:X   int24  
 ;--------------------
 get_int24:
+	pushw y 
+	ldw y,x 
 	ld a,(x)
 	ldw x,(1,x)
-; skip 3 bytes 
-	_inc in 
-	_inc in 
-	_inc in 
+; skip 3 bytes
+	addw y,#3 
+	ldw basicptr,y 
+	popw y 
 	ret 
 
 
@@ -886,6 +818,13 @@ expect:
 func_args:
 	ld a,#TK_LPAREN 
 	call expect 
+	call arg_list 
+	push a 
+	ld a,#TK_RPAREN 
+	call expect 
+	pop a 
+	ret 
+
 ; expected to continue in arg_list 
 ; caller must check for TK_RPAREN 
 
@@ -898,7 +837,7 @@ func_args:
 ; input:
 ;   none
 ; output:
-;   xstack{n}   arguments pushed on xstack
+;   dstack{n}   arguments pushed on xstack
 ;   A 	number of arguments pushed on xstack  
 ;--------------------------------
 arg_list:
@@ -910,8 +849,6 @@ arg_list:
 	call next_token 
 	cp a,#TK_COMMA 
 	jreq 1$ 
-	cp a,#TK_RPAREN
-	jreq 7$
 	_unget_token 
 7$:	pop a  
 	ret 
@@ -1039,14 +976,6 @@ factor:
 	call get_value ; in A:X 
 	jra 18$
 9$: 
-	cp a,#TK_CFUNC 
-	jrne 12$
-	_get_addr 
-	call(x)
-	clrw x 
-	rlwa x  ; char>int24 in A:X 
-	jra 18$ 	 
-12$:			
 	cp a,#TK_LPAREN
 	jrne 16$
 	call expression
@@ -1417,6 +1346,54 @@ ubound:
 	clr a 
 	ret 
 
+;----------------------
+; assign to a symbolic variable
+;----------------------
+	VAR_NAME=1 
+	REC_LEN=3
+	VSIZE=4 
+let_dvar:
+	call runtime_only
+	_vars VSIZE 
+	ldw (VAR_NAME,sp),x
+	clr (REC_LEN,sp) 
+	call skip_string 
+	ldw x,basicptr 
+	ld a,(x)
+	cp a,#TK_EQUAL 
+	jreq dvar_assign
+	jp syntax_error
+dvar_assign: 	 
+; dvar assignment 
+	incw x 
+	ldw basicptr,x 
+	call condition  
+	cp a,#TK_INTGR 
+	jreq 1$ 
+0$:	jp syntax_error 
+1$: 
+	ldw x,(VAR_NAME,sp) ; pointer to var name 
+	call strlen 
+	add a,#REC_XTRA_BYTES
+	ld (REC_LEN+1,sp),a 
+	call search_name 
+	tnzw x 
+	jreq 0$ 
+	ld a,(x)
+	jrpl 2$
+	ld a,#ERR_RD_ONLY 
+	jp tb_error 
+2$:
+	addw x,(REC_LEN,sp)
+	subw x,#CELL_SIZE 
+	ldw ptr16,x
+	_xpop 
+	ld [ptr16],a 
+	_inc ptr8 
+	ldw [ptr16],x 
+9$: _drop VSIZE 	
+	ret 
+
 ;-----------------------------
 ; BASIC: LET var=expr 
 ; variable assignement 
@@ -1429,6 +1406,8 @@ let::
 	jreq let_var
 	cp a,#TK_ARRAY 
 	jreq  let_array
+	cp a,#TK_LABEL 
+	jreq let_dvar
 	jp syntax_error
 let_array:
 	call get_array_element
@@ -1851,9 +1830,9 @@ cmd_edit:
 ;   none 
 ;----------------------------------	
 prt_basic_line:
-	ldw basicptr,x
 	ld count,a 
-    mov in,#3 
+    addw x,#3  
+	ldw basicptr,x
 	call decompile
 	ld a,#CR 
 	call putc 
@@ -1873,21 +1852,11 @@ reset_semicol:
 prt_loop:
 	call next_token
 	cp a,#CMD_END 
-	jrult 0$
-	cp a,#TK_COLON 
-	jreq 0$
-	cp a,#TK_CMD
-	jrne 10$
-0$:
-	_unget_token 
-	jra 8$ 
-10$:	
+	jrult 8$
 	cp a,#TK_QSTR
 	jreq 1$
 	cp a,#TK_CHAR 
 	jreq 2$ 
-	cp a,#TK_CFUNC 
-	jreq 3$
 	cp a,#TK_SEMIC  
 	jreq 4$
 	cp a,#TK_COMMA
@@ -1896,8 +1865,7 @@ prt_loop:
 1$:	; print string 
 	call puts
 	incw x
-	subw x,basicptr 
-	ldw in.w,x  
+	ldw basicptr,x  
 	jra reset_semicol
 2$:	; print character 
 	_get_char 
@@ -1928,7 +1896,8 @@ prt_loop:
 	jrne 9$
 	ld a,#CR 
     call putc 
-9$:	_drop VSIZE 
+9$:	
+	_drop VSIZE 
 	ret 
 
 ;----------------------
@@ -1941,7 +1910,7 @@ prt_loop:
 ; entry point of both 
 ; routine. 
 ;---------------------
-	CTXT_SIZE=4 ; size of saved data 
+	CTXT_SIZE=3 ; size of saved data 
 ;--------------------
 ; save current BASIC
 ; interpreter context 
@@ -1949,13 +1918,10 @@ prt_loop:
 ;--------------------
 	_argofs 0 
 	_arg BPTR 1
-	_arg IN 3
-	_arg CNT 4
+	_arg CNT 3
 save_context:
 	ldw x,basicptr 
 	ldw (BPTR,sp),x
-	ld a,in 
-	ld (IN,sp),a
 	ld a,count 
 	ld (CNT,sp),a  
 	ret
@@ -1968,8 +1934,6 @@ save_context:
 rest_context:
 	ldw x,(BPTR,sp)
 	ldw basicptr,x 
-	ld a,(IN,sp)
-	ld in,a
 	ld a,(CNT,sp)
 	ld count,a  
 	ret
@@ -1996,8 +1960,7 @@ input_loop:
 	jrne 1$ 
 	call puts 
 	incw x 
-	subw x,basicptr 
-	ldw in.w,x 
+	ldw basicptr,x 
 	cpl (SKIP,sp)
 	call next_token 
 1$: cp a,#TK_VAR  
@@ -2704,13 +2667,12 @@ cmd_run:
 	addw x,txtbgn 
 	ldw txtend,x 
 	jra run_it 	
-3$:	_unget_token 
+3$: _unget_token 
 	ldw x,txtbgn
 	cpw x,txtend 
 	jrmi run_it 
 	ldw x,#err_no_prog
 	call puts 
-	mov in,count
 	ret 
 run_it:	 
 	_drop 2 ; drop return address 
@@ -2728,10 +2690,11 @@ run_it_02:
 	clr data_len 
 ; initialize BASIC pointer 
 	ldw x,txtbgn 
-	ldw basicptr,x 
+	ldw line.addr,x 
 	ld a,(2,x)
 	ld count,a
-	mov in,#3	
+	addw x,#3
+	ldw basicptr,x 	
 	bset flags,#FRUN 
 	jp interpreter 
 
@@ -3539,21 +3502,24 @@ write:
 	jra 1$ 
 4$: ; write character 
 	ld a,(x)
-	_inc in 
+	incw x 
+	ldw  basicptr,x 
 	clrw x 
 	call write_byte 
 	jra 1$ 
 6$: ; write string 
-	pushw x 
-	ld a,(x)
-	_inc in 
+	pushw y 
+	ldw y,x
+7$:	ld a,(y)
+	incw y 
 	clrw x 
 	call write_byte 
-	popw x 
-	ld a,(x)
-	jreq 1$
-	incw x 
-	jra 6$ 	
+	ld a,(y)
+	jrne 7$
+	incw y 
+	ldw basicptr,y 
+	popw y 
+	jra 1$ 	
 9$:
 	ret 
 
@@ -3564,7 +3530,7 @@ write:
 ; and take the 7 least 
 ; bits as ASCII character
 ; output: 
-; 	A char 
+; 	A:X char 
 ;---------------------
 func_char:
 	call func_args 
@@ -3572,8 +3538,10 @@ func_char:
 	jreq 1$
 	jp syntax_error
 1$:	_xpop
-	ld a,xl
+	rrwa x 
 	and a,#0x7f 
+	rlwa x 
+	clr a
 	ret
 
 ;---------------------
@@ -4873,7 +4841,8 @@ cmd_auto_run:
 	cp a,#TK_CHAR 
 	jrne 0$ 
 	ld a,(x)
-	_inc in 
+	incw x 
+	ldw basicptr,x 
 	and a,#0xDF 
 	cp a,#'C 
 	jreq clear_autorun 
@@ -5002,7 +4971,7 @@ cmd_chain:
 	call get_int24 
 	ldw (CHAIN_LN,sp),x
 	jra 6$ 
-4$: _unget_token 
+4$:  _unget_token 
 6$: ; save chain context 
 	ldw x,basicptr 
 	ldw (CHAIN_BP,sp),x 

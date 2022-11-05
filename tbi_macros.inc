@@ -90,6 +90,7 @@
         TK_OR=137       ;
         TK_XOR=138      ; 
         TK_NONE=0       ; not a token 
+        TK_COLON=1      ; command separator ':' 
         TK_QSTR=2       ; quoted string  
         TK_LABEL=3      ; used for defined, constants, variables
         TK_CHAR=4       ; ASCII character 
@@ -97,9 +98,8 @@
         TK_LPAREN=6     ; left parenthesis '('
         TK_RPAREN=7     ; right parenthesis ')'
         TK_COMMA=8      ; item separator ',' 
-        TK_COLON=9      ; command separator ':' 
-        TK_SEMIC=10     ; used in PRINT command.  ';' 
-        TK_SHARP=11     ; derefenrecing operator 
+        TK_SEMIC=9     ; used in PRINT command.  ';' 
+        TK_SHARP=10     ; derefenrecing operator 
         
         TK_PLUS=0x10    ; addition operator '+'
         TK_MINUS=0x11   ; subtraction operator '-'
@@ -172,8 +172,11 @@
     ; reset BASIC pointer
     ; to beginning of last token
     ; extracted except if it was end of line 
-    .macro _unget_token 
-     mov in,in.saved  
+    .macro _unget_token
+    ldw x,bp.saved 
+    ld a,(x)
+    jreq .+ 2
+    .byte 0xbf, basicptr ; ldw basicptr,x   
     .endm
 
     ;  increment variable in page 0 
@@ -181,19 +184,26 @@
         .byte 0x3c, v 
     .endm 
 
+    ;  increment 16 bits variable 
+    .macro _incw  v 
+        inc v+1 
+        jrne .+4 
+        inc v 
+    .endm 
+
     ; extract 16 bits address from BASIC code  
     .macro _get_addr
+        addw x,#2 
+        ldw basicptr,x 
+        subw x,#2 
         ldw x,(x)
-        _inc in 
-        _inc in
-        ;.byte 0x3C, in 
-        ; .byte 0x3c, in  
     .endm 
 
     ; extract character from BASIC code 
     .macro _get_char 
         ld a,(x)
-        _inc in 
+        incw x 
+        ldw basicptr,x  
     .endm 
     
 
