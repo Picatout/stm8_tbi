@@ -144,6 +144,7 @@ decompile::
 	ld a,base
 	ld (BASE_SAV,sp),a  
 	ldw x,line.addr
+	ldw x,(x)
 	mov base,#10
 	clr acc24 
 	ldw acc16,x
@@ -155,8 +156,12 @@ decompile::
 	ld a,#SPACE 
 	call putc   
 decomp_loop:
-	call next_token 
-	tnz a
+	ld a,count 
+	jrne 0$
+	jp decomp_exit 
+0$:	dec count 
+	call next_token
+	tnz a 
 	jrne 1$ 
 	jp decomp_exit   
 1$:	jrmi 2$
@@ -166,7 +171,9 @@ decomp_loop:
 	jrne 3$
 ;; TK_VAR 
 	call space
-	_get_addr   
+	_get_addr 
+	dec count 
+	dec count   
 	call var_name
 	call putc  
 	jra decomp_loop
@@ -174,7 +181,10 @@ decomp_loop:
 	cp a,#TK_INTGR
 	jrne 4$
 ;; TK_INTGR
-	call get_int24 
+	call get_int24
+	dec count 
+	dec count 
+	dec count  
 	ld acc24,a 
 	ldw acc16,x
 	call prt_acc24
@@ -183,6 +193,8 @@ decomp_loop:
 	cp a,#TK_NOT 
 	jruge 50$ 
 	_get_addr
+	dec count 
+	dec count 
 	cpw x,#remark 
 	jrne 5$
 ; print comment
@@ -192,13 +204,10 @@ decomp_loop:
 	addw x,in.w 
 	call puts 
 	jp decomp_exit 
-5$: cpw x,#let  
-	jrne 54$
-	jp decomp_loop ; down display LET
 50$:
 	clrw x 
-	ld xl,a 
-54$: ; insert command name 
+	ld xl,a 	
+5$: ; insert command name 
 	call space  
 	pushw y 
 	call cmd_name
@@ -210,8 +219,9 @@ decomp_loop:
 	cp a,#TK_LABEL 
 	jrne 64$
 ; print label   	
-	ld a,in
-	cp a,#4 
+	ldw x,basicptr 
+	subw x,line.addr 
+	cpw x,#4 
 	jreq 62$
 	call space 
 62$:
@@ -222,6 +232,12 @@ decomp_loop:
 	call space 
 	jp decomp_loop
 64$:
+	cp a,#TK_COLON 
+	jrne 66$
+	ld a,#': 
+	call putc 
+	jp decomp_loop 
+66$:	
 	cp a,#TK_QSTR 
 	jrne 7$
 ;; TK_QSTR
@@ -235,8 +251,8 @@ decomp_loop:
 	call space 
 	ld a,#'\ 
 	call putc 
-	ld a,(x)
-	_inc in  
+	_get_char 
+	dec count   
 8$:
 	call putc  
 82$:
@@ -287,7 +303,8 @@ decomp_exit:
 	_drop VSIZE 
 	ret 
 
-single_char: .byte '@','(',')',',',':',';'
+
+single_char: .byte '@','(',')',',',';'
 add_char: .byte '+','-'
 mul_char: .byte '*','/','%'
 relop_str: .word gt,equal,ge,lt,ne,le 

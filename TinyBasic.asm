@@ -373,19 +373,13 @@ cmd_line: ; user interface
 	jreq cmd_line ; not direct command 
 ;; direct command 
 ;; interpret 
-
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; dump compiled BASIC 	
 .if 0 ; DEBUG 
-	pushw y 
-	ldw x,txtbgn  
-	ldw y,txtend
-	ldw acc16,x   
-	subw y,acc16 
-	call hex_dump
-	popw y 
+call dump_prog 
 .endif 
 ;;;;;;;;;;;;;;;;;;;;;;
+	jra interp_loop 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; This is the interpreter loop
@@ -401,7 +395,13 @@ next_line:
 	cpw x,txtend 
 	jrmi 0$
 	call cmd_end ; end program 
-0$:	ldw basicptr,x ; start of next line  
+0$:	; start of next line  
+	ldw x,line.addr 
+	ld a,(2,x)
+	clr acc16 
+	ld acc8,a 
+	addw x,acc16 	
+	ldw line.addr,x 
 	ld a,(2,x)
 	ld count,a 
 	addw x,#3 ; skip first 3 bytes of line 
@@ -418,10 +418,16 @@ interp_loop:
 	jra interp_loop 
 1$:	 
 	cp a,#TK_LABEL
-	jrne 4$ 
+	jrne 2$ 
 	call skip_string  
 	jra interp_loop 
-4$: jp syntax_error
+2$: cp a,#TK_COLON 
+	jrne 4$ 
+	jra interp_loop	
+4$: 
+	tnz a 
+	jreq next_line 
+	jp syntax_error
 
 
 ;--------------------------
@@ -434,25 +440,13 @@ interp_loop:
 ;   X 		*token_value 
 ;----------------------------------------
 next_token::
-	.byte 0xbe, basicptr ; ldw x,basicptr ; 2 cy 
-	.byte 0xbf, bp.saved ; ldw bp.saved, x ; 2 cy 
+	.byte 0xbe, basicptr ; ldw x,basicptr ; 2 cy,  2 bytes 
+	.byte 0xbf, bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
 	ld a,(x) ; 1 cy 
-	jreq end_of_line  ; 1 cy 
 	incw x   ; 1 cy 
 	.byte 0xbf,basicptr  ; ldw basicptr, x ; 2 cy 
-	 ret ; 4 cy = 13 cy 
-end_of_line:
-	incw x 
-	cpw x,txtend 
-	jrpl 2$
-	ld a,(2,x)
-	ld count,a  
-	ldw line.addr,x 
-	addw x,#3
-	ldw basicptr,x 
-	clr a 
-	ret 
-2$: jp cmd_end 
+	 ret ; 4 cy = 12 cy 
+
 
 ;-------------------------
 ;  skip .asciz in BASIC line 
@@ -465,9 +459,11 @@ end_of_line:
 skip_string:
 	ld a,(x)
 	jreq 1$
-	incw x 
+	incw x
+	dec count  
 	jra skip_string 
-1$: incw x 	
+1$: incw x
+	dec count 
 	ldw basicptr,x 
 	ret 
 
@@ -919,9 +915,9 @@ factor:
 	_vars VSIZE 
 	clr (NEG,sp)
 	call next_token
-	tnz a 
-	jrne 1$ 
-	jp 22$ 
+	cp a,#CMD_END
+	jruge 1$ 
+	jp syntax_error
 1$:	cp a,#TK_PLUS 
 	jreq 2$
 	cp a,#TK_MINUS 
@@ -930,8 +926,8 @@ factor:
 2$:	
 	call next_token
 4$:
-	tnz a 
-	jrne 41$ 
+	cp a,#CMD_END
+	jruge 41$ 
 	jp syntax_error  
 41$:	
 	cp a,#TK_IFUNC 
@@ -969,32 +965,26 @@ factor:
 	call search_name
 	tnzw x 
 	jrne 82$ 
-	popw y 
-	jra 16$
+	jp syntax_error
 82$:
 	popw y   
 	call get_value ; in A:X 
 	jra 18$
 9$: 
 	cp a,#TK_LPAREN
-	jrne 16$
+	jreq 10$
+	jp syntax_error
+10$:	
 	call expression
 	ld a,#TK_RPAREN 
 	call expect
 	_xpop 
-	jra 18$	
-16$:
-	_unget_token 
-	clr a 
-	jra 22$ 
 18$: 
 	tnz (NEG,sp)
 	jreq 20$
 	call neg_ax   
 20$:
 	_xpush 
-	ld a,#TK_INTGR
-22$:
 	_drop VSIZE
 	ret
 
@@ -1011,24 +1001,18 @@ term:
 	_vars VSIZE
 ; first factor 	
 	call factor
-	tnz a 
-	jreq term_exit  
 term01:	 ; check for  operator '*'|'/'|'%' 
 	call next_token
 	ld (MULOP,sp),a
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_MULT
 	jreq 1$
-	ld a,#TK_INTGR
 	_unget_token 
 	jra term_exit 
 1$:	; got *|/|%
 ;second factor
 	call factor
-	tnz a 
-	jrne 2$ 
-	jp syntax_error 
-2$: ; select operation 	
+; select operation 	
 	ld a,(MULOP,sp) 
 	cp a,#TK_MULT 
 	jrne 3$
@@ -1043,8 +1027,6 @@ term01:	 ; check for  operator '*'|'/'|'%'
 4$: ; '%' operator
 	call mod24
 	jra term01 
-9$: 
-	ld a,#TK_INTGR
 term_exit:
 	_drop VSIZE 
 	ret 
@@ -1062,8 +1044,6 @@ expression:
 	_vars VSIZE 
 ; first term 	
 	call term
-	tnz a 
-	jreq 9$
 1$:	; operator '+'|'-'
 	call next_token
 	ld (OP,sp),a 
@@ -1071,14 +1051,9 @@ expression:
 	cp a,#TK_GRP_ADD 
 	jreq 2$ 
 	_unget_token 
-	ld a,#TK_INTGR
 	jra 9$ 
 2$: ; second term 
 	call term
-	tnz a 
-	jrne 3$
-	jp syntax_error
-3$:
 	ld a,(OP,sp)
 	cp a,#TK_PLUS 
 	jrne 4$
@@ -1093,7 +1068,7 @@ expression:
 	ret 
 
 ;---------------------------------------------
-; rel ::= expr rel_op expr
+; rel ::= expr [rel_op expr]
 ; rel_op ::=  '=','<','>','>=','<=','<>','><'
 ;  relation return  integer , zero is false 
 ;  output:
@@ -1104,23 +1079,16 @@ expression:
 relation: 
 	_vars VSIZE
 	call expression
-	tnz a 
-	jreq 9$ 
 ; expect rel_op or leave 
 	call next_token 
 	ld (RELOP,sp),a 
 	and a,#TK_GRP_MASK
 	cp a,#TK_GRP_RELOP 
 	jreq 2$
-	ld a,#TK_INTGR 
 	_unget_token 
 	jra 9$ 
 2$:	; expect another expression
 	call expression
-	tnz a 
-	jrne 3$
-	jp syntax_error 
-3$: 
 	call cp24 
 	_xpop  
 	tnz a 
@@ -1141,7 +1109,6 @@ relation:
 	cplw x 
 	ld a,#255 
 7$:	_xpush 
-	ld a,#TK_INTGR
 9$: 
 	_drop VSIZE
 	ret 
@@ -1155,22 +1122,15 @@ relation:
 and_factor:
 	push #0 
 0$:	call next_token  
-	tnz a 
-	jreq 8$ 
-	cp a,#TK_NOT 
-	jrne 1$ 
+	cp a,#CMD_END 
+	jruge 1$
+	jp syntax_error
+1$:	cp a,#TK_NOT 
+	jrne 2$ 
 	cpl (NOT_OP,sp)
-	jra 0$ 
-1$:	
-	cp a,#TK_LPAREN 
-	jrne 2$
-	call condition
-	ld a,#TK_RPAREN 
-	call expect
-	jra 3$
-2$: _unget_token 
-	call relation
-3$:
+	jra 4$ 
+2$:	_unget_token 
+4$:	call relation 
 	tnz (NOT_OP,sp)
 	jreq 8$ 
 	call cpl24
@@ -1189,33 +1149,24 @@ and_factor:
 ;--------------------------------------------
 and_cond:
 	call and_factor
-	tnz a 
-	jreq 9$  
 1$: call next_token 
-	tnz a 
-	jreq 6$ 
 	cp a,#TK_AND 
-	jreq 3$
+	jreq 3$  
 	_unget_token 
-	jra 6$ 
+	jra 9$ 
 3$:	call and_factor  
-	tnz a 
-	jrne 4$
-	jp syntax_error 
-4$:	
 	_xpop 
 	ld acc24,a 
 	ldw acc16,x
-	_xpop 
+	_at_top 
 	and a,acc24 
 	rlwa x 
 	and a,acc16 
 	rlwa x 
 	and a,acc8 
 	rlwa x
-	_xpush
+	_store_top 
 	jra 1$  
-6$: ld a,#TK_INTGR 
 9$:	ret 	 
 
 
@@ -1233,25 +1184,19 @@ and_cond:
 condition:
 	_vars VSIZE 
 	call and_cond
-	tnz a 
-	jreq 9$ 
 1$:	call next_token 
 	cp a,#TK_OR 
 	jreq 2$
 	cp a,#TK_XOR
 	jreq 2$ 
 	_unget_token 
-	jra 8$ 
+	jra 9$ 
 2$:	ld (OP,sp),a ; TK_OR|TK_XOR 
 	call and_cond
-	cp a,#TK_INTGR 
-	jreq 3$
-	jp syntax_error 
-3$:	 
 	_xpop  ; rigth arg 
 	ld acc24,a 
 	ldw acc16,x 
-	_xpop  ; left arg  
+	_at_top  ; left arg  
 	ld (ATMP,sp),a 
 	ld a,(OP,sp)
 	cp a,#TK_XOR 
@@ -1273,9 +1218,8 @@ condition:
 	rlwa x 
 	xor a,acc8 
 	rlwa x 
-6$: _xpush
+6$: _store_top 
 	jra 1$ 
-8$:	ld a,#TK_INTGR 
 9$:	_drop VSIZE 
 	ret 
 
@@ -1762,6 +1706,7 @@ end_at_line:
 ; print loop
 list_loop:
 	ldw x,(LN_PTR,sp)
+	ldw line.addr,x 
 	ld a,(2,x) 
 	call prt_basic_line
 	ldw x,(LN_PTR,sp)
@@ -1852,7 +1797,10 @@ reset_semicol:
 prt_loop:
 	call next_token
 	cp a,#CMD_END 
-	jrult 8$
+	jruge 0$
+	_unget_token
+	jra 8$
+0$:	
 	cp a,#TK_QSTR
 	jreq 1$
 	cp a,#TK_CHAR 
@@ -1864,7 +1812,7 @@ prt_loop:
 	jra 7$ 
 1$:	; print string 
 	call puts
-	incw x
+	incw x 
 	ldw basicptr,x  
 	jra reset_semicol
 2$:	; print character 
@@ -1887,8 +1835,6 @@ prt_loop:
 7$:	
 	_unget_token 
 	call condition
-	tnz a 
-	jreq 8$    
     call print_top
 	jp reset_semicol 
 8$:
@@ -2026,7 +1972,13 @@ input_exit:
 ; skip comment to end of line 
 ;---------------------- 
 remark::
-	mov in,count 
+	ldw x,line.addr 
+	ld a,(2,x)
+	ld acc8,a 
+	clr acc16 
+	addw x,acc16
+	decw x  
+	ldw basicptr,x  
  	ret 
 
 
@@ -5247,6 +5199,6 @@ kword_end:
 	_dict_entry,5,ALLOC,xalloc ; allocate space on xtack 
 	_dict_entry,7+F_IFUNC,ADCREAD,analog_read
 	_dict_entry,5,ADCON,power_adc 
-kword_dict::
 	_dict_entry,3+F_IFUNC,ABS,abs
-
+kword_dict::
+	_dict_entry,1,?,cmd_print 

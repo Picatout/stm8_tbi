@@ -522,5 +522,16 @@ hex_dump:
 	pop a 
 	ret 
 
+dump_prog:
+	pushw y 
+	clr farptr 
+	ldw x,txtend 
+	ldw y,txtbgn
+	ldw ptr16,y 
+	subw x,ptr16 
+	call hex_dump
+	popw y 
+	ret 
+
 .endif ; DEBUG 
 

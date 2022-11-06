@@ -1,8 +1,4 @@
-### 2022-11-04
-
-* Travail d'optimisation vitesse d'exécution.
-
-* Corrigé bogue dans *func_char*. 
+### 2022-11-05
 
 * bogue:
 ```
@@ -38,6 +34,19 @@ syntax error
 >
 
 ```
+
+* Retravailler la chaîne d'évalution des conditions booléenne. 
+
+* Modifier *remark* 
+
+* Modifié *next_token*, *interpreter* et *_unget_token*.
+
+### 2022-11-04
+
+* Travail d'optimisation vitesse d'exécution.
+
+* Corrigé bogue dans *func_char*. 
+
 
 ### 2022-11-03
 

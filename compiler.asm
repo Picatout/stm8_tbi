@@ -784,9 +784,9 @@ other: ; not a special character
 30$: 
 	call parse_keyword
 	cpw x,#remark 
-	jrne token_exit 
+	jrne token_exit   
 	ldw x,y 
-	jp copy_comment 
+	jp copy_comment
 token_char:
 	ld (x),a 
 	incw x
@@ -862,7 +862,7 @@ compile::
 	ld count,a
 	ldw line.addr,x 
 	addw x,#3
-	ldw basicptr,x 
+	ldw basicptr,x 	
 11$:
 	_drop VSIZE 
 	bres flags,#FCOMP 

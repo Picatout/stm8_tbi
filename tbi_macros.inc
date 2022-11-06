@@ -173,10 +173,7 @@
     ; to beginning of last token
     ; extracted except if it was end of line 
     .macro _unget_token
-    ldw x,bp.saved 
-    ld a,(x)
-    jreq .+ 2
-    .byte 0xbf, basicptr ; ldw basicptr,x   
+    .byte 0x45,bp.saved, basicptr ; mov basicptr,bp.saved ; 1 cy, 3 bytes 
     .endm
 
     ;  increment variable in page 0 
@@ -241,17 +238,17 @@
     ldw x,(1,x)
     .endm 
 
+    ; !T put on top of xtack 
+    .macro _store_top 
+    ld (y),a 
+    ldw (1,y),x     
+    .endm 
+
     ; @N  fetch next on xstack 
     .macro _at_next 
     ld a,(3,y)
     ldw x,y 
     ldw x,(4,x)
-    .endm 
-
-    ; !T put on top of xtack 
-    .macro _store_top 
-    ld (y),a 
-    ldw (1,y),x     
     .endm 
 
     ; !N put next on xstack 
