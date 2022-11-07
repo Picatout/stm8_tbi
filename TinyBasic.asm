@@ -307,6 +307,21 @@ syntax_error::
 tb_error::
 	btjt flags,#FCOMP,1$
 	push a 
+.if DEBUG 	
+	clr farptr 
+	ldw x,line.addr 
+	ldw ptr16,x 
+	ld a,(2,x)
+	clrw x 
+	ld xl,a 
+	call hex_dump 
+	ldw x,basicptr 
+	call prt_i16 
+	ldw x,bp.saved
+	call prt_i16 
+	ld a,#CR 
+	call putc 
+.endif 
 	btjf flags,#FRUN,0$ 
 	ldw x, #rt_msg 
 	call puts 
@@ -376,6 +391,10 @@ cmd_line: ; user interface
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; dump compiled BASIC 	
 .if 0 ; DEBUG 
+ldw x,#pad 
+ldw txtbgn,x 
+addw x,#128
+ldw txtend,x 
 call dump_prog 
 .endif 
 ;;;;;;;;;;;;;;;;;;;;;;
@@ -912,13 +931,15 @@ get_array_element:
 	NEG=1
 	VSIZE=1
 factor:
+;_tp 'M 
 	_vars VSIZE 
 	clr (NEG,sp)
 	call next_token
 	cp a,#CMD_END
-	jruge 1$ 
+	jrnc 1$ 
 	jp syntax_error
-1$:	cp a,#TK_PLUS 
+1$:
+	cp a,#TK_PLUS 
 	jreq 2$
 	cp a,#TK_MINUS 
 	jrne 4$ 
@@ -927,7 +948,7 @@ factor:
 	call next_token
 4$:
 	cp a,#CMD_END
-	jruge 41$ 
+	jrnc 41$ 
 	jp syntax_error  
 41$:	
 	cp a,#TK_IFUNC 
@@ -984,6 +1005,7 @@ factor:
 	jreq 20$
 	call neg_ax   
 20$:
+;_tp 'N 
 	_xpush 
 	_drop VSIZE
 	ret
@@ -998,6 +1020,7 @@ factor:
 	MULOP=1
 	VSIZE=1
 term:
+;_tp 'K 
 	_vars VSIZE
 ; first factor 	
 	call factor
@@ -1028,6 +1051,7 @@ term01:	 ; check for  operator '*'|'/'|'%'
 	call mod24
 	jra term01 
 term_exit:
+;_tp 'L 
 	_drop VSIZE 
 	ret 
 
@@ -1041,6 +1065,7 @@ term_exit:
 	OP=1 
 	VSIZE=1 
 expression:
+;_tp 'I 
 	_vars VSIZE 
 ; first term 	
 	call term
@@ -1064,6 +1089,7 @@ expression:
 	call sub24
 	jra 1$
 9$:
+;_tp 'J 
 	_drop VSIZE 
 	ret 
 
@@ -1077,6 +1103,7 @@ expression:
 	RELOP=1
 	VSIZE=1 
 relation: 
+;_tp 'G 
 	_vars VSIZE
 	call expression
 ; expect rel_op or leave 
@@ -1110,6 +1137,7 @@ relation:
 	ld a,#255 
 7$:	_xpush 
 9$: 
+;_tp 'H 
 	_drop VSIZE
 	ret 
 
@@ -1120,10 +1148,11 @@ relation:
 ;-------------------------------------------
 	NOT_OP=1
 and_factor:
+;_tp 'E 
 	push #0 
 0$:	call next_token  
 	cp a,#CMD_END 
-	jruge 1$
+	jrnc 1$
 	jp syntax_error
 1$:	cp a,#TK_NOT 
 	jrne 2$ 
@@ -1136,6 +1165,7 @@ and_factor:
 	call cpl24
 8$:
 	_drop 1  
+;_tp 'F 
     ret 
 
 
@@ -1148,6 +1178,7 @@ and_factor:
 ;    xtack   value 
 ;--------------------------------------------
 and_cond:
+;_tp 'C 
 	call and_factor
 1$: call next_token 
 	cp a,#TK_AND 
@@ -1167,7 +1198,9 @@ and_cond:
 	rlwa x
 	_store_top 
 	jra 1$  
-9$:	ret 	 
+9$:	
+;_tp 'D 
+	ret 	 
 
 
 ;--------------------------------------------
@@ -1183,6 +1216,7 @@ and_cond:
 	VSIZE=2 
 condition:
 	_vars VSIZE 
+;_tp 'A 
 	call and_cond
 1$:	call next_token 
 	cp a,#TK_OR 
@@ -1221,6 +1255,7 @@ condition:
 6$: _store_top 
 	jra 1$ 
 9$:	_drop VSIZE 
+;_tp 'B 
 	ret 
 
 
@@ -1366,14 +1401,10 @@ let_eval:
 	jp syntax_error
 1$:	
 	call condition   
-	cp a,#TK_INTGR 
-	jreq 2$
-	jp syntax_error
-2$:	
 	_xpop ; value 
 3$:
 	ld [ptr16],a
-	_inc ptr8  
+	_inc ptr8 
 	ldw [ptr16],x 
 	ret 
 
@@ -1797,7 +1828,7 @@ reset_semicol:
 prt_loop:
 	call next_token
 	cp a,#CMD_END 
-	jruge 0$
+	jrnc 0$
 	_unget_token
 	jra 8$
 0$:	
@@ -2200,8 +2231,8 @@ if:
 	FSTEP=3  ; variable increment int24
 	LIMIT=6 ; loop limit, int24  
 	CVAR=9   ; control variable 
-	INW=11   ;  in.w saved
-	BPTR=13 ; baseptr saved
+	LN_ADDR=11   ;  line.addr saved
+	BPTR=13 ; basicptr saved
 	VSIZE=13  
 for: ; { -- var_addr }
 	popw x ; call return address 
@@ -2233,9 +2264,6 @@ to: ; { var_addr -- var_addr limit step }
 	btjt flags,#FLOOP,1$
 	jp syntax_error
 1$: call expression   
-	cp a,#TK_INTGR 
-	jreq 2$ 
-	jp syntax_error
 2$: _xpop
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x
@@ -2265,9 +2293,6 @@ step: ; {var limit -- var limit step}
 	btjt flags,#FLOOP,1$
 	jp syntax_error
 1$: call expression 
-	cp a,#TK_INTGR
-	jreq 2$
-	jp syntax_error
 2$:	
 	_xpop 
 	ld (FSTEP,sp),a 
@@ -2286,8 +2311,8 @@ step: ; {var limit -- var limit step}
 store_loop_addr:
 	ldw x,basicptr
 	ldw (BPTR,sp),x 
-	ldw x,in.w 
-	ldw (INW,sp),x   
+	ldw x,line.addr 
+	ldw (LN_ADDR,sp),x   
 	bres flags,#FLOOP 
 	_inc loop_depth  
 	ret 
@@ -2345,12 +2370,12 @@ next: ; {var limit step retl1 -- [var limit step ] }
 loop_back:
 	ldw x,(BPTR,sp)
 	ldw basicptr,x 
+	ldw x,(LN_ADDR,sp)
+	ldw line.addr,x 
 	btjf flags,#FRUN,1$ 
 	ld a,(2,x)
 	ld count,a
-1$:	ldw x,(INW,sp)
-	ldw in.w,x 
-	ret 
+1$:	ret 
 loop_done:
 	; remove loop data from stack  
 	popw x
@@ -2377,7 +2402,7 @@ get_target_line_addr:
 	pushw y 
 	call get_int24 ; line # 
 	clr a
-	ldw y,basicptr 
+	ldw y,line.addr 
 	ldw y,(y)
 	pushw y 
 	cpw x,(1,sp)
@@ -2435,9 +2460,6 @@ look_target_symbol:
 cmd_on:
 	call runtime_only
 0$:	call expression 
-	cp a,#TK_INTGR
-	jreq 1$
-	jp syntax_error
 1$: _xpop
 ; the selector is the element indice 
 ; in the list of arguments. {1..#elements} 
@@ -2489,7 +2511,11 @@ cmd_on:
 ; of GOTO|GOSUB is on stack 
     call get_target_line
 	ldw ptr16,x 	
-	mov in,count ; move to end of line  
+	ldw x,line.addr 
+	clr acc16 
+	mov acc8,count 
+	addw x,acc16 
+	ldw basicptr,x  ; move to end of line  
 	popw x ; cmd address, GOTO||GOSUB 
 	cpw x,#goto 
 	jrne 7$ 
@@ -2514,11 +2540,13 @@ goto:
 goto_1:
 	call get_target_line
 jp_to_target:
-	ldw basicptr,x 
+	ldw line.addr,x 
 	ld a,(2,x)
 	ld count,a 
-	mov in,#3 
+	addw x,#3
+	ldw basicptr,x  
 	btjf flags,#FTRACE,9$ 
+	subw x,#3
 	ldw x,(x)
 	call prt_i16 
 9$:	ret 
@@ -2533,7 +2561,7 @@ jp_to_target:
 ;--------------------
 	RET_ADDR=1 ; subroutine return address 
 	RET_BPTR=3 ; basicptr return point 
-	RET_INW=5  ; in.w return point 
+	RET_LN_ADDR=5  ; line.addr return point 
 	VSIZE=4 
 gosub:
 	call runtime_only
@@ -2547,8 +2575,8 @@ gosub_2:
 ; save BASIC subroutine return point.   
 	ldw x,basicptr
 	ldw (RET_BPTR,sp),x 
-	ldw x,in.w 
-	ldw (RET_INW,sp),x
+	ldw x,line.addr 
+	ldw (RET_LN_ADDR,sp),x
 	ldw x,ptr16  
 	jra jp_to_target
 
@@ -2560,10 +2588,10 @@ return:
 	call runtime_only
 	ldw x,(RET_BPTR,sp) 
 	ldw basicptr,x
+	ldw x,(RET_LN_ADDR,sp)
+	ldw line.addr,x 
 	ld a,(2,x)
 	ld count,a  
-	ldw x,(RET_INW,sp)
-	ldw in.w,x 
 	popw x 
 	_drop VSIZE 
 	jp (x)
@@ -3444,9 +3472,6 @@ write:
 	jreq 6$
 	_unget_token 
 	call expression
-	cp a,#TK_INTGR
-	jreq 3$
-	jp syntax_error
 3$:	_xpop 
 	ld a,xl 
 	clrw x 
@@ -3659,10 +3684,7 @@ sleep:
 ;------------------------------
 pause:
 	call expression
-	cp a,#TK_INTGR
-	jreq 1$ 
-	jp syntax_error
-1$: _xpop 
+    _xpop 
 pause02:
 	ldw timer,x 
 1$: ldw x,timer 
@@ -3682,10 +3704,6 @@ pause02:
 ;------------------------------
 awu:
   call expression
-  cp a,#TK_INTGR
-  jreq 1$
-  jp syntax_error
-1$: _xpop 
 awu02:
   cpw x,#5120
   jrmi 1$ 
@@ -4219,7 +4237,7 @@ bitmask:
 ; initiate a DO ... UNTIL loop 
 ;------------------------------
 	DOLP_ADR=3 
-	DOLP_INW=5
+	DOLP_LN_ADDR=5
 	VSIZE=4 
 do_loop:
 	popw x 
@@ -4227,8 +4245,8 @@ do_loop:
 	pushw x 
 	ldw x,basicptr 
 	ldw (DOLP_ADR,sp),x
-	ldw x,in.w 
-	ldw (DOLP_INW,sp),x
+	ldw x,line.addr  
+	ldw (DOLP_LN_ADDR,sp),x
 	_inc loop_depth 
 	ret 
 
@@ -4250,10 +4268,10 @@ until:
 	jrne 9$ 
 	ldw x,(DOLP_ADR,sp)
 	ldw basicptr,x 
+	ldw x,(DOLP_LN_ADDR,sp)
+	ldw line.addr,x 
 	ld a,(2,x)
 	ld count,a 
-	ldw x,(DOLP_INW,sp)
-	ldw in.w,x 
 	ret 
 9$:	; remove loop data from stack  
 	popw x
@@ -4486,9 +4504,6 @@ read01:
 	mov in,data_ofs 
 	mov count,data_len  	
 	call expression 
-	cp a,#TK_INTGR 
-	jreq 1$ 
-	jp syntax_error 
 1$:
 	call next_token ; skip comma
 	cp a,#TK_COMMA 
@@ -4586,9 +4601,6 @@ spi_rcv_byte:
 ;------------------------------
 spi_write:
 	call expression
-	cp a,#TK_INTGR 
-	jreq 1$
-	jp syntax_error 
 1$:	
 	ld a,xl 
 	call spi_send_byte 
@@ -4668,9 +4680,6 @@ xpop:
 ;-------------------------------
 xalloc: 
 	call expression 
-	cp a,#TK_INTGR
-	jreq 1$ 
-	jp syntax_error
 1$: _xpop 
 	tnz a 
 	jreq 3$ 
@@ -4697,9 +4706,6 @@ xalloc:
 ;------------------------------
 xdrop:
 	call expression 
-	cp a,#TK_INTGR
-	jreq 1$ 
-	jp syntax_error 
 1$:	_xpop 
 	ld a,xl 
 	and a,#0x1f 
@@ -5015,9 +5021,6 @@ alloc_buffer:
 	ld a,#TK_COMMA 
 	call expect 
 	call expression 
-	cp a,#TK_INTGR
-	jreq 1$
-	jp syntax_error 
 1$: _xpop
 	ldw (BSIZE,sp),x 
 	call free

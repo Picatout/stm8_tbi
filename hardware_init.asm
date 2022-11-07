@@ -170,6 +170,10 @@ AWUHandler:
 ; sofware interrupt handler  
 ;------------------------------------
 TrapHandler:
+	.if DEBUG 
+	call print_registers
+	;call cmd_itf  
+	.endif 
 	iret 
 
 ;------------------------------

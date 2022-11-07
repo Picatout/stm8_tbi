@@ -1,3 +1,21 @@
+### 2022-11-06
+
+* Travail complété, aucune amélioration de performance. 
+```
+>run
+FOR...NEXT test
+ 71 msec
+DO...UNTIL test
+ 186 msec
+GOSUB test
+ 33 msec
+
+```
+
+* Ajout TrapHandler 
+
+* Modifié   *print_registers* dans [debug_support.asm](debug_support.asm).  Doit-être appellé seulement via le *TrapHandler* 
+
 ### 2022-11-05
 
 * bogue:
@@ -75,7 +93,7 @@ syntax error
    80  T=TICKS 
    100 DO 
    110 LET A=34*56%23+4 
-   120 B=B+1 : UNTIL B>1000 
+   120 LET B=B+1 : UNTIL B>1000 
    130 ? TICKS-T;" msec" 
    150 ? "GOSUB test"
    160 T=TICKS 

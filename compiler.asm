@@ -54,7 +54,7 @@ search_lineno::
 	ldw y,txtbgn
 	tnz a 
 	jreq search_ln_loop
-	ldw y,basicptr 
+	ldw y,line.addr  
 search_ln_loop:
 	cpw y,txtend 
 	jrpl 8$

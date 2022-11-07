@@ -201,7 +201,6 @@ decomp_loop:
 	ld a,#''
 	call putc
 	ldw x,basicptr
-	addw x,in.w 
 	call puts 
 	jp decomp_exit 
 50$:

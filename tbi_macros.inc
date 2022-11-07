@@ -174,6 +174,7 @@
     ; extracted except if it was end of line 
     .macro _unget_token
     .byte 0x45,bp.saved, basicptr ; mov basicptr,bp.saved ; 1 cy, 3 bytes 
+    .byte 0x45,bp.saved+1,basicptr+1 ; mov basicptr+1,bp.saved+1 
     .endm
 
     ;  increment variable in page 0 
@@ -190,10 +191,12 @@
 
     ; extract 16 bits address from BASIC code  
     .macro _get_addr
-        addw x,#2 
-        ldw basicptr,x 
-        subw x,#2 
+        pushw y 
+        ldw y,x 
         ldw x,(x)
+        addw y,#2 
+        ldw basicptr,y
+        popw y 
     .endm 
 
     ; extract character from BASIC code 

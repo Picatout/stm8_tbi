@@ -34,6 +34,14 @@
 	.endif 
 	.endm 
 
+	.macro _tp char
+	.if DEBUG 
+	push a 
+	ld a,#char  
+	call trace_mark
+	pop a 
+	.endif ; DEBUF 
+	.endm 
 .if DEBUG 
 
 ;    .area CODE
@@ -109,7 +117,7 @@ prt_reg8:
 	pop a 
 	clrw x 
 	ld xl,a 
-	mov base,#10 
+	mov base,#10
 	call prt_i16  
 	ld a,#') 
 	call putc
@@ -127,11 +135,11 @@ prt_reg16:
 	pushw y 
 	call puts 
 	ldw x,(1,sp) 
-	mov base,#16 
+	mov base,#16
 	call prt_i16  
 	call left_paren 
 	popw x 
-	mov base,#10 
+	mov base,#10
 	call prt_i16  
 	ld a,#') 
 	call putc
@@ -140,24 +148,24 @@ prt_reg16:
 ;------------------------------------
 ; print registers contents saved on
 ; stack by trap interrupt.
+; *** called by TrapHandler *** 
 ;------------------------------------
-	R_PC=13     ; 1 word 
-	SAV_BASE=12 ; 1 BYTE 
-	R_CC=11     ; 1 byte 
-	SAV_OUT=9   ; 1 word 
-	SAV_ACC24=8 ; 1 byte 
-	SAV_ACC16=6 ; 1 word 
-	R_Y=4       ; 1 word 
-	R_X=2       ; 1 word 
-	R_A=1       ; 1 byte 
-	VSIZE=10
+	R_PC=16     ; 1 word 
+	R_EPC=15    ; 1 byte 
+	R_Y=13      ; 1 word 
+	R_X=11       ; 1 word 
+	R_A=10       ; 1 byte 
+	R_CC=9      ; 1 byte 
+	RET_ADDR=7    ; 2 byte 
+	SAV_OUT=5   ; 1 word 
+	SAV_ACC16=3 ; 1 byte 
+	SAV_ACC24=2 ; 1 word 
+	SAV_BASE=1  ; 1 BYTE 
+	VSIZE=6  
 print_registers::
-	push base 
-	push cc 
 	_vars VSIZE 
-	ld (R_A,sp),a 
-	ldw (R_X,sp),x 
-	ldw (R_Y,sp),y
+	ld a, base 
+	ld (SAV_BASE,sp), a 
 	ld a,acc24 
 	ldw x,acc16 
 	ld (SAV_ACC24,sp),a 
@@ -168,11 +176,27 @@ print_registers::
 	ldw out,x 
 	ldw x,#STATES
 	call puts
-; print PC 
-	ldw x, #REG_PC
-	ldw y, (R_PC,sp)
-	subw y,#3
-	call prt_reg16 
+; print EPC 
+	ldw x, #REG_EPC
+	call puts 
+	ld a,(R_EPC,sp)
+	ldw x,(R_PC,sp)
+	ld acc24,a 
+	ldw acc16,x 
+	clr a 
+	mov base,#16 
+	call prt_acc24
+	ld a,#'(
+	call putc 
+	ld a,(R_EPC,sp)
+	ldw x,(R_PC,sp)
+	ld acc24,a 
+	ldw acc16,x 
+	clr a 
+	mov base,#10
+	call prt_acc24 
+	ld a,#') 
+	call putc 	
 ; print x
 	ldw x,#REG_X
 	ldw y,(R_X,sp)
@@ -184,15 +208,15 @@ print_registers::
 ; print A 
 	ldw x,#REG_A
 	ld a, (R_A,sp) 
-	call prt_reg8
-; print CC 
-	ldw x,#REG_CC 
-	ld a, (R_CC,sp) 
 	call prt_reg8 
+; print CC 
+	ldw x,#REG_CC
+	ld a, (R_CC,sp)
+	call prt_reg8  
 ; print SP 
 	ldw x,#REG_SP
 	ldw y,sp 
-	addw y,#(VSIZE+3)
+	addw y,#(VSIZE+9)
 	call prt_reg16  
 	ld a,#CR 
 	call putc
@@ -202,16 +226,13 @@ print_registers::
 	ldw x,(SAV_ACC16,sp)
 	ld acc24,a 
 	ldw acc16,x 
-	ld a,(R_A,sp)
-	ldw x,(R_X,sp)
-	ldw y,(R_Y,sp)
+	ld a, (SAV_BASE,sp)
+	ld base,a   	
 	_drop VSIZE
-	pop cc  
-	pop base  	
 	ret
 
 STATES:  .asciz "\nRegisters state at break point.\n--------------------------\n"
-REG_PC: .asciz "PC:"
+REG_EPC: .asciz "EPC:"
 REG_Y:   .asciz "\nY:" 
 REG_X:   .asciz "\nX:"
 REG_A:   .asciz "\nA:" 
@@ -228,10 +249,39 @@ parse_addr:
 	ld a,#SPACE 
 	call skip  	 
 	addw y,in.w 
-	ldw x,#pad 
+	ldw x,#pad+110 
 	call strcpy
-	ldw x,#pad
+	ldw x,#pad+110 
 	call atoi24 	
+	ret 
+
+
+read_cmd: 
+	push #0 
+	ldw y,#tib 
+	bres UART1_CR2,#UART_CR2_RIEN 
+1$:	btjf UART1_SR,#UART_SR_RXNE,1$  
+	ld a,UART1_DR 
+	cp a,#CR 
+	jreq 9$
+	cp a,#BS 
+	jrne 2$
+	tnz (1,sp)
+	jreq 1$ 
+	decw y 
+	dec (1,sp)
+	call bksp 
+	jra 1$ 
+2$: ld (y),a
+	incw y 
+	inc (1,sp)
+	call putc 
+	jra 1$ 
+9$: clr (y)
+	pop a 
+	clr in.w 
+	clr in
+	bset UART1_CR2,#UART_CR2_RIEN  
 	ret 
 
 ;----------------------------
@@ -242,29 +292,27 @@ parse_addr:
 ;  's addr' to print string 
 ;----------------------------
 ;local variable
-	PSIZE=11
-	SAV_COUNT=10
-	SAV_IN=9
-	SAV_ACC24=8
-	SAV_ACC16=6
-	R_Y=4
-	R_X=2
-	R_A=1
+	PSIZE=10
+	SAV_INW=8 
+	SAV_FPTR=5
+	SAV_COUNT=4
+	SAV_ACC24=1
+	SAV_ACC16=2
 	VSIZE=11
 cmd_itf:
-	push cc 
 	_vars VSIZE
-	ld (R_A,sp),a
 	ld a,count 
 	ld (SAV_COUNT,sp),a 
-	ld a,in 
-	ld (SAV_IN,sp),a  
-	ldw (R_X,sp),x 
-	ldw (R_Y,sp),y
 	ld a,acc24 
 	ldw x,acc16 
 	ld (SAV_ACC24,sp),a 
 	ldw (SAV_ACC16,sp),x 
+	ld a,farptr 
+	ldw x,ptr16
+	ld (SAV_FPTR,sp),a 
+	ldw (SAV_FPTR+1,sp),x
+	ldw x,in.w 
+	ldw (SAV_INW,sp),x 
 	clr farptr 
 	clr farptr+1 
 	clr farptr+2  
@@ -273,9 +321,7 @@ repl:
 	call putc 
 	ld a,#'? 
 	call putc
-	clr in.w 
-	clr in 
-	call readln
+	call read_cmd 
 	ldw y,#tib  
 	ld a,(y)
 	jreq repl  
@@ -291,13 +337,13 @@ repl_exit:
 	ldw acc16,x
 	ld a,(SAV_COUNT,sp)
 	ld count,a 
-	ld a,(SAV_IN,sp)
-	ld in,a 
-	ldw y,(R_Y,sp)
-	ldw x,(R_X,sp)
-	ld a,(R_A,sp)
+	ld a,(SAV_FPTR,sp)
+	ldw x,(SAV_FPTR+1,sp)
+	ld farptr,a 
+	ldw ptr16,x 
+	ldw x,(SAV_INW,sp)
+	ldw in.w,x 
 	_drop VSIZE
-	pop cc 
 	ret  
 invalid:
 	ldw x,#invalid_cmd 
@@ -314,6 +360,7 @@ print_string:
 	call puts
 	jp repl 	
 mem_peek:
+	mov base,#16
 	call parse_addr 
 	ld a, acc24 
 	or a,acc16 
@@ -524,14 +571,37 @@ hex_dump:
 
 dump_prog:
 	pushw y 
+	ld a,acc24 
+	ldw x,acc16 
+	push a 
+	pushw x 
 	clr farptr 
 	ldw x,txtend 
 	ldw y,txtbgn
 	ldw ptr16,y 
 	subw x,ptr16 
 	call hex_dump
+	popw x 
+	pop a 
+	ld acc24,a 
+	ldw acc16,x 
 	popw y 
 	ret 
+
+
+trace_mark:
+	pushw x
+	push a 
+	ldw x,#trace_point
+	call puts 
+	pop a 
+	call putc
+	ld a,#CR 
+	call putc 
+	popw x 
+	ret 
+
+trace_point: .asciz "TP: "
 
 .endif ; DEBUG 
 
