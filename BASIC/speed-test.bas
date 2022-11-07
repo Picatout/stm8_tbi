@@ -1,3 +1,4 @@
+  NEW 
     1 rem speed test
     2 ? "FOR...NEXT test"
     5  LET T= TICKS

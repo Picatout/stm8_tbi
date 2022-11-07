@@ -1405,7 +1405,11 @@ let_eval:
 3$:
 	ld [ptr16],a
 	_inc ptr8 
-	ldw [ptr16],x 
+	ldw [ptr16],x
+	call next_token 
+	cp a,#TK_COMMA 
+	jreq let
+	_unget_token 
 	ret 
 
 

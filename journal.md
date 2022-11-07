@@ -1,3 +1,9 @@
+### 2022-11-07 
+
+* Corrigé bogue dans *decompile* qui ne décompilait pas correctement les **TK_LABEL**. 
+
+* Modifié la commande **LET** pour accepté un liste de variables.
+
 ### 2022-11-06
 
 * Travail complété, aucune amélioration de performance. 

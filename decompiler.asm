@@ -224,6 +224,7 @@ decomp_loop:
 	jreq 62$
 	call space 
 62$:
+	ldw x,basicptr 
 	pushw x 
 	call skip_string
 	popw x 
