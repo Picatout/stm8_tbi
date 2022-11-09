@@ -69,7 +69,7 @@ right_align::
 	ret 
 
 ;--------------------------
-; print TK_QSTR
+; print quoted string 
 ; converting control character
 ; to backslash sequence
 ; input:
@@ -164,12 +164,29 @@ decomp_loop:
 	tnz a 
 	jrne 1$ 
 	jp decomp_exit   
-1$:	jrmi 2$
-	jp 6$
-2$: ;; TK_CMD|TK_IFUNC|TK_CFUNC|TK_CONST|TK_VAR|TK_INTGR|TK_AND|TK_OR|TK_XOR 
-	cp a,#TK_VAR 
+1$:	cp a,#QUOTE_IDX 
+	jrne 2$
+	jp quoted_string 
+2$:	cp a,#VAR_IDX 
 	jrne 3$
-;; TK_VAR 
+	jp variable 
+3$:	cp a,#REM_IDX 
+	jreq comment 
+	cp a,#LABEL_IDX 
+	jreq label 
+	cp a,#LIT_IDX 
+	jreq literal 
+	cp a,#LITC_IDX 
+	jreq lit_char 
+	cp a,#BSLASH_IDX
+	jrne 7$
+	jp letter  
+7$:	push a 
+	call tok_to_name 
+	call puts
+	call space 
+	jra decomp_loop
+variable: ; VAR_IDX 
 	call space
 	_get_addr 
 	dec count 
@@ -177,10 +194,7 @@ decomp_loop:
 	call var_name
 	call putc  
 	jra decomp_loop
-3$:
-	cp a,#TK_INTGR
-	jrne 4$
-;; TK_INTGR
+literal: ; LIT_IDX 
 	call get_int24
 	dec count 
 	dec count 
@@ -188,42 +202,29 @@ decomp_loop:
 	ld acc24,a 
 	ldw acc16,x
 	call prt_acc24
-	jra decomp_loop
-4$: ; dictionary keyword
-	cp a,#TK_NOT 
-	jruge 50$ 
-	_get_addr
+	jp decomp_loop
+lit_char: ; LITC_IDX 
+	_get_char 
 	dec count 
-	dec count 
-	cpw x,#remark 
-	jrne 5$
-; print comment
+	clrw x 
+	ld xl,a 
+	call prt_i16 
+	jp decomp_loop 
+comment: ; print comment
 	ld a,#''
 	call putc
+	call space 
 	ldw x,basicptr
 	call puts 
 	jp decomp_exit 
-50$:
-	clrw x 
-	ld xl,a 	
-5$: ; insert command name 
-	call space  
-	pushw y 
-	call cmd_name
-	popw y 
-	call print_word  
-	jp decomp_loop 
-6$:
-; label?
-	cp a,#TK_LABEL 
-	jrne 64$
+label: ; LABEL_IDX 
 ; print label   	
 	ldw x,basicptr 
 	subw x,line.addr 
 	cpw x,#4 
-	jreq 62$
+	jreq 1$
 	call space 
-62$:
+1$:
 	ldw x,basicptr 
 	pushw x 
 	call skip_string
@@ -231,121 +232,56 @@ decomp_loop:
 	call puts 
 	call space 
 	jp decomp_loop
-64$:
-	cp a,#TK_COLON 
-	jrne 66$
-	ld a,#': 
-	call putc 
-	jp decomp_loop 
-66$:	
-	cp a,#TK_QSTR 
-	jrne 7$
-;; TK_QSTR
+quoted_string:	; print quoted string 
 	call space
 	call prt_quote  
 	jp decomp_loop
-7$:
-	cp a,#TK_CHAR 
-	jrne 9$
-;; TK_CHAR
+letter: ; print \letter 
 	call space 
 	ld a,#'\ 
 	call putc 
 	_get_char 
 	dec count   
-8$:
 	call putc  
-82$:
 	jp decomp_loop
-9$: 
-	cp a,#TK_SHARP 
-	jrugt 10$ 
-	sub a,#TK_ARRAY 
-	clrw x 
-	ld xl,a
-	addw x,#single_char 
-	ld a,(x)
-	jra 8$ 
-10$: 
-	cp a,#TK_MINUS 
-	jrugt 11$
-	sub a,#TK_PLUS 
-	clrw x 
-	ld xl,a 
-	addw x,#add_char 
-	ld a,(x)
-	jra 8$
-11$:
-    cp a,#TK_MOD 
-	jrugt 12$
-	sub a,#TK_MULT
-	clrw x 
-	ld xl,a 
-	addw x,#mul_char
-	ld a,(x)
-	jra 8$
-12$:
-	sub a,#TK_GT  
-	sll a 
-	clrw x 
-	ld xl,a 
-	addw x,#relop_str 
-	ldw x,(x)
-	ld a,(x)
-	incw x 
-	call putc 
-	ld a,(x)
-	jrne 8$
-	jp decomp_loop 
 decomp_exit: 
 	ld a,(BASE_SAV,sp)
 	ld base,a 
 	_drop VSIZE 
 	ret 
 
-
-single_char: .byte '@','(',')',',',';'
-add_char: .byte '+','-'
-mul_char: .byte '*','/','%'
-relop_str: .word gt,equal,ge,lt,ne,le 
-gt: .asciz ">"
-equal: .asciz "="
-ge: .asciz ">="
-lt: .asciz "<"
-le: .asciz "<="
-ne:  .asciz "<>"
-
 ;----------------------------------
-; search in kword_dict name
-; from its execution address 
+; search name in dictionary
+; from its token index  
 ; input:
-;   X       	routine_address  
+;   a       	token index   
 ; output:
-;   X 			cstr*  | 0 
+;   X 			*name  | 0 
 ;--------------------------------
-	CODE_ADDR=1 
-	LINK=3 
-	VSIZE=4
-cmd_name:
+	TOKEN=1 
+	LINK=2 
+	VSIZE=3
+tok_to_name:
 	_vars VSIZE 
 	clr acc16 
-	ldw (CODE_ADDR,sp),x  
-	ldw x,#kword_dict	
+	ld (TOKEN,sp),a 
+	_ldx_dict all_words	
 1$:	ldw (LINK,sp),x
 	ld a,(2,x)
-	and a,#15 
+	and a,#NLEN_MASK
+	inc a 
 	ld acc8,a 
-	addw x,#3
+	addw x,#3 ; first char of name 
 	addw x,acc16
-	ldw x,(x) ; code address   
-	cpw x,(CODE_ADDR,sp)
+	ld a,(x) ; token index    
+	cp a,(TOKEN,sp)
 	jreq 2$
 	ldw x,(LINK,sp)
 	ldw x,(x) 
 	subw x,#2  
 	jrne 1$
 	clr a 
-	clrw x 
+	clr a 
 	jra 9$
 2$: ldw x,(LINK,sp)
 	addw x,#2 	

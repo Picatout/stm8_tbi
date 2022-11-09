@@ -40,8 +40,9 @@
 	ld a,#char  
 	call trace_mark
 	pop a 
-	.endif ; DEBUF 
+	.endif ; DEBUG 
 	.endm 
+
 .if DEBUG 
 
 ;    .area CODE
@@ -429,21 +430,6 @@ fetchc: ; @C
 	incw x
 	ret
 
-
-;------------------------------------
-; expect a number from command line 
-; next argument
-;  input:
-;	  none
-;  output:
-;    acc24   int24_t 
-;------------------------------------
-number:
-	call get_token
-	cp a,#TK_INTGR
-	jreq 1$
-	jp syntax_error
-1$:	ret
 
 ;----------------------
 ; called by show_row 

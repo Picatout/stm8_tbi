@@ -18,15 +18,6 @@
 ;--------------------------------------
         TAB_WIDTH=4 ; default tabulation width 
         EOF=0xff ; end of file marker 
-        ; keyword types 
-        F_CMD=0     ; command keyword
-        F_IFUNC=(1<<4) ; integer function keyword
-        F_CFUNC=(2<<4) ; character function keyword
-        F_CONST=(3<<4) ; function keyword that return a constant
-        F_NOT=(7<<4)   ; TK_NOT 
-        F_AND=(8<<4)   ; TK_AND
-        F_OR=(9<<4)    ; TK_OR
-        F_XOR=(10<<4)   ; TK_XOR   
         NLEN_MASK=0xf  ; mask to extract name len 
         KW_TYPE_MASK=0xf0 ; mask to extract keyword type 
 
@@ -70,62 +61,14 @@
         INP=0
         OUTP=1 
 
-;--------------------------------------
-;       token attribute
-;--------------------------------------
-        ; bits 4:5 identify token group 
-        ; 0x0n -> miscelinous 
-        ; 0x1n -> +|- operators 
-        ; 0x2n -> *|/|% operators
-        ; 0x3n -> relational operators 
-        TK_CMD=128      ; BASIC command   
-        TK_IFUNC=129    ; BASIC integer function
-        TK_CFUNC=130    ; BASIC character function
-        TK_CONST=131    ; BASIC constant 
-        TK_INTGR=132    ; 16 bits integer 
-        TK_VAR=133
-        TK_FLOAT=134    ; float32 
-        TK_NOT=135
-        TK_AND=136      ;
-        TK_OR=137       ;
-        TK_XOR=138      ; 
-        TK_NONE=0       ; not a token 
-        TK_COLON=1      ; command separator ':' 
-        TK_QSTR=2       ; quoted string  
-        TK_LABEL=3      ; used for defined, constants, variables
-        TK_CHAR=4       ; ASCII character 
-        TK_ARRAY=5      ; array variable '@' 
-        TK_LPAREN=6     ; left parenthesis '('
-        TK_RPAREN=7     ; right parenthesis ')'
-        TK_COMMA=8      ; item separator ',' 
-        TK_SEMIC=9     ; used in PRINT command.  ';' 
-        TK_SHARP=10     ; derefenrecing operator 
-        
-        TK_PLUS=0x10    ; addition operator '+'
-        TK_MINUS=0x11   ; subtraction operator '-'
-        TK_MULT=0x20    ; multiplication operator '*'
-        TK_DIV=0x21     ; division operator '/'
-        TK_MOD=0x22     ; modulo operator '%'
+    EOF=0xff ; end of file marker
+    
+    TYPE_MASK=0xf0 ; mask to extract data type, i.e. DIM variable symbol  or CONST symbol 
+    TYPE_DVAR=(1<<4); DIM variable type 
+    TYPE_CONST=(2<<4); CONST data 
+    NLEN_MASK=0xf  ; mask to extract name len 
+    NONE_IDX = 255 ; not a token 
 
-        ; don't change these token values 
-        ; values chosen to be used as a mask.
-        ; bit 7   1 for dictionary words else 0 
-        ; bits 6  always 0 
-        ; bits 5:4 identify group 
-        ; bits 3:0 token identifier inside group  
-        TK_GT=0x31      ; relation operator '>'
-        TK_EQUAL=0x32   ; assignment or relation operator '='
-        TK_GE=0x33      ; relation operator '>='
-        TK_LT=0x34      ; relation operator '<'
-        TK_LE=0x36      ; relation operator '<='
-        TK_NE=0x35      ; relation operator '<>' not equal 
-        ; token groups 
-        TK_GRP_MASK=0x30 ; groups bits selector 
-        TK_GRP_MISC=0x00 ; miscelinous group 
-        TK_GRP_ADD=0x10  ; additive operators
-        TK_GRP_MULT=0x20 ; multiplicative operators
-        TK_GRP_RELOP=0x30 ;relational operators. 
-        CMD_END=2 
 
 ;--------------------------------------
 ;   error codes 
@@ -206,6 +149,13 @@
         ldw basicptr,x  
     .endm 
     
+    ; get code address from index in a 
+    .macro _code_addr
+    sll a 
+    clrw x 
+    ld xl,a 
+    ldw x,(code_addr,x)
+    .endm 
 
 ;---------------------------------------
 ;    xtack manipulation macros 

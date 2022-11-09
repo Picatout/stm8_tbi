@@ -1,4 +1,39 @@
+### 2022-11-08
+
+* bogue
+```
+>let a=23*4 : ? a
+ 92
+
+>let a=a*a
+
+>? a
+ 8464
+
+  $16B8	  $0  $0  $8 $77  $9  $0 $3F  $0 ___w__?_
+ 5825 5823
+syntax error
+    0 
+```
+
+* Retravaillé *parse_integer*
+
+* Travail sur le compilateur à complété.
+
 ### 2022-11-07 
+
+#### session 2
+
+* commit fait à 11:31  avant de débuté une modification majeure du système qui consiste à tokenisé la machine virtuelle.
+
+	* changement de la structure du dictionnaire, le champ addresse code de type **.word** est remplacé par le champ token de type **.byte**
+	```
+	
+	```
+
+#### session 1
+
+* Remplacé les étiquette en début de ligne par **SUB nom**. 
 
 * Corrigé bogue dans *decompile* qui ne décompilait pas correctement les **TK_LABEL**. 
 

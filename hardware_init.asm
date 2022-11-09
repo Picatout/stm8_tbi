@@ -70,11 +70,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int16 TIM3 Capture/compare
 	int NonHandledInterrupt ;int17 UART1 TX completed
 	int Uart1RxHandler		;int18 UART1 RX full ; default user communication channel.
-.if INCLUDE_I2C 
 	int I2cIntHandler       ;int19 I2C 
-.else
-	int NonHandledInterrupt ;int19 I2C 
-.endif 
 	int NonHandledInterrupt ;int20 UART3 TX completed
 	int NonHandledInterrupt ;int21 UART3 RX full
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
@@ -128,13 +124,11 @@ dvar_bgn:: .blkw 1 ; DIM variables start address
 dvar_end:: .blkw 1 ; DIM variables end address 
 chain_level: .blkb 1 ; increment for each CHAIN command 
 out: .blkw 1 ; output char routine address 
-.if INCLUDE_I2C 
 i2c_buf: .blkw 1 ; i2c buffer address 
 i2c_count: .blkb 1 ; bytes to transmit 
 i2c_idx: .blkb 1 ; index in buffer
 i2c_status: .blkb 1 ; error status 
 i2c_devid: .blkb 1 ; device identifier  
-.endif 
 
 ; 24 bits integer variables 
 vars:: .blkb 3*26 ; BASIC variables A-Z,
@@ -226,11 +220,9 @@ UserButtonHandler:
 3$:	; jpf user_interrupted
 
 user_interrupted:
-.if INCLUDE_I2C 
 ; in case system infinite
 ; loop in i2cIntHandler 
 	bset I2C_CR2,#I2C_CR2_SWRST
-.endif
     btjt flags,#FRUN,4$
 	jra UBTN_Handler_exit 
 4$:	; program interrupted by user 
@@ -405,7 +397,7 @@ cold_start:
 	_inc seedy+1 
 	_inc seedx+1 
 	call func_eefree ; eeprom free address 
-	call ubound ; @() size 
+	call func_ubound ; @() size 
 	call clear_basic
 	call beep_1khz  ; 
 	call system_information ; display system information
