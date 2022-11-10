@@ -197,8 +197,8 @@ clear_vars:
 ;  information 
 ;-----------------------
 	MAJOR=2
-	MINOR=1
-	REV=2
+	MINOR=5
+	REV=0
 
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
 
@@ -855,8 +855,6 @@ func_args:
 arg_list:
 	push #0
 1$:	call condition 
-	tnz a 
-	jreq 7$  
 	inc (1,sp)
 	call next_token 
 	cp a,#COMMA_IDX 

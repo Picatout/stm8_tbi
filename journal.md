@@ -1,12 +1,14 @@
 ### 2022-11-10
 
-* commit 9:54 
+* Déboguer liste d'arguments des fonctions et procédures. 
+
+* commit 9:54  version 2.5R0 , le mot réservé **LET** est maintenant obligatoire ainsi que le terminateur de commande **:**.
 
 * Débogué routine *relation*. 
 
 * Corrigé *_dict_entry,1,^/","/,COMMA_IDX* en enlevant le **\\** avant la virgule. dans **"\\,"**.  
 
-* [speed-test.bas](BASIC/speed-test.bas)
+* [speed-test.bas](BASIC/speed-test.bas), version révisée. 
 ```
 >run
 FOR...NEXT test
@@ -16,6 +18,71 @@ DO...UNTIL test
 GOSUB test
  132 msec
 ```
+* [speed-test1.bas](BASIC/speed-test1.bas), version originale. 
+```
+>list
+    1 '  speed test
+    2 ?  "FOR...NEXT test"
+    5 LET  T= TICKS 
+    7 FOR  I=  1TO  1000
+   10 LET  A=  23*  4+  5
+   20 NEXT  I
+   30 ? TICKS -  T;  " msec"
+   70 ?  "DO...UNTIL test"
+   80 LET  T= TICKS 
+  100 DO 
+  110 LET  A=  34*  56%  23+  4
+  120 LET  B=  B+  1: UNTIL  B>  1000
+  130 ? TICKS -  T;  " msec"
+  150 ?  "GOSUB test"
+  160 LET  T= TICKS 
+  170 FOR  I=  1TO  1000: GOSUB  300: NEXT  I
+  180 ? TICKS -  T;  " msec"
+  200 END 
+  300 RETURN 
+program address:  $91, program size:  304 bytes in RAM memory
+
+>run
+FOR...NEXT test
+ 67 msec
+DO...UNTIL test
+ 181 msec
+GOSUB test
+ 29 msec
+```
+Amélioration minime de performance. La version  2.1R2 donnait ceci:
+* Avant optimisation 
+```
+    1 rem speed test
+    2 ? "FOR...NEXT test"
+    5  T= TICKS
+    7  FOR I= 1 TO 1000
+   10  A= 23* 4+ 5
+   20  NEXT I
+   30  PRINT TICKS- T;" msec"
+   70  ? "DO...UNTIL test"
+   80  T=TICKS 
+   100 DO 
+   110 LET A=34*56%23+4 
+   120 LET B=B+1 : UNTIL B>1000 
+   130 ? TICKS-T;" msec" 
+   150 ? "GOSUB test"
+   160 T=TICKS 
+   170 FOR I=1 TO 1000 : GOSUB 300 : NEXT I
+   180 ? TICKS-T;" msec" 
+   200 END
+   300 RETURN 
+
+>run
+FOR...NEXT test
+ 68 msec
+DO...UNTIL test
+ 186 msec 
+GOSUB test
+ 33 msec 
+
+```
+
 
 ### 2022-11-09
 
