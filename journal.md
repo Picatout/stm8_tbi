@@ -1,3 +1,22 @@
+### 2022-11-10
+
+* commit 9:54 
+
+* Débogué routine *relation*. 
+
+* Corrigé *_dict_entry,1,^/","/,COMMA_IDX* en enlevant le **\\** avant la virgule. dans **"\\,"**.  
+
+* [speed-test.bas](BASIC/speed-test.bas)
+```
+>run
+FOR...NEXT test
+ 110 msec
+DO...UNTIL test
+ 179 msec
+GOSUB test
+ 132 msec
+```
+
 ### 2022-11-09
 
 * bogue dans decompile

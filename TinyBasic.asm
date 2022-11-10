@@ -1102,16 +1102,19 @@ expression:
 ;  output:
 ;	 xstack		value  
 ;---------------------------------------------
-	RELOP=1
-	VSIZE=1 
+  ; local variables 
+	REL_OP=1  ; relational operator 
+	UBYTE=2  ; result upper byte {23..16}
+	VSIZE=2 
 relation: 
 ;_tp 'G 
 	_vars VSIZE
+	clr (UBYTE,sp) 
 	call expression
 ; expect rel_op or leave 
 	call next_token 
-	ld (RELOP,sp),a 
-	cp a,#REL_EQU_IDX
+	ld (REL_OP,sp),a 
+	cp a,#REL_LE_IDX
 	jrmi 1$
 	cp a,#OP_REL_LAST 
 	jrule 2$ 
@@ -1120,25 +1123,36 @@ relation:
 2$:	; expect another expression
 	call expression
 	call cp24 
-	_xpop  
+	_xpop
+	clrw x  ; result UBYTE:X -> FALSE 
 	tnz a 
 	jrmi 4$
 	jrne 5$
-	mov acc8,#2 ; i1==i2
-	jra 6$ 
+; i1==i2 
+	ld a,(REL_OP,sp)
+	cp a,#REL_LT_IDX 
+	jrpl 7$ ; relation false 
+	jra 6$  ; relation true 
 4$: ; i1<i2
-	mov acc8,#4 
-	jra 6$
+	ld a,(REL_OP,sp)
+	cp a,#REL_LT_IDX 
+	jreq 6$ ; relation true 
+	cp a,#REL_LE_IDX 
+	jreq 6$  ; relation true
+	jra 7$ ; relation false  
 5$: ; i1>i2
-	mov acc8,#1  
-6$: ; 0=false, -1=true 
-	clrw x 
-	ld a, acc8  
-	and a,(RELOP,sp)
-	jreq 7$
+	ld a,(REL_OP,sp)
+	cp a,#REL_GT_IDX 
+	jreq 6$ ; relation true 
+	cp a,#REL_GE_IDX 
+	jreq 6$ ; relation tue 
+	jrne 7$   ; relation false 
+6$: ; TRUE  ; relation true 
+	cpl (UBYTE,sp)
 	cplw x 
-	ld a,#255 
-7$:	_xpush 
+7$:	; FALSE 
+	ld a,(UBYTE,sp) ; A:X  result  
+	_xpush 
 9$: 
 ;_tp 'H 
 	_drop VSIZE
@@ -5213,7 +5227,7 @@ kword_dict::
 ; the following are not displayed
 ; by WORDS command 
 	_dict_entry,1,":",COLON_IDX 
-	_dict_entry,1,^/"\,"/,COMMA_IDX 
+	_dict_entry,1,^/","/,COMMA_IDX 
 	_dict_entry,1,^/";"/,SCOL_IDX
 	_dict_entry,1,"'",REM_IDX 
 	_dict_entry,1,"@",ARRAY_IDX 

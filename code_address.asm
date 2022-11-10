@@ -60,11 +60,11 @@ code_addr:
 	_code_entry syntax_error, MULT_IDX  ; $10 
     OP_ARITHM_LAST=TOK_IDX-1 
 ; relational operators
-	_code_entry syntax_error,REL_EQU_IDX ; $11  
-	_code_entry syntax_error,REL_LT_IDX  ; $12 
-	_code_entry syntax_error,REL_LE_IDX  ; $13 
-	_code_entry syntax_error,REL_GT_IDX  ; $14 
-	_code_entry syntax_error,REL_GE_IDX  ; $15 
+	_code_entry syntax_error,REL_LE_IDX  ; $11 
+	_code_entry syntax_error,REL_EQU_IDX ; $12  
+	_code_entry syntax_error,REL_GE_IDX  ; $13 
+	_code_entry syntax_error,REL_LT_IDX  ; $14 
+	_code_entry syntax_error,REL_GT_IDX  ; $15 
 	_code_entry syntax_error,REL_NE_IDX  ; $16 
     OP_REL_LAST=TOK_IDX-1 
 ; boolean operators 
