@@ -35,7 +35,7 @@ code_addr:
 ; command end marker  
 	_code_entry next_line, EOL_IDX  ; $0 
 	_code_entry do_nothing, COLON_IDX   ; $1 ':'
-    CMD_END = TOK_IDX-1  
+    CMD_END = TOK_IDX-1 
 ; caractères délimiteurs 
     _code_entry syntax_error, COMMA_IDX ; $2  ',' 
 	_code_entry syntax_error,SCOL_IDX  ; $3 ';' 

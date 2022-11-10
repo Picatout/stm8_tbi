@@ -1,3 +1,40 @@
+### 2022-11-09
+
+* bogue dans decompile
+```
+>54 let a=23
+Registers state at break point.
+--------------------------
+EPC: $93D5( 37845)
+X: $36 ( 54)
+Y: $16BB ( 5819)
+A: $0 ( 0)
+CC: $20 ( 32)
+SP: $17F7 ( 6135)
+
+>list
+Registers state at break point.
+--------------------------
+EPC: $9731( 38705)
+X: $1664 ( 5732)
+Y: $1773 ( 6003)
+A: $3 ( 3)
+CC: $21 ( 33)
+SP: $17EE ( 6126)
+126
+Registers state at break point.
+--------------------------
+EPC: $9735( 38709)
+X: $1667 ( 5735)
+Y: $1773 ( 6003)
+A: $0 ( 0)
+CC: $23 ( 35)
+SP: $17EE ( 6126)
+
+program address:  $91, program size:  11 bytes in RAM memory
+
+```
+
 ### 2022-11-08
 
 * bogue

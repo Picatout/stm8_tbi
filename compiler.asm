@@ -283,21 +283,22 @@ escaped:: .asciz "abtnvfr"
 ;-------------------------
 ; integer parser 
 ; input:
-;   X 		point to output buffer  
+;   X      *output buffer (&pad[n])
 ;   Y 		point to tib 
+;   in.w    offset in tib 
 ;   A 	    first digit|'$' 
 ; output:  
-;   X 		integer bits 15..0 
-;   A 		LIT_IDX|LITC_IDX 
-;   acc24   24 bits integer 
+;   A:X 	int24   
+;   acc24   24 bits integer
+;   in.w    updated 
+;   Y       &pad[n] 
 ;-------------------------
 	; local variables 
 	BASE=1 
 	XSAVE=2
-; *** must be  same size as parse_binary locals *** 	
 	VSIZE=3
 parse_integer: ; { -- n }
-	pushw x
+	pushw x ; XSAVE 
 	push #0 ; BASE 10	
 	cp a,#'$
 	jrne 2$ 
@@ -324,20 +325,18 @@ parse_integer: ; { -- n }
 	ldw y,(XSAVE,sp)
 	ld a,acc24 
 	ldw x,acc16 
-	jp compile_integer
+	_drop VSIZE 
+	ret
 
 ;-------------------------
 ; binary integer parser
 ; build integer in acc24  
 ; input:
-;   X 		point to output buffer  
 ;   Y 		point to tib 
-;   A 	    '&' 
+;   in.w 	offset in tib  
 ; output:  
-;   buffer  LIT_IDX|LITC_IDX integer  
-;   X 		int16 
-;   A 		LIT_IDX|LITC_IDX
-;   acc24    int24 
+;   A:X 	int24 
+;   in.w    updated 
 ;-------------------------
 	BINARY=1 ; 24 bits integer 
 	VSIZE=3
@@ -362,11 +361,20 @@ parse_binary: ; { -- n }
 bin_exit:
 	dec in 
 	ldw y,x
-	ld a,(BINARY,sp)
 ; load 24 bits integer in A:X 
-	mov acc8,#LIT_IDX 
-	ld (y),a 
+	ld a,(BINARY,sp)
 	ldw x,(BINARY+1,sp)
+	_drop VSIZE 
+	ret
+
+;-------------------------------------
+; input:
+;   A:X  24 bits integer 
+;   Y    &pad[n]
+; output:
+;    pad   LIT_IDX,int24|LITC_IDX,int8 
+;    y   &pad[n+4]|&pad[n+2]
+;------------------------------------
 compile_integer:
 ; 24 bits integer in A:X 
 	rrwa x ; X:A format 
@@ -391,7 +399,6 @@ compile_integer:
 	LDW (Y),x 
 	addw y,#2
 9$:	pop a 
-	_drop VSIZE 
 	ret
 
 ;-------------------------------------
@@ -575,6 +582,10 @@ parse_keyword:
 	clrw x 
 	jra 5$ 
 4$:	; word in dictionary 
+	cp a,NONE_IDX 
+	jrne 44$
+	jp syntax_error
+44$:
 	ldw y,(XFIRST,sp)
 	ld (y),a ; compile token 
 	incw y 
@@ -665,25 +676,27 @@ str_tst:
 	call parse_quote ; compile quoted string 
 	pop a 
 	jp token_exit
-nbr_tst:
 ; check for hexadecimal number 
-	ld a,#'$'
-	cp a,(TCHAR,sp) 
-	jreq 1$
+nbr_tst:
+	_case '$' bin_test 
+	jra integer 
 ;check for binary number 
-	ld a,#'&
-	cp a,(TCHAR,sp)
-	jrne 0$
+bin_test: 
+	_case '&' digit_test 
 	call parse_binary ; expect binary integer 
+	call compile_integer
 	jp token_exit 
 ; check for decimal number 	
-0$:	ld a,(TCHAR,sp)
+digit_test: 
+	ld a,(TCHAR,sp)
 	call is_digit
-	jrnc 3$
-1$:	ld a,(TCHAR,sp)
+	jrnc other_tests
+integer: 
+	ld a,(TCHAR,sp)
 	call parse_integer 
+	call compile_integer
 	jp token_exit 
-3$: 
+other_tests: 
 	_case '(' bkslsh_tst 
 	ld a,#LPAREN_IDX 
 	jp token_char   	
@@ -854,21 +867,22 @@ compile::
 	ldw x,#0
 	ldw pad,x ; line# in destination buffer 
 	ld pad+2,a ; line length  
-	ldw x,#pad+3 ; token list begin at this position
 	clr in.w 
 	clr in  ; offset in input text buffer 
 	ld a,tib 
 	call is_digit
-	jrne 1$ 
-	ldw x,#tib 
-	ldw y,#XSTACK_EMPTY
-	call atoi24 
-	subw y,#tib 
-	ld a,yl 
-	ld in,a 
+	jrnc 1$ 
+	inc in 
+	ldw x,#pad+3
+	ldw y,#tib   
+	call parse_integer 
+	tnz a 
+	jrne 0$
 	cpw x,#1
-	jrpl 1$
-	ld a,#ERR_BAD_VALUE
+	jrslt 0$
+	ldw pad,x 
+	jra 1$ 
+0$:	ld a,#ERR_BAD_VALUE
 	jp tb_error
 1$:	 
 	ldw y,#pad+3 
@@ -900,7 +914,7 @@ compile::
 	ldw x,ptr16  
 	ld a,(2,x)
 	ld count,a
-	ldw line.addr,x 
+	ldw line.addr,x
 	addw x,#3
 	ldw basicptr,x 	
 11$:

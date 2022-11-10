@@ -148,13 +148,13 @@ decompile::
 	mov base,#10
 	clr acc24 
 	ldw acc16,x
-	clr a ; unsigned conversion 
+	clr a ; unsigned conversion  
 	call itoa  
 	ld a,#5 
 	call right_align 
-	call puts
+	call puts 
 	ld a,#SPACE 
-	call putc   
+	call putc
 decomp_loop:
 	ld a,count 
 	jrne 0$
@@ -171,21 +171,30 @@ decomp_loop:
 	jrne 3$
 	jp variable 
 3$:	cp a,#REM_IDX 
-	jreq comment 
-	cp a,#LABEL_IDX 
-	jreq label 
-	cp a,#LIT_IDX 
-	jreq literal 
-	cp a,#LITC_IDX 
-	jreq lit_char 
-	cp a,#BSLASH_IDX
+	jrne 4$
+	jra comment 
+4$:	cp a,#LABEL_IDX 
+	jrne 5$
+	jp label 
+5$:	cp a,#LIT_IDX 
+	jrne 6$
+	jp literal 
+6$:	cp a,#LITC_IDX 
 	jrne 7$
-	jp letter  
-7$:	push a 
+	jra lit_char 
+7$:	cp a,#BSLASH_IDX
+	jrne 8$
+	jp letter 
+; print command,funcion or operator 	 
+8$:	
 	call tok_to_name 
-	call puts
+	tnz a 
+	jrne 9$
+	jp decomp_exit
+9$:	call puts
 	call space 
 	jra decomp_loop
+; print variable name 	
 variable: ; VAR_IDX 
 	call space
 	_get_addr 
@@ -194,6 +203,7 @@ variable: ; VAR_IDX
 	call var_name
 	call putc  
 	jra decomp_loop
+; print int24 
 literal: ; LIT_IDX 
 	call get_int24
 	dec count 
@@ -203,6 +213,7 @@ literal: ; LIT_IDX
 	ldw acc16,x
 	call prt_acc24
 	jp decomp_loop
+; print int8 	
 lit_char: ; LITC_IDX 
 	_get_char 
 	dec count 
@@ -210,15 +221,16 @@ lit_char: ; LITC_IDX
 	ld xl,a 
 	call prt_i16 
 	jp decomp_loop 
-comment: ; print comment
+; print comment	
+comment: ; REM_IDX 
 	ld a,#''
 	call putc
 	call space 
 	ldw x,basicptr
 	call puts 
 	jp decomp_exit 
-label: ; LABEL_IDX 
 ; print label   	
+label: ; LABLE_IDX 
 	ldw x,basicptr 
 	subw x,line.addr 
 	cpw x,#4 
@@ -232,11 +244,13 @@ label: ; LABEL_IDX
 	call puts 
 	call space 
 	jp decomp_loop
-quoted_string:	; print quoted string 
+; print quoted string 	
+quoted_string:	
 	call space
 	call prt_quote  
 	jp decomp_loop
-letter: ; print \letter 
+; print \letter 	
+letter: 
 	call space 
 	ld a,#'\ 
 	call putc 
@@ -256,35 +270,33 @@ decomp_exit:
 ; input:
 ;   a       	token index   
 ; output:
+;   A           token index | 0 
 ;   X 			*name  | 0 
 ;--------------------------------
-	TOKEN=1 
-	LINK=2 
+	TOKEN=1  ; TOK_IDX 
+	NFIELD=2 ; NAME FIELD 
 	VSIZE=3
 tok_to_name:
 	_vars VSIZE 
 	clr acc16 
 	ld (TOKEN,sp),a 
-	_ldx_dict all_words	
-1$:	ldw (LINK,sp),x
-	ld a,(2,x)
-	and a,#NLEN_MASK
-	inc a 
+	ldw x, #all_words+2 ; name field 	
+1$:	ldw (NFIELD,sp),x
+	ld a,(x)
+	add a,#2 
 	ld acc8,a 
-	addw x,#3 ; first char of name 
 	addw x,acc16
-	ld a,(x) ; token index    
+	ld a,(x) ; TOK_IDX     
 	cp a,(TOKEN,sp)
 	jreq 2$
-	ldw x,(LINK,sp)
+	ldw x,(NFIELD,sp) ; name field 
+	subw x,#2 ; link field 
 	ldw x,(x) 
-	subw x,#2  
 	jrne 1$
 	clr a 
-	clr a 
 	jra 9$
-2$: ldw x,(LINK,sp)
-	addw x,#2 	
+2$: ldw x,(NFIELD,sp)
+	incw x 
 9$:	_drop VSIZE
 	ret
 

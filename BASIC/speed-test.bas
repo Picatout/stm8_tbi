@@ -7,7 +7,7 @@
    20  NEXT I
    30  PRINT TICKS- T;" msec"
    70  ? "DO...UNTIL test"
-   80  LET T=TICKS 
+   80  LET B=0 , T=TICKS 
    100 DO 
    110 LET A=34*56%23+4 
    120 LET B=B+1 : UNTIL B>1000 

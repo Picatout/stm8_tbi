@@ -336,6 +336,7 @@ tb_error::
 	ldw x,basicptr 
 	subw x,line.addr 
 	ld a,xl 
+	sub a,#3 
 	ldw x,line.addr 
 	call prt_basic_line
 	ldw x,#tk_id 
@@ -384,6 +385,7 @@ cmd_line: ; user interface
 	tnz count 
 	jreq cmd_line
 	call compile
+	tnz a 
 	jreq cmd_line ; not direct command 
 ;; direct command 
 ;; interpret 
@@ -404,26 +406,32 @@ call dump_prog
 ;; for each BASIC code line. 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
 interpreter: 
-	ldw x,basicptr 
-	ld a,(x) 
-	jrne interp_loop
+;	ldw x,basicptr 
+;	ld a,(x) 
+;	jrne interp_loop
 interp_loop:
-    _get_char
-	_code_addr  
-	call (x)
+    _next_cmd
+.if 0 ;  DEBUG 
+	trap 
+	_call_code 
+.else 
+	_call_code 	
+.endif 	 
 	jra interp_loop 
 
 
 next_line:
 ; if FRUN is reset it is a command line
 	btjt flags, #FRUN, 1$
-	jp kword_end 
+	ldw y,#XSTACK_EMPTY 
+	ldw x,#STACK_EMPTY 
+	ldw sp,x 
+	jra cmd_line
 ; otherwise it is a program,
 ; goto next line.  
 1$:	ldw x,line.addr 
 	ld a,(2,x)
-	ld a,count 
-	ld a,acc8 
+	ld acc8,a 
 	clr acc16 
 	addw x,acc16 	
 	cpw x,txtend 
@@ -438,10 +446,10 @@ next_line:
 ; line# and line length 	 
 	addw x,#3 
 	ldw basicptr,x 
-	btjf flags,#FTRACE,interp_loop 
+	btjf flags,#FTRACE,2$
 	ldw x,[line.addr]
 	call prt_i16
-	ret 
+2$:	ret 
 
 ;--------------------------
 ; extract next token from
@@ -456,6 +464,9 @@ next_token::
 	.byte 0xbe, basicptr ; ldw x,basicptr ; 2 cy,  2 bytes 
 	.byte 0xbf, bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
 	ld a,(x) ; 1 cy 
+.if 0 ; DEBUG
+	trap 
+.endif 	
 	incw x   ; 1 cy 
 	.byte 0xbf,basicptr  ; ldw basicptr, x ; 2 cy 
 	 ret ; 4 cy = 12 cy 
@@ -575,7 +586,7 @@ itoa::
 	call neg_acc24
 1$:
 ; initialize string pointer 
-; build string below tib
+; build string before tib
 	ldw x,#tib 
 ;	addw x,#TIB_SIZE
 	decw x 
@@ -922,7 +933,7 @@ factor:
 	clr (NEG,sp)
 	call next_token
 	cp a,#CMD_END
-	jrnc 1$ 
+	jrugt 1$ 
 	jp syntax_error
 1$:
 	cp a,#ADD_IDX 
@@ -934,7 +945,7 @@ factor:
 	call next_token
 4$:
 	cp a,#CMD_END
-	jrnc 5$ 
+	jrugt 5$ 
 	jp syntax_error  	
 5$:
 	cp a,#LIT_IDX 
@@ -982,12 +993,7 @@ factor:
 	cp a,#LPAREN_IDX
 	jreq 10$
 ; must be a function 
-	_get_char 
-	sll a 
-	clrw x 
-	ld xl,a 
-	call (code_addr,x)
-	_xpop 
+	_call_code 
 	jra 18$ 
 10$:	
 	call expression
@@ -1149,7 +1155,7 @@ and_factor:
 	push #0 
 0$:	call next_token  
 	cp a,#CMD_END 
-	jrnc 1$
+	jrugt 1$
 	jp syntax_error
 1$:	cp a,#NOT_IDX  
 	jrne 2$ 
@@ -1389,11 +1395,8 @@ let_var:
 	_get_addr
 let_eval:
 	ldw ptr16,x  ; variable address 
-	call next_token 
-	cp a,#REL_EQU_IDX
-	jreq 1$
-	jp syntax_error
-1$:	
+	ld a,#REL_EQU_IDX
+	call expect 
 	call condition   
 	_xpop ; value 
 3$:
@@ -1745,6 +1748,7 @@ list_loop:
 	ldw x,(LN_PTR,sp)
 	ldw line.addr,x 
 	ld a,(2,x) 
+	sub a,#3 
 	call prt_basic_line
 	ldw x,(LN_PTR,sp)
 	ld a,(2,x)
@@ -1833,8 +1837,11 @@ reset_semicol:
 	clr (SEMICOL,sp)
 prt_loop:
 	call next_token
+.if 0 ; DEBUG
+trap
+.endif 
 	cp a,#CMD_END 
-	jrnc 0$
+	jrugt 0$
 	_unget_token
 	jra 8$
 0$:	
@@ -2271,15 +2278,14 @@ kword_to: ; { var_addr -- var_addr limit step }
 2$: _xpop
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x
-	call next_token
+	call next_token 
 	cp a,#CMD_END   
-	jrmi 4$  
+	jrule 4$  
 	cp a,#STEP_IDX 
-	jrne 3$
-	jra kword_step
-3$:	
+	jreq kword_step
 	jp syntax_error 	 
 4$:	
+	_unget_token
 	clr (FSTEP,sp) 
 	ldw x,#1   ; default step  
 	ldw (FSTEP+1,sp),x 
@@ -2316,7 +2322,7 @@ store_loop_addr:
 	ldw x,line.addr 
 	ldw (LN_ADDR,sp),x   
 	bres flags,#FLOOP 
-	_inc loop_depth  
+	_inc loop_depth   
 	ret 
 
 ;--------------------------------
@@ -2332,15 +2338,15 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 	tnz loop_depth 
 	jrne 1$ 
 	jp syntax_error 
-1$: 
+1$:
 	ld a,#VAR_IDX 
 	call expect
 	_get_addr 
-; check for good variable after NEXT 	 
+; check for good variable after NEXT 	  
 	cpw x,(CVAR,sp)
 	jreq 2$  
 	jp syntax_error ; not the good one 
-2$: 
+2$:  
 	ldw ptr16,x 
 	; increment variable 
 	ld a,(x)
@@ -2348,7 +2354,7 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 	addw x,(FSTEP+1,sp) ; var+step 
 	adc a,(FSTEP,sp)
 	ld [ptr16],a
-	_inc ptr8  
+	_incw ptr16  
 	ldw [ptr16],x 
 	ld acc24,a 
 	ldw acc16,x 
@@ -3545,9 +3551,8 @@ func_ascii:
 	jreq 0$
 	jp syntax_error
 0$: ; 
-	_code_addr 
-	call (x)
-	jra 5$
+	_call_code 
+	jra 4$
 1$: ; quoted string 
 	ld a,(x)
 	push a  
@@ -5079,11 +5084,11 @@ cmd_alloc_buffer:
 ;   code_addr: 2 bytes 
 ;------------------------------
 	.macro _dict_entry len,name,token_id 
-	.word LINK 
-	LINK=.
-	.byte len   	
-	.asciz name
-	.byte token_id   
+	.word LINK  ; point to next name field 
+	LINK=.  ; name field 
+	.byte len  ; name length 
+	.asciz name  ; name 
+	.byte token_id   ; TOK_IDX 
 	.endm 
 
 	LINK=0

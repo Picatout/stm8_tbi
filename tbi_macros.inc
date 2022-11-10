@@ -134,12 +134,10 @@
 
     ; extract 16 bits address from BASIC code  
     .macro _get_addr
-        pushw y 
-        ldw y,x 
+        addw x,#2
+        ldw basicptr,x 
+        subw x,#2 
         ldw x,(x)
-        addw y,#2 
-        ldw basicptr,y
-        popw y 
     .endm 
 
     ; extract character from BASIC code 
@@ -149,12 +147,27 @@
         ldw basicptr,x  
     .endm 
     
-    ; get code address from index in a 
-    .macro _code_addr
+    ; extract next command token id 
+    .macro _next_cmd 
+    ldw x,basicptr 
+    _get_char 
+    .endm
+
+    ; get code address in x
+    .macro _code_addr 
     sll a 
     clrw x 
     ld xl,a 
     ldw x,(code_addr,x)
+    .endm 
+
+    ; call subroutine from index in a 
+    .macro _call_code
+    sll a 
+    clrw x 
+    ld xl,a 
+    ldw x, (code_addr,x)
+    call (x)
     .endm 
 
 ;---------------------------------------
