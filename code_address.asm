@@ -50,7 +50,7 @@ code_addr:
 ; variable identifiers  
 	_code_entry syntax_error,VAR_IDX    ; $9 
 	_code_entry syntax_error,ARRAY_IDX  ; $A 
-	_code_entry syntax_error,LABEL_IDX  ; $B 
+	_code_entry skip_label,LABEL_IDX  ; $B 
     SYMB_LAST=TOK_IDX-1 
 ; arithmetic operators      
 	_code_entry syntax_error, ADD_IDX   ; $C 
@@ -90,7 +90,7 @@ code_addr:
     _code_entry kword_return, RET_IDX    ; $28
     _code_entry kword_step, STEP_IDX     ; $29 
     _code_entry kword_stop, STOP_IDX     ; $2A
-    _code_entry kword_sub, SUBRTN_IDX    ; $2B
+    _code_entry syntax_error, SUBRTN_IDX ; $2B
     _code_entry kword_to, TO_IDX         ; $2C
     _code_entry kword_until, UNTIL_IDX   ; $2D
     KWORD_LAST=TOK_IDX-1 

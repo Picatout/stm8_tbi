@@ -1,5 +1,13 @@
 ### 2022-11-10
 
+* Débogué **cmd_if**. 
+
+* Corrigé bogue dans les macros **_code_addr** et **_call_code** 
+
+* Annulé l'utilisation de **SUB**. 
+
+* Test du nouveau mot réservé **SUB**. 
+
 * Déboguer liste d'arguments des fonctions et procédures. 
 
 * commit 9:54  version 2.5R0 , le mot réservé **LET** est maintenant obligatoire ainsi que le terminateur de commande **:**.

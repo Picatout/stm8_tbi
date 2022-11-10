@@ -155,17 +155,17 @@
 
     ; get code address in x
     .macro _code_addr 
-    sll a 
     clrw x 
     ld xl,a 
+    sllw x 
     ldw x,(code_addr,x)
     .endm 
 
     ; call subroutine from index in a 
     .macro _call_code
-    sll a 
     clrw x 
-    ld xl,a 
+    ld xl,a
+    sllw x 
     ldw x, (code_addr,x)
     call (x)
     .endm 

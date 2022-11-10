@@ -553,12 +553,12 @@ parse_keyword:
 	ldw y,(XFIRST,sp) ; name to search for
 	incw y 
 	call search_dict
-	tnz a
+	cp a,#NONE_IDX 
 	jrne 4$
 ; not in dictionary
 ; compile it as LABEL
+	ld a,#LABEL_IDX 
 	ldw y,(XFIRST,sp)
-	ld a,#LABEL_IDX  
 	ld (y),a 
 	incw y
 	ldw x,y 
@@ -579,32 +579,11 @@ parse_keyword:
 3$: incw y 
 	_drop 1 
 	ld a,#LABEL_IDX  
-	clrw x 
-	jra 5$ 
+	jra 6$ 
 4$:	; word in dictionary 
-	cp a,NONE_IDX 
-	jrne 44$
-	jp syntax_error
-44$:
 	ldw y,(XFIRST,sp)
 	ld (y),a ; compile token 
 	incw y 
-	cp a,#SUB_IDX  
-	jrne 5$
-; compile subroutine name 	
-	push a 
-	ldw x,y 
-	ldw y,#tib  
-	ld a,([in.w],y)
-	_inc in 
-	call symb_loop ; copy symbol to output buffer 
-	ldw y,x    
-	pop a 
-	jra 6$
-5$: cp a,#REM_IDX 
-	jrne 6$ 
-	ldw x,y 
-	jp copy_comment	 
 6$:	_drop VSIZE 
 	ret  	
 
@@ -755,11 +734,16 @@ copy_comment:
 	pushw y 
 	call strcpy
 	subw y,(1,sp)
-	incw y ; strlen+1 
-	ldw (1,sp),y 
+	incw y ; strlen+1
+	pushw y  
 	addw x,(1,sp) 
-	_drop 2 
 	ldw y,x 
+	popw x 
+	addw x,(1,sp)
+	decw x 
+	subw x,#tib 
+	ldw in.w,x 
+	_drop 2 
 	ld a,#REM_IDX
 	jp token_exit 
 plus_tst:

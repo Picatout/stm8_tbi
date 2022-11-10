@@ -172,7 +172,7 @@ decomp_loop:
 	jp variable 
 3$:	cp a,#REM_IDX 
 	jrne 4$
-	jra comment 
+	jp comment 
 4$:	cp a,#LABEL_IDX 
 	jrne 5$
 	jp label 
@@ -183,8 +183,14 @@ decomp_loop:
 	jrne 7$
 	jra lit_char 
 7$:	cp a,#BSLASH_IDX
-	jrne 8$
+	jrne 74$
 	jp letter 
+74$:
+	cp a,#SUBRTN_IDX 
+	jrne 8$
+	ldw x,#sbr 
+	call puts 
+	jp label 
 ; print command,funcion or operator 	 
 8$:	
 	call tok_to_name 
@@ -263,6 +269,8 @@ decomp_exit:
 	ld base,a 
 	_drop VSIZE 
 	ret 
+
+sbr: .asciz "SUB "
 
 ;----------------------------------
 ; search name in dictionary

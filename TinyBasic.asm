@@ -83,7 +83,7 @@ strlen::
 ;   X 		char* first string 
 ;   Y       char* second string 
 ; output:
-;   A 		0 not == |1 ==  
+;   Z flag 	0 not == | 1 ==  
 ;-------------------------------------
 strcmp:
 	ld a,(x)
@@ -411,7 +411,7 @@ interpreter:
 ;	jrne interp_loop
 interp_loop:
     _next_cmd
-.if 0 ;  DEBUG 
+.if 0 ; DEBUG 
 	trap 
 	_call_code 
 .else 
@@ -491,6 +491,17 @@ skip_string:
 	ldw basicptr,x 
 	ret 
 
+skip_label:
+	ldw x,basicptr 
+1$:	ld a,(x)
+	jreq 8$
+	incw x 
+	jra 1$ 
+8$: incw x 
+	ldw basicptr,x 
+	ret 
+
+	
 ;--------------------
 ; extract int24_t  
 ; value from BASIC 
@@ -2033,14 +2044,6 @@ input_exit:
 kword_remark::
 	jp next_line 
 
-;----------------------
-; BASIC: SUB name 
-; identify a subroutine
-; skip over name  
-;----------------------
-kword_sub:
-	jp skip_string 
-
 ;---------------------
 ; BASIC: WAIT addr,mask[,xor_mask]
 ; read in loop 'addr'  
@@ -2242,9 +2245,6 @@ kword_if:
 	jrne 9$
 	tnzw x 
 	jrne 9$  
-;skip to next line
-	mov in,count
-	_drop 2 
 	jp next_line
 9$:	ret 
 
@@ -2413,14 +2413,23 @@ get_target_line:
 	call next_token  
 	cp a,#LIT_IDX
 	jreq get_target_line_addr 
+	cp a,#LITC_IDX 
+	jreq get_int8 
 	cp a,#LABEL_IDX 
-	jreq look_target_symbol 
+	jreq look_target_symbol
 	jp syntax_error
+get_int8:
+	pushw y 
+	_get_char
+	clrw x 
+	ld xl,a 
+	jra target01 	
 ; the target is a line number 
 ; search it. 
 get_target_line_addr:
 	pushw y 
 	call get_int24 ; line # 
+target01: 
 	clr a
 	ldw y,line.addr 
 	ldw y,(y)
@@ -2438,17 +2447,25 @@ get_target_line_addr:
 2$:	popw y  
 	ret 
 
+;-----------------------------------
 ; the GOTO|GOSUB target is a symbol.
 ; output:
 ;    X    line address|0 
+;------------------------------------
+	; local variables 
+	YSAVE=5 
+	LBL_PTR=3
+	LN_ADDR=1 
 look_target_symbol:
-	pushw y 
-	pushw x 
+	pushw y   ; YSAVE  
+	pushw x   ; LBL_PTR  
 	call skip_string 
 	clr acc16 
 	ldw y,txtbgn 
 1$:	ld a,(3,y) ; first token on line 
 	cp a,#SUB_IDX 
+	jreq 3$ 
+	cp a,#LABEL_IDX 
 	jreq 3$ 
 2$:	ld a,(2,y); line length 
 	ld acc8,a 
@@ -2457,11 +2474,11 @@ look_target_symbol:
 	jrult 1$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-3$: ; found a SUB_IDX 
-	; compare with GOTO|GOSUB target 
-	pushw y ; line address 
+3$: ; found a SUB_IDX|LABEL_IDX  
+	; compare with LBL_PTR  
+	pushw y ; LN_ADDR  
 	addw y,#4 ; label string 
-	ldw x,(3,sp) ; target string 
+	ldw x,(LBL_PTR,sp) ; target string 
 	call strcmp
 	jreq 4$
 	popw y 
@@ -2634,6 +2651,9 @@ is_program_addr:
 ; run BASIC program in RAM
 ;----------------------------------- 
 cmd_run: 
+.if 0 ; DEBUG 
+call dump_prog
+.endif 
 	btjf flags,#FRUN,0$  
 	clr a 
 	ret
@@ -4995,11 +5015,11 @@ cmd_chain:
 cmd_trace:
 	call runtime_only
 	call next_token
-	cp a,#LIT_IDX
+	cp a,#LITC_IDX
 	jreq 1$ 
 	jp syntax_error 
-1$: call get_int24 
-    tnzw x 
+1$: _get_char  
+    tnz a 
 	jrne 2$ 
 	bres flags,#FTRACE 
 	ret 
@@ -5121,7 +5141,6 @@ dict_end:
 	_dict_entry,5,"TIMER",TIMER_IDX
 	_dict_entry,7,"TIMEOUT",TIMEOUT_IDX 
 	_dict_entry,5,"TICKS",TICKS_IDX
-	_dict_entry,3,"SUB",SUBRTN_IDX
 	_dict_entry,4,"STOP",STOP_IDX
 	_dict_entry,4,"STEP",STEP_IDX
 	_dict_entry,6,"SPI.WR",SPIWR_IDX
