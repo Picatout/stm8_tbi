@@ -1371,22 +1371,19 @@ dvar_assign:
 	incw x 
 	ldw basicptr,x 
 	call condition  
-	cp a,#LIT_IDX  
-	jreq 1$ 
-0$:	jp syntax_error 
-1$: 
 	ldw x,(VAR_NAME,sp) ; pointer to var name 
 	call strlen 
 	add a,#REC_XTRA_BYTES
 	ld (REC_LEN+1,sp),a 
 	call search_name 
 	tnzw x 
-	jreq 0$ 
-	ld a,(x)
-	jrpl 2$
+	jrne 2$
+	jp syntax_error 
+2$:	ld a,(x)
+	jrpl 4$
 	ld a,#ERR_RD_ONLY 
 	jp tb_error 
-2$:
+4$:
 	addw x,(REC_LEN,sp)
 	subw x,#CELL_SIZE 
 	ldw ptr16,x
@@ -1629,9 +1626,6 @@ kword_dim2:
 	jrne 8$
 ; initialize variable 
 	call condition 
-	cp a,#LIT_IDX
-	jreq 5$
-	jp syntax_error
 5$: ldw x,dvar_end 
 	subw x,#CELL_SIZE 
 	ldw ptr16,x 
@@ -1923,16 +1917,19 @@ trap
 ; entry point of both 
 ; routine. 
 ;---------------------
-	CTXT_SIZE=3 ; size of saved data 
+	CTXT_SIZE=5 ; size of saved data 
 ;--------------------
 ; save current BASIC
 ; interpreter context 
 ; on stack 
 ;--------------------
 	_argofs 0 
-	_arg BPTR 1
-	_arg CNT 3
+	_arg LNADR 1 
+	_arg BPTR 3
+	_arg CNT 5
 save_context:
+	ldw x,line.addr
+	ldw (LNADR,sp),x 
 	ldw x,basicptr 
 	ldw (BPTR,sp),x
 	ld a,count 
@@ -1945,6 +1942,8 @@ save_context:
 ; from stack 
 ;-------------------------
 rest_context:
+	ldw x,(LNADR,sp)
+	ldw line.addr,x 
 	ldw x,(BPTR,sp)
 	ldw basicptr,x 
 	ld a,(CNT,sp)
@@ -1958,11 +1957,11 @@ rest_context:
 ; input value in variables 
 ; [string] optionally can be used as prompt 
 ;-----------------------------------------
-	CX_BPTR=1
-	CX_IN=3
-	CX_CNT=4
-	SKIP=5
-	VSIZE=5
+	CX_LNADR=1
+	CX_BPTR=3
+	CX_CNT=5
+	SKIP=6
+	VSIZE=6
 cmd_input_var:
 	pushw y 
 	_vars VSIZE 
@@ -2027,10 +2026,8 @@ input_loop:
 	jrne 4$ 
 	jp input_loop
 4$:
-	cp a,#EOL_IDX 
-	jreq input_exit  
-	cp a,#COLON_IDX 
-    jreq input_exit 
+	cp a,#CMD_END  
+	jrule input_exit  
 	jp syntax_error 
 input_exit:
 	_drop VSIZE 
@@ -2701,8 +2698,7 @@ run_it_02:
 ; clear data pointer 
 	clrw x 
 	ldw data_ptr,x 
-	clr data_ofs 
-	clr data_len 
+	ldw data_ptr,x 
 ; initialize BASIC pointer 
 	ldw x,txtbgn 
 	ldw line.addr,x 
@@ -4422,19 +4418,10 @@ const_eeprom_base:
 kword_data:
 	jp next_line 
 
-;------------------------------
-; check if it is a DATA line 
-; input: 
-;    X    line address 
-; output:
-;    Z    set if DATA line 
-;----------------------------
-is_data_line:
-	pushw x 
+	.macro _is_data_line
 	ld a,(3,x)
 	cp a,#DATA_IDX 
-    popw x 
-	ret 
+	.endm 
 
 ;---------------------------------
 ; BASIC: RESTORE [line#]
@@ -4452,29 +4439,39 @@ cmd_restore:
 	call runtime_only
 	clrw x 
 	ldw data_ptr,x 
-	ldw data_ofs,x 
-	ldw x,txtbgn 
+	ldw data_ptr,x 
 	call next_token 
-	cp a,#LIT_IDX
-	jrne 0$
-	call get_int24
-	pushw y 
-	clr a 
+	cp a,#CMD_END 
+	jrugt 0$ 
+	_unget_token 
+	ldw x,txtbgn 
+	jra 4$ 
+0$:	cp a,#LIT_IDX
+	jreq 2$
+	cp a,#LITC_IDX 
+	jrne 1$
+	_get_char 
+	clrw x 
+	rlwa x 
+	jra 3$
+1$: jp syntax_error 	 
+2$:	call get_int24
+3$:	pushw y 
 	call search_lineno  
 	popw y 
 	tnzw x 
 	jrne set_data_pointer 
 	jra data_error 
-0$:
+4$:
 	_unget_token  
 ; search first DATA line 	
-1$:	cpw x,txtend
+5$:	cpw x,txtend
 	jruge data_error 
-2$:	
-	call is_data_line 
-	jrne 4$
-4$:	call try_next_line 
-	jrne 4$ 
+6$:	
+	_is_data_line 
+	jreq set_data_pointer
+7$:	call try_next_line 
+	jrne 7$ 
 	ret 
 
 ;---------------------
@@ -4484,10 +4481,9 @@ cmd_restore:
 ;    X    line address 
 ;----------------------
 set_data_pointer:
-	ldw data_ptr,x
-	ld a,(2,x)
-	ld data_len,a 
-	mov data_ofs,#FIRST_DATA_ITEM
+	ldw data_line,x
+	addw x,#FIRST_DATA_ITEM
+	ldw data_ptr,x 
 	ret 
 
 
@@ -4508,7 +4504,7 @@ try_next_line:
 	jrult 1$
 	jra data_error 
 1$:	
-	call is_data_line 
+	_is_data_line 
 	jreq 2$
 	ld a,#1  
 	jra 9$
@@ -4524,44 +4520,49 @@ data_error:
 ; BASIC: READ 
 ; return next data item | 0 
 ;---------------------------------
-	CTX_BPTR=1 
-	CTX_IN=3 
-	CTX_COUNT=4 
-	INT24=5
-	VSIZE=7 
+	CTX_LNADR=1
+	CTX_BPTR=3 
+	CTX_COUNT=5
+	INT24=6
+	VSIZE=8 
 func_read_data:
 	call runtime_only
 	_vars  VSIZE 
 	call save_context
 read01:	
-	ld a,data_ofs
-	cp a,data_len 
-	jreq 2$ ; end of line
+	ld a,[data_ptr]
+	jreq 3$ ; end of line
 0$:
+	ldw x,data_line 
+	ldw line.addr,x 
 	ldw x,data_ptr 
-	ldw basicptr,x 
-	mov in,data_ofs 
-	mov count,data_len  	
+	ldw basicptr,x
+	ld a,(x)
+	jreq 3$  
 	call expression 
 1$:
-	call next_token ; skip comma
+	call next_token ; skip comma 
 	cp a,#COMMA_IDX 
-	jreq 3$
+	jreq 2$
 ; if not comma skip
 ; to end of line.	
-	ld a,count 
-	ld in,a 
-3$:
+	ldw x,line.addr 
+	ld a,(2,x)
+	clr acc16 
+	ld acc8,a 
+	addw x,acc16
+	decw x 
+	ldw basicptr,x  
+2$:
 	ldw x,basicptr 
 	ldw data_ptr,x 
-	mov data_ofs,in 
 	call rest_context
 	_xpop 
 	_drop VSIZE 
 	ret 
-2$: ; end of line reached 
-	; try next line 
-	ldw x,data_ptr  
+3$: ; end of line reached 
+	; try next line  	
+	ldw x,data_line   
 	call try_next_line
 	jreq 0$ 
 	jra data_error 

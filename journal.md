@@ -1,5 +1,13 @@
 ### 2022-11-10
 
+* Commit 22:00hre 
+
+* Débogué  *func_read_data* et associés. 
+
+* Corrigé bogue dans *let_dvar* et dans *kword_dim*.
+
+* commit 16:00 hre 
+
 * Débogué **cmd_if**. 
 
 * Corrigé bogue dans les macros **_code_addr** et **_call_code** 

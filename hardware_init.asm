@@ -95,9 +95,8 @@ in::    .blkb 1 ; low byte of in.w
 count:: .blkb 1 ; current BASIC line length and tib text length  
 line.addr:: .blkw 1 ; BASIC line start at this address. 
 basicptr::  .blkw 1  ; BASIC interperter program pointer.
-data_ptr:  .blkw 1  ; point to DATA address
-data_ofs:  .blkb 1  ; index to next data item 
-data_len:  .blkb 1  ; length of data line 
+data_line:: .blkw 1  ; data line address 
+data_ptr:  .blkw 1  ; point to DATA in line 
 base::  .blkb 1 ; nemeric base used to print integer 
 acc32:: .blkb 1 ; 32 bit accumalator upper-byte 
 acc24:: .blkb 1 ; 24 bits accumulator upper-byte 

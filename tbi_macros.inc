@@ -33,10 +33,10 @@
 	FSLEEP=3 ; halt produit par la commande SLEEP 
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 
-        FLN_REJECTED=6 ; a memory full error occured while in *insert_line*. 
-        FTRACE=7 ; trace flag 
+    FLN_REJECTED=6 ; a memory full error occured while in *insert_line*. 
+    FTRACE=7 ; trace flag 
 
-        FIRST_DATA_ITEM=6 ; first DATA item offset on line.
+    FIRST_DATA_ITEM=4 ; first DATA item offset on line.
 
 	MAX_LINENO=0x7fff; BASIC maximum line number 
 
