@@ -170,7 +170,7 @@ insert_line:
 	call del_line 
 	jra 1$
 0$: ldw (DEST,sp),y
-1$: ld a,#3 
+1$: ld a,#4 
 	cp a,(LLEN+1,sp)
 	jreq 9$
 ; check for space 

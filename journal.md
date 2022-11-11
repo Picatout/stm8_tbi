@@ -1,5 +1,11 @@
 ### 2022-11-11
 
+* commit 14:30 
+
+* Corrigé bogue dans *insert_line* du module [compiler.asm](compiler.asm). 
+
+* Corrigé bogue dans *cmd_print** qui ne gérait pas correctement la fonction **CHAR_IDX**. 
+
 * Commit 12:30 hre
 
 * Corrigé bogue dans *cmd_write*, bogue régressif testant A pour le type de token.

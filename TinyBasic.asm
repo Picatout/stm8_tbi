@@ -1881,6 +1881,8 @@ trap
 	jreq 4$
 	cp a,#COMMA_IDX
 	jreq 5$
+	cp a,CHAR_IDX 
+	jreq 6$
 	jra 7$ 
 1$:	; print string 
 	call puts
@@ -1903,7 +1905,11 @@ trap
      ; terminal TAB are 8 colons 
      ld a,#9 
 	 call putc 
-	 jra reset_semicol	    
+	 jra reset_semicol
+6$: ; appelle la foncton CHAR()
+	_call_code 
+	call putc 
+	jra reset_semicol	 	    
 7$:	
 	_unget_token 
 	call condition
@@ -3554,7 +3560,7 @@ func_back_slash:
 ; and take the 7 least 
 ; bits as ASCII character
 ; output: 
-; 	A:X char 
+; 	A char 
 ;---------------------
 func_char:
 	call func_args 
@@ -3564,8 +3570,6 @@ func_char:
 1$:	_xpop
 	rrwa x 
 	and a,#0x7f 
-	rlwa x 
-	clr a
 	ret
 
 ;---------------------
