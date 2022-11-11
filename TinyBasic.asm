@@ -1148,14 +1148,16 @@ relation:
 	jreq 6$ ; relation true 
 	cp a,#REL_LE_IDX 
 	jreq 6$  ; relation true
-	jra 7$ ; relation false  
+	jra 54$
 5$: ; i1>i2
 	ld a,(REL_OP,sp)
 	cp a,#REL_GT_IDX 
 	jreq 6$ ; relation true 
 	cp a,#REL_GE_IDX 
 	jreq 6$ ; relation tue 
-	jrne 7$   ; relation false 
+54$:
+	cp a,#REL_NE_IDX 
+	jrne 7$ ; relation false 
 6$: ; TRUE  ; relation true 
 	cpl (UBYTE,sp)
 	cplw x 
@@ -1183,10 +1185,16 @@ and_factor:
 1$:	cp a,#NOT_IDX  
 	jrne 2$ 
 	cpl (NOT_OP,sp)
-	jra 4$ 
-2$:	_unget_token 
-4$:	call relation 
-	tnz (NOT_OP,sp)
+	call next_token 
+2$:	cp a,#LPAREN_IDX 
+	jrne 3$
+	call condition 
+	ld a,#RPAREN_IDX 
+	call expect 
+	jra 5$
+3$:	_unget_token 
+	call relation 	
+5$:	tnz (NOT_OP,sp)
 	jreq 8$ 
 	call cpl24
 8$:
@@ -1414,11 +1422,14 @@ let_array:
 let_var:
 	_get_addr
 let_eval:
-	ldw ptr16,x  ; variable address 
+	_xpush 
 	ld a,#REL_EQU_IDX
 	call expect 
 	call condition   
+	_at_next  ; fetch var address 
+	ldw ptr16,x 
 	_xpop ; value 
+	_xdrop ; drop var address 
 3$:
 	ld [ptr16],a
 	_inc ptr8
@@ -3484,10 +3495,7 @@ rw_zone:
 ;---------------------
 cmd_write:
 	call expression
-	cp a,#LIT_IDX 
-	jreq 0$
-	jp syntax_error
-0$: _xpop 
+    _xpop 
 	ld farptr,a 
 	ldw ptr16,x
 	call check_forbidden 
@@ -3649,7 +3657,8 @@ func_uflash:
 	ldw x,#app_space 
 	pushw x 
 1$:	ldw ptr16,x 
-	call scan_block 
+	call scan_block
+	tnz a  
 	jreq 8$
 	ldw x,(1,sp)
 	addw x,#BLOCK_SIZE 
@@ -3660,7 +3669,7 @@ func_uflash:
 	clr (1,sp) 
 	clr (2,sp)
 8$: popw x 
-	clr a 
+	clr a
 	ret 
 
 

@@ -70,3 +70,8 @@ flash: $(LIB)
 read: 
 	$(FLASH) -c $(PROGRAMMER) -p$(BOARD) -s flash -b 16384 -r flash.dat 
 
+erase:
+	dd if=/dev/zero bs=1 count=32768 of=zero.bin
+	$(FLASH) -c $(PROGRAMMER) -p$(BOARD) -s flash -b 32768 -w zero.bin 
+	rm -f zero.bin 
+

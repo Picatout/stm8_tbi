@@ -1,3 +1,15 @@
+### 2022-11-11
+
+* Commit 12:30 hre
+
+* Corrigé bogue dans *cmd_write*, bogue régressif testant A pour le type de token.
+
+* Corrigé bogue dans *and_cond*,  les conditions entre parenthèses n'étaient pas prises en compte. 
+
+* Corrigé bogue dans *let_var*,  l'adresse de la variable dans ptr16 était écrasé lorsque l'évaluation d'expression appellait **uflash**.
+
+* Corrigé bogue dans *relation* la comparaison **REL_NE_IDX** n'était pas tenu en compte. 
+
 ### 2022-11-10
 
 * Commit 22:00hre 
