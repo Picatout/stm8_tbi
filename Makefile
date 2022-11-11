@@ -58,6 +58,8 @@ separate: clean $(SRC)
 	$(SDAS) -g -l -o $(BUILD)i2c.rel i2c.asm  
 	$(SDAS) -g -l -o $(BUILD)code_address.rel code_address.asm  
 
+usr_test:
+	$(SDAS) -g -l -o $(BUILD)square.rel square.asm  
 
 flash: $(LIB)
 	@echo

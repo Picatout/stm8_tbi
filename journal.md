@@ -1,5 +1,11 @@
 ### 2022-11-11
 
+* commit 15:40 
+
+* programme [pwm_soft.bas](BASIC/pwm-soft.bas) ne fonctionne pas. 
+
+* Corrigé bogue dans **cmd_input_var**.
+
 * commit 14:30 
 
 * Corrigé bogue dans *insert_line* du module [compiler.asm](compiler.asm). 

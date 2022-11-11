@@ -1881,7 +1881,7 @@ trap
 	jreq 4$
 	cp a,#COMMA_IDX
 	jreq 5$
-	cp a,CHAR_IDX 
+	cp a,#CHAR_IDX 
 	jreq 6$
 	jra 7$ 
 1$:	; print string 
@@ -2007,35 +2007,13 @@ input_loop:
 	call save_context 
 	clr count  
 	call readln 
-	ldw x,#tib 
-	push count
-	push #0 
-	addw x,(1,sp)
-	incw x 
-	_drop 2 
-	clr in 
-	call parse_lexeme
-	cp a,#LIT_IDX
-	jreq 3$ 
-	cp a,#LITC_IDX 
-	jreq 3$ 
-	cp a,#SUB_IDX
-	jrne 22$
-	call parse_lexeme 
-	cp a,#LIT_IDX 
-	jreq 23$
-	cp a,#LITC_IDX 
-	jreq 23$ 
-22$:
-	call rest_context 
-	jp syntax_error
-23$:
-	call neg_acc24	
-3$: 
-	ld a,acc24 
-	ldw x,acc16 
-	ld [ptr16],a
-	_inc ptr8  
+	ldw y,#tib 
+	ld a,#SPACE 
+	call skip 
+	ldw x,y 
+	call atoi24 
+	ld [ptr16],a 
+	inc ptr8 
 	ldw [ptr16],x 
 	call rest_context
 	call next_token 

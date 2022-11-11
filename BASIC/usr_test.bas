@@ -8,12 +8,13 @@ NEW
 7 '   call mul24 
 8 '   ret 
 20   RESTORE 
-30 DATA $90,$F6,$93,$EE,$1,$72,$A2,$0,$3,$90,$F7,$90
-40 DATA $EF,$1,$CD,$2+$80,$5C+$80,$81
-50 LET A=UFLASH 
-60 FOR I=1 TO  18
-70 ' WRITE A,READ : LET a=a+1 
+30 DATA $90,$F6,$93,$EE,$01,$01,$97,$42,$4F,$72,$A2
+40 DATA $00,$03,$90,$F7,$90,$EF,$01,$81
+50 LET A=UFLASH : ? "routine at "; A 
+60 FOR I=0 TO  18
+70  WRITE A+I,READ 
 80 NEXT I 
-90 input "number to square?"n
-100 ? N*N : ' ? USR(uflash,n)
-110 goto 90 
+90 input "number {1..255, 0 quit} to square?"n
+100 ? USR(A,n)
+110 if n<>0 : goto 90 
+
