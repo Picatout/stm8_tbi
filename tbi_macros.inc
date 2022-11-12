@@ -125,11 +125,21 @@
         .byte 0x3c, v 
     .endm 
 
-    ;  increment 16 bits variable 
+    ;  increment 16 bits variable with short address, i.e v in range {0..255}
+    ;  save 4 bytes over _incw macro. 
+    ;  use 6 bytes   
+    .macro _incw.s v 
+    .byte 0x3c,v+1 ; inc v+1 short addressing mode, 2 bytes    
+    jrne .+4  ; 2 bytes 
+    .byte 0x3c,v   ; inc v short form, 2 bytes  
+    .endm 
+
+    ;  increment 16 bits variable
+    ;  use 10 bytes  
     .macro _incw  v 
-        inc v+1 
-        jrne .+6 
-        inc v 
+        inc v+1   ; 4 bytes 
+        jrne .+6 ; 2 bytes 
+        inc v  ; 4 bytes  
     .endm 
 
     ; extract 16 bits address from BASIC code  

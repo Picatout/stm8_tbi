@@ -1,14 +1,42 @@
 ### 2022-11-12
 
+* Résultats du test [target.bas](BASIC/target.bas)
+```
+>run
+1000 loop each test
+GOTO using symbolic target 
+ 100 msec
+GOTO using line # 	
+ 98 msec
+GOSUB using symbolic target 	
+ 120 msec
+GOSUB using line # 	
+ 115 msec
+```
+
+
+* Testé avec succès [stack.bas](BASIC/stack.bas)
+
+* Créé la macro **_incw.s** pour en réduire la taille. l'assembleur *sdasstm8* ne reconnait pas l'adressage court. Donc je code l'instruction à la main. Utilise 4 octets de moins.
+```
+.macro _incw.s v 
+.byte 0x3c,v+1 ; inc v+1 forme courte, 2 octets au lieu de 4   
+jrne .+4
+.byte 0x3c,v   ; inc v  forme courte 
+.endm 
+```
+
+* commit 10:13 hre
+
 * Corrigé bogue dans *cmd_input_var*.  Testé [on.bas](BASIC/on.bas)
 
 * Corrigé bogue dans **.macro _incw v**. L'offset du *jrne* était de +4 alors qu'il doit-être de +6 
 ```
     ;  increment 16 bits variable 
     .macro _incw  v 
-        inc v+1 
-        jrne .+6 
-        inc v 
+        inc v+1  
+        jrne .+6 ; 2 octets 
+        inc v  ; 4 octets 
     .endm 
 ```
 

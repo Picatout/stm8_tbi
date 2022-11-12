@@ -2355,7 +2355,9 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 	addw x,(FSTEP+1,sp) ; var+step 
 	adc a,(FSTEP,sp)
 	ld [ptr16],a
-	_incw ptr16  
+ ; because all variables in page 0
+ ; inc ptr8 never overflow   	
+	inc ptr8
 	ldw [ptr16],x 
 	ld acc24,a 
 	ldw acc16,x 
@@ -2524,7 +2526,7 @@ _tp '9
 	ldw basicptr,x 
 	jra 6$
 4$: ; got a small line number 
-	_incw basicptr ; skip int8 
+	_incw basicptr  
 	jra 6$ 
 5$: call skip_string ; skip over label 	
 6$: ; if another element comma present 
