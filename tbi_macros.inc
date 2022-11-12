@@ -128,7 +128,7 @@
     ;  increment 16 bits variable 
     .macro _incw  v 
         inc v+1 
-        jrne .+4 
+        jrne .+6 
         inc v 
     .endm 
 

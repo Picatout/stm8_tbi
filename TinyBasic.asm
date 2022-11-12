@@ -411,8 +411,8 @@ interpreter:
 ;	jrne interp_loop
 interp_loop:
     _next_cmd
-.if 0 ; DEBUG 
-	trap 
+.if 0; DEBUG 
+	_tp 'I 
 	_call_code 
 .else 
 	_call_code 	
@@ -464,11 +464,11 @@ next_token::
 	.byte 0xbe, basicptr ; ldw x,basicptr ; 2 cy,  2 bytes 
 	.byte 0xbf, bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
 	ld a,(x) ; 1 cy 
-.if 0 ; DEBUG
-	trap 
-.endif 	
 	incw x   ; 1 cy 
 	.byte 0xbf,basicptr  ; ldw basicptr, x ; 2 cy 
+.if 0; DEBUG
+	_tp 'N 
+.endif 	
 	 ret ; 4 cy = 12 cy 
 
 
@@ -1980,6 +1980,7 @@ rest_context:
 	SKIP=6
 	VSIZE=6
 cmd_input_var:
+;_tp 'I 
 	pushw y 
 	_vars VSIZE 
 input_loop:
@@ -2018,15 +2019,11 @@ input_loop:
 	call rest_context
 	call next_token 
 	cp a,#COMMA_IDX
-	jrne 4$ 
-	jp input_loop
-4$:
-	cp a,#CMD_END  
-	jrule input_exit  
-	jp syntax_error 
-input_exit:
+	jreq input_loop 
+	_unget_token
 	_drop VSIZE 
 	popw y 
+;_tp 'X 
 	ret 
 
 ;---------------------
@@ -2411,32 +2408,32 @@ get_target_line:
 	jreq look_target_symbol
 	jp syntax_error
 get_int8:
-	pushw y 
 	_get_char
 	clrw x 
-	ld xl,a 
-	jra target01 	
+	rlwa x 
+	jra target01 
 ; the target is a line number 
 ; search it. 
 get_target_line_addr:
-	pushw y 
 	call get_int24 ; line # 
 target01: 
-	clr a
+	pushw y 
+	clr a ; search from txtbgn 
 	ldw y,line.addr 
 	ldw y,(y)
-	pushw y 
-	cpw x,(1,sp)
+	pushw y ; line# 
+	cpw x,(1,sp) ; x==line#? 
 	_drop 2  
 	jrult 11$
-	inc a 
+	inc a  ; search from actual line 
 11$: ; scan program for this line# 	
-	call search_lineno  
+	call search_lineno 
+	popw y  
 	tnzw x ; 0| line# address 
 	jrne 2$ 
 	ld a,#ERR_NO_LINE 
 	jp tb_error 
-2$:	popw y  
+2$:	 
 	ret 
 
 ;-----------------------------------
@@ -2488,71 +2485,87 @@ look_target_symbol:
 ;--------------------------------
 kword_on:
 	call runtime_only
-0$:	call expression 
-1$: _xpop
+	call expression 
+    _xpop
+_tp '9 	
 ; the selector is the element indice 
 ; in the list of arguments. {1..#elements} 
-	ld a,xl ; keep only bits 7..0
-	jreq 9$ ; element # begin at 1. 
-	push a  ; selector  
+	ld a,xl ; keep only least byte 
+	jrne 0$
+	jp 9$ ; element # begin at 1. 
+0$:	push a  ; selector  
 	call next_token
 	cp a,#GOTO_IDX 
-	jreq 4$ 
+	jreq 1$ 
 	cp a,#GOSUB_IDX 
-	jreq 4$ 
+	jreq 1$ 
 	jp syntax_error 
-4$: 
+1$: 
 	_code_addr 
+	pop a   ; pop selector 
 	pushw x ; save routine address 	
-	push a  ; selector  
-5$: ; skip elements in list until selector==0 
+	push a  ; push selector  
+2$: ; skip elements in list until selector==0 
 	dec (1,sp)
-	jreq 6$ 
+	jreq 7$ 
 ; can be a line# or a label 
 	call next_token 
+; _tp 'A 
 	cp a,#LIT_IDX 
-	jreq 52$
+	jreq 3$
+	cp a,#LITC_IDX 
+	jreq 4$ 
 	cp a,#LABEL_IDX 
-	jreq 54$
+	jreq 5$
 	jp syntax_error 
-52$: ; got a line number 
-	ld a,in ; skip over int24 value 
-	add a,#CELL_SIZE ; integer size  
-	ld in,a 
-	jra 56$
-54$: call skip_string ; skip over label 	
-56$: ; if another element comma present 
+3$: ; got a line number 
+	ldw x,basicptr 
+	addw x,#3 ; skip int24 
+	ldw basicptr,x 
+	jra 6$
+4$: ; got a small line number 
+	_incw basicptr ; skip int8 
+	jra 6$ 
+5$: call skip_string ; skip over label 	
+6$: ; if another element comma present 
 	call next_token
+; _tp 'B
 	cp a,#COMMA_IDX 
-	jreq 5$ 
+	jreq 2$ 
 ; arg list exhausted, selector to big 
 ; continue execution on next line 
 	_drop 3 ; drop selector and GOTO|GOSUB address 
 	jra 9$
-6$: ;at selected position  
+7$: ;at selected position  
+; _tp 'C 
+;trap 	
 	_drop 1 ; discard selector
 ; here only the routine address 
 ; of GOTO|GOSUB is on stack 
+; _tp 'D 
     call get_target_line
+;_tp 'E 
 	ldw ptr16,x 	
-	ldw x,line.addr 
-	clr acc16 
-	mov acc8,count 
-	addw x,acc16 
-	ldw basicptr,x  ; move to end of line  
-	popw x ; cmd address, GOTO||GOSUB 
+	popw x ; code address, GOTO||GOSUB 
 	cpw x,#kword_goto 
-	jrne 7$ 
+	jrne 8$ 
+;_tp 'F 
 	ldw x,ptr16 
 	jra jp_to_target
-7$: 
+8$: 
+; move to end of line, then gosub 
+_tp 'G 
+	ldw x,line.addr 
+	clr acc16 
+	ld a,(2,x)
+	ld acc8,a 
+	addw x,acc16 
+	decw x ; point at EOL_IDX 
+	ldw basicptr,x   
+_tp 'H 
 	jra kword_gosub_2 ; target in ptr16 
-9$: ; expr out of range skip to end of line
-    ; this will force a fall to next line  
-	mov in,count
-	_drop 2
-	jp next_line  
-
+9$: ; expr out of range skip to next line
+	jp next_line 
 
 ;------------------------
 ; BASIC: GOTO line# 
@@ -3595,10 +3608,12 @@ func_ascii:
 ; input:
 ;	none 
 ; output:
-;	a	 character 
+;	a:x  character 
 ;---------------------
 func_key:
 	call getc 
+	clrw x 
+	rlwa x  
 	ret
 
 ;----------------------

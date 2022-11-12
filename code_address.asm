@@ -44,8 +44,8 @@ code_addr:
 	_code_entry syntax_error, QUOTE_IDX  ; $6 '"' 
     DELIM_LAST=TOK_IDX-1 
 ; literal values 
-	_code_entry syntax_error,LIT_IDX   ; $7  24 bits integers 
-	_code_entry syntax_error,LITC_IDX  ; $8 character 
+	_code_entry syntax_error,LIT_IDX   ; $7  24 bits integers literal 
+	_code_entry syntax_error,LITC_IDX  ; $8 byte literal 
     LIT_LAST=TOK_IDX-1 
 ; variable identifiers  
 	_code_entry syntax_error,VAR_IDX    ; $9 

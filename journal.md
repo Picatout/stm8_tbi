@@ -1,4 +1,36 @@
+### 2022-11-12
+
+* Corrigé bogue dans *cmd_input_var*.  Testé [on.bas](BASIC/on.bas)
+
+* Corrigé bogue dans **.macro _incw v**. L'offset du *jrne* était de +4 alors qu'il doit-être de +6 
+```
+    ;  increment 16 bits variable 
+    .macro _incw  v 
+        inc v+1 
+        jrne .+6 
+        inc v 
+    .endm 
+```
+
 ### 2022-11-11
+
+* À faire: débogué **ON expr GOTO|GOSUB**.  Réinialise le MCU 
+
+* Testé [restore.bas](BASIC/restore.bas)
+
+* Testé [hymne.bas](BASIC/hymne.bas)
+
+* Modifié et testé [input.bas](BASIC/input.bas)
+
+* Modifié et testé [goto_test.bas](BASIC/goto_test.bas)
+
+* Modifié et testé [gosub_test.bas](BASIC/gosub_test.bas)
+
+* Modifié et testé [const.bas](BASIC/const.bas)
+
+* Modifié et testé [usr_test.bas](BASIC/usr_test.bas)
+
+* Corrigé bogue dans *cmd_key*. Maintenant [pwm_soft.bas](BASIC/pwm-soft.bas) fonctionne.
 
 * commit 15:40 
 

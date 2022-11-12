@@ -40,6 +40,7 @@
 	ld a,#char  
 	call trace_mark
 	pop a 
+	trap 
 	.endif ; DEBUG 
 	.endm 
 
