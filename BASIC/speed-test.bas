@@ -1,5 +1,5 @@
   NEW 
-    1 rem speed test
+    1 SPEED.TEST
     2 ? "FOR...NEXT test"
     5  LET T= TICKS
     7  FOR I= 1 TO 1000

@@ -1,5 +1,33 @@
 ### 2022-11-12
 
+* commit 20:55 hre 
+
+* __Bogue:__ parfois la commande **SAVE** plante à la fin de son exécution. Cependant le programme est sauvegardé correctement. 
+
+* Modifié *itoa* , maintenant n'insère plus d'espace. En conséquence j'ai du modifié:
+	* *system_information* 
+	* La commande **PRINT** 
+	* *decompile*
+
+* Déboguer commande **SAVE**
+
+* Testé la commande **CHAIN** avec les programmes 
+	* [chain_main.bas](BASIC/chain_main.bas), 
+	* [chain_hello.bas](BASIC/chain_hello.bas), 
+	* [chain_world.bas](BASIC/chain_world.bas), 
+
+* Corrigé bogue dans commande **ERASE**. 
+
+* A faire: tester et déboguer commandes **SAVE**,**ERASE** et **CHAIN**. 
+
+* Modifié **CHAIN** et **END** pour tenir compte de la nouvelle structure de l'interpréteur.
+
+* Corrigé bogue dans commande **LIST** 
+
+* Modifié routines *decompile* et *itoa* pour améliorer la présentation de  la commande **LIST**.
+
+* Commit 11:40 hre 
+
 * Résultats du test [target.bas](BASIC/target.bas)
 ```
 >run

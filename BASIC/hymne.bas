@@ -1,4 +1,5 @@
 NEW
+   1  HYMNE 
    5 ' joue 4 mesures de l'hymne a la joie
    10 RESTORE 
    20 DATA 440,250,440,250,466,250,523,250,523,250,466,250,440,250

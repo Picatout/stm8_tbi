@@ -205,29 +205,23 @@ software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,202
 system_information:
 	ldw x,#software 
 	call puts 
-	mov acc8,#MAJOR 
+	ld a,#MAJOR 
 	clrw x 
-	ldw acc24,x
+	rlwa x 
 	mov base, #10 
-	call prt_acc24 
+	call prt_i16 
 	ld a,#'.
 	call putc 
-	mov acc8,#MINOR 
-	clrw x 
-	ldw acc24,x 
-	clr a
-	call itoa 
-	incw x 
-	call puts 
+	ld a,#MINOR 
+	clrw x
+	rlwa x  
+	call prt_i16   
 	ld a,#'R 
 	call putc 
-	mov acc8,#REV 
+	ld a,#REV 
 	clrw x 
-	ldw acc24,x
-	clr a
-	call itoa 
-	incw x 
-	call puts  
+	rlwa x 
+	call prt_i16
 	ld a,#CR 
 	call putc
 ;call test 
@@ -632,12 +626,7 @@ itoa_loop:
     ld (x),a
 	inc (LEN,sp)
 10$:
-; add a space
-	decw x 
-	ld a,#SPACE 
-	ld (x),a
 	ld a,(LEN,sp)
-	inc a 
 	_drop VSIZE
 	ret
 
@@ -1719,7 +1708,13 @@ cmd_list:
 	ldw (LAST,sp),x 
 	call next_token 
 	cp a,#LIT_IDX
-	jreq start_from 
+	jreq start_from
+	cp a,#LITC_IDX 
+	jrne is_minus 
+	_get_char 
+	clrw x 
+	rlwa x 
+	jra start_from1 
 is_minus: 	
 	cp a,#SUB_IDX 
 	jreq end_at_line
@@ -1730,6 +1725,7 @@ is_minus:
 	jp syntax_error
 start_from:	 
 	call get_int24
+start_from1: 	
 	ldw (FIRST,sp),x	
 lines_skip:
 	pushw y 
@@ -1741,12 +1737,10 @@ lines_skip:
 1$:	popw y 
 	ldw (LN_PTR,sp),x 
 	call next_token 
+	cp a,#CMD_END 
+	jrule 2$ 
 	cp a,#SUB_IDX 
 	jreq end_at_line 
-	cp a,#EOL_IDX  
-	jreq 2$
-	cp a,#COLON_IDX 
-	jreq 2$
 	jp syntax_error 
 2$:
 	ldw x,(FIRST,sp)
@@ -1754,14 +1748,13 @@ lines_skip:
 	jra list_loop 
 end_at_line:
 ; expect ending line# 
-    call next_token 
+    call next_token
+	cp a,#CMD_END 
+	jrule list_loop  
 	cp a,#LIT_IDX
 	jreq 1$
 	cp a,#LITC_IDX 
 	jreq 2$  
-	jreq list_loop 
-	cp a,#COLON_IDX 
-	jreq list_loop 
 	jp syntax_error 
 1$:
 	call get_int24 
@@ -1769,7 +1762,7 @@ end_at_line:
 	jra list_loop 
 2$: _get_char 
 	clrw x 
-	ld xl,a 
+	rlwa x  
 	ldw (LAST,sp),x 
 ; print loop
 list_loop:
@@ -1914,6 +1907,7 @@ trap
 	_unget_token 
 	call condition
     call print_top
+	call space
 	jp reset_semicol 
 8$:
 	tnz (SEMICOL,sp)
@@ -2724,8 +2718,8 @@ run_it_02:
 ; BASIC: END
 ; end running program
 ;---------------------- 
-	CHAIN_BP=1 
-	CHAIN_IN=3
+	CHAIN_LN=1 
+	CHAIN_BP=3
 	CHAIN_TXTBGN=5
 	CHAIN_TXTEND=7
 	CHAIN_CNTX_SIZE=8  
@@ -2736,16 +2730,18 @@ kword_end:
 	jreq 8$
 ; restore chain context 
 	dec chain_level 
+	ldw x,(CHAIN_LN,sp) ; chain saved in and count  
+	ldw line.addr,x 
+	ld a,(2,x)
+	ld count,a 
 	ldw x,(CHAIN_BP,sp) ; chain saved basicptr 
 	ldw basicptr,x 
-	ldw x,(CHAIN_IN,sp) ; chain saved in and count  
-	ldw in,x 
 	ldw x,(CHAIN_TXTBGN,sp)
 	ldw txtbgn,x 
 	ldw x,(CHAIN_TXTEND,sp)
 	ldw txtend,x 
 	_drop CHAIN_CNTX_SIZE ; CHAIN saved data size  
-	jp interpreter 
+	jp interp_loop  
 8$: ; clean stack 
 	ldw x,#STACK_EMPTY
 	ldw sp,x 
@@ -3028,7 +3024,7 @@ cmd_new:
 ; keep signature and size fields. 
 ; signature replaced by "XX"
 ; input:
-;    X    address 
+;    X    *name 
 ;-----------------------------------
 	ADDR=1    ; program address
 	PRG_SIZE=3    ; program size 
@@ -3078,18 +3074,14 @@ erase_program:
 	ret 
 
 ;-----------------------------------
-; BASIC: ERASE \E | \F || address
-; erase all block in range from 
-;  'app_space' to FLASH end (0x27fff)
-;  or all EEPROM 
-; that contains a non zero byte. 
-; if the argument is an address  
-; mark the program at this address 
-; as erased. Erase the blocks 
-; replace signature by 'XX' and 
-; keep size field.  
+; BASIC: ERASE \E | \F | name 
+;  options:
+;     \E    erase EEPROM 
+;     \F    erase all block in range from 
+;  			'app_space' to FLASH end (0x27fff)
+;   name    erase that program only  
 ;-----------------------------------
-	LIMIT=1 
+	LIMIT=1  ; 24 bits address 
 	VSIZE = 3 
 cmd_erase:
 	call cmd_line_only
@@ -3098,7 +3090,7 @@ cmd_erase:
 	cp a,#LABEL_IDX 
 	jreq erase_program  
 	_vars VSIZE 
-	cp a,#CHAR_IDX 
+	cp a,#BSLASH_IDX 
 	jreq 0$ 
 	jp syntax_error
 0$: _get_char 
@@ -3117,8 +3109,8 @@ cmd_erase:
 2$:
 	ldw x,#app_space  
 	ldw farptr+1,x 
-	clr a
-	ldw x,#0xffff
+	ld a,#FLASH_END>>16 
+	ldw x,#FLASH_END&0xffff
 3$:
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x 
@@ -3297,25 +3289,31 @@ cmd_save:
 	jrne 0$ 
 	jp 9$ ; no program to save 
 0$:	ldw (TOWRITE,sp),x ; program size
-	clr farptr 
+; to save it first line must be a label 
+	ldw x,txtbgn
+	ld a,(3,x)
+	cp a,#LABEL_IDX 
+	jreq 1$
+	jp 8$ ; can't be saved, not labeled 	
+1$:	clr farptr 
 	call search_fit
 	ldw ptr16,x 
 	ldw x,#0xFFFF
 	subw x,ptr16 ; free flash 
 	subw x,#4 ; signature and size field 
 	cpw x,(TOWRITE,sp)
-	jruge 1$
+	jruge 2$
 	ld a,#ERR_MEM_FULL
 	jp tb_error 
-1$: ; check if header bytes are zero's 
+2$: ; check if header bytes are zero's 
 	ldw x,ptr16 
 	ld a,(x)
 	or a,(1,x)
 	or a,(2,x)
 	or a,(3,x)
-	jreq 2$
+	jreq 3$
 	call erase_header ; preserve X and farptr 
-2$: 
+3$: 
 ; block programming flash
 ; must be done from RAM
 ; moved in tib  
@@ -3336,12 +3334,12 @@ cmd_save:
 	addw y,#2   
 	ld a,#(BLOCK_SIZE-4)
 	cpw x,#(BLOCK_SIZE-4) 
-	jrugt 3$
+	jrugt 4$
 	ld a,xl 
-3$:	ld (CNT_LO,sp),a   
+4$:	ld (CNT_LO,sp),a   
 	ldw x,txtbgn 
 	ldw (XTEMP,sp),x 
-32$: 
+5$: 
 	ldw x,(XTEMP,sp)
 	ld a,(CNT_LO,sp)
 	call fill_write_buffer 
@@ -3359,16 +3357,20 @@ cmd_save:
 	ldw (TOWRITE,sp),x 
 	ld a,#BLOCK_SIZE 
 	cpw x,#BLOCK_SIZE 
-	jruge 4$ 
+	jruge 6$ 
 	ld a,xl 
-4$:	ld (CNT_LO,sp),a 
+6$:	ld (CNT_LO,sp),a 
 	call clear_block_buffer 
-	jra 32$ 
+	jra 5$ 
+8$: ; no label can't save
+	ldw x,#NO_LABEL 
+	call puts 	
 9$:	_drop VSIZE 
     popw y 
 	popw x 
 	ret 
 
+NO_LABEL: .asciz "Can't save, label missing on first line."
 SIGNATURE: .ascii "TB"
 ERASED: .ascii "XX" 
 
@@ -3436,16 +3438,16 @@ cmd_dir:
 	call prt_i16
 	ld a,#SPACE 
 	call putc 
-	ldw x,(1,sp)
-	ldw x,(2,x)
+	ldw x,(XTEMP,sp)
+	ldw x,(2,x) ; program size 
 	mov base,#10  
 	call prt_i16 
 	ldw x,#STR_BYTES
 	call puts
 	ld a,#', 
 	call putc
-	ldw x,(1,sp)
-	addw x,#8
+	ldw x,(XTEMP,sp)
+	addw x,#8 ; first token of program 
 	call puts 
 	ld a,#CR 
 	call putc
@@ -4945,9 +4947,8 @@ search_program:
 ;---------------------------------
 	CHAIN_LN=3 
 	CHAIN_ADDR=5 
-	CHAIN_BP=7
-	CHAIN_IN=9
-	CHAIN_COUNT=10 
+	CHAIN_LNADR=7
+	CHAIN_BP=9
 	CHAIN_TXTBGN=11 
 	CHAIN_TXTEND=13 
 	VSIZE=12 
@@ -4969,27 +4970,37 @@ cmd_chain:
 0$:	ld a,#ERR_BAD_VALUE
 	jp tb_error 
 1$: ldw (CHAIN_ADDR,sp), x ; program addr 
+;_tp 'A 
     call next_token 
 	cp a,#COMMA_IDX 
-	jrne 4$
-	ld a,#LIT_IDX
-	call expect 
+	jrne 5$
+	call next_token 
+;_tp 'B
+	cp a,#LIT_IDX
+	jreq 3$
+	cp a,#LITC_IDX 
+	jrne 5$
+	_get_char 
+	clrw x 
+	rlwa x
+	jra 4$
+3$:	
 	call get_int24 
-	ldw (CHAIN_LN,sp),x
+4$:	ldw (CHAIN_LN,sp),x
 	jra 6$ 
-4$:  _unget_token 
+5$:  _unget_token 
 6$: ; save chain context 
-	ldw x,basicptr 
-	ldw (CHAIN_BP,sp),x 
-	ldw x,in
-	ldw (CHAIN_IN,sp),x
+	ldw x,line.addr 
+	ldw (CHAIN_LNADR,sp),x 
+	ldw x,basicptr  
+	ldw (CHAIN_BP,sp),x
 	ldw x,txtbgn 
 	ldw (CHAIN_TXTBGN,sp),x
 	ldw x,txtend 
 	ldw (CHAIN_TXTEND,sp),x  
 ; set chained program context 	
 	ldw x,(CHAIN_ADDR,sp)
-	ldw basicptr,x 
+	ldw line.addr,x 
 	ldw txtbgn,x 
 	subw x,#2
 	ldw x,(x)
@@ -4998,7 +5009,8 @@ cmd_chain:
 	ldw x,(CHAIN_ADDR,sp)
 	ld a,(2,x)
 	ld count,a 
-	mov in,#3 
+	addw x,#3 
+	ldw basicptr,x 
 	ldw x,(CHAIN_LN,sp)
 	tnzw x 
 	jreq 8$ 
@@ -5007,11 +5019,14 @@ cmd_chain:
 	call search_lineno
 	popw y 
 	tnzw x 
-	jreq 0$ 
-	ldw basicptr,x 
+	jreq 8$ 
+	ldw line.addr,x 
 	ld a,(2,x)
-	ld count,a 
+	ld count,a
+	addw x,#3
+	ldw basicptr,x  
 8$: _inc chain_level
+;_tp 'C
 	popw x 
 	_drop DISCARD
 	jp (x)

@@ -198,17 +198,17 @@ decomp_loop:
 	jrne 9$
 	jp decomp_exit
 9$:	call puts
+prt_space:
 	call space 
 	jra decomp_loop
 ; print variable name 	
 variable: ; VAR_IDX 
-	call space
 	_get_addr 
 	dec count 
 	dec count   
 	call var_name
 	call putc  
-	jra decomp_loop
+	jra prt_space
 ; print int24 
 literal: ; LIT_IDX 
 	call get_int24
@@ -218,7 +218,7 @@ literal: ; LIT_IDX
 	ld acc24,a 
 	ldw acc16,x
 	call prt_acc24
-	jp decomp_loop
+	jp prt_space 
 ; print int8 	
 lit_char: ; LITC_IDX 
 	_get_char 
@@ -226,44 +226,37 @@ lit_char: ; LITC_IDX
 	clrw x 
 	ld xl,a 
 	call prt_i16 
-	jp decomp_loop 
+	jp prt_space  
 ; print comment	
 comment: ; REM_IDX 
 	ld a,#''
 	call putc
-	call space 
 	ldw x,basicptr
 	call puts 
 	jp decomp_exit 
 ; print label   	
-label: ; LABLE_IDX 
+label: ; LABEL_IDX 
 	ldw x,basicptr 
 	subw x,line.addr 
-	cpw x,#4 
-	jreq 1$
-	call space 
 1$:
 	ldw x,basicptr 
 	pushw x 
 	call skip_string
 	popw x 
 	call puts 
-	call space 
-	jp decomp_loop
+	jra prt_space  
 ; print quoted string 	
 quoted_string:	
-	call space
 	call prt_quote  
-	jp decomp_loop
+	jra prt_space
 ; print \letter 	
 letter: 
-	call space 
 	ld a,#'\ 
 	call putc 
 	_get_char 
 	dec count   
 	call putc  
-	jp decomp_loop
+	jp prt_space 
 decomp_exit: 
 	ld a,(BASE_SAV,sp)
 	ld base,a 
