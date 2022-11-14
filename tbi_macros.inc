@@ -36,7 +36,8 @@
     FLN_REJECTED=6 ; a memory full error occured while in *insert_line*. 
     FTRACE=7 ; trace flag 
 
-    FIRST_DATA_ITEM=4 ; first DATA item offset on line.
+    LINE_HEADER_SIZE=3 ; line number 2 bytes and line length 1 byte 
+    FIRST_DATA_ITEM=LINE_HEADER_SIZE+1 ; skip over DATA_IDX token.
 
 	MAX_LINENO=0x7fff; BASIC maximum line number 
 
@@ -232,3 +233,56 @@
     ld (3,y),a 
     ldw (4,y),x 
     .endm 
+
+;---------------------------------
+;  files.asm macros 
+;---------------------------------
+
+;----------------------------------
+;    file system 
+; file header:
+;   sign field:  2 bytes .ascii "TB" 
+;   program size: 1 word 
+;   data: n*BLOCK_SIZE 
+;   BLOCK_SIZE is 128 bytes depend 
+;   on MCU block erase size. 
+;----------------------------------
+
+FILE_SIGN_FIELD = 0 ; signature offset 
+FILE_SIZE_FIELD = 2 ; size offset 
+FILE_DATA= 4 ; data offset 
+FILE_HEADER_SIZE = 4 ; bytes 
+
+;---------------------
+; MACRO 
+; check if there is 
+; an erased program 
+; at this address 
+; input:
+;    X    file header address   
+; output:
+;    Z    1 erazed
+;         0 not erased|not program.  
+;--------------------
+	.macro _is_erased
+	pushw x 
+	ldw x,(x)
+    cpw x,ERASED 
+	popw x 
+	.endm 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; MACRO 
+;  check for application signature 
+; input:
+;	x       file header address 
+; output:
+;   Z      1  signature present 
+;          0 no app signature  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    .macro _qsign 
+	pushw x 
+	ldw x,(x)
+	cpw x,SIGNATURE ; "TB" 
+	popw x 
+	.endm 

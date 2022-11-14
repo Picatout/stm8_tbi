@@ -1812,13 +1812,11 @@ cmd_edit:
 	ldw x,#ERR_NO_PROGRAM
 	jp tb_error 
 1$: pushw y 
-	ldw y,x ; source address 
-	subw x,#4
+	ldw y,x ; file address 
 	ldw x,(2,x) ; program size 
-	addw x,#4 
+	addw x,#FILE_HEADER_SIZE  
 	ldw acc16,x  ; bytes to copy 
 	ldw x,#rsign ; destination address 
-	subw y,#4 
 	call move  
 	ldw x,#free_ram 
 	ldw txtbgn,x 
@@ -2629,24 +2627,6 @@ kword_return:
 	_drop VSIZE 
 	jp (x)
 
-;---------------------------------
-; check if A:X contain the address 
-; of a program in FLASH 
-; output:
-;     Z    set is progam 
-;----------------------------------
-is_program_addr:
-	tnz a 
-	jrne 9$
-	cpw x,#app_space 
-	jrult 8$
-	pushw x 
-	call qsign 
-	popw x 
-	jreq 9$ 
-8$:	cpl a ; clr Z bit  
-9$:	ret 
-
 ;----------------------------------
 ; BASIC: RUN [label]
 ; run BASIC program in RAM
@@ -2677,9 +2657,10 @@ call dump_prog
 	jrne 2$
 	ld a,#ERR_NO_PROGRAM
 	jp tb_error 
-2$: ldw txtbgn,x 
+2$: addw x,#FILE_HEADER_SIZE 
+	ldw txtbgn,x 
 	subw x,#2 
-	ldw x,(x)
+	ldw x,(x) ; program size 
 	addw x,txtbgn 
 	ldw txtend,x 
 	jra run_it 	
@@ -3020,60 +3001,6 @@ cmd_new:
 	ret 
 
 ;-----------------------------------
-; erase program at specified address
-; keep signature and size fields. 
-; signature replaced by "XX"
-; input:
-;    X    *name 
-;-----------------------------------
-	ADDR=1    ; program address
-	PRG_SIZE=3    ; program size 
-	BLOCKS=5 ; blocks to erase 
-	VSIZE=6
-erase_program:
-	pushw x 
-	call skip_string 
-	popw x 
-	call search_program 
-	jreq 9$
-	call move_erase_to_ram
-	clr farptr 
-	_vars VSIZE 
-1$:	subw x,#4 
-	ldw (ADDR,sp),x
-	ldw x,(2,x)
-	ldw (PRG_SIZE,sp),x
-	ld a,#BLOCK_SIZE 
-	div x,a 
-	tnz a 
-	jreq 2$ 
-	incw x 
-2$:	ldw (BLOCKS,sp),x 
-	ldw x,(ADDR,sp)
-	ldw ptr16,x 
-3$:	call block_erase
-	ldw x,#BLOCK_SIZE 
-	call incr_farptr
-	ldw x,(BLOCKS,sp)
-	decw x 
-	ldw (BLOCKS,sp),x 
-	jrne 3$ 
-; write XX and size at addr 
-	ldw x,(ADDR,sp)
-	ldw ptr16,x 
-	ld a,#'X 
-	clrw x 
-	call write_byte 
-	call write_byte 
-	ld a,(PRG_SIZE,sp)
-	call write_byte 
-	ld a,(PRG_SIZE+1,sp)
-	call write_byte 
-	_drop VSIZE 
-9$:	
-	ret 
-
-;-----------------------------------
 ; BASIC: ERASE \E | \F | name 
 ;  options:
 ;     \E    erase EEPROM 
@@ -3088,7 +3015,17 @@ cmd_erase:
 	clr farptr 
 	call next_token
 	cp a,#LABEL_IDX 
-	jreq erase_program  
+	jrne not_file
+erase_program: 
+	pushw x 
+	call skip_string 
+	popw x 
+	call search_program
+	tnzw x 
+	jreq 9$  ; not found 
+	call erase_file  
+9$:	ret 
+not_file: 
 	_vars VSIZE 
 	cp a,#BSLASH_IDX 
 	jreq 0$ 
@@ -3141,135 +3078,6 @@ cmd_erase:
 	_drop VSIZE 
 	ret 
 	
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  check for application signature 
-; input:
-;	x       address to check 
-; output:
-;   Z      1  signature present 
-;          0 not app signature  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-qsign: 
-	pushw x 
-; align to block 
-	ld a,xl 
-	and a,#BLOCK_SIZE 
-	ld xl,a 
-	ldw x,(x)
-	cpw x,SIGNATURE ; "TB" 
-	popw x 
-	ret 
-
-;--------------------------------------
-;  fill write buffer 
-;  input:
-;    y  point to output buffer 
-;    x  point to source 
-;    a  bytes to write in buffer 
-;  output:
-;    y   += A 
-;    X   += A 
-;    A   0 
-;---------------------------------------
-fill_write_buffer:
-	push a 
-	tnz a 
-	jreq 9$ 
-1$: ld a,(x)
-	incw x 
-	ld (y),a 
-	incw y 
-	dec (1,sp) 
-	jrne 1$ 
-9$:	pop a 
-    ret 	
-
-;--------------------------------------
-;  fill pad buffer with zero 
-;  input:
-;	none 
-;  output:
-;    y     buffer address  
-;--------------------------------------
-clear_block_buffer:
-	push a 
-	ldw y,#block_buffer 
-	pushw y
-	ld a,#BLOCK_SIZE   
-1$:	clr (y)
-	incw y
-	dec a  
-	jrne 1$ 	
-9$: popw y 
-	pop a 			
-	ret 
-
-
-;----------------------------------
-;  search  a free space space that 
-;  fit program size 
-; input:
-;    X    program size 
-; output:
-;    X    address | 0 
-;------------------------------------
-	PG_SIZE=1 
-	VSIZE=2 
-search_fit:
-	pushw x; PG_SIZE 
-	ldw x,#app_space 
-1$:	call is_erased 
-	jreq 4$
-	ld a,(x)
-	or a,(1,x)
-	jreq 9$ ; free space 
-2$:	call skip_to_next
-	tnzw x 
-	jrne 1$
-	jra 9$
-4$: ; erased program 
-    ; does it fit? 
-	ldw acc16,x 
-	ldw x,(2,x) ; size erased program
-; top multiple of BLOCK_SIZE 
-	addw x,#4 
-	addw x,#BLOCK_SIZE-1 
-	ld a,xl 
-	and a,#BLOCK_SIZE 
-	ld xl,a  
-	cpw x,(1,sp) ; size program to save 
-	jruge 8$   ; fit 
-	ldw x,acc16 
-	jra 2$ 
-8$: ldw x,acc16 ; fit in this one 	
-9$:	_drop VSIZE 
-	ret  
-
-;-------------------------
-; erase header and 
-; size fields 
-; input: 
-;    X    program address 
-; output:
-;    X    unchanged 
-;-------------------------
-	COUNT=1 
-erase_header:
-	pushw x 
-	push #4 ; COUNT 
-	clr farptr 
-	ldw ptr16,x 
-	clr a 
-	clrw x 
-1$:	call write_byte 
-	dec (COUNT,sp)
-	jrne 1$
-	_drop 1 
-	popw x 
-	ldw ptr16,x 
-	ret 
-
 ;---------------------------------------
 ; BASIC: SAVE
 ; write application from RAM to FLASH
@@ -3281,12 +3089,15 @@ erase_header:
 	TOWRITE=5 ; how bytes left to write  
 	VSIZE=6 
 cmd_save:
+_tp 'S 
 	call cmd_line_only
 	pushw x 
 	pushw y 
 	_vars VSIZE
 	call prog_size 
-	jrne 0$ 
+	jrne 0$
+	ldw x,#NO_PROG 
+	call puts  
 	jp 9$ ; no program to save 
 0$:	ldw (TOWRITE,sp),x ; program size
 ; to save it first line must be a label 
@@ -3295,18 +3106,21 @@ cmd_save:
 	cp a,#LABEL_IDX 
 	jreq 1$
 	jp 8$ ; can't be saved, not labeled 	
-1$:	clr farptr 
+1$:	; check if file already exist 
+	addw x,#LINE_HEADER_SIZE+1 ; *label 
+	call search_program 
+	jreq 11$
+	call erase_file 
+11$:
+	clr farptr 
+	ldw x,(TOWRITE,sp)
 	call search_fit
-	ldw ptr16,x 
-	ldw x,#0xFFFF
-	subw x,ptr16 ; free flash 
-	subw x,#4 ; signature and size field 
-	cpw x,(TOWRITE,sp)
-	jruge 2$
+	tnzw x 
+	jrne 2$
 	ld a,#ERR_MEM_FULL
 	jp tb_error 
 2$: ; check if header bytes are zero's 
-	ldw x,ptr16 
+	ldw ptr16,x  
 	ld a,(x)
 	or a,(1,x)
 	or a,(2,x)
@@ -3365,60 +3179,14 @@ cmd_save:
 8$: ; no label can't save
 	ldw x,#NO_LABEL 
 	call puts 	
-9$:	_drop VSIZE 
+9$:	 
+	_drop VSIZE 
     popw y 
 	popw x 
+_tp 'E 
 	ret 
 
-NO_LABEL: .asciz "Can't save, label missing on first line."
-SIGNATURE: .ascii "TB"
-ERASED: .ascii "XX" 
-
-;---------------------
-; check if there is 
-; an erased program 
-; at this address 
-; input:
-;    X    address 
-; output:
-;    Z    Set=erased program 
-;--------------------
-is_erased:
-	pushw x 
-; align to BLOCK 
-	ld a,xl 
-	and a,#BLOCK_SIZE 
-	ld xl,a 
-	ldw x,(x)
-	cpw x,ERASED 
-	popw x 
-	ret 
-
-;----------------------------
-;  skip to next program
-;  block 
-; input:
-;    X   actual program addr
-; output:
-;    X   next block 
-;        after program 
-;----------------------------
-skip_to_next:
-; align to block 
-	ld a,xl 
-	and a,#BLOCK_SIZE 
-	ld xl,a 
-	ldw acc16,x 
-	ldw x,(2,x)
-	addw x,acc16 ; blk_addr+prg_size 
-	addw x,#4 ; +header fields 
-; align to next block 
-	addw x,#BLOCK_SIZE-1 
-	ld a,xl 
-	and a,#0x80 
-	ld xl,a  
-	ret 
-
+NO_PROG: .asciz "No program in RAM."
 
 ;---------------------
 ; BASIC: DIR 
@@ -3431,7 +3199,7 @@ cmd_dir:
 	ldw x,#app_space 
 	pushw x 
 1$: 
-	call qsign 
+	_qsign 
 	jrne 4$
 	addw x,#4
 	mov base,#16
@@ -3456,7 +3224,7 @@ cmd_dir:
 	ldw (1,sp),x 
 	jra 1$
 4$: ; check if it is an erased program 
-	call is_erased 
+	_is_erased 
 	jreq 3$ 
 8$: ; done 
 	_drop 2 
@@ -4886,55 +4654,6 @@ set_autorun:
 AR_SIGN: .ascii "AR" ; autorun signature 
 
 ;-------------------------------
-; search a program in flash 
-; memory with a label at first 
-; that correspond to name 
-; pointed by X 
-; input:
-;    x      *name 
-; output: 
-;    X     prog_addr|0
-;-------------------------------
-	WLKPTR=1 
-	PNAME=3
-	LIMIT=5
-	YSAVE=7
-	VSIZE=6 
-search_program:
-	pushw y 
-	_vars VSIZE 
-	ldw (PNAME,sp),x 
-	call func_uflash 
-	ldw (LIMIT,sp),x 
-	ldw x,#app_space 
-1$:	ldw (WLKPTR,sp),x  
-	clr a 
-	call is_program_addr
-	jrne 4$
-	addw x,#7 
-	ld a,(x)
-	cp a,#LABEL_IDX 
-	jrne 4$ 
-	incw x 
-	ldw y,(PNAME,sp)
-	call strcmp
-	jreq 6$
-4$: 
-	call skip_to_next
-	cpw x,(LIMIT,sp)
-	jrult 1$
-	clrw x 
-	jra 8$
-6$: ; found label 
-	ldw x,(WLKPTR,sp)
-	addw x,#4 	
-8$:	
-	_drop VSIZE  
-	popw y 
-	ret 
-
-
-;-------------------------------
 ; BASIC: CHAIN label [, line#]
 ; Execute another program like it 
 ; is a sub-routine. When the 
@@ -4969,7 +4688,8 @@ cmd_chain:
 	jrne 1$ 
 0$:	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-1$: ldw (CHAIN_ADDR,sp), x ; program addr 
+1$: addw x,#FILE_HEADER_SIZE 
+	ldw (CHAIN_ADDR,sp), x ; program addr 
 ;_tp 'A 
     call next_token 
 	cp a,#COMMA_IDX 

@@ -409,7 +409,7 @@ cold_start:
 run_app:
 	clr a 
 	ldw x,EEPROM_BASE+2
-	call is_program_addr 
+	_qsign 
 	jreq 1$
 	jp warm_start ; no autorun application.
 1$:	
