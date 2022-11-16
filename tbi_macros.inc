@@ -127,22 +127,13 @@
         .byte 0x3c, v 
     .endm 
 
-    ;  increment 16 bits variable with short address, i.e v in range {0..255}
-    ;  save 4 bytes over _incw macro. 
-    ;  use 6 bytes   
-    .macro _incw.s v 
-        .byte 0x3c,v+1 ; inc v+1 short addressing mode, 2 bytes    
-        jrne .+4  ; 2 bytes 
-        .byte 0x3c,v   ; inc v short form, 2 bytes  
-    .endm 
-
     ;  increment 16 bits variable
     ;  use 10 bytes  
-    .macro _incw  v 
-        inc v+1   ; 4 bytes 
-        jrne .+6 ; 2 bytes 
-        inc v  ; 4 bytes  
-    .endm 
+    .macro _inc_wvar  v 
+        inc v+1   ; 1 cy, 4 bytes 
+        jrne .+6  ; 1|2 cy, 2 bytes 
+        inc v     ; 1 cy, 4 bytes  
+    .endm ; 3 cy 
 
     ; extract 16 bits address from BASIC code  
     .macro _get_addr
@@ -154,16 +145,16 @@
 
     ; extract character from BASIC code 
     .macro _get_char 
-        ld a,(x)
-        incw x 
-        ldw basicptr,x  
-    .endm 
+        ld a,(x)        ; 1 cy 
+        incw x          ; 1 cy 
+        ldw basicptr,x  ; 2 cy 
+    .endm  ; 4 cy 
     
     ; extract next command token id 
-    .macro _next_cmd 
-        ldw x,basicptr 
-        _get_char 
-    .endm
+    .macro _next_cmd     
+        ldw x,basicptr  ; 2 cy
+        _get_char       ; 4 cy 
+    .endm   ; 6 cy 
 
     ; get code address in x
     .macro _code_addr 
@@ -175,12 +166,12 @@
 
     ; call subroutine from index in a 
     .macro _call_code
-        clrw x 
-        ld xl,a
-        sllw x 
-        ldw x, (code_addr,x)
-        call (x)
-    .endm 
+        clrw x      ; 1 cy 
+        ld xl,a     ; 1 cy 
+        sllw x      ; 2 cy 
+        ldw x, (code_addr,x) ; 2 cy 
+        call (x)    ; 4 cy 
+    .endm  ; 10 cy 
 
 ;---------------------------------------
 ;    xtack manipulation macros 

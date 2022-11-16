@@ -8,14 +8,15 @@
 if [ $1 == "s208" ]; then 
     make -fnucleo_8s208.mk 
     if [[ ! -z $2 && ($2 == "flash") ]]; then 
-        make -fnucleo_8s208.mk flash 
+        make -fnucleo_8s208.mk && make -fnucleo_8s208.mk flash 
+    else 
+        make -fnucleo_8s208.mk
     fi 
-else 
-    if [ $1 == "s207" ]; then 
+elif [ $1 == "s207" ]; then 
+    if [[ ! -z $2 && ($2 == "flash") ]]; then 
+        make -fnucleo_8s207.mk && make -fnucleo_8s207.mk flash 
+    else 
         make -fnucleo_8s207.mk
-        if [[ ! -z $2 && ($2 == "flash") ]]; then 
-            make -fnucleo_8s207.mk flash 
-        fi 
     fi 
 fi
 

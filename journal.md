@@ -1,3 +1,9 @@
+### 2022-11-16
+
+*  Commit 9:34 hre et création de la branche test à partir de la branche 2.1R1 
+
+*  Modifié  [build.sh](build.sh)
+
 ### 2022-11-15 
 
 * Modification du Makefile et config.inc pour accomoder plusieurs cartes cibles.

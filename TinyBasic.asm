@@ -395,19 +395,15 @@ call dump_prog
 ;; This is the interpreter loop
 ;; for each BASIC code line. 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
-interpreter: 
-;	ldw x,basicptr 
-;	ld a,(x) 
-;	jrne interp_loop
-interp_loop:
-    _next_cmd
+interp_loop: ; 22 cy 
+    _next_cmd ; 6 cy 
 .if 0; DEBUG 
 	_tp 'I 
 	_call_code 
 .else 
-	_call_code 	
+	_call_code ; 10 cy + 4 cy for sbr return 
 .endif 	 
-	jra interp_loop 
+	jra interp_loop ; 2 cy 
 
 
 next_line:
@@ -2514,7 +2510,7 @@ _tp '9
 	ldw basicptr,x 
 	jra 6$
 4$: ; got a small line number 
-	_incw basicptr  
+	_inc_wvar basicptr  
 	jra 6$ 
 5$: call skip_string ; skip over label 	
 6$: ; if another element comma present 
@@ -2641,7 +2637,7 @@ call dump_prog
 	_drop CTXT_SIZE 
 	bres flags,#FBREAK 
 	bset flags,#FRUN 
-	jp interpreter 
+	jp interp_loop 
 1$:	; check for label option 
 	call next_token 
 	cp a,#LABEL_IDX 
@@ -2688,7 +2684,7 @@ run_it_02:
 	addw x,#3
 	ldw basicptr,x 
 	bset flags,#FRUN 
-	jp interpreter 
+	jp interp_loop 
 
 
 ;----------------------
@@ -2981,7 +2977,7 @@ kword_stop:
 	ldw in.w,x
 	bres flags,#FRUN 
 	bset flags,#FBREAK
-	jp interpreter 
+	jp interp_loop
 break_point: .asciz "\nbreak point, RUN to resume.\n"
 
 ;-----------------------
