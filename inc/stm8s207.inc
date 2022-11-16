@@ -1,5 +1,5 @@
 ;;
-; Copyright Jacques Deschênes 2019 
+; Copyright Jacques Deschênes 2019,2022 
 ; This file is part of MONA 
 ;
 ;     MONA is free software: you can redistribute it and/or modify
@@ -16,15 +16,14 @@
 ;     along with MONA.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; 2019/10/18
-; STM8S208RB µC registers map
+; 2022/11/14
+; STM8S207K8 µC registers map
 ; sdas source file
-; author: Jacques Deschênes, copyright 2018,2019
+; author: Jacques Deschênes, copyright 2018,2019,2022
 ; licence: GPLv3
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-	.module stm8s208rb
 
-;;;;;;;;;;;;
+;;;;;;;;;;;
 ; bits
 ;;;;;;;;;;;;
  BIT0 = 0
@@ -55,11 +54,11 @@
 
 ; controller memory regions
  RAM_SIZE = (0x1800) ; 6KB 
- EEPROM_SIZE = (0x800) ; 2KB
-; STM8S208RB have 128K flash
- FLASH_SIZE = (0x20000)
+ EEPROM_SIZE = (0x400) ; 1KB
+; STM8S207K8 have 64K flash
+ FLASH_SIZE = (0x10000)
 ; erase block size 
-BLOCK_SIZE=128 
+BLOCK_SIZE=128 ; bytes 
 
  RAM_BASE = (0)
  RAM_END = (RAM_BASE+RAM_SIZE-1)

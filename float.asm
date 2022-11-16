@@ -28,10 +28,12 @@
 ;   22:0     |   unsigned mantissa 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-    .module FLOAT_NBR 
+.if SEPARATE 
+    .module FLOAT_NBR  
+    .include "config.inc"
 
     .area CODE 
+.endif 
 
 ; power of ten constant in IEEE-754 format 
 power_ten:

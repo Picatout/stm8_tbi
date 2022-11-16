@@ -8,7 +8,7 @@ SDAR=sdar
 OBJCPY=objcpy 
 CFLAGS=-mstm8 -lstm8 -L$(LIB_PATH) -I../inc
 INC=../inc/
-INCLUDES=$(INC)stm8s208.inc $(INC)ascii.inc $(INC)gen_macros.inc $(INC)nucleo_8s208.inc cmd_idx.inc tbi_macros.inc dbg_macros.inc 
+INCLUDES=$(BOARD_INC) $(INC)ascii.inc $(INC)gen_macros.inc cmd_idx.inc tbi_macros.inc dbg_macros.inc 
 BUILD=build/
 I2C=i2c.asm
 SRC=hardware_init.asm arithm24.asm debug_support.asm flash_prog.asm files.asm terminal.asm code_address.asm compiler.asm $(I2C) decompiler.asm $(NAME).asm app.asm 
@@ -16,17 +16,15 @@ OBJECT=$(BUILD)$(NAME).rel
 OBJECTS=$(BUILD)$(SRC:.asm=.rel)
 LIST=$(BUILD)$(NAME).lst
 FLASH=stm8flash
-BOARD=stm8s208rb
-PROGRAMMER=stlinkv21
 
 
 .PHONY: all
 
 all: clean 
 	@echo
-	@echo "**********************"
-	@echo "compiling $(NAME)       "
-	@echo "**********************"
+	@echo "*************************************"
+	@echo "compiling $(NAME)  for $(BOARD)      "
+	@echo "*************************************"
 	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(SRC) 
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx $(OBJECT) 
 	objcopy -Iihex -Obinary  $(BUILD)$(NAME).ihx $(BUILD)$(NAME).bin 
@@ -46,6 +44,9 @@ clean: build
 build:
 	mkdir build
 
+test: 
+	$(SDAS) -g -l -o $(BUILD)test.rel test.asm
+
 separate: clean $(SRC)
 	$(SDAS) -g -l -o $(BUILD)hardware_init.rel hardware_init.asm  
 	$(SDAS) -g -l -o $(BUILD)flash_prog.rel flash_prog.asm  
@@ -63,15 +64,16 @@ usr_test:
 
 flash: $(LIB)
 	@echo
-	@echo "***************"
-	@echo "flashing device"
-	@echo "***************"
+	@echo "******************"
+	@echo "flashing $(BOARD) "
+	@echo "******************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -w $(BUILD)$(NAME).ihx 
 
 # read flash memory 
 read: 
-	$(FLASH) -c $(PROGRAMMER) -p$(BOARD) -s flash -b 16384 -r flash.dat 
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -b 16384 -r flash.dat 
 
+# erase flash memory from 0x8000-0xffff 
 erase:
 	dd if=/dev/zero bs=1 count=32768 of=zero.bin
 	$(FLASH) -c $(PROGRAMMER) -p$(BOARD) -s flash -b 32768 -w zero.bin 

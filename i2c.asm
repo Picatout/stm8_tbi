@@ -16,6 +16,13 @@
 ;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 
+.if SEPARATE 
+    .module I2C   
+    .include "config.inc"
+
+    .area CODE 
+.endif 
+
 ;--------------------------------
 ;  I2C peripheral drive 
 ;  pins: 

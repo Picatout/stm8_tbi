@@ -1,3 +1,26 @@
+### 2022-11-15 
+
+* Modification du Makefile et config.inc pour accomoder plusieurs cartes cibles.
+
+	* Présentement supporte les cartes d'expérimentation suivantes:
+	
+		* __NUCLEO_8S208RB__ 
+		* __NUCLEO_8S207K8__ 
+
+	
+	* Modification de [config.inc](config.inc)
+
+	* Ajout du script [build.sh](build.sh) 
+
+		* USAGE: __./build.sh  s207||s208 [flash]__ 
+
+
+* Ajout du support pour la  carte [NUCLEO-8S207K8](https://www.st.com/en/evaluation-tools/nucleo-8s207k8.html)
+
+	* Ajout de [inc/stm8s207k8.inc](inc/stm8s207.inc)
+
+	* Ajout de [nucleo_8s207.inc](inc/nucleo_8s207.inc)
+
 ### 2022-11-14
 
 * commit 15:56

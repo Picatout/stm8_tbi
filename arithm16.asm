@@ -23,6 +23,12 @@
 ;;  16/32 bits integers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+.if SEPARATE 
+    .module ARITHM16   
+    .include "config.inc"
+
+    .area CODE 
+.endif 
 
 ;--------------------------------------
 ;  multiply 2 uint16_t return uint32_t

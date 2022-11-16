@@ -16,7 +16,12 @@
 ;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 
-    .module APP_SPACE
+ .if SEPARATE 
+    .module APP_SPACE   
+    .include "config.inc"
+
+    .area CODE 
+.endif 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  application space 

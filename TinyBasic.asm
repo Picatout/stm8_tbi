@@ -44,16 +44,12 @@
 ;  * relation, expression return value on xstack 
 ;--------------------------------------------------- 
 
-    .module STM8_TBI
 
+.if SEPARATE 
+    .module TINY_BASIC 
     .include "config.inc"
 
-.if SEPARATE
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "tbi_macros.inc" 
+	.area CODE 
 .endif 
 
 
@@ -229,7 +225,7 @@ system_information:
 
 warm_init:
 	ldw y,#XSTACK_EMPTY
-	ldw x,#uart1_putc 
+	ldw x,#uart_putc 
 	ldw out,x ; standard output   
 	clr flags 
 	clr loop_depth 
@@ -3475,7 +3471,7 @@ func_usr:
 ; do a cold start on wakeup.
 ;------------------------------
 cmd_bye:
-	btjf UART1_SR,#UART_SR_TC,.
+	btjf UART_SR,#UART_SR_TC,.
 	halt
 	jp cold_start  
 
@@ -3486,7 +3482,7 @@ cmd_bye:
 ; Resume progam after SLEEP command
 ;----------------------------------
 cmd_sleep:
-	btjf UART1_SR,#UART_SR_TC,.
+	btjf UART_SR,#UART_SR_TC,.
 	bset flags,#FSLEEP
 	halt 
 	ret 

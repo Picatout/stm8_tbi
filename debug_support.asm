@@ -22,6 +22,14 @@
 ;;  to enable it.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+.if SEPARATE 
+    .module DBG_SUPPORT  
+    .include "config.inc"
+
+    .area CODE 
+.endif 
+
+
 	.macro _dbg_prt_regs
 	.if DEBUG 
 		call print_registers    
@@ -44,9 +52,8 @@
 	.endif ; DEBUG 
 	.endm 
 
-.if DEBUG 
 
-;    .area CODE
+.if DEBUG 
 
 ;--------------------
 ; print content at address in hex.
@@ -77,19 +84,19 @@ prt_peek::
 
 ; turn LED on 
 ledon:
-    bset PC_ODR,#LED2_BIT
+    bset LED_PORT+GPIO_ODR,#LED_BIT
     ret 
 
 ; turn LED off 
 ledoff:
-    bres PC_ODR,#LED2_BIT 
+    bres LED_PORT+GPIO_ODR,#LED_BIT 
     ret 
 
 ; invert LED status 
 ledtoggle:
-    ld a,#LED2_MASK
-    xor a,PC_ODR
-    ld PC_ODR,a
+    ld a,#LED_MASK
+    xor a,LED_PORT+GPIO_ODR
+    ld LED_PORT+GPIO_ODR,a
     ret 
 
 left_paren:
@@ -174,7 +181,7 @@ print_registers::
 	ldw (SAV_ACC16,sp),x 
 	ldw x,out 
 	ldw (SAV_OUT,sp),x
-	ldw x,#uart1_putc
+	ldw x,#uart_putc
 	ldw out,x 
 	ldw x,#STATES
 	call puts

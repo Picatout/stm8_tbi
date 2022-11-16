@@ -29,38 +29,27 @@
 ;   print_hex  print hex value from A 
 ;------------------------------
 
-    .module TERMINAL
-
+.if SEPARATE 
+    .module TERMINAL  
     .include "config.inc"
 
-.if SEPARATE
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "tbi_macros.inc" 
+    .area CODE 
 .endif 
 
-;    .area CODE 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;   UART1 subroutines
+;;   UART subroutines
 ;;   used for user interface 
 ;;   communication channel.
 ;;   settings: 
 ;;		115200 8N1 no flow control
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;---------------------------------------
-;	.area CODE 
-;---------------------------------------
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Uart1 intterrupt handler 
 ;;; on receive character 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;--------------------------
-; UART1 receive character
+; UART receive character
 ; in a FIFO buffer 
 ; CTRL+C (ASCII 3)
 ; cancel program execution
@@ -69,9 +58,9 @@
 ; CTLR+Z erase EEPROM autorun 
 ;        information and reboot
 ;--------------------------
-Uart1RxHandler: ; console receive char 
-	btjf UART1_SR,#UART_SR_RXNE,5$
-	ld a,UART1_DR 
+UartRxHandler: ; console receive char 
+	btjf UART_SR,#UART_SR_RXNE,5$ 
+	ld a,UART_DR 
 	cp a,#CTRL_C 
 	jrne 2$
 	jp user_interrupted
@@ -99,20 +88,20 @@ Uart1RxHandler: ; console receive char
 
 
 ;---------------------------------------------
-; initialize UART1, 115200 8N1
+; initialize UART, 115200 8N1
 ; called from cold_start in hardware_init.asm 
 ; input:
 ;	none
 ; output:
 ;   none
 ;---------------------------------------------
-uart1_init:
-    bset PA_DDR,#UART1_TX_PIN
-    bset PA_CR1,#UART1_TX_PIN 
-    bset PA_CR2,#UART1_TX_PIN 
-; enable UART1 clock
-	bset CLK_PCKENR1,#CLK_PCKENR1_UART1	
-uart1_set_baud: 
+uart_init:
+	bset UART_PORT_DDR,#UART_TX_PIN 
+    bset UART_PORT_CR1,#UART_TX_PIN 
+    bset UART_PORT_CR2,#UART_TX_PIN 
+; enable UART clock
+	bset CLK_PCKENR1,#UART_PCKEN 	
+uart_set_baud: 
 	push a 
 ; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
 ; 1) check clock source, HSI at 16Mhz or HSE at 8Mhz  
@@ -120,17 +109,17 @@ uart1_set_baud:
 	cp a,CLK_CMSR 
 	jreq 2$ 
 1$: ; 8 Mhz 	
-	mov UART1_BRR2,#0x05 ; must be loaded first
-	mov UART1_BRR1,#0x4
+	mov UART_BRR2,#0x05 ; must be loaded first
+	mov UART_BRR1,#0x4
 	jra 3$
 2$: ; 16 Mhz 	
-	mov UART1_BRR2,#0x0b ; must be loaded first
-	mov UART1_BRR1,#0x08
+	mov UART_BRR2,#0x0b ; must be loaded first
+	mov UART_BRR1,#0x08
 3$:
-    clr UART1_DR
-	mov UART1_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
-	bset UART1_CR2,#UART_CR2_SBK
-    btjf UART1_SR,#UART_SR_TC,.
+    clr UART_DR
+	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
+	bset UART_CR2,#UART_CR2_SBK
+    btjf UART_SR,#UART_SR_TC,.
     clr rx1_head 
 	clr rx1_tail
 	pop a  
@@ -140,13 +129,13 @@ uart1_set_baud:
 ;---------------------------------
 ;  set output vector 
 ;  input:
-;     A     STDOUT -> uart1 
+;     A     STDOUT -> uart 
 ;           BUFOUT -> [ptr16]
 ;     X     buffer address 
 ;---------------------------------
 set_output:
 	ldw ptr16,x 
-	ldw x,#uart1_putc 
+	ldw x,#uart_putc 
 	cp a,#STDOUT 
 	jreq 1$
 	cp a,#BUFOUT 
@@ -184,14 +173,14 @@ buf_putc:
 
 
 ;---------------------------------
-; uart1_putc
-; send a character via UART1
+; uart_putc
+; send a character via UART
 ; input:
 ;    A  	character to send
 ;---------------------------------
-uart1_putc:: 
-	btjf UART1_SR,#UART_SR_TXE,.
-	ld UART1_DR,a 
+uart_putc:: 
+	btjf UART_SR,#UART_SR_TXE,.
+	ld UART_DR,a 
 	ret 
 
 
@@ -204,22 +193,22 @@ uart1_putc::
 ;   Z     1 no character available
 ;---------------------------------
 qgetc::
-uart1_qgetc::
+uart_qgetc::
 	ld a,rx1_head 
 	sub a,rx1_tail 
 	ret 
 
 ;---------------------------------
-; wait character from UART1 
+; wait character from UART 
 ; input:
 ;   none
 ; output:
 ;   A 			char  
 ;--------------------------------	
 getc:: ;console input
-uart1_getc::
-	call uart1_qgetc
-	jreq uart1_getc 
+uart_getc::
+	call uart_qgetc
+	jreq uart_getc 
 	pushw x 
 ;; rx1_queue must be in page 0 	
 	ld a,#rx1_queue
@@ -290,7 +279,7 @@ get_escape:
 
 
 ;-----------------------------
-; send an ASCIZ string to UART1 
+; send an ASCIZ string to UART 
 ; input: 
 ;   x 		char * 
 ; output:

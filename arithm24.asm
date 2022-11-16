@@ -28,8 +28,12 @@
 ;;   N   Next element on xtack 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+.if SEPARATE 
+    .module ARITHM24  
+    .include "config.inc"
 
-;    .area CODE 
+    .area CODE 
+.endif 
 
 ;-------------------------------
 ;  duplacte T 

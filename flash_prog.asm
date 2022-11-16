@@ -21,17 +21,11 @@
 ;;;  FLASH, EEPROM and OPTION memory 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    .module IAP 
-
-
+.if SEPARATE 
+    .module FLASH_PROG 
     .include "config.inc"
 
-.if SEPARATE
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "tbi_macros.inc" 
+	.area CODE 
 .endif 
 
 ;----------------------------------

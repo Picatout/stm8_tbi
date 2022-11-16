@@ -26,6 +26,14 @@
 ;   on MCU block erase size. 
 ;----------------------------------
 
+.if SEPARATE 
+    .module FILES
+    .include "config.inc"
+
+	.area CODE 
+.endif 
+
+
 NO_LABEL: .asciz "Can't save, program not labeled."
 SIGNATURE: .ascii "TB"
 ERASED: .ascii "XX" ; erased file, replace signature. 

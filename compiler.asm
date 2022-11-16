@@ -21,19 +21,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-    .module COMPILER 
-
+.if SEPARATE 
+    .module COMPILER  
     .include "config.inc"
 
-.if SEPARATE
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "tbi_macros.inc" 
+    .area CODE 
 .endif 
 
-;    .area  CODE 
 
 ;-------------------------------------
 ; search text area for a line#

@@ -22,20 +22,12 @@
 ;  used by command LIST
 ;---------------------------------------
 
+.if SEPARATE 
     .module DECOMPILER 
-
     .include "config.inc"
 
-.if SEPARATE
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "tbi_macros.inc" 
+    .area CODE 
 .endif 
-
-
-;    .area  CODE 
 
 ;--------------------------
 ;  align text in buffer 

@@ -24,10 +24,11 @@
 
 	STACK_SIZE=140
 	STACK_EMPTY=RAM_SIZE-1  
-        CELL_SIZE=3
-        XSTACK_SIZE=20 ; 20 * int24
-        XSTACK_EMPTY=STACK_EMPTY-STACK_SIZE 
-	FRUN=0 ; flags run code in variable flags
+    CELL_SIZE=3
+    XSTACK_SIZE=20 ; 20 * int24
+    XSTACK_EMPTY=STACK_EMPTY-STACK_SIZE 
+	
+    FRUN=0 ; flags run code in variable flags
 	FTRAP=1 ; inside trap handler 
 	FLOOP=2 ; FOR loop in preparation 
 	FSLEEP=3 ; halt produit par la commande SLEEP 
@@ -43,17 +44,17 @@
 
 	RX_QUEUE_SIZE=8 
 
-        TIM2_CLK_FREQ=62500
+    TIM2_CLK_FREQ=62500
 
 	TIB_SIZE=80
-        PAD_SIZE=BLOCK_SIZE 
+    PAD_SIZE=BLOCK_SIZE 
 
-        NAME_MAX_LEN=15  ; CONST and DIM variables maximum length 
-        REC_XTRA_BYTES=5 
-        REC_LEN_MASK=31
+    NAME_MAX_LEN=15  ; CONST and DIM variables maximum length 
+    REC_XTRA_BYTES=5 
+    REC_LEN_MASK=31
 
-        STDOUT=1 ; output to uart1 
-        BUFOUT=3 ; buffered output  
+    STDOUT=1 ; output to uart
+    BUFOUT=3 ; buffered output  
 
 ;--------------------------------------
 ;   constantes related to Arduino 
@@ -110,15 +111,15 @@
     ; entry point of dictionary
     ; before calling 'search_dict'
     .macro _ldx_dict dict_name
-    ldw x,#dict_name+2
+        ldw x,#dict_name+2
     .endm 
 
     ; reset BASIC pointer
     ; to beginning of last token
     ; extracted except if it was end of line 
     .macro _unget_token
-    .byte 0x45,bp.saved, basicptr ; mov basicptr,bp.saved ; 1 cy, 3 bytes 
-    .byte 0x45,bp.saved+1,basicptr+1 ; mov basicptr+1,bp.saved+1 
+        .byte 0x45,bp.saved, basicptr ; mov basicptr,bp.saved ; 1 cy, 3 bytes 
+        .byte 0x45,bp.saved+1,basicptr+1 ; mov basicptr+1,bp.saved+1 
     .endm
 
     ;  increment variable in page 0 
@@ -130,9 +131,9 @@
     ;  save 4 bytes over _incw macro. 
     ;  use 6 bytes   
     .macro _incw.s v 
-    .byte 0x3c,v+1 ; inc v+1 short addressing mode, 2 bytes    
-    jrne .+4  ; 2 bytes 
-    .byte 0x3c,v   ; inc v short form, 2 bytes  
+        .byte 0x3c,v+1 ; inc v+1 short addressing mode, 2 bytes    
+        jrne .+4  ; 2 bytes 
+        .byte 0x3c,v   ; inc v short form, 2 bytes  
     .endm 
 
     ;  increment 16 bits variable
@@ -160,25 +161,25 @@
     
     ; extract next command token id 
     .macro _next_cmd 
-    ldw x,basicptr 
-    _get_char 
+        ldw x,basicptr 
+        _get_char 
     .endm
 
     ; get code address in x
     .macro _code_addr 
-    clrw x 
-    ld xl,a 
-    sllw x 
-    ldw x,(code_addr,x)
+        clrw x 
+        ld xl,a 
+        sllw x 
+        ldw x,(code_addr,x)
     .endm 
 
     ; call subroutine from index in a 
     .macro _call_code
-    clrw x 
-    ld xl,a
-    sllw x 
-    ldw x, (code_addr,x)
-    call (x)
+        clrw x 
+        ld xl,a
+        sllw x 
+        ldw x, (code_addr,x)
+        call (x)
     .endm 
 
 ;---------------------------------------
@@ -187,51 +188,51 @@
 ;----------------------------------------
     ; pop in A:X from XSTACK 
     .macro _xpop 
-    ld a,(y)
-    ldw x,y 
-    addw y,#CELL_SIZE 
+        ld a,(y)
+        ldw x,y 
+        addw y,#CELL_SIZE 
 ; last op in macro 
 ; so no need to do a tnzw x 
 ; after macro invocation
-    ldw x,(1,x) 
+        ldw x,(1,x) 
     .endm 
 
     ; push A:X  to XSTACK 
     .macro _xpush 
-    subw y,#CELL_SIZE
-    ld (y),a 
-    ldw (1,y),x 
+        subw y,#CELL_SIZE
+        ld (y),a 
+        ldw (1,y),x 
     .endm 
 
     ; drop from XSTACK 
     .macro _xdrop 
-    addw y,#CELL_SIZE 
+        addw y,#CELL_SIZE 
     .endm 
 
     ; @T fetch top xstack 
     .macro _at_top
-    ld a,(y)
-    ldw x,y 
-    ldw x,(1,x)
+        ld a,(y)
+        ldw x,y 
+        ldw x,(1,x)
     .endm 
 
     ; !T put on top of xtack 
     .macro _store_top 
-    ld (y),a 
-    ldw (1,y),x     
+        ld (y),a 
+        ldw (1,y),x     
     .endm 
 
     ; @N  fetch next on xstack 
     .macro _at_next 
-    ld a,(3,y)
-    ldw x,y 
-    ldw x,(4,x)
+        ld a,(3,y)
+        ldw x,y 
+        ldw x,(4,x)
     .endm 
 
     ; !N put next on xstack 
     .macro _store_next 
-    ld (3,y),a 
-    ldw (4,y),x 
+        ld (3,y),a 
+        ldw (4,y),x 
     .endm 
 
 ;---------------------------------
@@ -265,10 +266,10 @@ FILE_HEADER_SIZE = 4 ; bytes
 ;         0 not erased|not program.  
 ;--------------------
 	.macro _is_erased
-	pushw x 
-	ldw x,(x)
-    cpw x,ERASED 
-	popw x 
+	    pushw x 
+	    ldw x,(x)
+        cpw x,ERASED 
+	    popw x 
 	.endm 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -281,8 +282,27 @@ FILE_HEADER_SIZE = 4 ; bytes
 ;          0 no app signature  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
     .macro _qsign 
-	pushw x 
-	ldw x,(x)
-	cpw x,SIGNATURE ; "TB" 
-	popw x 
+	    pushw x 
+	    ldw x,(x)
+	    cpw x,SIGNATURE ; "TB" 
+	    popw x 
 	.endm 
+
+;------------------------------------
+;  board user LED control macros 
+;------------------------------------
+
+    .macro _led_on 
+        bset LED_PORT,#LED_BIT 
+    .endm 
+
+    .macro _led_off 
+        bres LED_PORT,#LED_BIT 
+    .endm 
+
+    .macro _led_toggle 
+        ld a,LED_PORT 
+        xor a,#LED_BIT 
+        ld LED_PORT,a 
+    .endm 
+

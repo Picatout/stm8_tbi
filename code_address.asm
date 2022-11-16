@@ -16,6 +16,15 @@
 ;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 
+.if SEPARATE 
+    .module PROC_TABLE 
+    .include "config.inc"
+
+    .area CODE 
+.endif 
+
+
+
 do_nothing:
     ret 
 

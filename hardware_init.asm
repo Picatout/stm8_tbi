@@ -20,16 +20,15 @@
 ;;; hardware initialisation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; 
 
+;------------------------
+; if unified compilation 
+; must be first in list 
+;-----------------------
+
     .module HW_INIT 
 
     .include "config.inc"
 
-	.include "inc/stm8s208.inc"
-  	.include "inc/nucleo_8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "config.inc" 
-	.include "tbi_macros.inc" 
   
 ;;-----------------------------------
     .area SSEG (ABS)
@@ -58,7 +57,11 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int4 EXTI1 gpio B external interrupts
 	int NonHandledInterrupt ;int5 EXTI2 gpio C external interrupts
 	int NonHandledInterrupt ;int6 EXTI3 gpio D external interrupts
+.if NUCLEO_8S208RB
 	int UserButtonHandler   ;int7 EXTI4 gpio E external interrupts
+.else 
+	int NonHandledInterrupt
+.endif 
 	int NonHandledInterrupt ;int8 beCAN RX interrupt
 	int NonHandledInterrupt ;int9 beCAN TX/ER/SC interrupt
 	int NonHandledInterrupt ;int10 SPI End of transfer
@@ -69,10 +72,18 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int15 TIM3 Update/overflow
 	int NonHandledInterrupt ;int16 TIM3 Capture/compare
 	int NonHandledInterrupt ;int17 UART1 TX completed
-	int Uart1RxHandler		;int18 UART1 RX full ; default user communication channel.
+.if NUCLEO_8S208RB  
+	int UartRxHandler		;int18 UART1 RX full 
+.else 
+	int NonHandledInterrupt ;int18 UART1 RX full 
+.endif 
 	int I2cIntHandler       ;int19 I2C 
 	int NonHandledInterrupt ;int20 UART3 TX completed
+.if NUCLEO_8S207K8  
+	int UartRxHandler 		;int21 UART3 RX full
+.else 
 	int NonHandledInterrupt ;int21 UART3 RX full
+.endif 
 	int NonHandledInterrupt ;int22 ADC2 end of conversion
 	int Timer4UpdateHandler	;int23 TIM4 update/overflow ; used as msec ticks counter
 	int NonHandledInterrupt ;int24 flash writing EOP/WR_PG_DIS
@@ -195,6 +206,7 @@ Timer4UpdateHandler:
 1$:	
 	iret 
 
+.if NUCLEO_8S208RB
 ;------------------------------------
 ; Triggered by pressing USER UserButton 
 ; on NUCLEO card.
@@ -204,7 +216,7 @@ Timer4UpdateHandler:
 UserButtonHandler:
 ; wait button release
 	clrw x ; debounce counter 
-1$: btjt PE_IDR,##USR_BTN_BIT,2$
+1$: btjt PE_IDR,#USR_BTN_BIT,2$
 	tnzw x 
 	jreq 1$
 	decw x 
@@ -216,7 +228,8 @@ UserButtonHandler:
     btjf flags,#FSLEEP,3$
 	bres flags,#FSLEEP 
 	iret
-3$:	; jpf user_interrupted
+3$:	
+.endif 
 
 user_interrupted:
 ; in case system infinite
@@ -233,8 +246,6 @@ UBTN_Handler_exit:
     ldw sp,x
 	rim 
 5$:	jp warm_start
-
-
 
 ;USER_ABORT: .asciz "\nProgram aborted by user.\n"
 
@@ -363,11 +374,12 @@ cold_start:
 	ld PF_CR1,a 
 	ld PG_CR1,a 
 	ld PI_CR1,a
-; set LD2 pin as output 
-    bset PC_CR1,#LED2_BIT
-    bset PC_CR2,#LED2_BIT
-    bset PC_DDR,#LED2_BIT
-	bres PC_ODR,#LED2_BIT ; turn off LD2 
+; set user LED pin as output 
+    bset LED_PORT+GPIO_CR1,#LED_BIT
+    bset LED_PORT+GPIO_CR2,#LED_BIT
+    bset LED_PORT+ GPIO_DDR,#LED_BIT
+	bres LED_PORT+GPIO_ODR,#LED_BIT ; turn on user LED  
+
 ; disable schmitt triggers on Arduino CN4 analog inputs
 	mov ADC_TDRL,0x3f
 ; initialize auto wakeup with LSI clock
@@ -378,14 +390,16 @@ cold_start:
 	clrw x  
     call clock_init 
 	call timer2_init	
-; UART1 at 115200 BAUD
+; UART at 115200 BAUD
 ; used for user interface 
 ; via USB emulation through STLINK programmer.
-	ldw x,#uart1_putc 
+	ldw x,#uart_putc 
 	ldw out,x 
-	call uart1_init 
+	call uart_init
+.if NUCLEO_8S208RB	
 ; activate PE_4 (user button interrupt)
     bset PE_CR2,#USR_BTN_BIT 
+.endif 
 ; initialize TICKS timer 
 	call timer4_init
 ; display system information
