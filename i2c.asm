@@ -156,7 +156,7 @@ cmd_i2c_error:
     ldw x,#i2c_bytes_left 
     call puts 
     bres I2C_CR1,#I2C_CR1_PE  
-    jp warm_start  
+    jra 6$  
 0$: 
     ldw x,#i2c_error
     call puts 
@@ -184,8 +184,9 @@ cmd_i2c_error:
     ldw x,(x)
     call puts 
     clr i2c_status
+6$:    
+; reset AFR to default peripheral 
     jp warm_start   
-
 
 ;--------------------------------
 ; BASIC: I2C.open freq 
@@ -196,13 +197,6 @@ cmd_i2c_error:
 ;--------------------------------
 cmd_i2c_open:
 ; program i2c alternate function on PB4 and PB5
-    clr farptr 
-    ldw x,#AFR 
-    ldw ptr16,x 
-    ld a,AFR 
-    or a,#(1<<AFR6_I2C)
-    clrw x 
-    call write_byte 
 ; get argument on xstack 
     call arg_list 
     cp a,#1 
@@ -268,15 +262,6 @@ cmd_i2c_close:
     nop 
 ; disable peripheral clock 
 	bres CLK_PCKENR1,#CLK_PCKENR1_I2C 	
-; restore main functions on PB4 and PB5 
-; program i2c alternate function on PB4 and PB5
-    clr farptr 
-    ldw x,#AFR 
-    ldw ptr16,x 
-    ld a,AFR 
-    and a,#~(1<<AFR6_I2C)
-    clrw x 
-    call write_byte 
     ret
 
 ;----------------------------

@@ -1,3 +1,39 @@
+### 2022-11-17
+
+* Commit 16:40
+
+*  __Notes:__ 
+
+1. Sur la carte __NUCLEO_8S207K8__ le périphérique I2C n'est accessible que comme fonction alterntive sur les broches 
+__PB4__ __(CN4:7)__ et __PB5__ __(CN4:8)__. Pour utiliser ce périphérique il faut donc activé le bit 
+__6__ dans le registre __OPT2__ __(0x4803)__.  Ensuite pour activer la fonction alternative il faut réinitialisé le MCU. Ceci peut-être fait
+sur la ligne de commande de la façon suivante:
+```
+>LET A=PEEK($4803) OR 64:WRITE $4803,A:REBOOT 
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R0
+
+>
+```   
+Pour désactiver cette fonction alternative il faut faire:
+```
+>LET A=NOT 64 AND PEEK($4803):WRITE $4803,A: REBOOT
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R0
+
+>
+``` 
+
+2.  Sur la carte __NUCLEO_8S207K8__ le périphérique __SPI__ n'est pas relié aux connecteur __CN3__ même si le [manuel de l'utilisateur](docs/NUCLEO-8S207K8/) laisse
+entendre qu'il pourrait l'être. Pourtant tel qu'indiqué sur [la schématique](nucleo-32-S207K8-B03_Schematic.pdf) il n'y a aucune facilité sur la carte pour remplacer __TMR2_CH1 (CN3:13)__ par
+__SPI_NSS__ et __TMR2_CH2 (CN3_14)__ par __SPI_MOSI__.  Seul la broche __SPI_MISO (CN3:15)__ est disponible.  Une bourde de conception.  
+
 ### 2022-11-16
 
 * commit 21:05 

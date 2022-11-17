@@ -2756,7 +2756,7 @@ beep_1khz::
 
 ;-----------------------
 ; BASIC: TONE expr1,expr2
-; used TIMER2 channel 1
+; use TIMER2 channel 1
 ; to produce a tone 
 ; arguments:
 ;    expr1   frequency 
@@ -4343,7 +4343,7 @@ read01:
 	jra data_error 
 
 ;---------------------------------
-; BASIC: SPIEN clkdiv, 0|1  
+; BASIC: SPI.EN clkdiv, 0|1  
 ; clkdiv -> {0..7} Fspi=Fclk/2^(n+1)
 ; if clkdiv==-1 disable SPI
 ; 0|1 -> disable|enable  
@@ -4411,7 +4411,7 @@ spi_rcv_byte:
 	ret
 
 ;------------------------------
-; BASIC: SPIWR byte [,byte]
+; BASIC: SPI.WR byte [,byte]
 ; write 1 or more byte
 ;------------------------------
 cmd_spi_write:
@@ -4430,7 +4430,7 @@ cmd_spi_write:
 
 
 ;-------------------------------
-; BASIC: SPIRD 	
+; BASIC: SPI.RD 	
 ; read one byte from SPI 
 ;-------------------------------
 func_spi_read:
@@ -4441,7 +4441,7 @@ func_spi_read:
 	ret 
 
 ;------------------------------
-; BASIC: SPISEL 0|1 
+; BASIC: SPI.SEL 0|1 
 ; set state of ~CS line
 ; 0|1 deselect|select  
 ;------------------------------
