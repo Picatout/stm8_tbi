@@ -1,6 +1,24 @@
 ### 2022-11-16
 
-*  Commit 9:34 hre et création de la branche test à partir de la branche 2.1R1 
+* commit 21:05 
+
+* Testé i2c avec le programme [i2c_oled.bas](BASIC/i2c_oled.bas) avec succès.
+
+* Testé i2c avec le programme [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) avec succès.
+
+* Modifié *check_forbidden*.
+
+* Modifié commande **I2C_OPEN** et **I2C.CLOSE**  pour utlisé le périphérique I2C sur les broches alternatives PB4,PB5 communes aux 2 cartes.
+
+* Modifié *next_line* pour ajouter un CR après l'impression du numéro de ligne.
+
+*  Travail sur [i2c.asm](i2c.asm)
+
+*  Mise à jour du manuel de référence [tbi_reference.md](tbi_reference.md).
+
+*  Réordonné la séquence de sélection dans routine *factor*. 
+
+*  Commit 9:34 hre  
 
 *  Modifié  [build.sh](build.sh)
 

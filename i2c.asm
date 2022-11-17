@@ -195,8 +195,20 @@ cmd_i2c_error:
 ;   SCL in Khz 
 ;--------------------------------
 cmd_i2c_open:
-    ld a,#LIT_IDX 
-    call expect  
+; program i2c alternate function on PB4 and PB5
+    clr farptr 
+    ldw x,#AFR 
+    ldw ptr16,x 
+    ld a,AFR 
+    or a,#(1<<AFR6_I2C)
+    clrw x 
+    call write_byte 
+; get argument on xstack 
+    call arg_list 
+    cp a,#1 
+    jreq 1$
+    jp syntax_error 
+1$:
 ; enable peripheral clock
 	bset CLK_PCKENR1,#CLK_PCKENR1_I2C 	
     ld a,#16 ; peripheral clock frequency 
@@ -204,9 +216,9 @@ cmd_i2c_open:
     ld I2C_FREQR,a
 ; SCL fequency parameter 
     clr I2C_CCRH 
-    call get_int24 
+    _xpop   ; A:X freq. 
     pushw y 
-    pushw x 
+    pushw x ; A is ignored  
     ldw y,x 
     ldw x,#16000 ; Fmaster = 16000 Khz 
     divw x,y
@@ -256,6 +268,15 @@ cmd_i2c_close:
     nop 
 ; disable peripheral clock 
 	bres CLK_PCKENR1,#CLK_PCKENR1_I2C 	
+; restore main functions on PB4 and PB5 
+; program i2c alternate function on PB4 and PB5
+    clr farptr 
+    ldw x,#AFR 
+    ldw ptr16,x 
+    ld a,AFR 
+    and a,#~(1<<AFR6_I2C)
+    clrw x 
+    call write_byte 
     ret
 
 ;----------------------------
@@ -311,11 +332,11 @@ start_op:
     ld a,#(1<<I2C_ITR_ITBUFEN)|(1<<I2C_ITR_ITERREN)|(1<<I2C_ITR_ITEVTEN) 
     ld I2C_ITR,a 
     ld a,#(1<<I2C_CR2_START)|(1<<I2C_CR2_ACK)
-    ld I2C_CR2,a 
+    ld I2C_CR2,a      
 1$: btjt i2c_status,#I2C_STATUS_DONE,9$ 
     ldw x,timer 
     jrne 1$ 
-    call i2c_error; operation timeout 
+    call cmd_i2c_error; operation timeout 
 9$: 
     ret 
 

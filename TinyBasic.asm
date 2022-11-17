@@ -395,7 +395,7 @@ call dump_prog
 ;; This is the interpreter loop
 ;; for each BASIC code line. 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
-interp_loop: ; 22 cy 
+interp_loop:   
     _next_cmd ; 6 cy 
 .if 0; DEBUG 
 	_tp 'I 
@@ -403,7 +403,7 @@ interp_loop: ; 22 cy
 .else 
 	_call_code ; 10 cy + 4 cy for sbr return 
 .endif 	 
-	jra interp_loop ; 2 cy 
+	jra interp_loop ; 2 cy , total 22 cy
 
 
 next_line:
@@ -435,6 +435,8 @@ next_line:
 	btjf flags,#FTRACE,2$
 	ldw x,[line.addr]
 	call prt_i16
+	ld a,#CR 
+	call putc 
 2$:	ret 
 
 ;--------------------------
@@ -455,7 +457,7 @@ next_token::
 .if 0; DEBUG
 	_tp 'N 
 .endif 	
-	 ret ; 4 cy = 12 cy 
+	 ret ; 4 cy , total 12 cy 
 
 
 ;-------------------------
@@ -981,15 +983,14 @@ factor:
 	jra 18$
 9$: 
 	cp a,#LPAREN_IDX
-	jreq 10$
-; must be a function 
-	_call_code 
-	jra 18$ 
-10$:	
+	jrne 10$
 	call expression
 	ld a,#RPAREN_IDX 
 	call expect
 	_xpop 
+	jra 18$ 
+10$: ; must be a function 
+	_call_code 
 18$: 
 	tnz (NEG,sp)
 	jreq 20$
@@ -3233,10 +3234,14 @@ check_forbidden:
 	ldw x,ptr16 
 	cpw x,#app_space
 	jruge rw_zone 
-	cpw x,#EEPROM_BASE
-	jrult forbidden 
-	cpw x,#EEPROM_END 
-	jruge forbidden
+	cpw x,#OPTION_END  
+	jrugt forbidden  
+	cpw x,#OPTION_BASE  
+	jruge rw_zone 
+1$:	cpw x,#EEPROM_END 
+	jrugt forbidden 
+	cpw x,#EEPROM_BASE 
+	jrult forbidden
 	ret 
 forbidden:
 	ld a,#ERR_BAD_VALUE
