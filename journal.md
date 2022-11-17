@@ -32,7 +32,7 @@ version 2.5R0
 
 2.  Sur la carte __NUCLEO_8S207K8__ le périphérique __SPI__ n'est pas relié aux connecteur __CN3__ même si le [manuel de l'utilisateur](docs/NUCLEO-8S207K8/) laisse
 entendre qu'il pourrait l'être. Pourtant tel qu'indiqué sur [la schématique](nucleo-32-S207K8-B03_Schematic.pdf) il n'y a aucune facilité sur la carte pour remplacer __TMR2_CH1 (CN3:13)__ par
-__SPI_NSS__ et __TMR2_CH2 (CN3_14)__ par __SPI_MOSI__.  Seul la broche __SPI_MISO (CN3:15)__ est disponible.  Une bourde de conception.  
+__SPI_NSS__ et __TMR2_CH2 (CN3_14)__ par __SPI_MOSI__.  Seul la broche __SPI_MISO (CN3:15)__ est disponible.  Une bourde de conception de la carte.  
 
 ### 2022-11-16
 
@@ -461,7 +461,6 @@ syntax error
 
 ### 2022-10-29
 
-* Création de la branche V3. 
 * Début du travail d'optimisation de l'interpréteur à partir de la version 2.1R2 
 
 * Avant optimisation 
