@@ -1,6 +1,6 @@
 NEW 
 10 REM  exemple d'utilisation de la pile 
-20 INPUT "nombre "N : IF N=0 END 
+20 INPUT "nombre "N : IF N=0 : END 
 30 PUSH N 
 32 GOSUB SQUARE   
 34 PRINT POP 

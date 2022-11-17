@@ -42,19 +42,14 @@
 ;  * variables return their value in A:X 
 ;
 ;  * relation, expression return value on xstack 
-;    and A=TK_INTGR or else if no expression.
 ;--------------------------------------------------- 
 
-    .module STM8_TBI
 
+.if SEPARATE 
+    .module TINY_BASIC 
     .include "config.inc"
 
-.if SEPARATE
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "tbi_macros.inc" 
+	.area CODE 
 .endif 
 
 
@@ -84,7 +79,7 @@ strlen::
 ;   X 		char* first string 
 ;   Y       char* second string 
 ; output:
-;   A 		0 not == |1 ==  
+;   Z flag 	0 not == | 1 ==  
 ;-------------------------------------
 strcmp:
 	ld a,(x)
@@ -198,37 +193,31 @@ clear_vars:
 ;  information 
 ;-----------------------
 	MAJOR=2
-	MINOR=1
-	REV=2
+	MINOR=5
+	REV=0
 
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
 
 system_information:
 	ldw x,#software 
 	call puts 
-	mov acc8,#MAJOR 
+	ld a,#MAJOR 
 	clrw x 
-	ldw acc24,x
+	rlwa x 
 	mov base, #10 
-	call prt_acc24 
+	call prt_i16 
 	ld a,#'.
 	call putc 
-	mov acc8,#MINOR 
-	clrw x 
-	ldw acc24,x 
-	clr a
-	call itoa 
-	incw x 
-	call puts 
+	ld a,#MINOR 
+	clrw x
+	rlwa x  
+	call prt_i16   
 	ld a,#'R 
 	call putc 
-	mov acc8,#REV 
+	ld a,#REV 
 	clrw x 
-	ldw acc24,x
-	clr a
-	call itoa 
-	incw x 
-	call puts  
+	rlwa x 
+	call prt_i16
 	ld a,#CR 
 	call putc
 ;call test 
@@ -236,7 +225,7 @@ system_information:
 
 warm_init:
 	ldw y,#XSTACK_EMPTY
-	ldw x,#uart1_putc 
+	ldw x,#uart_putc 
 	ldw out,x ; standard output   
 	clr flags 
 	clr loop_depth 
@@ -307,6 +296,21 @@ syntax_error::
 tb_error::
 	btjt flags,#FCOMP,1$
 	push a 
+.if DEBUG 	
+	clr farptr 
+	ldw x,line.addr 
+	ldw ptr16,x 
+	ld a,(2,x)
+	clrw x 
+	ld xl,a 
+	call hex_dump 
+	ldw x,basicptr 
+	call prt_i16 
+	ldw x,bp.saved
+	call prt_i16 
+	ld a,#CR 
+	call putc 
+.endif 
 	btjf flags,#FRUN,0$ 
 	ldw x, #rt_msg 
 	call puts 
@@ -320,14 +324,14 @@ tb_error::
 	ldw x,(x)
 	call puts
 	ldw x,basicptr 
-	ld a,in 
+	subw x,line.addr 
+	ld a,xl 
+	sub a,#3 
+	ldw x,line.addr 
 	call prt_basic_line
 	ldw x,#tk_id 
 	call puts 
-	ld a,in.saved 
-	clrw x 
-	ld xl,a 
-	addw x,basicptr 
+	ldw x,basicptr 
 	ld a,(x)
 	clrw x 
 	ld xl,a 
@@ -371,132 +375,69 @@ cmd_line: ; user interface
 	tnz count 
 	jreq cmd_line
 	call compile
+	tnz a 
+	jreq cmd_line ; not direct command 
+;; direct command 
+;; interpret 
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; dump compiled BASIC 	
-;pushw y 
-;ldw x,txtbgn  
-;ldw y,txtend
-;ldw acc16,x   
-;subw y,acc16 
-;call hex_dump
-;popw y 
+.if 0; DEBUG 
+ldw x,#pad 
+ldw txtbgn,x 
+addw x,#128
+ldw txtend,x 
+call dump_prog 
+.endif 
 ;;;;;;;;;;;;;;;;;;;;;;
+	jra interp_loop 
 
-; if text begin with a line number
-; the compiler set count to zero    
-; so code is not interpreted
-	tnz count 
-	jreq cmd_line
-	
-; if direct command 
-; it's ready to interpret 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; This is the interpreter loop
 ;; for each BASIC code line. 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
-interpreter: 
-	ld a,in 
-	cp a,count 
-	jrmi interp_loop
+interp_loop:   
+    _next_cmd ; 6 cy 
+.if 0; DEBUG 
+	_tp 'I 
+	_call_code 
+.else 
+	_call_code ; 10 cy + 4 cy for sbr return 
+.endif 	 
+	jra interp_loop ; 2 cy , total 22 cy
+
+
 next_line:
-	btjf flags, #FRUN, cmd_line
-	ldw x,basicptr
-	addw x,in.w 
+; if FRUN is reset it is a command line
+	btjt flags, #FRUN, 1$
+	ldw y,#XSTACK_EMPTY 
+	ldw x,#STACK_EMPTY 
+	ldw sp,x 
+	jra cmd_line
+; otherwise it is a program,
+; goto next line.  
+1$:	ldw x,line.addr 
+	ld a,(2,x)
+	ld acc8,a 
+	clr acc16 
+	addw x,acc16 	
 	cpw x,txtend 
 	jrmi 0$
-	call cmd_end ; end program 
-0$:	ldw basicptr,x ; start of next line  
+; end of program reached. 	
+	jp kword_end 
+; set pointers to next line 	
+0$:	ldw line.addr,x 
 	ld a,(2,x)
-	ld count,a 
-	mov in,#3 ; skip first 3 bytes of line 
-	btjf flags,#FTRACE,interp_loop 
-	ldw x,(x)
+	ld count,a ; line length 
+; skip first 3 bytes of line 
+; line# and line length 	 
+	addw x,#3 
+	ldw basicptr,x 
+	btjf flags,#FTRACE,2$
+	ldw x,[line.addr]
 	call prt_i16
-interp_loop:
-	call next_token
-	cp a,#TK_CMD
-	jrne 1$
-	_get_addr
-	call(x)
-	jra interp_loop 
-1$:	 
-	cp a,#TK_LABEL
-	jrne 2$
-	call let_dvar  
-	jra interp_loop 
-2$:	
-	cp a,#TK_VAR
-	jrne 3$
-	call let_var  
-	jra interp_loop 
-3$:	
-	cp a,#TK_ARRAY 
-	jrne 4$
-	call let_array 
-	jra interp_loop
-4$: 
-	tnz a  
-	jreq next_line 
-5$:
-	cp a,#TK_COLON 
-	jreq interp_loop
-	jp syntax_error 
-
-
-;----------------------
-; when a label is met 
-; at interp_loop
-; it may be a variable 
-; assignement to DIM 
-; variable 
-;----------------------
-	VAR_NAME=1 
-	REC_LEN=3
-	VSIZE=4 
-let_dvar:
-	_vars VSIZE 
-	ldw (VAR_NAME,sp),x
-	clr (REC_LEN,sp) 
-	call skip_string 
-	ldw x,basicptr 
-	addw x,in.w 
-	ld a,(x)
-	cp a,#TK_EQUAL 
-	jreq dvar_assign
-	btjt flags,#FRUN,1$
-	jp syntax_error
-1$: _drop VSIZE 
-	ret 
-dvar_assign: 	 
-; dvar assignment 
-	_inc in  
-	call condition  
-	cp a,#TK_INTGR 
-	jreq 1$ 
-0$:	jp syntax_error 
-1$: 
-	ldw x,(VAR_NAME,sp) ; pointer to var name 
-	call strlen 
-	add a,#REC_XTRA_BYTES
-	ld (REC_LEN+1,sp),a 
-	call search_name 
-	tnzw x 
-	jreq 0$ 
-	ld a,(x)
-	jrpl 2$
-	ld a,#ERR_RD_ONLY 
-	jp tb_error 
-2$:
-	addw x,(REC_LEN,sp)
-	subw x,#CELL_SIZE 
-	ldw ptr16,x
-	_xpop 
-	ld [ptr16],a 
-	_inc ptr8 
-	ldw [ptr16],x 
-9$: _drop VSIZE 	
-	ret 
-
+	ld a,#CR 
+	call putc 
+2$:	ret 
 
 ;--------------------------
 ; extract next token from
@@ -508,20 +449,16 @@ dvar_assign:
 ;   X 		*token_value 
 ;----------------------------------------
 next_token::
-;	clrw x 
-	ld a,in 
-	ld in.saved,a ; in case "_unget_token" needed 
-; don't replace sub by "cp a,count" 
-; if end of line must return with A=0   	
-	sub a,count 
-	jreq 9$ ; end of line 
-0$: 
-	ldw x,basicptr 
-	addw x,in.w 
-	ld a,(x)
-	incw x
-	_inc in   
-9$: ret 
+	.byte 0xbe, basicptr ; ldw x,basicptr ; 2 cy,  2 bytes 
+	.byte 0xbf, bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
+	ld a,(x) ; 1 cy 
+	incw x   ; 1 cy 
+	.byte 0xbf,basicptr  ; ldw basicptr, x ; 2 cy 
+.if 0; DEBUG
+	_tp 'N 
+.endif 	
+	 ret ; 4 cy , total 12 cy 
+
 
 ;-------------------------
 ;  skip .asciz in BASIC line 
@@ -534,13 +471,25 @@ next_token::
 skip_string:
 	ld a,(x)
 	jreq 1$
-	incw x 
+	incw x
+	dec count  
 	jra skip_string 
-1$: incw x 	
-	subw x,basicptr 
-	ldw in.w,x 
+1$: incw x
+	dec count 
+	ldw basicptr,x 
 	ret 
 
+skip_label:
+	ldw x,basicptr 
+1$:	ld a,(x)
+	jreq 8$
+	incw x 
+	jra 1$ 
+8$: incw x 
+	ldw basicptr,x 
+	ret 
+
+	
 ;--------------------
 ; extract int24_t  
 ; value from BASIC 
@@ -551,12 +500,14 @@ skip_string:
 ;    A:X   int24  
 ;--------------------
 get_int24:
+	pushw y 
+	ldw y,x 
 	ld a,(x)
 	ldw x,(1,x)
-; skip 3 bytes 
-	_inc in 
-	_inc in 
-	_inc in 
+; skip 3 bytes
+	addw y,#3 
+	ldw basicptr,y 
+	popw y 
 	ret 
 
 
@@ -634,7 +585,7 @@ itoa::
 	call neg_acc24
 1$:
 ; initialize string pointer 
-; build string below tib
+; build string before tib
 	ldw x,#tib 
 ;	addw x,#TIB_SIZE
 	decw x 
@@ -669,12 +620,7 @@ itoa_loop:
     ld (x),a
 	inc (LEN,sp)
 10$:
-; add a space
-	decw x 
-	ld a,#SPACE 
-	ld (x),a
 	ld a,(LEN,sp)
-	inc a 
 	_drop VSIZE
 	ret
 
@@ -761,7 +707,9 @@ atoi24::
 atoi_exit:
 	_xpop 
 	ld acc24,a 
-	ldw acc16,x  
+	ldw acc16,x
+	ldw y,(XTEMP,sp)
+	decw y ; after number   
 	_drop VSIZE
 	ret
 
@@ -777,8 +725,7 @@ atoi_exit:
 ;	X 		dictionary entry point, name field  
 ;   y		.asciz name to search 
 ; output:
-;  A 		TK_CMD|TK_IFUNC|TK_NONE 
-;  X		routine address|TK_OP 
+;  A		TOKEN_IDX  
 ;---------------------------------
 	NLEN=1 ; cmd length 
 	XSAVE=2
@@ -791,7 +738,6 @@ search_next:
 	ldw (XSAVE,sp),x 
 ; get name length in dictionary	
 	ld a,(x)
-	and a,#0xf 
 	ld (NLEN,sp),a  
 	ldw y,(YSAVE,sp) ; name pointer 
 	incw x 
@@ -809,9 +755,8 @@ cp_loop:
 no_match:
 	ldw x,(XSAVE,sp) 
 	subw x,#2 ; move X to link field
-	push #TK_NONE 
+	ld a,#NONE_IDX   
 	ldw x,(x) ; next word link 
-	pop a ; TK_NONE 
 	jreq search_exit  ; not found  
 ;try next 
 	jra search_next
@@ -820,19 +765,12 @@ str_match:
 	jrne no_match
 	ldw x,(XSAVE,sp)
 	ld a,(X)
-	ld (NLEN,sp),a ; needed to test keyword type  
-	and a,#NLEN_MASK 
-; move x to procedure address field 	
-	inc a 
+; move x to token field 	
+	add a,#2 ; to skip length byte and 0 at end  
 	ld acc8,a 
 	clr acc16 
 	addw x,acc16 
-	ldw x,(x) ; routine address  
-;determine keyword type bits 7:4 
-	ld a,(NLEN,sp)
-	and a,#KW_TYPE_MASK 
-	swap a 
-	add a,#128
+	ld a,(x) ; token index
 search_exit: 
 	_drop VSIZE 
 	ret 
@@ -884,10 +822,17 @@ expect:
 ; between ()
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 func_args:
-	ld a,#TK_LPAREN 
+	ld a,#LPAREN_IDX 
 	call expect 
+	call arg_list 
+	push a 
+	ld a,#RPAREN_IDX 
+	call expect 
+	pop a 
+	ret 
+
 ; expected to continue in arg_list 
-; caller must check for TK_RPAREN 
+; caller must check for RPAREN_IDX 
 
 ;-------------------------------
 ; parse embedded BASIC routines 
@@ -898,20 +843,16 @@ func_args:
 ; input:
 ;   none
 ; output:
-;   xstack{n}   arguments pushed on xstack
+;   dstack{n}   arguments pushed on xstack
 ;   A 	number of arguments pushed on xstack  
 ;--------------------------------
 arg_list:
 	push #0
 1$:	call condition 
-	tnz a 
-	jreq 7$  
 	inc (1,sp)
 	call next_token 
-	cp a,#TK_COMMA 
+	cp a,#COMMA_IDX 
 	jreq 1$ 
-	cp a,#TK_RPAREN
-	jreq 7$
 	_unget_token 
 7$:	pop a  
 	ret 
@@ -938,7 +879,7 @@ arg_list:
 ; return array element
 ; address from @(expr)
 ; input:
-;   A 		TK_ARRAY
+;   A 		ARRAY_IDX
 ; output:
 ;	X 		element address 
 ;----------------------
@@ -979,41 +920,44 @@ get_array_element:
 	NEG=1
 	VSIZE=1
 factor:
+;_tp 'M 
 	_vars VSIZE 
 	clr (NEG,sp)
 	call next_token
-	tnz a 
-	jrne 1$ 
-	jp 22$ 
-1$:	cp a,#TK_PLUS 
+	cp a,#CMD_END
+	jrugt 1$ 
+	jp syntax_error
+1$:
+	cp a,#ADD_IDX 
 	jreq 2$
-	cp a,#TK_MINUS 
+	cp a,#SUB_IDX 
 	jrne 4$ 
 	cpl (NEG,sp)
 2$:	
 	call next_token
 4$:
-	tnz a 
-	jrne 41$ 
-	jp syntax_error  
-41$:	
-	cp a,#TK_IFUNC 
-	jrne 5$ 
-	_get_addr 
-	call (x); result in A:X  
-	jra 18$ 
+	cp a,#CMD_END
+	jrugt 5$ 
+	jp syntax_error  	
 5$:
-	cp a,#TK_INTGR
+	cp a,#LIT_IDX 
 	jrne 6$
 	call get_int24 ; A:X
 	jra 18$
 6$:
-	cp a,#TK_ARRAY
+	cp a,#LITC_IDX 
+	jrne 64$
+	_get_char 
+	clrw x
+	rlwa x 
+	jra 18$
+64$:
+	cp a,#ARRAY_IDX 
 	jrne 7$
 	call get_array_element
     jra 71$
 7$:
-	cp a,#TK_VAR 
+	cp a,#VAR_IDX 
 	jrne 8$
 	_get_addr 
 71$: ; put value in A:X
@@ -1021,7 +965,7 @@ factor:
 	ldw x,(1,x)
 	jra 18$
 8$:
-	cp a,#TK_LABEL 
+	cp a,#LABEL_IDX  
 	jrne 9$
 	pushw y  
 	pushw x 
@@ -1032,40 +976,28 @@ factor:
 	call search_name
 	tnzw x 
 	jrne 82$ 
-	popw y 
-	jra 16$
+	jp syntax_error
 82$:
 	popw y   
 	call get_value ; in A:X 
 	jra 18$
 9$: 
-	cp a,#TK_CFUNC 
-	jrne 12$
-	_get_addr 
-	call(x)
-	clrw x 
-	rlwa x  ; char>int24 in A:X 
-	jra 18$ 	 
-12$:			
-	cp a,#TK_LPAREN
-	jrne 16$
+	cp a,#LPAREN_IDX
+	jrne 10$
 	call expression
-	ld a,#TK_RPAREN 
+	ld a,#RPAREN_IDX 
 	call expect
 	_xpop 
-	jra 18$	
-16$:
-	_unget_token 
-	clr a 
-	jra 22$ 
+	jra 18$ 
+10$: ; must be a function 
+	_call_code 
 18$: 
 	tnz (NEG,sp)
 	jreq 20$
 	call neg_ax   
 20$:
+;_tp 'N 
 	_xpush 
-	ld a,#TK_INTGR
-22$:
 	_drop VSIZE
 	ret
 
@@ -1079,34 +1011,30 @@ factor:
 	MULOP=1
 	VSIZE=1
 term:
+;_tp 'K 
 	_vars VSIZE
 ; first factor 	
 	call factor
-	tnz a 
-	jreq term_exit  
 term01:	 ; check for  operator '*'|'/'|'%' 
 	call next_token
 	ld (MULOP,sp),a
-	and a,#TK_GRP_MASK
-	cp a,#TK_GRP_MULT
-	jreq 1$
-	ld a,#TK_INTGR
-	_unget_token 
+	cp a,#DIV_IDX 
+	jrmi 0$ 
+	cp a,#OP_ARITHM_LAST 
+	jrule 1$ 
+0$:	_unget_token 
 	jra term_exit 
 1$:	; got *|/|%
 ;second factor
 	call factor
-	tnz a 
-	jrne 2$ 
-	jp syntax_error 
-2$: ; select operation 	
+; select operation 	
 	ld a,(MULOP,sp) 
-	cp a,#TK_MULT 
+	cp a,#MULT_IDX 
 	jrne 3$
 ; '*' operator
 	call mul24 
 	jra term01
-3$: cp a,#TK_DIV 
+3$: cp a,#DIV_IDX 
 	jrne 4$ 
 ; '/' operator	
 	call div24 
@@ -1114,9 +1042,8 @@ term01:	 ; check for  operator '*'|'/'|'%'
 4$: ; '%' operator
 	call mod24
 	jra term01 
-9$: 
-	ld a,#TK_INTGR
 term_exit:
+;_tp 'L 
 	_drop VSIZE 
 	ret 
 
@@ -1130,28 +1057,23 @@ term_exit:
 	OP=1 
 	VSIZE=1 
 expression:
+;_tp 'I 
 	_vars VSIZE 
 ; first term 	
 	call term
-	tnz a 
-	jreq 9$
 1$:	; operator '+'|'-'
 	call next_token
 	ld (OP,sp),a 
-	and a,#TK_GRP_MASK
-	cp a,#TK_GRP_ADD 
+	cp a,#ADD_IDX 
+	jreq 2$
+	cp a,#SUB_IDX 
 	jreq 2$ 
 	_unget_token 
-	ld a,#TK_INTGR
 	jra 9$ 
 2$: ; second term 
 	call term
-	tnz a 
-	jrne 3$
-	jp syntax_error
-3$:
 	ld a,(OP,sp)
-	cp a,#TK_PLUS 
+	cp a,#ADD_IDX 
 	jrne 4$
 ; '+' operator	
 	call add24
@@ -1160,93 +1082,106 @@ expression:
 	call sub24
 	jra 1$
 9$:
+;_tp 'J 
 	_drop VSIZE 
 	ret 
 
 ;---------------------------------------------
-; rel ::= expr rel_op expr
+; rel ::= expr [rel_op expr]
 ; rel_op ::=  '=','<','>','>=','<=','<>','><'
 ;  relation return  integer , zero is false 
 ;  output:
 ;	 xstack		value  
 ;---------------------------------------------
-	RELOP=1
-	VSIZE=1 
+  ; local variables 
+	REL_OP=1  ; relational operator 
+	UBYTE=2  ; result upper byte {23..16}
+	VSIZE=2 
 relation: 
+;_tp 'G 
 	_vars VSIZE
+	clr (UBYTE,sp) 
 	call expression
-	tnz a 
-	jreq 9$ 
 ; expect rel_op or leave 
 	call next_token 
-	ld (RELOP,sp),a 
-	and a,#TK_GRP_MASK
-	cp a,#TK_GRP_RELOP 
-	jreq 2$
-	ld a,#TK_INTGR 
-	_unget_token 
+	ld (REL_OP,sp),a 
+	cp a,#REL_LE_IDX
+	jrmi 1$
+	cp a,#OP_REL_LAST 
+	jrule 2$ 
+1$:	_unget_token 
 	jra 9$ 
 2$:	; expect another expression
 	call expression
-	tnz a 
-	jrne 3$
-	jp syntax_error 
-3$: 
 	call cp24 
-	_xpop  
+	_xpop
+	clrw x  ; result UBYTE:X -> FALSE 
 	tnz a 
 	jrmi 4$
 	jrne 5$
-	mov acc8,#2 ; i1==i2
-	jra 6$ 
+; i1==i2 
+	ld a,(REL_OP,sp)
+	cp a,#REL_LT_IDX 
+	jrpl 7$ ; relation false 
+	jra 6$  ; relation true 
 4$: ; i1<i2
-	mov acc8,#4 
-	jra 6$
+	ld a,(REL_OP,sp)
+	cp a,#REL_LT_IDX 
+	jreq 6$ ; relation true 
+	cp a,#REL_LE_IDX 
+	jreq 6$  ; relation true
+	jra 54$
 5$: ; i1>i2
-	mov acc8,#1  
-6$: ; 0=false, -1=true 
-	clrw x 
-	ld a, acc8  
-	and a,(RELOP,sp)
-	jreq 7$
+	ld a,(REL_OP,sp)
+	cp a,#REL_GT_IDX 
+	jreq 6$ ; relation true 
+	cp a,#REL_GE_IDX 
+	jreq 6$ ; relation tue 
+54$:
+	cp a,#REL_NE_IDX 
+	jrne 7$ ; relation false 
+6$: ; TRUE  ; relation true 
+	cpl (UBYTE,sp)
 	cplw x 
-	ld a,#255 
-7$:	_xpush 
-	ld a,#TK_INTGR
+7$:	; FALSE 
+	ld a,(UBYTE,sp) ; A:X  result  
+	_xpush 
 9$: 
+;_tp 'H 
 	_drop VSIZE
 	ret 
 
 ;-------------------------------------------
 ;  AND factor:  [NOT] relation | (condition)
 ;  output:
-;     A      TK_INTGR|0
+;     xstack      boolean 
 ;-------------------------------------------
 	NOT_OP=1
 and_factor:
+;_tp 'E 
 	push #0 
 0$:	call next_token  
-	tnz a 
-	jreq 8$ 
-	cp a,#TK_NOT 
-	jrne 1$ 
+	cp a,#CMD_END 
+	jrugt 1$
+	jp syntax_error
+1$:	cp a,#NOT_IDX  
+	jrne 2$ 
 	cpl (NOT_OP,sp)
-	jra 0$ 
-1$:	
-	cp a,#TK_LPAREN 
-	jrne 2$
-	call condition
-	ld a,#TK_RPAREN 
-	call expect
-	jra 3$
-2$: _unget_token 
-	call relation
-3$:
-	tnz (NOT_OP,sp)
+	call next_token 
+2$:	cp a,#LPAREN_IDX 
+	jrne 3$
+	call condition 
+	ld a,#RPAREN_IDX 
+	call expect 
+	jra 5$
+3$:	_unget_token 
+	call relation 	
+5$:	tnz (NOT_OP,sp)
 	jreq 8$ 
 	call cpl24
 8$:
 	_drop 1  
+;_tp 'F 
     ret 
 
 
@@ -1255,39 +1190,32 @@ and_factor:
 ;  format: relation | (condition) [AND relation|(condition)]*
 ;          
 ;  output:
-;     A     TK_INTGR|0
 ;    xtack   value 
 ;--------------------------------------------
 and_cond:
+;_tp 'C 
 	call and_factor
-	tnz a 
-	jreq 9$  
 1$: call next_token 
-	tnz a 
-	jreq 6$ 
-	cp a,#TK_AND 
-	jreq 3$
+	cp a,#AND_IDX  
+	jreq 3$  
 	_unget_token 
-	jra 6$ 
+	jra 9$ 
 3$:	call and_factor  
-	tnz a 
-	jrne 4$
-	jp syntax_error 
-4$:	
 	_xpop 
 	ld acc24,a 
 	ldw acc16,x
-	_xpop 
+	_at_top 
 	and a,acc24 
 	rlwa x 
 	and a,acc16 
 	rlwa x 
 	and a,acc8 
 	rlwa x
-	_xpush
+	_store_top 
 	jra 1$  
-6$: ld a,#TK_INTGR 
-9$:	ret 	 
+9$:	
+;_tp 'D 
+	ret 	 
 
 
 ;--------------------------------------------
@@ -1295,7 +1223,6 @@ and_cond:
 ; operators: OR,XOR 
 ; format:  and_cond [ OP and_cond ]* 
 ; output:
-;    A        INTGR|0 
 ;    xstack   value 
 ;--------------------------------------------
 	ATMP=1
@@ -1303,29 +1230,24 @@ and_cond:
 	VSIZE=2 
 condition:
 	_vars VSIZE 
+;_tp 'A 
 	call and_cond
-	tnz a 
-	jreq 9$ 
 1$:	call next_token 
-	cp a,#TK_OR 
+	cp a,#OR_IDX  
 	jreq 2$
-	cp a,#TK_XOR
+	cp a,#XOR_IDX 
 	jreq 2$ 
 	_unget_token 
-	jra 8$ 
-2$:	ld (OP,sp),a ; TK_OR|TK_XOR 
+	jra 9$ 
+2$:	ld (OP,sp),a ; boolean operator  
 	call and_cond
-	cp a,#TK_INTGR 
-	jreq 3$
-	jp syntax_error 
-3$:	 
 	_xpop  ; rigth arg 
 	ld acc24,a 
 	ldw acc16,x 
-	_xpop  ; left arg  
+	_at_top  ; left arg  
 	ld (ATMP,sp),a 
 	ld a,(OP,sp)
-	cp a,#TK_XOR 
+	cp a,#XOR_IDX  
 	jreq 5$ 
 4$: ; A:X OR acc24   
 	ld a,(ATMP,sp)
@@ -1344,10 +1266,10 @@ condition:
 	rlwa x 
 	xor a,acc8 
 	rlwa x 
-6$: _xpush
+6$: _store_top 
 	jra 1$ 
-8$:	ld a,#TK_INTGR 
 9$:	_drop VSIZE 
+;_tp 'B 
 	ret 
 
 
@@ -1355,7 +1277,7 @@ condition:
 ; BASIC: HEX 
 ; select hexadecimal base for integer print
 ;---------------------------------------------
-hex_base:
+cmd_hex_base:
 	mov base,#16 
 	ret 
 
@@ -1363,7 +1285,7 @@ hex_base:
 ; BASIC: DEC 
 ; select decimal base for integer print
 ;---------------------------------------------
-dec_base:
+cmd_dec_base:
 	mov base,#10
 	ret 
 
@@ -1373,7 +1295,7 @@ dec_base:
 ; output:
 ;   A:x		size 
 ;--------------------------
-free:
+func_free:
 	clr a 
 	ldw x,end_free_ram
 	subw x,dvar_end 
@@ -1409,26 +1331,72 @@ cmd_size:
 ; output:
 ;   A:X 	array_size
 ;--------------------------
-ubound:
-	call free 
+func_ubound:
+	call func_free 
 	ld a,#CELL_SIZE 
 	div x,a 
 	ldw array_size,x
 	clr a 
 	ret 
 
+;----------------------
+; assign to a symbolic variable
+;----------------------
+	VAR_NAME=1 
+	REC_LEN=3
+	VSIZE=4 
+let_dvar:
+	call runtime_only
+	_vars VSIZE 
+	ldw (VAR_NAME,sp),x
+	clr (REC_LEN,sp) 
+	call skip_string 
+	ldw x,basicptr 
+	ld a,(x)
+	cp a,#REL_EQU_IDX  
+	jreq dvar_assign
+	jp syntax_error
+dvar_assign: 	 
+; dvar assignment 
+	incw x 
+	ldw basicptr,x 
+	call condition  
+	ldw x,(VAR_NAME,sp) ; pointer to var name 
+	call strlen 
+	add a,#REC_XTRA_BYTES
+	ld (REC_LEN+1,sp),a 
+	call search_name 
+	tnzw x 
+	jrne 2$
+	jp syntax_error 
+2$:	ld a,(x)
+	jrpl 4$
+	ld a,#ERR_RD_ONLY 
+	jp tb_error 
+4$:
+	addw x,(REC_LEN,sp)
+	subw x,#CELL_SIZE 
+	ldw ptr16,x
+	_xpop 
+	ld [ptr16],a 
+	_inc ptr8 
+	ldw [ptr16],x 
+9$: _drop VSIZE 	
+	ret 
+
 ;-----------------------------
 ; BASIC: LET var=expr 
 ; variable assignement 
 ; output:
-;   A 		TK_NONE 
 ;-----------------------------
-let::
+kword_let::
 	call next_token 
-	cp a,#TK_VAR 
+	cp a,#VAR_IDX 
 	jreq let_var
-	cp a,#TK_ARRAY 
+	cp a,#ARRAY_IDX 
 	jreq  let_array
+	cp a,#LABEL_IDX 
+	jreq let_dvar
 	jp syntax_error
 let_array:
 	call get_array_element
@@ -1436,22 +1404,24 @@ let_array:
 let_var:
 	_get_addr
 let_eval:
-	ldw ptr16,x  ; variable address 
-	call next_token 
-	cp a,#TK_EQUAL
-	jreq 1$
-	jp syntax_error
-1$:	
+	_xpush 
+	ld a,#REL_EQU_IDX
+	call expect 
 	call condition   
-	cp a,#TK_INTGR 
-	jreq 2$
-	jp syntax_error
-2$:	
+	_at_next  ; fetch var address 
+	ldw ptr16,x 
 	_xpop ; value 
+	_xdrop ; drop var address 
 3$:
 	ld [ptr16],a
-	_inc ptr8  
-	ldw [ptr16],x 
+	_inc ptr8
+	jrne 4$
+	_inc ptr16 
+4$:	ldw [ptr16],x
+	call next_token 
+	cp a,#COMMA_IDX 
+	jreq kword_let
+	_unget_token 
 	ret 
 
 
@@ -1572,19 +1542,19 @@ search_name:
 ;--------------------------------------------
 ; BASIC: CONST name=value [, name=value]*
 ; define constant(s) saved in EEPROM
-; share most of his code with cmd_dim 
+; share most of his code with kword_dim 
 ;--------------------------------------------
 	VAR_NAME=1 
 	REC_LEN=3
 	RONLY=5
 	VSIZE=5
-cmd_const:
+kword_const:
 	call runtime_only
 	_vars VSIZE 
 	ld a,#128 
 	ld (RONLY,sp),a 
 	clr (REC_LEN,sp)
-	jra cmd_dim2 ; shared code with cmd_dim  
+	jra kword_dim2 ; shared code with kword_dim  
 
 ;---------------------------------
 ; BASIC: DIM var_name [var_name]* 
@@ -1595,15 +1565,15 @@ cmd_const:
 ; record format same ast CONST 
 ; but r/w because stored in RAM 
 ;---------------------------------
-cmd_dim:
+kword_dim:
 	call runtime_only
-cmd_dim1:	
+kword_dim1:	
 	_vars VSIZE
 	clr (REC_LEN,sp )
 	clr (RONLY,sp)
-cmd_dim2: 
+kword_dim2: 
 0$:	call next_token 
-	cp a,#TK_LABEL  
+	cp a,#LABEL_IDX  
 	jreq 1$ 
 	jp syntax_error 
 1$: ldw (VAR_NAME,sp),x ; name pointer 
@@ -1620,7 +1590,7 @@ cmd_dim2:
 	jp tb_error  
 2$:	
 ;check if enough space 
-	call free 
+	call func_free 
 	cpw x,(REC_LEN,sp)
 	jruge 3$
 	ld a,#ERR_MEM_FULL
@@ -1643,15 +1613,12 @@ cmd_dim2:
 	clr (1,x)  
 	clr (2,x)
 4$: call next_token 
-	cp a,#TK_COMMA 
+	cp a,#COMMA_IDX 
 	jreq 0$ 
-	cp a,#TK_EQUAL 
+	cp a,#REL_EQU_IDX 
 	jrne 8$
 ; initialize variable 
 	call condition 
-	cp a,#TK_INTGR
-	jreq 5$
-	jp syntax_error
 5$: ldw x,dvar_end 
 	subw x,#CELL_SIZE 
 	ldw ptr16,x 
@@ -1663,7 +1630,7 @@ cmd_dim2:
 8$:	
 	_unget_token 	
 	_drop VSIZE 
-	call ubound 
+	call func_ubound 
 	ret 
 
 
@@ -1733,18 +1700,25 @@ cmd_list:
 	ldw x,#MAX_LINENO ; biggest line number 
 	ldw (LAST,sp),x 
 	call next_token 
-	cp a,#TK_INTGR
-	jreq start_from 
+	cp a,#LIT_IDX
+	jreq start_from
+	cp a,#LITC_IDX 
+	jrne is_minus 
+	_get_char 
+	clrw x 
+	rlwa x 
+	jra start_from1 
 is_minus: 	
-	cp a,#TK_MINUS 
+	cp a,#SUB_IDX 
 	jreq end_at_line
-	cp a,#TK_NONE
+	cp a,#EOL_IDX 
 	jreq list_loop
-	cp a,#TK_COLON 
+	cp a,#COLON_IDX 
 	jreq list_loop
 	jp syntax_error
 start_from:	 
 	call get_int24
+start_from1: 	
 	ldw (FIRST,sp),x	
 lines_skip:
 	pushw y 
@@ -1756,12 +1730,10 @@ lines_skip:
 1$:	popw y 
 	ldw (LN_PTR,sp),x 
 	call next_token 
-	cp a,#TK_MINUS 
+	cp a,#CMD_END 
+	jrule 2$ 
+	cp a,#SUB_IDX 
 	jreq end_at_line 
-	cp a,#TK_NONE 
-	jreq 2$
-	cp a,#TK_COLON 
-	jreq 2$
 	jp syntax_error 
 2$:
 	ldw x,(FIRST,sp)
@@ -1769,21 +1741,28 @@ lines_skip:
 	jra list_loop 
 end_at_line:
 ; expect ending line# 
-    call next_token 
-	cp a,#TK_INTGR
+    call next_token
+	cp a,#CMD_END 
+	jrule list_loop  
+	cp a,#LIT_IDX
 	jreq 1$
-	cp a,#TK_NONE 
-	jreq list_loop 
-	cp a,#TK_COLON 
-	jreq list_loop 
+	cp a,#LITC_IDX 
+	jreq 2$  
 	jp syntax_error 
 1$:
 	call get_int24 
+	ldw (LAST,sp),x
+	jra list_loop 
+2$: _get_char 
+	clrw x 
+	rlwa x  
 	ldw (LAST,sp),x 
 ; print loop
 list_loop:
 	ldw x,(LN_PTR,sp)
+	ldw line.addr,x 
 	ld a,(2,x) 
+	sub a,#3 
 	call prt_basic_line
 	ldw x,(LN_PTR,sp)
 	ld a,(2,x)
@@ -1816,7 +1795,7 @@ LINES_REJECTED: .asciz "WARNING: lines missing in this program.\n"
 ;-------------------------
 cmd_edit:
 	call cmd_line_only
-	ld a,#TK_LABEL 
+	ld a,#LABEL_IDX 
 	call expect  
 	pushw x 
 	call skip_string
@@ -1826,13 +1805,11 @@ cmd_edit:
 	ldw x,#ERR_NO_PROGRAM
 	jp tb_error 
 1$: pushw y 
-	ldw y,x ; source address 
-	subw x,#4
+	ldw y,x ; file address 
 	ldw x,(2,x) ; program size 
-	addw x,#4 
+	addw x,#FILE_HEADER_SIZE  
 	ldw acc16,x  ; bytes to copy 
 	ldw x,#rsign ; destination address 
-	subw y,#4 
 	call move  
 	ldw x,#free_ram 
 	ldw txtbgn,x 
@@ -1851,9 +1828,9 @@ cmd_edit:
 ;   none 
 ;----------------------------------	
 prt_basic_line:
-	ldw basicptr,x
 	ld count,a 
-    mov in,#3 
+    addw x,#3  
+	ldw basicptr,x
 	call decompile
 	ld a,#CR 
 	call putc 
@@ -1872,32 +1849,29 @@ reset_semicol:
 	clr (SEMICOL,sp)
 prt_loop:
 	call next_token
+.if 0 ; DEBUG
+trap
+.endif 
 	cp a,#CMD_END 
-	jrult 0$
-	cp a,#TK_COLON 
-	jreq 0$
-	cp a,#TK_CMD
-	jrne 10$
-0$:
-	_unget_token 
-	jra 8$ 
-10$:	
-	cp a,#TK_QSTR
+	jrugt 0$
+	_unget_token
+	jra 8$
+0$:	
+	cp a,#QUOTE_IDX
 	jreq 1$
-	cp a,#TK_CHAR 
+	cp a,#BSLASH_IDX 
 	jreq 2$ 
-	cp a,#TK_CFUNC 
-	jreq 3$
-	cp a,#TK_SEMIC  
+	cp a,#SCOL_IDX  
 	jreq 4$
-	cp a,#TK_COMMA
+	cp a,#COMMA_IDX
 	jreq 5$
+	cp a,#CHAR_IDX 
+	jreq 6$
 	jra 7$ 
 1$:	; print string 
 	call puts
-	incw x
-	subw x,basicptr 
-	ldw in.w,x  
+	incw x 
+	ldw basicptr,x  
 	jra reset_semicol
 2$:	; print character 
 	_get_char 
@@ -1915,20 +1889,24 @@ prt_loop:
      ; terminal TAB are 8 colons 
      ld a,#9 
 	 call putc 
-	 jra reset_semicol	    
+	 jra reset_semicol
+6$: ; appelle la foncton CHAR()
+	_call_code 
+	call putc 
+	jra reset_semicol	 	    
 7$:	
 	_unget_token 
 	call condition
-	tnz a 
-	jreq 8$    
     call print_top
+	call space
 	jp reset_semicol 
 8$:
 	tnz (SEMICOL,sp)
 	jrne 9$
 	ld a,#CR 
     call putc 
-9$:	_drop VSIZE 
+9$:	
+	_drop VSIZE 
 	ret 
 
 ;----------------------
@@ -1941,21 +1919,21 @@ prt_loop:
 ; entry point of both 
 ; routine. 
 ;---------------------
-	CTXT_SIZE=4 ; size of saved data 
+	CTXT_SIZE=5 ; size of saved data 
 ;--------------------
 ; save current BASIC
 ; interpreter context 
 ; on stack 
 ;--------------------
 	_argofs 0 
-	_arg BPTR 1
-	_arg IN 3
-	_arg CNT 4
+	_arg LNADR 1 
+	_arg BPTR 3
+	_arg CNT 5
 save_context:
+	ldw x,line.addr
+	ldw (LNADR,sp),x 
 	ldw x,basicptr 
 	ldw (BPTR,sp),x
-	ld a,in 
-	ld (IN,sp),a
 	ld a,count 
 	ld (CNT,sp),a  
 	ret
@@ -1966,10 +1944,10 @@ save_context:
 ; from stack 
 ;-------------------------
 rest_context:
+	ldw x,(LNADR,sp)
+	ldw line.addr,x 
 	ldw x,(BPTR,sp)
 	ldw basicptr,x 
-	ld a,(IN,sp)
-	ld in,a
 	ld a,(CNT,sp)
 	ld count,a  
 	ret
@@ -1981,26 +1959,26 @@ rest_context:
 ; input value in variables 
 ; [string] optionally can be used as prompt 
 ;-----------------------------------------
-	CX_BPTR=1
-	CX_IN=3
-	CX_CNT=4
-	SKIP=5
-	VSIZE=5
-input_var:
+	CX_LNADR=1
+	CX_BPTR=3
+	CX_CNT=5
+	SKIP=6
+	VSIZE=6
+cmd_input_var:
+;_tp 'I 
 	pushw y 
 	_vars VSIZE 
 input_loop:
 	clr (SKIP,sp)
 	call next_token 
-	cp a,#TK_QSTR 
+	cp a,#QUOTE_IDX 
 	jrne 1$ 
 	call puts 
 	incw x 
-	subw x,basicptr 
-	ldw in.w,x 
+	ldw basicptr,x 
 	cpl (SKIP,sp)
 	call next_token 
-1$: cp a,#TK_VAR  
+1$: cp a,#VAR_IDX  
 	jreq 2$ 
 	jp syntax_error
 2$:	_get_addr
@@ -2015,57 +1993,30 @@ input_loop:
 	call save_context 
 	clr count  
 	call readln 
-	ldw x,#tib 
-	push count
-	push #0 
-	addw x,(1,sp)
-	incw x 
-	_drop 2 
-	clr in 
-	call get_token
-	cp a,#TK_INTGR
-	jreq 3$ 
-	cp a,#TK_MINUS
-	jrne 22$
-	call get_token 
-	cp a,#TK_INTGR 
-	jreq 23$
-22$:
-	call rest_context 
-	jp syntax_error
-23$:
-	call neg_acc24	
-3$: 
-	ld a,acc24 
-	ldw x,acc16 
-	ld [ptr16],a
-	_inc ptr8  
+	ldw y,#tib 
+	ld a,#SPACE 
+	call skip 
+	ldw x,y 
+	call atoi24 
+	ld [ptr16],a 
+	inc ptr8 
 	ldw [ptr16],x 
 	call rest_context
 	call next_token 
-	cp a,#TK_COMMA
-	jrne 4$ 
-	jp input_loop
-4$:
-	cp a,#TK_NONE 
-	jreq input_exit  
-	cp a,#TK_COLON 
-    jreq input_exit 
-	jp syntax_error 
-input_exit:
+	cp a,#COMMA_IDX
+	jreq input_loop 
+	_unget_token
 	_drop VSIZE 
 	popw y 
+;_tp 'X 
 	ret 
-
 
 ;---------------------
 ; BASIC: REM | ' 
 ; skip comment to end of line 
 ;---------------------- 
-remark::
-	mov in,count 
- 	ret 
-
+kword_remark::
+	jp next_line 
 
 ;---------------------
 ; BASIC: WAIT addr,mask[,xor_mask]
@@ -2080,7 +2031,7 @@ remark::
 	MASK=2  ; 1 byte 
 	ADDR=3  ; 1 word 
 	VSIZE=4 
-wait: 
+cmd_wait: 
 	_vars VSIZE
 	clr (XMASK,sp) 
 	call arg_list 
@@ -2113,7 +2064,7 @@ wait:
 ; output:
 ;	none 
 ;--------------------------
-bit_set:
+cmd_bit_set:
 	call arg_list 
 	cp a,#2	 
 	jreq 1$ 
@@ -2138,7 +2089,7 @@ bit_set:
 ; output:
 ;	none 
 ;--------------------------
-bit_reset:
+cmd_bit_reset:
 	call arg_list 
 	cp a,#2  
 	jreq 1$ 
@@ -2164,7 +2115,7 @@ bit_reset:
 ; output:
 ;	none 
 ;--------------------------
-bit_toggle:
+cmd_bit_toggle:
 	call arg_list 
 	cp a,#2 
 	jreq 1$ 
@@ -2189,7 +2140,7 @@ bit_toggle:
 ; output:
 ;	A:X       bit value  
 ;--------------------------
-bit_test:
+func_bit_test:
 	call func_args 
 	cp a,#2
 	jreq 0$
@@ -2220,7 +2171,7 @@ bit_test:
 ; BASIC: POKE addr,byte
 ; put a byte at addr 
 ;--------------------
-poke:
+cmd_poke:
 	call arg_list 
 	cp a,#2
 	jreq 1$
@@ -2242,7 +2193,7 @@ poke:
 ; output:
 ;	X 		value 
 ;-----------------------
-peek:
+func_peek:
 	call func_args
 	cp a,#1 
 	jreq 1$
@@ -2261,16 +2212,13 @@ peek:
 ; evaluate expr and if true 
 ; execute instructions on same line. 
 ;----------------------------
-if: 
+kword_if: 
 	call condition  
 	_xpop 
 	tnz  a  
 	jrne 9$
 	tnzw x 
 	jrne 9$  
-;skip to next line
-	mov in,count
-	_drop 2 
 	jp next_line
 9$:	ret 
 
@@ -2285,28 +2233,23 @@ if:
 	FSTEP=3  ; variable increment int24
 	LIMIT=6 ; loop limit, int24  
 	CVAR=9   ; control variable 
-	INW=11   ;  in.w saved
-	BPTR=13 ; baseptr saved
+	LN_ADDR=11   ;  line.addr saved
+	BPTR=13 ; basicptr saved
 	VSIZE=13  
-for: ; { -- var_addr }
+kword_for: ; { -- var_addr }
 	popw x ; call return address 
 	_vars VSIZE 
 	pushw x  ; RETL1 
-	ld a,#TK_VAR 
+	ld a,#VAR_IDX 
 	call expect
 	_get_addr
 	ldw (CVAR,sp),x  ; control variable 
 	call let_eval 
 	bset flags,#FLOOP 
 	call next_token 
-	cp a,#TK_CMD 
-	jreq 1$
+	cp a,#TO_IDX 
+	jreq kword_to 
 	jp syntax_error
-1$:  
-	_get_addr
-	cpw x,#to   
-	jreq to
-	jp syntax_error 
 
 ;-----------------------------------
 ; BASIC: TO expr 
@@ -2314,27 +2257,21 @@ for: ; { -- var_addr }
 ; leave limit on stack and set 
 ; FTO bit in 'flags'
 ;-----------------------------------
-to: ; { var_addr -- var_addr limit step }
+kword_to: ; { var_addr -- var_addr limit step }
 	btjt flags,#FLOOP,1$
 	jp syntax_error
 1$: call expression   
-	cp a,#TK_INTGR 
-	jreq 2$ 
-	jp syntax_error
 2$: _xpop
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x
-	call next_token
-	cp a,#TK_NONE  
-	jreq 4$ 
-	cp a,#TK_CMD
-	jrne 3$
-	_get_addr
-	cpw x,#step 
-	jreq step
-3$:	
-	_unget_token   	 
+	call next_token 
+	cp a,#CMD_END   
+	jrule 4$  
+	cp a,#STEP_IDX 
+	jreq kword_step
+	jp syntax_error 	 
 4$:	
+	_unget_token
 	clr (FSTEP,sp) 
 	ldw x,#1   ; default step  
 	ldw (FSTEP+1,sp),x 
@@ -2346,13 +2283,10 @@ to: ; { var_addr -- var_addr limit step }
 ; optional third par of FOR loop
 ; initialization. 	
 ;------------------------------------
-step: ; {var limit -- var limit step}
+kword_step: ; {var limit -- var limit step}
 	btjt flags,#FLOOP,1$
 	jp syntax_error
 1$: call expression 
-	cp a,#TK_INTGR
-	jreq 2$
-	jp syntax_error
 2$:	
 	_xpop 
 	ld (FSTEP,sp),a 
@@ -2371,10 +2305,10 @@ step: ; {var limit -- var limit step}
 store_loop_addr:
 	ldw x,basicptr
 	ldw (BPTR,sp),x 
-	ldw x,in.w 
-	ldw (INW,sp),x   
+	ldw x,line.addr 
+	ldw (LN_ADDR,sp),x   
 	bres flags,#FLOOP 
-	_inc loop_depth  
+	_inc loop_depth   
 	ret 
 
 ;--------------------------------
@@ -2386,19 +2320,19 @@ store_loop_addr:
 ; else stack. 
 ; and decrement 'loop_depth' 
 ;--------------------------------
-next: ; {var limit step retl1 -- [var limit step ] }
+kword_next: ; {var limit step retl1 -- [var limit step ] }
 	tnz loop_depth 
 	jrne 1$ 
 	jp syntax_error 
-1$: 
-	ld a,#TK_VAR 
+1$:
+	ld a,#VAR_IDX 
 	call expect
 	_get_addr 
-; check for good variable after NEXT 	 
+; check for good variable after NEXT 	  
 	cpw x,(CVAR,sp)
 	jreq 2$  
 	jp syntax_error ; not the good one 
-2$: 
+2$:  
 	ldw ptr16,x 
 	; increment variable 
 	ld a,(x)
@@ -2406,7 +2340,9 @@ next: ; {var limit step retl1 -- [var limit step ] }
 	addw x,(FSTEP+1,sp) ; var+step 
 	adc a,(FSTEP,sp)
 	ld [ptr16],a
-	_inc ptr8  
+ ; because all variables in page 0
+ ; inc ptr8 never overflow   	
+	inc ptr8
 	ldw [ptr16],x 
 	ld acc24,a 
 	ldw acc16,x 
@@ -2430,12 +2366,12 @@ next: ; {var limit step retl1 -- [var limit step ] }
 loop_back:
 	ldw x,(BPTR,sp)
 	ldw basicptr,x 
+	ldw x,(LN_ADDR,sp)
+	ldw line.addr,x 
 	btjf flags,#FRUN,1$ 
 	ld a,(2,x)
 	ld count,a
-1$:	ldw x,(INW,sp)
-	ldw in.w,x 
-	ret 
+1$:	ret 
 loop_done:
 	; remove loop data from stack  
 	popw x
@@ -2451,44 +2387,61 @@ loop_done:
 ;---------------------------
 get_target_line:
 	call next_token  
-	cp a,#TK_INTGR
+	cp a,#LIT_IDX
 	jreq get_target_line_addr 
-	cp a,#TK_LABEL 
-	jreq look_target_symbol 
+	cp a,#LITC_IDX 
+	jreq get_int8 
+	cp a,#LABEL_IDX 
+	jreq look_target_symbol
 	jp syntax_error
+get_int8:
+	_get_char
+	clrw x 
+	rlwa x 
+	jra target01 
 ; the target is a line number 
 ; search it. 
 get_target_line_addr:
-	pushw y 
 	call get_int24 ; line # 
-	clr a
-	ldw y,basicptr 
-	ldw y,(y)
+target01: 
 	pushw y 
-	cpw x,(1,sp)
+	clr a ; search from txtbgn 
+	ldw y,line.addr 
+	ldw y,(y)
+	pushw y ; line# 
+	cpw x,(1,sp) ; x==line#? 
 	_drop 2  
 	jrult 11$
-	inc a 
+	inc a  ; search from actual line 
 11$: ; scan program for this line# 	
-	call search_lineno  
+	call search_lineno 
+	popw y  
 	tnzw x ; 0| line# address 
 	jrne 2$ 
 	ld a,#ERR_NO_LINE 
 	jp tb_error 
-2$:	popw y  
+2$:	 
 	ret 
 
+;-----------------------------------
 ; the GOTO|GOSUB target is a symbol.
 ; output:
 ;    X    line address|0 
+;------------------------------------
+	; local variables 
+	YSAVE=5 
+	LBL_PTR=3
+	LN_ADDR=1 
 look_target_symbol:
-	pushw y 
-	pushw x 
+	pushw y   ; YSAVE  
+	pushw x   ; LBL_PTR  
 	call skip_string 
 	clr acc16 
 	ldw y,txtbgn 
-1$:	ld a,(3,y) ; first TK_ID on line 
-	cp a,#TK_LABEL 
+1$:	ld a,(3,y) ; first token on line 
+	cp a,#SUB_IDX 
+	jreq 3$ 
+	cp a,#LABEL_IDX 
 	jreq 3$ 
 2$:	ld a,(2,y); line length 
 	ld acc8,a 
@@ -2497,11 +2450,11 @@ look_target_symbol:
 	jrult 1$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-3$: ; found a TK_LABEL 
-	; compare with GOTO|GOSUB target 
-	pushw y ; line address 
+3$: ; found a SUB_IDX|LABEL_IDX  
+	; compare with LBL_PTR  
+	pushw y ; LN_ADDR  
 	addw y,#4 ; label string 
-	ldw x,(3,sp) ; target string 
+	ldw x,(LBL_PTR,sp) ; target string 
 	call strcmp
 	jreq 4$
 	popw y 
@@ -2517,93 +2470,107 @@ look_target_symbol:
 ; BASIC: ON expr GOTO|GOSUB line# [,line#]*
 ; selective goto or gosub 
 ;--------------------------------
-cmd_on:
+kword_on:
 	call runtime_only
-0$:	call expression 
-	cp a,#TK_INTGR
-	jreq 1$
-	jp syntax_error
-1$: _xpop
+	call expression 
+    _xpop
+_tp '9 	
 ; the selector is the element indice 
 ; in the list of arguments. {1..#elements} 
-	ld a,xl ; keep only bits 7..0
-	jreq 9$ ; element # begin at 1. 
-	push a  ; selector  
+	ld a,xl ; keep only least byte 
+	jrne 0$
+	jp 9$ ; element # begin at 1. 
+0$:	push a  ; selector  
 	call next_token
-	cp a,#TK_CMD 
-	jreq 2$ 
+	cp a,#GOTO_IDX 
+	jreq 1$ 
+	cp a,#GOSUB_IDX 
+	jreq 1$ 
 	jp syntax_error 
-2$: _get_addr
-;; must be a GOTO or GOSUB 
-	cpw x,#goto 
-	jreq 4$
-	cpw x,#gosub 
-	jreq 4$ 
-	jp syntax_error 
-4$: 
-	pop a 
+1$: 
+	_code_addr 
+	pop a   ; pop selector 
 	pushw x ; save routine address 	
-	push a  ; selector  
-5$: ; skip elements in list until selector==0 
+	push a  ; push selector  
+2$: ; skip elements in list until selector==0 
 	dec (1,sp)
-	jreq 6$ 
+	jreq 7$ 
 ; can be a line# or a label 
 	call next_token 
-	cp a,#TK_INTGR 
-	jreq 52$
-	cp a,#TK_LABEL 
-	jreq 54$
+; _tp 'A 
+	cp a,#LIT_IDX 
+	jreq 3$
+	cp a,#LITC_IDX 
+	jreq 4$ 
+	cp a,#LABEL_IDX 
+	jreq 5$
 	jp syntax_error 
-52$: ; got a line number 
-	ld a,in ; skip over int24 value 
-	add a,#CELL_SIZE ; integer size  
-	ld in,a 
-	jra 56$
-54$: call skip_string ; skip over label 	
-56$: ; if another element comma present 
+3$: ; got a line number 
+	ldw x,basicptr 
+	addw x,#3 ; skip int24 
+	ldw basicptr,x 
+	jra 6$
+4$: ; got a small line number 
+	_inc_wvar basicptr  
+	jra 6$ 
+5$: call skip_string ; skip over label 	
+6$: ; if another element comma present 
 	call next_token
-	cp a,#TK_COMMA 
-	jreq 5$ 
+; _tp 'B
+	cp a,#COMMA_IDX 
+	jreq 2$ 
 ; arg list exhausted, selector to big 
 ; continue execution on next line 
 	_drop 3 ; drop selector and GOTO|GOSUB address 
 	jra 9$
-6$: ;at selected position  
+7$: ;at selected position  
+; _tp 'C 
+;trap 	
 	_drop 1 ; discard selector
 ; here only the routine address 
 ; of GOTO|GOSUB is on stack 
+; _tp 'D 
     call get_target_line
+;_tp 'E 
 	ldw ptr16,x 	
-	mov in,count ; move to end of line  
-	popw x ; cmd address, GOTO||GOSUB 
-	cpw x,#goto 
-	jrne 7$ 
+	popw x ; code address, GOTO||GOSUB 
+	cpw x,#kword_goto 
+	jrne 8$ 
+;_tp 'F 
 	ldw x,ptr16 
 	jra jp_to_target
-7$: 
-	jra gosub_2 ; target in ptr16 
-9$: ; expr out of range skip to end of line
-    ; this will force a fall to next line  
-	mov in,count
-	_drop 2
-	jp next_line  
-
+8$: 
+; move to end of line, then gosub 
+_tp 'G 
+	ldw x,line.addr 
+	clr acc16 
+	ld a,(2,x)
+	ld acc8,a 
+	addw x,acc16 
+	decw x ; point at EOL_IDX 
+	ldw basicptr,x   
+_tp 'H 
+	jra kword_gosub_2 ; target in ptr16 
+9$: ; expr out of range skip to next line
+	jp next_line 
 
 ;------------------------
 ; BASIC: GOTO line# 
 ; jump to line# 
 ; here cstack is 2 call deep from interpreter 
 ;------------------------
-goto:
+kword_goto:
 	call runtime_only
-goto_1:
+kword_goto_1:
 	call get_target_line
 jp_to_target:
-	ldw basicptr,x 
+	ldw line.addr,x 
 	ld a,(2,x)
 	ld count,a 
-	mov in,#3 
+	addw x,#3
+	ldw basicptr,x  
 	btjf flags,#FTRACE,9$ 
+	subw x,#3
 	ldw x,(x)
 	call prt_i16 
 9$:	ret 
@@ -2618,22 +2585,22 @@ jp_to_target:
 ;--------------------
 	RET_ADDR=1 ; subroutine return address 
 	RET_BPTR=3 ; basicptr return point 
-	RET_INW=5  ; in.w return point 
+	RET_LN_ADDR=5  ; line.addr return point 
 	VSIZE=4 
-gosub:
+kword_gosub:
 	call runtime_only
-gosub_1:
+kword_gosub_1:
 	call get_target_line 
 	ldw ptr16,x
-gosub_2: 
+kword_gosub_2: 
 	popw x 
 	_vars VSIZE  
 	pushw x ; RET_ADDR 
 ; save BASIC subroutine return point.   
 	ldw x,basicptr
 	ldw (RET_BPTR,sp),x 
-	ldw x,in.w 
-	ldw (RET_INW,sp),x
+	ldw x,line.addr 
+	ldw (RET_LN_ADDR,sp),x
 	ldw x,ptr16  
 	jra jp_to_target
 
@@ -2641,41 +2608,26 @@ gosub_2:
 ; BASIC: RETURN 
 ; exit from BASIC subroutine 
 ;------------------------
-return:
+kword_return:
 	call runtime_only
 	ldw x,(RET_BPTR,sp) 
 	ldw basicptr,x
+	ldw x,(RET_LN_ADDR,sp)
+	ldw line.addr,x 
 	ld a,(2,x)
 	ld count,a  
-	ldw x,(RET_INW,sp)
-	ldw in.w,x 
 	popw x 
 	_drop VSIZE 
 	jp (x)
-
-;---------------------------------
-; check if A:X contain the address 
-; of a program in FLASH 
-; output:
-;     Z    set is progam 
-;----------------------------------
-is_program_addr:
-	tnz a 
-	jrne 9$
-	cpw x,#app_space 
-	jrult 8$
-	pushw x 
-	call qsign 
-	popw x 
-	jreq 9$ 
-8$:	cpl a ; clr Z bit  
-9$:	ret 
 
 ;----------------------------------
 ; BASIC: RUN [label]
 ; run BASIC program in RAM
 ;----------------------------------- 
 cmd_run: 
+.if 0 ; DEBUG 
+call dump_prog
+.endif 
 	btjf flags,#FRUN,0$  
 	clr a 
 	ret
@@ -2686,10 +2638,10 @@ cmd_run:
 	_drop CTXT_SIZE 
 	bres flags,#FBREAK 
 	bset flags,#FRUN 
-	jp interpreter 
+	jp interp_loop 
 1$:	; check for label option 
 	call next_token 
-	cp a,#TK_LABEL 
+	cp a,#LABEL_IDX 
 	jrne 3$
 	pushw x 
 	call skip_string 
@@ -2698,24 +2650,24 @@ cmd_run:
 	jrne 2$
 	ld a,#ERR_NO_PROGRAM
 	jp tb_error 
-2$: ldw txtbgn,x 
+2$: addw x,#FILE_HEADER_SIZE 
+	ldw txtbgn,x 
 	subw x,#2 
-	ldw x,(x)
+	ldw x,(x) ; program size 
 	addw x,txtbgn 
 	ldw txtend,x 
 	jra run_it 	
-3$:	_unget_token 
+3$: _unget_token 
 	ldw x,txtbgn
 	cpw x,txtend 
 	jrmi run_it 
 	ldw x,#err_no_prog
 	call puts 
-	mov in,count
 	ret 
 run_it:	 
 	_drop 2 ; drop return address 
 run_it_02: 
-    call ubound 
+    call func_ubound 
 	call clear_vars
 ; initialize DIM variables pointers 
 	ldw x,txtend 
@@ -2724,44 +2676,46 @@ run_it_02:
 ; clear data pointer 
 	clrw x 
 	ldw data_ptr,x 
-	clr data_ofs 
-	clr data_len 
+	ldw data_ptr,x 
 ; initialize BASIC pointer 
 	ldw x,txtbgn 
-	ldw basicptr,x 
+	ldw line.addr,x 
 	ld a,(2,x)
 	ld count,a
-	mov in,#3	
+	addw x,#3
+	ldw basicptr,x 
 	bset flags,#FRUN 
-	jp interpreter 
+	jp interp_loop 
 
 
 ;----------------------
 ; BASIC: END
 ; end running program
 ;---------------------- 
-	CHAIN_BP=1 
-	CHAIN_IN=3
+	CHAIN_LN=1 
+	CHAIN_BP=3
 	CHAIN_TXTBGN=5
 	CHAIN_TXTEND=7
 	CHAIN_CNTX_SIZE=8  
-cmd_end: 
+kword_end: 
 	_drop 2 ; no need for return address 
 ; check for chained program 
 	tnz chain_level
 	jreq 8$
 ; restore chain context 
 	dec chain_level 
+	ldw x,(CHAIN_LN,sp) ; chain saved in and count  
+	ldw line.addr,x 
+	ld a,(2,x)
+	ld count,a 
 	ldw x,(CHAIN_BP,sp) ; chain saved basicptr 
 	ldw basicptr,x 
-	ldw x,(CHAIN_IN,sp) ; chain saved in and count  
-	ldw in,x 
 	ldw x,(CHAIN_TXTBGN,sp)
 	ldw txtbgn,x 
 	ldw x,(CHAIN_TXTEND,sp)
 	ldw txtend,x 
 	_drop CHAIN_CNTX_SIZE ; CHAIN saved data size  
-	jp interpreter 
+	jp interp_loop  
 8$: ; clean stack 
 	ldw x,#STACK_EMPTY
 	ldw sp,x 
@@ -2774,7 +2728,7 @@ cmd_end:
 ;---------------------------
 cmd_get:
 	call next_token 
-	cp a,#TK_VAR 
+	cp a,#VAR_IDX 
 	jreq 0$
 	jp syntax_error 
 0$: _get_addr 
@@ -2802,13 +2756,13 @@ beep_1khz::
 
 ;-----------------------
 ; BASIC: TONE expr1,expr2
-; used TIMER2 channel 1
+; use TIMER2 channel 1
 ; to produce a tone 
 ; arguments:
 ;    expr1   frequency 
 ;    expr2   duration msec.
 ;---------------------------
-tone:
+cmd_tone:
 	pushw y
 	pushw x  
 	call arg_list 
@@ -2859,7 +2813,7 @@ beep:
 	ONOFF=3 
 	DIVSOR=1
 	VSIZE=4 
-power_adc:
+cmd_power_adc:
 	call arg_list 
 	cp a,#2	
 	jreq 1$
@@ -2891,10 +2845,10 @@ power_adc:
 ; BASIC: ADCREAD (channel)
 ; read adc channel {0..5}
 ; output:
-;   A 		TK_INTGR 
+;   A 		LIT_IDX 
 ;   X 		value 
 ;-----------------------------
-analog_read:
+func_analog_read:
 	call func_args 
 	cp a,#1 
 	jreq 1$
@@ -2913,7 +2867,7 @@ analog_read:
 	bset ADC_CR1,#ADC_CR1_ADON
 	btjf ADC_CSR,#ADC_CSR_EOC,.
 	ldw x,ADC_DRH
-	ld a,#TK_INTGR
+	ld a,#LIT_IDX
 	ret 
 
 ;-----------------------
@@ -2922,12 +2876,12 @@ analog_read:
 ; read state of a digital pin 
 ; pin# {0..15}
 ; output:
-;    A 		TK_INTGR
+;    A 		LIT_IDX
 ;    X      0|1 
 ;-------------------------
 	PINNO=1
 	VSIZE=1
-digital_read:
+func_digital_read:
 	_vars VSIZE 
 	call func_args
 	cp a,#1
@@ -2960,13 +2914,13 @@ digital_read:
 ; write to a digital pin 
 ; pin# {0..15}
 ; output:
-;    A 		TK_INTGR
+;    A 		LIT_IDX
 ;    X      0|1 
 ;-------------------------
 	PINNO=1
 	PINVAL=2
 	VSIZE=2
-digital_write:
+cmd_digital_write:
 	_vars VSIZE 
 	call arg_list  
 	cp a,#2 
@@ -3006,7 +2960,7 @@ digital_write:
 ; the program is resumed
 ; with RUN 
 ;-------------------------
-stop:
+kword_stop:
 	btjt flags,#FRUN,2$
 	ret 
 2$:	 
@@ -3024,7 +2978,7 @@ stop:
 	ldw in.w,x
 	bres flags,#FRUN 
 	bset flags,#FBREAK
-	jp interpreter 
+	jp interp_loop
 break_point: .asciz "\nbreak point, RUN to resume.\n"
 
 ;-----------------------
@@ -3033,88 +2987,40 @@ break_point: .asciz "\nbreak point, RUN to resume.\n"
 ; free program memory
 ; and clear variables 
 ;------------------------
-new: 
+cmd_new: 
 	call cmd_line_only
 0$:	clr flags 
 	call clear_basic 
 	ret 
 
 ;-----------------------------------
-; erase program at specified address
-; keep signature and size fields. 
-; signature replaced by "XX"
-; input:
-;    X    address 
+; BASIC: ERASE \E | \F | name 
+;  options:
+;     \E    erase EEPROM 
+;     \F    erase all block in range from 
+;  			'app_space' to FLASH end (0x27fff)
+;   name    erase that program only  
 ;-----------------------------------
-	ADDR=1    ; program address
-	PRG_SIZE=3    ; program size 
-	BLOCKS=5 ; blocks to erase 
-	VSIZE=6
-erase_program:
-	pushw x 
-	call skip_string 
-	popw x 
-	call search_program 
-	jreq 9$
-	call move_erase_to_ram
-	clr farptr 
-	_vars VSIZE 
-1$:	subw x,#4 
-	ldw (ADDR,sp),x
-	ldw x,(2,x)
-	ldw (PRG_SIZE,sp),x
-	ld a,#BLOCK_SIZE 
-	div x,a 
-	tnz a 
-	jreq 2$ 
-	incw x 
-2$:	ldw (BLOCKS,sp),x 
-	ldw x,(ADDR,sp)
-	ldw ptr16,x 
-3$:	call block_erase
-	ldw x,#BLOCK_SIZE 
-	call incr_farptr
-	ldw x,(BLOCKS,sp)
-	decw x 
-	ldw (BLOCKS,sp),x 
-	jrne 3$ 
-; write XX and size at addr 
-	ldw x,(ADDR,sp)
-	ldw ptr16,x 
-	ld a,#'X 
-	clrw x 
-	call write_byte 
-	call write_byte 
-	ld a,(PRG_SIZE,sp)
-	call write_byte 
-	ld a,(PRG_SIZE+1,sp)
-	call write_byte 
-	_drop VSIZE 
-9$:	
-	ret 
-
-;-----------------------------------
-; BASIC: ERASE \E | \F || address
-; erase all block in range from 
-;  'app_space' to FLASH end (0x27fff)
-;  or all EEPROM 
-; that contains a non zero byte. 
-; if the argument is an address  
-; mark the program at this address 
-; as erased. Erase the blocks 
-; replace signature by 'XX' and 
-; keep size field.  
-;-----------------------------------
-	LIMIT=1 
+	LIMIT=1  ; 24 bits address 
 	VSIZE = 3 
 cmd_erase:
 	call cmd_line_only
 	clr farptr 
 	call next_token
-	cp a,#TK_LABEL 
-	jreq erase_program  
+	cp a,#LABEL_IDX 
+	jrne not_file
+erase_program: 
+	pushw x 
+	call skip_string 
+	popw x 
+	call search_program
+	tnzw x 
+	jreq 9$  ; not found 
+	call erase_file  
+9$:	ret 
+not_file: 
 	_vars VSIZE 
-	cp a,#TK_CHAR 
+	cp a,#BSLASH_IDX 
 	jreq 0$ 
 	jp syntax_error
 0$: _get_char 
@@ -3133,8 +3039,8 @@ cmd_erase:
 2$:
 	ldw x,#app_space  
 	ldw farptr+1,x 
-	clr a
-	ldw x,#0xffff
+	ld a,#FLASH_END>>16 
+	ldw x,#FLASH_END&0xffff
 3$:
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x 
@@ -3165,135 +3071,6 @@ cmd_erase:
 	_drop VSIZE 
 	ret 
 	
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;  check for application signature 
-; input:
-;	x       address to check 
-; output:
-;   Z      1  signature present 
-;          0 not app signature  
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-qsign: 
-	pushw x 
-; align to block 
-	ld a,xl 
-	and a,#BLOCK_SIZE 
-	ld xl,a 
-	ldw x,(x)
-	cpw x,SIGNATURE ; "TB" 
-	popw x 
-	ret 
-
-;--------------------------------------
-;  fill write buffer 
-;  input:
-;    y  point to output buffer 
-;    x  point to source 
-;    a  bytes to write in buffer 
-;  output:
-;    y   += A 
-;    X   += A 
-;    A   0 
-;---------------------------------------
-fill_write_buffer:
-	push a 
-	tnz a 
-	jreq 9$ 
-1$: ld a,(x)
-	incw x 
-	ld (y),a 
-	incw y 
-	dec (1,sp) 
-	jrne 1$ 
-9$:	pop a 
-    ret 	
-
-;--------------------------------------
-;  fill pad buffer with zero 
-;  input:
-;	none 
-;  output:
-;    y     buffer address  
-;--------------------------------------
-clear_block_buffer:
-	push a 
-	ldw y,#block_buffer 
-	pushw y
-	ld a,#BLOCK_SIZE   
-1$:	clr (y)
-	incw y
-	dec a  
-	jrne 1$ 	
-9$: popw y 
-	pop a 			
-	ret 
-
-
-;----------------------------------
-;  search  a free space space that 
-;  fit program size 
-; input:
-;    X    program size 
-; output:
-;    X    address | 0 
-;------------------------------------
-	PG_SIZE=1 
-	VSIZE=2 
-search_fit:
-	pushw x; PG_SIZE 
-	ldw x,#app_space 
-1$:	call is_erased 
-	jreq 4$
-	ld a,(x)
-	or a,(1,x)
-	jreq 9$ ; free space 
-2$:	call skip_to_next
-	tnzw x 
-	jrne 1$
-	jra 9$
-4$: ; erased program 
-    ; does it fit? 
-	ldw acc16,x 
-	ldw x,(2,x) ; size erased program
-; top multiple of BLOCK_SIZE 
-	addw x,#4 
-	addw x,#BLOCK_SIZE-1 
-	ld a,xl 
-	and a,#BLOCK_SIZE 
-	ld xl,a  
-	cpw x,(1,sp) ; size program to save 
-	jruge 8$   ; fit 
-	ldw x,acc16 
-	jra 2$ 
-8$: ldw x,acc16 ; fit in this one 	
-9$:	_drop VSIZE 
-	ret  
-
-;-------------------------
-; erase header and 
-; size fields 
-; input: 
-;    X    program address 
-; output:
-;    X    unchanged 
-;-------------------------
-	COUNT=1 
-erase_header:
-	pushw x 
-	push #4 ; COUNT 
-	clr farptr 
-	ldw ptr16,x 
-	clr a 
-	clrw x 
-1$:	call write_byte 
-	dec (COUNT,sp)
-	jrne 1$
-	_drop 1 
-	popw x 
-	ldw ptr16,x 
-	ret 
-
 ;---------------------------------------
 ; BASIC: SAVE
 ; write application from RAM to FLASH
@@ -3305,33 +3082,45 @@ erase_header:
 	TOWRITE=5 ; how bytes left to write  
 	VSIZE=6 
 cmd_save:
+_tp 'S 
 	call cmd_line_only
 	pushw x 
 	pushw y 
 	_vars VSIZE
 	call prog_size 
-	jrne 0$ 
+	jrne 0$
+	ldw x,#NO_PROG 
+	call puts  
 	jp 9$ ; no program to save 
 0$:	ldw (TOWRITE,sp),x ; program size
+; to save it first line must be a label 
+	ldw x,txtbgn
+	ld a,(3,x)
+	cp a,#LABEL_IDX 
+	jreq 1$
+	jp 8$ ; can't be saved, not labeled 	
+1$:	; check if file already exist 
+	addw x,#LINE_HEADER_SIZE+1 ; *label 
+	call search_program 
+	jreq 11$
+	call erase_file 
+11$:
 	clr farptr 
+	ldw x,(TOWRITE,sp)
 	call search_fit
-	ldw ptr16,x 
-	ldw x,#0xFFFF
-	subw x,ptr16 ; free flash 
-	subw x,#4 ; signature and size field 
-	cpw x,(TOWRITE,sp)
-	jruge 1$
+	tnzw x 
+	jrne 2$
 	ld a,#ERR_MEM_FULL
 	jp tb_error 
-1$: ; check if header bytes are zero's 
-	ldw x,ptr16 
+2$: ; check if header bytes are zero's 
+	ldw ptr16,x  
 	ld a,(x)
 	or a,(1,x)
 	or a,(2,x)
 	or a,(3,x)
-	jreq 2$
+	jreq 3$
 	call erase_header ; preserve X and farptr 
-2$: 
+3$: 
 ; block programming flash
 ; must be done from RAM
 ; moved in tib  
@@ -3352,12 +3141,12 @@ cmd_save:
 	addw y,#2   
 	ld a,#(BLOCK_SIZE-4)
 	cpw x,#(BLOCK_SIZE-4) 
-	jrugt 3$
+	jrugt 4$
 	ld a,xl 
-3$:	ld (CNT_LO,sp),a   
+4$:	ld (CNT_LO,sp),a   
 	ldw x,txtbgn 
 	ldw (XTEMP,sp),x 
-32$: 
+5$: 
 	ldw x,(XTEMP,sp)
 	ld a,(CNT_LO,sp)
 	call fill_write_buffer 
@@ -3375,64 +3164,22 @@ cmd_save:
 	ldw (TOWRITE,sp),x 
 	ld a,#BLOCK_SIZE 
 	cpw x,#BLOCK_SIZE 
-	jruge 4$ 
+	jruge 6$ 
 	ld a,xl 
-4$:	ld (CNT_LO,sp),a 
+6$:	ld (CNT_LO,sp),a 
 	call clear_block_buffer 
-	jra 32$ 
-9$:	_drop VSIZE 
+	jra 5$ 
+8$: ; no label can't save
+	ldw x,#NO_LABEL 
+	call puts 	
+9$:	 
+	_drop VSIZE 
     popw y 
 	popw x 
+_tp 'E 
 	ret 
 
-SIGNATURE: .ascii "TB"
-ERASED: .ascii "XX" 
-
-;---------------------
-; check if there is 
-; an erased program 
-; at this address 
-; input:
-;    X    address 
-; output:
-;    Z    Set=erased program 
-;--------------------
-is_erased:
-	pushw x 
-; align to BLOCK 
-	ld a,xl 
-	and a,#BLOCK_SIZE 
-	ld xl,a 
-	ldw x,(x)
-	cpw x,ERASED 
-	popw x 
-	ret 
-
-;----------------------------
-;  skip to next program
-;  block 
-; input:
-;    X   actual program addr
-; output:
-;    X   next block 
-;        after program 
-;----------------------------
-skip_to_next:
-; align to block 
-	ld a,xl 
-	and a,#BLOCK_SIZE 
-	ld xl,a 
-	ldw acc16,x 
-	ldw x,(2,x)
-	addw x,acc16 ; blk_addr+prg_size 
-	addw x,#4 ; +header fields 
-; align to next block 
-	addw x,#BLOCK_SIZE-1 
-	ld a,xl 
-	and a,#0x80 
-	ld xl,a  
-	ret 
-
+NO_PROG: .asciz "No program in RAM."
 
 ;---------------------
 ; BASIC: DIR 
@@ -3445,23 +3192,23 @@ cmd_dir:
 	ldw x,#app_space 
 	pushw x 
 1$: 
-	call qsign 
+	_qsign 
 	jrne 4$
 	addw x,#4
 	mov base,#16
 	call prt_i16
 	ld a,#SPACE 
 	call putc 
-	ldw x,(1,sp)
-	ldw x,(2,x)
+	ldw x,(XTEMP,sp)
+	ldw x,(2,x) ; program size 
 	mov base,#10  
 	call prt_i16 
 	ldw x,#STR_BYTES
 	call puts
 	ld a,#', 
 	call putc
-	ldw x,(1,sp)
-	addw x,#8
+	ldw x,(XTEMP,sp)
+	addw x,#8 ; first token of program 
 	call puts 
 	ld a,#CR 
 	call putc
@@ -3470,7 +3217,7 @@ cmd_dir:
 	ldw (1,sp),x 
 	jra 1$
 4$: ; check if it is an erased program 
-	call is_erased 
+	_is_erased 
 	jreq 3$ 
 8$: ; done 
 	_drop 2 
@@ -3487,10 +3234,14 @@ check_forbidden:
 	ldw x,ptr16 
 	cpw x,#app_space
 	jruge rw_zone 
-	cpw x,#EEPROM_BASE
-	jrult forbidden 
-	cpw x,#EEPROM_END 
-	jruge forbidden
+	cpw x,#OPTION_END  
+	jrugt forbidden  
+	cpw x,#OPTION_BASE  
+	jruge rw_zone 
+1$:	cpw x,#EEPROM_END 
+	jrugt forbidden 
+	cpw x,#EEPROM_BASE 
+	jrult forbidden
 	ret 
 forbidden:
 	ld a,#ERR_BAD_VALUE
@@ -3508,30 +3259,24 @@ rw_zone:
 ; output:
 ;   none 
 ;---------------------
-write:
+cmd_write:
 	call expression
-	cp a,#TK_INTGR 
-	jreq 0$
-	jp syntax_error
-0$: _xpop 
+    _xpop 
 	ld farptr,a 
 	ldw ptr16,x
 	call check_forbidden 
 1$:	
 	call next_token 
-	cp a,#TK_COMMA 
+	cp a,#COMMA_IDX 
 	jreq 2$ 
 	jra 9$ ; no more data 
 2$:	call next_token 
-	cp a,#TK_CHAR 
+	cp a,#CHAR_IDX 
 	jreq 4$ 
-	cp a,#TK_QSTR
+	cp a,#QUOTE_IDX
 	jreq 6$
 	_unget_token 
 	call expression
-	cp a,#TK_INTGR
-	jreq 3$
-	jp syntax_error
 3$:	_xpop 
 	ld a,xl 
 	clrw x 
@@ -3539,24 +3284,35 @@ write:
 	jra 1$ 
 4$: ; write character 
 	ld a,(x)
-	_inc in 
+	incw x 
+	ldw  basicptr,x 
 	clrw x 
 	call write_byte 
 	jra 1$ 
 6$: ; write string 
-	pushw x 
-	ld a,(x)
-	_inc in 
+	pushw y 
+	ldw y,x
+7$:	ld a,(y)
+	incw y 
 	clrw x 
 	call write_byte 
-	popw x 
-	ld a,(x)
-	jreq 1$
-	incw x 
-	jra 6$ 	
+	ld a,(y)
+	jrne 7$
+	incw y 
+	ldw basicptr,y 
+	popw y 
+	jra 1$ 	
 9$:
 	ret 
 
+;---------------------
+; BASIC: \letter 
+;---------------------
+func_back_slash:
+	_get_char 
+	clrw x 
+	rlwa x 
+	ret 
 
 ;---------------------
 ;BASIC: CHAR(expr)
@@ -3572,31 +3328,31 @@ func_char:
 	jreq 1$
 	jp syntax_error
 1$:	_xpop
-	ld a,xl
+	rrwa x 
 	and a,#0x7f 
 	ret
 
 ;---------------------
-; BASIC: ASC(string|char|TK_CFUNC)
+; BASIC: ASC(string|char|char function)
 ; extract first character 
 ; of string argument 
 ; output:
 ;    A:X    int24 
 ;---------------------
-ascii:
-	ld a,#TK_LPAREN
+func_ascii:
+	ld a,#LPAREN_IDX
 	call expect 
 	call next_token 
-	cp a,#TK_QSTR 
+	cp a,#QUOTE_IDX 
 	jreq 1$
-	cp a,#TK_CHAR 
+	cp a,#BSLASH_IDX 
 	jreq 2$ 
-	cp a,#TK_CFUNC 
+	cp a,#CHAR_IDX  
 	jreq 0$
 	jp syntax_error
-0$: ; cfunc 
-	call (x)
-	jra 3$
+0$: ; 
+	_call_code 
+	jra 4$
 1$: ; quoted string 
 	ld a,(x)
 	push a  
@@ -3608,7 +3364,7 @@ ascii:
 3$:	clrw x 
 	rlwa x   
 4$:	_xpush  
-	ld a,#TK_RPAREN 
+5$:	ld a,#RPAREN_IDX 
 	call expect
 9$:	
 	_xpop  
@@ -3621,10 +3377,12 @@ ascii:
 ; input:
 ;	none 
 ; output:
-;	a	 character 
+;	a:x  character 
 ;---------------------
-key:
+func_key:
 	call getc 
+	clrw x 
+	rlwa x  
 	ret
 
 ;----------------------
@@ -3637,7 +3395,7 @@ key:
 ; output:
 ;   A     0|-1
 ;-----------------------
-qkey:: 
+func_qkey:: 
 	clrw x 
 	ld a,rx1_head
 	sub a,rx1_tail 
@@ -3660,12 +3418,13 @@ qkey::
 ; output:
 ;	A:X		FLASH free address
 ;---------------------------
-uflash:
+func_uflash:
 	clr farptr 
 	ldw x,#app_space 
 	pushw x 
 1$:	ldw ptr16,x 
-	call scan_block 
+	call scan_block
+	tnz a  
 	jreq 8$
 	ldw x,(1,sp)
 	addw x,#BLOCK_SIZE 
@@ -3676,7 +3435,7 @@ uflash:
 	clr (1,sp) 
 	clr (2,sp)
 8$: popw x 
-	clr a 
+	clr a
 	ret 
 
 
@@ -3692,7 +3451,7 @@ uflash:
 ; output:
 ;   xstack 	value returned by cally  
 ;---------------------
-usr:
+func_usr:
 	call func_args 
 	cp a,#2
 	jreq 1$  
@@ -3712,8 +3471,8 @@ usr:
 ; wait for reset or external interrupt
 ; do a cold start on wakeup.
 ;------------------------------
-bye:
-	btjf UART1_SR,#UART_SR_TC,.
+cmd_bye:
+	btjf UART_SR,#UART_SR_TC,.
 	halt
 	jp cold_start  
 
@@ -3723,8 +3482,8 @@ bye:
 ; interrupt.
 ; Resume progam after SLEEP command
 ;----------------------------------
-sleep:
-	btjf UART1_SR,#UART_SR_TC,.
+cmd_sleep:
+	btjf UART_SR,#UART_SR_TC,.
 	bset flags,#FSLEEP
 	halt 
 	ret 
@@ -3737,12 +3496,9 @@ sleep:
 ; output:
 ;	none 
 ;------------------------------
-pause:
+cmd_pause:
 	call expression
-	cp a,#TK_INTGR
-	jreq 1$ 
-	jp syntax_error
-1$: _xpop 
+    _xpop 
 pause02:
 	ldw timer,x 
 1$: ldw x,timer 
@@ -3760,12 +3516,8 @@ pause02:
 ; output:
 ;  none:
 ;------------------------------
-awu:
+cmd_awu:
   call expression
-  cp a,#TK_INTGR
-  jreq 1$
-  jp syntax_error
-1$: _xpop 
 awu02:
   cpw x,#5120
   jrmi 1$ 
@@ -3810,9 +3562,9 @@ awu02:
 ; input:
 ; 	none 
 ; output:
-;	X 		TK_INTGR
+;	X 		LIT_IDX
 ;-------------------------------
-get_ticks:
+func_ticks:
 	ld a,ticks 
 	ldw x,ticks+1 
 	ret 
@@ -3825,7 +3577,7 @@ get_ticks:
 ; output:
 ;   xstack    positive int24 
 ;-------------------------------
-abs:
+func_abs:
 	call func_args 
 	cp a,#1 
 	jreq 0$ 
@@ -3842,7 +3594,7 @@ abs:
 ; output:
 ; 	A:x 	result 
 ;------------------------------
-lshift:
+func_lshift:
 	call func_args
 	cp a,#2 
 	jreq 1$
@@ -3866,10 +3618,10 @@ lshift:
 ; logical shift right expr1 by 
 ; expr2 bits.
 ; output:
-; 	A 		TK_INTGR
+; 	A 		LIT_IDX
 ;   X 		result 
 ;------------------------------
-rshift:
+func_rshift:
 	call func_args
 	cp a,#2 
 	jreq 1$
@@ -3893,8 +3645,8 @@ rshift:
 ; set CPU frequency 
 ;-------------------------- 
 
-fcpu:
-	ld a,#TK_INTGR
+cmd_fcpu:
+	ld a,#LIT_IDX
 	call expect 
 	call get_int24 
 	ld a,xl 
@@ -3911,7 +3663,7 @@ fcpu:
 ;------------------------------
 	PINNO=1
 	VSIZE=1
-pin_mode:
+cmd_pin_mode:
 	_vars VSIZE 
 	call arg_list 
 	cp a,#2 
@@ -4009,7 +3761,7 @@ arduino_to_8s208:
 ; output:
 ;	xstack 	random positive integer 
 ;------------------------------
-random:
+func_random:
 	call func_args 
 	cp a,#1
 	jreq 1$
@@ -4090,7 +3842,7 @@ random:
 	COL_CNT=1 ; column counter 
 	WCNT=2 ; count words printed 
 	VSIZE=2 
-words:
+cmd_words:
 	call cmd_line_only
 	pushw y
 	_vars VSIZE
@@ -4156,7 +3908,7 @@ print_word:
 ; BASIC: TIMER expr 
 ; initialize count down timer 
 ;-----------------------------
-set_timer:
+cmd_set_timer:
 	call arg_list
 	cp a,#1 
 	jreq 1$
@@ -4173,7 +3925,7 @@ set_timer:
 ;   A:X     0 not timeout 
 ;   A:X     -1 timeout 
 ;------------------------------
-timeout:
+func_timeout:
 	clr a 
 	ldw x,timer 
 	jreq 1$
@@ -4192,7 +3944,7 @@ timeout:
 ; expr1 is delay in multiple of 62.5µsec
 ; expr1 -> {1..16383}
 ;-----------------------------------
-enable_iwdg:
+cmd_enable_iwdg:
 	call arg_list
 	cp a,#1 
 	jreq 1$
@@ -4225,7 +3977,7 @@ enable_iwdg:
 ; refresh independant watchdog count down 
 ; timer before it reset MCU. 
 ;-----------------------------------
-refresh_iwdg:
+cmd_refresh_iwdg:
 	mov IWDG_KR,#IWDG_KEY_REFRESH 
 	ret 
 
@@ -4237,10 +3989,10 @@ refresh_iwdg:
 ; bit set. 
 ; input: 
 ; output:
-;   A     TK_INTGR 
+;   A     LIT_IDX 
 ;   xstack log2 
 ;*********************************
-log2:
+func_log2:
 	call func_args 
 	cp a,#1 
 	jreq 1$
@@ -4273,7 +4025,7 @@ log2:
 ; output:
 ;    A:X    2^expr 
 ;-----------------------------------
-bitmask:
+func_bitmask:
     call func_args 
 	cp a,#1
 	jreq 1$
@@ -4299,16 +4051,16 @@ bitmask:
 ; initiate a DO ... UNTIL loop 
 ;------------------------------
 	DOLP_ADR=3 
-	DOLP_INW=5
+	DOLP_LN_ADDR=5
 	VSIZE=4 
-do_loop:
+kword_do:
 	popw x 
 	_vars VSIZE 
 	pushw x 
 	ldw x,basicptr 
 	ldw (DOLP_ADR,sp),x
-	ldw x,in.w 
-	ldw (DOLP_INW,sp),x
+	ldw x,line.addr  
+	ldw (DOLP_LN_ADDR,sp),x
 	_inc loop_depth 
 	ret 
 
@@ -4317,7 +4069,7 @@ do_loop:
 ; loop if exprssion is false 
 ; else terminate loop
 ;--------------------------------
-until: 
+kword_until: 
 	tnz loop_depth 
 	jrne 1$ 
 	jp syntax_error 
@@ -4330,10 +4082,10 @@ until:
 	jrne 9$ 
 	ldw x,(DOLP_ADR,sp)
 	ldw basicptr,x 
+	ldw x,(DOLP_LN_ADDR,sp)
+	ldw line.addr,x 
 	ld a,(2,x)
 	ld count,a 
-	ldw x,(DOLP_INW,sp)
-	ldw in.w,x 
 	ret 
 9$:	; remove loop data from stack  
 	popw x
@@ -4409,7 +4161,7 @@ const_cr2:
 ;  used by PMODE 
 ;  to set pin as output
 ;------------------------
-const_output:
+const_pmode_output:
 	clr a 
 	ldw x,#OUTP
 	ret 
@@ -4420,7 +4172,7 @@ const_output:
 ;  used by PMODE 
 ;  to set pin as input
 ;------------------------
-const_input:
+const_pmode_input:
 	clr a  
 	ldw x,#INP 
 	ret 
@@ -4438,26 +4190,13 @@ const_eeprom_base:
 ; when the interpreter find 
 ; a DATA line it skip it.
 ;---------------------------
-data:
-	mov in,count 
-	ret 
+kword_data:
+	jp next_line 
 
-;------------------------------
-; check if it is a DATA line 
-; input: 
-;    X    line address 
-; output:
-;    Z    set if DATA line 
-;----------------------------
-is_data_line:
-	pushw x 
+	.macro _is_data_line
 	ld a,(3,x)
-	cp a,#TK_CMD 
-	jrne 9$
-	ldw x,(4,x)
-	cpw x,#data  
-9$: popw x 
-	ret 
+	cp a,#DATA_IDX 
+	.endm 
 
 ;---------------------------------
 ; BASIC: RESTORE [line#]
@@ -4471,33 +4210,43 @@ is_data_line:
 ; data line with that number 
 ; the program is interrupted. 
 ;---------------------------------
-restore:
+cmd_restore:
 	call runtime_only
 	clrw x 
 	ldw data_ptr,x 
-	ldw data_ofs,x 
-	ldw x,txtbgn 
+	ldw data_ptr,x 
 	call next_token 
-	cp a,#TK_INTGR
-	jrne 0$
-	call get_int24
-	pushw y 
-	clr a 
+	cp a,#CMD_END 
+	jrugt 0$ 
+	_unget_token 
+	ldw x,txtbgn 
+	jra 4$ 
+0$:	cp a,#LIT_IDX
+	jreq 2$
+	cp a,#LITC_IDX 
+	jrne 1$
+	_get_char 
+	clrw x 
+	rlwa x 
+	jra 3$
+1$: jp syntax_error 	 
+2$:	call get_int24
+3$:	pushw y 
 	call search_lineno  
 	popw y 
 	tnzw x 
 	jrne set_data_pointer 
 	jra data_error 
-0$:
+4$:
 	_unget_token  
 ; search first DATA line 	
-1$:	cpw x,txtend
+5$:	cpw x,txtend
 	jruge data_error 
-2$:	
-	call is_data_line 
-	jrne 4$
-4$:	call try_next_line 
-	jrne 4$ 
+6$:	
+	_is_data_line 
+	jreq set_data_pointer
+7$:	call try_next_line 
+	jrne 7$ 
 	ret 
 
 ;---------------------
@@ -4507,10 +4256,9 @@ restore:
 ;    X    line address 
 ;----------------------
 set_data_pointer:
-	ldw data_ptr,x
-	ld a,(2,x)
-	ld data_len,a 
-	mov data_ofs,#FIRST_DATA_ITEM
+	ldw data_line,x
+	addw x,#FIRST_DATA_ITEM
+	ldw data_ptr,x 
 	ret 
 
 
@@ -4531,7 +4279,7 @@ try_next_line:
 	jrult 1$
 	jra data_error 
 1$:	
-	call is_data_line 
+	_is_data_line 
 	jreq 2$
 	ld a,#1  
 	jra 9$
@@ -4547,59 +4295,61 @@ data_error:
 ; BASIC: READ 
 ; return next data item | 0 
 ;---------------------------------
-	CTX_BPTR=1 
-	CTX_IN=3 
-	CTX_COUNT=4 
-	INT24=5
-	VSIZE=7 
-read:
+	CTX_LNADR=1
+	CTX_BPTR=3 
+	CTX_COUNT=5
+	INT24=6
+	VSIZE=8 
+func_read_data:
 	call runtime_only
 	_vars  VSIZE 
 	call save_context
 read01:	
-	ld a,data_ofs
-	cp a,data_len 
-	jreq 2$ ; end of line
+	ld a,[data_ptr]
+	jreq 3$ ; end of line
 0$:
+	ldw x,data_line 
+	ldw line.addr,x 
 	ldw x,data_ptr 
-	ldw basicptr,x 
-	mov in,data_ofs 
-	mov count,data_len  	
+	ldw basicptr,x
+	ld a,(x)
+	jreq 3$  
 	call expression 
-	cp a,#TK_INTGR 
-	jreq 1$ 
-	jp syntax_error 
 1$:
-	call next_token ; skip comma
-	cp a,#TK_COMMA 
-	jreq 3$
+	call next_token ; skip comma 
+	cp a,#COMMA_IDX 
+	jreq 2$
 ; if not comma skip
 ; to end of line.	
-	ld a,count 
-	ld in,a 
-3$:
+	ldw x,line.addr 
+	ld a,(2,x)
+	clr acc16 
+	ld acc8,a 
+	addw x,acc16
+	decw x 
+	ldw basicptr,x  
+2$:
 	ldw x,basicptr 
 	ldw data_ptr,x 
-	mov data_ofs,in 
 	call rest_context
 	_xpop 
 	_drop VSIZE 
 	ret 
-2$: ; end of line reached 
-	; try next line 
-	ldw x,data_ptr  
+3$: ; end of line reached 
+	; try next line  	
+	ldw x,data_line   
 	call try_next_line
 	jreq 0$ 
 	jra data_error 
 
 ;---------------------------------
-; BASIC: SPIEN clkdiv, 0|1  
+; BASIC: SPI.EN clkdiv, 0|1  
 ; clkdiv -> {0..7} Fspi=Fclk/2^(n+1)
 ; if clkdiv==-1 disable SPI
 ; 0|1 -> disable|enable  
 ;--------------------------------- 
 SPI_CS_BIT=5
-spi_enable:
+cmd_spi_enable:
 	call arg_list 
 	cp a,#2
 	jreq 1$
@@ -4661,21 +4411,18 @@ spi_rcv_byte:
 	ret
 
 ;------------------------------
-; BASIC: SPIWR byte [,byte]
+; BASIC: SPI.WR byte [,byte]
 ; write 1 or more byte
 ;------------------------------
-spi_write:
+cmd_spi_write:
 	call expression
-	cp a,#TK_INTGR 
-	jreq 1$
-	jp syntax_error 
 1$:	
 	ld a,xl 
 	call spi_send_byte 
 	call next_token 
-	cp a,#TK_COMMA 
+	cp a,#COMMA_IDX 
 	jrne 2$ 
-	jra spi_write 
+	jra cmd_spi_write 
 2$:	tnz a 
 	jreq 3$
 	_unget_token  
@@ -4683,24 +4430,24 @@ spi_write:
 
 
 ;-------------------------------
-; BASIC: SPIRD 	
+; BASIC: SPI.RD 	
 ; read one byte from SPI 
 ;-------------------------------
-spi_read:
+func_spi_read:
 	call spi_rcv_byte 
 	clrw x 
 	ld xl,a 
-	clr a  
+	clr a
 	ret 
 
 ;------------------------------
-; BASIC: SPISEL 0|1 
+; BASIC: SPI.SEL 0|1 
 ; set state of ~CS line
 ; 0|1 deselect|select  
 ;------------------------------
-spi_select:
+cmd_spi_select:
 	call next_token 
-	cp a,#TK_INTGR 
+	cp a,#LIT_IDX 
 	jreq 1$
 	jp syntax_error 
 1$: tnzw x  
@@ -4715,7 +4462,7 @@ cs_high:
 ; BASIC: PAD 
 ; Return pad buffer address.
 ;------------------------------
-pad_ref:
+const_pad_ref:
 	ldw x,#pad 
 	clr a
 	ret 
@@ -4729,7 +4476,7 @@ pad_ref:
 ; BASIC: PUSH expr|rel|cond 
 ; push the result on xtack
 ;-----------------------------
-xpush:
+cmd_xpush:
 	call condition 
 	ret 
 
@@ -4737,7 +4484,7 @@ xpush:
 ; BASIC: POP 
 ; pop top of xstack 
 ;------------------------------
-xpop:
+func_xpop:
 	_xpop 
 	ret 
 
@@ -4746,11 +4493,8 @@ xpop:
 ; BASIC: ALLOC expr 
 ; allocate expr element on xtack 
 ;-------------------------------
-xalloc: 
+cmd_xalloc: 
 	call expression 
-	cp a,#TK_INTGR
-	jreq 1$ 
-	jp syntax_error
 1$: _xpop 
 	tnz a 
 	jreq 3$ 
@@ -4771,15 +4515,12 @@ xalloc:
 
 
 ;------------------------------
-;  BASIC DROP expr 
+;  BASIC: DROP expr 
 ;  expr in range {0..XSTACK_SIZE}
 ;  discard n elements from xtack
 ;------------------------------
-xdrop:
+cmd_xdrop:
 	call expression 
-	cp a,#TK_INTGR
-	jreq 1$ 
-	jp syntax_error 
 1$:	_xpop 
 	ld a,xl 
 	and a,#0x1f 
@@ -4822,7 +4563,7 @@ xstack_bound:
 ; cond -> valut to put 
 ; on xstack 
 ;-------------------------
-xput:
+cmd_xput:
 	call arg_list 
 	cp a,#2 
 	jreq 1$ 
@@ -4845,7 +4586,7 @@ xput:
 ; get nième element on 
 ; xtack. 
 ;-----------------------
-xpick:
+func_xpick:
 	call func_args 
 	cp a,#1 
 	jreq 1$
@@ -4868,12 +4609,13 @@ xpick:
 cmd_auto_run:
 	call cmd_line_only
 	call next_token 
-	cp a,#TK_LABEL 
+	cp a,#LABEL_IDX 
 	jreq set_autorun  
-	cp a,#TK_CHAR 
+	cp a,#CHAR_IDX 
 	jrne 0$ 
 	ld a,(x)
-	_inc in 
+	incw x 
+	ldw basicptr,x 
 	and a,#0xDF 
 	cp a,#'C 
 	jreq clear_autorun 
@@ -4909,55 +4651,6 @@ set_autorun:
 AR_SIGN: .ascii "AR" ; autorun signature 
 
 ;-------------------------------
-; search a program in flash 
-; memory with a label at first 
-; that correspond to name 
-; pointed by X 
-; input:
-;    x      *name 
-; output: 
-;    X     prog_addr|0
-;-------------------------------
-	WLKPTR=1 
-	PNAME=3
-	LIMIT=5
-	YSAVE=7
-	VSIZE=6 
-search_program:
-	pushw y 
-	_vars VSIZE 
-	ldw (PNAME,sp),x 
-	call uflash 
-	ldw (LIMIT,sp),x 
-	ldw x,#app_space 
-1$:	ldw (WLKPTR,sp),x  
-	clr a 
-	call is_program_addr
-	jrne 4$
-	addw x,#7 
-	ld a,(x)
-	cp a,#TK_LABEL 
-	jrne 4$ 
-	incw x 
-	ldw y,(PNAME,sp)
-	call strcmp
-	jreq 6$
-4$: 
-	call skip_to_next
-	cpw x,(LIMIT,sp)
-	jrult 1$
-	clrw x 
-	jra 8$
-6$: ; found label 
-	ldw x,(WLKPTR,sp)
-	addw x,#4 	
-8$:	
-	_drop VSIZE  
-	popw y 
-	ret 
-
-
-;-------------------------------
 ; BASIC: CHAIN label [, line#]
 ; Execute another program like it 
 ; is a sub-routine. When the 
@@ -4970,9 +4663,8 @@ search_program:
 ;---------------------------------
 	CHAIN_LN=3 
 	CHAIN_ADDR=5 
-	CHAIN_BP=7
-	CHAIN_IN=9
-	CHAIN_COUNT=10 
+	CHAIN_LNADR=7
+	CHAIN_BP=9
 	CHAIN_TXTBGN=11 
 	CHAIN_TXTEND=13 
 	VSIZE=12 
@@ -4983,7 +4675,7 @@ cmd_chain:
 	pushw x
 	clr (CHAIN_LN,sp) 
 	clr (CHAIN_LN+1,sp)  
-	ld a,#TK_LABEL 
+	ld a,#LABEL_IDX 
 	call expect 
 	pushw x 
 	call skip_string
@@ -4993,28 +4685,39 @@ cmd_chain:
 	jrne 1$ 
 0$:	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-1$: ldw (CHAIN_ADDR,sp), x ; program addr 
+1$: addw x,#FILE_HEADER_SIZE 
+	ldw (CHAIN_ADDR,sp), x ; program addr 
+;_tp 'A 
     call next_token 
-	cp a,#TK_COMMA 
-	jrne 4$
-	ld a,#TK_INTGR
-	call expect 
+	cp a,#COMMA_IDX 
+	jrne 5$
+	call next_token 
+;_tp 'B
+	cp a,#LIT_IDX
+	jreq 3$
+	cp a,#LITC_IDX 
+	jrne 5$
+	_get_char 
+	clrw x 
+	rlwa x
+	jra 4$
+3$:	
 	call get_int24 
-	ldw (CHAIN_LN,sp),x
+4$:	ldw (CHAIN_LN,sp),x
 	jra 6$ 
-4$: _unget_token 
+5$:  _unget_token 
 6$: ; save chain context 
-	ldw x,basicptr 
-	ldw (CHAIN_BP,sp),x 
-	ldw x,in
-	ldw (CHAIN_IN,sp),x
+	ldw x,line.addr 
+	ldw (CHAIN_LNADR,sp),x 
+	ldw x,basicptr  
+	ldw (CHAIN_BP,sp),x
 	ldw x,txtbgn 
 	ldw (CHAIN_TXTBGN,sp),x
 	ldw x,txtend 
 	ldw (CHAIN_TXTEND,sp),x  
 ; set chained program context 	
 	ldw x,(CHAIN_ADDR,sp)
-	ldw basicptr,x 
+	ldw line.addr,x 
 	ldw txtbgn,x 
 	subw x,#2
 	ldw x,(x)
@@ -5023,7 +4726,8 @@ cmd_chain:
 	ldw x,(CHAIN_ADDR,sp)
 	ld a,(2,x)
 	ld count,a 
-	mov in,#3 
+	addw x,#3 
+	ldw basicptr,x 
 	ldw x,(CHAIN_LN,sp)
 	tnzw x 
 	jreq 8$ 
@@ -5032,11 +4736,14 @@ cmd_chain:
 	call search_lineno
 	popw y 
 	tnzw x 
-	jreq 0$ 
-	ldw basicptr,x 
+	jreq 8$ 
+	ldw line.addr,x 
 	ld a,(2,x)
-	ld count,a 
+	ld count,a
+	addw x,#3
+	ldw basicptr,x  
 8$: _inc chain_level
+;_tp 'C
 	popw x 
 	_drop DISCARD
 	jp (x)
@@ -5049,11 +4756,11 @@ cmd_chain:
 cmd_trace:
 	call runtime_only
 	call next_token
-	cp a,#TK_INTGR
+	cp a,#LITC_IDX
 	jreq 1$ 
 	jp syntax_error 
-1$: call get_int24 
-    tnzw x 
+1$: _get_char  
+    tnz a 
 	jrne 2$ 
 	bres flags,#FTRACE 
 	ret 
@@ -5080,26 +4787,23 @@ cmd_reboot:
 	NLEN=3 
 	BSIZE=5
 	VSIZE=6 
-alloc_buffer:
+cmd_alloc_buffer:
 	call runtime_only
 	_vars VSIZE
 	clr (NLEN,sp)
-	ld a,#TK_LABEL 
+	ld a,#LABEL_IDX 
 	call expect  
 	ldw (BNAME,sp),x 
 	call strlen 
 	and a,#NAME_MAX_LEN
 	ld (NLEN+1,sp),a 
 	call skip_string 
-	ld a,#TK_COMMA 
+	ld a,#COMMA_IDX 
 	call expect 
 	call expression 
-	cp a,#TK_INTGR
-	jreq 1$
-	jp syntax_error 
 1$: _xpop
 	ldw (BSIZE,sp),x 
-	call free
+	call func_free
 	subw x,#REC_XTRA_BYTES
 	subw x,(NLEN,sp)  
 	cpw x,(BSIZE,sp)
@@ -5152,132 +4856,152 @@ alloc_buffer:
 ;   cmd_name: 16 byte max 
 ;   code_addr: 2 bytes 
 ;------------------------------
-	.macro _dict_entry len,name,code_addr 
-	.word LINK 
-	LINK=.
-	.byte len   	
-	.ascii "name"
-	.word code_addr  
+	.macro _dict_entry len,name,token_id 
+	.word LINK  ; point to next name field 
+	LINK=.  ; name field 
+	.byte len  ; name length 
+	.asciz name  ; name 
+	.byte token_id   ; TOK_IDX 
 	.endm 
 
 	LINK=0
 ; respect alphabetic order for BASIC names from Z-A
 ; this sort order is for a cleaner WORDS cmd output. 	
-kword_end:
-	_dict_entry,3+F_XOR,XOR,TK_XOR ; xor operator
-	_dict_entry,5,WRITE,write  
-	_dict_entry,5,WORDS,words 
-	_dict_entry 4,WAIT,wait 
-	_dict_entry,3+F_IFUNC,USR,usr
-	_dict_entry,5,UNTIL,until 
-	_dict_entry,6+F_IFUNC,UFLASH,uflash 
-	_dict_entry,6+F_IFUNC,UBOUND,ubound
-	_dict_entry,5,TRACE,cmd_trace 
-	_dict_entry,4,TONE,tone  
-	_dict_entry,2,TO,to
-	_dict_entry,5,TIMER,set_timer
-	_dict_entry,7+F_IFUNC,TIMEOUT,timeout 
-	_dict_entry,5+F_IFUNC,TICKS,get_ticks
-	_dict_entry,4,STOP,stop 
-	_dict_entry,4,STEP,step 
-	_dict_entry,5,SPIWR,spi_write
-	_dict_entry,6,SPISEL,spi_select
-	_dict_entry,5+F_IFUNC,SPIRD,spi_read 
-	_dict_entry,5,SPIEN,spi_enable 
-	_dict_entry,5,SLEEP,sleep 
-    _dict_entry,4,SIZE,cmd_size 
-	_dict_entry,4,SAVE,cmd_save 
-	_dict_entry 3,RUN,cmd_run
-	_dict_entry,6+F_IFUNC,RSHIFT,rshift
-	_dict_entry,3+F_IFUNC,RND,random 
-	_dict_entry,6,RETURN,return 
-	_dict_entry,7,RESTORE,restore 
-	_dict_entry 3,REM,remark 
-	_dict_entry,6,REBOOT,cmd_reboot 
-	_dict_entry,4+F_IFUNC,READ,read  
-	_dict_entry,3,PUT,xput 
-	_dict_entry,4,PUSH,xpush   
-	_dict_entry,5+F_IFUNC,PORTI,const_porti 
-	_dict_entry,5+F_IFUNC,PORTG,const_portg 
-	_dict_entry,5+F_IFUNC,PORTF,const_portf
-	_dict_entry,5+F_IFUNC,PORTE,const_porte
-	_dict_entry,5+F_IFUNC,PORTD,const_portd
-	_dict_entry,5+F_IFUNC,PORTC,const_portc
-	_dict_entry,5+F_IFUNC,PORTB,const_portb
-	_dict_entry,5+F_IFUNC,PORTA,const_porta 
-	_dict_entry 5,PRINT,cmd_print 
-	_dict_entry,4+F_IFUNC,POUT,const_output
-	_dict_entry,3+F_IFUNC,POP,xpop 
-	_dict_entry,4,POKE,poke 
-	_dict_entry,5,PMODE,pin_mode 
-	_dict_entry,4+F_IFUNC,PINP,const_input
-	_dict_entry,4+F_IFUNC,PICK,xpick 
-	_dict_entry,4+F_IFUNC,PEEK,peek 
-	_dict_entry,5,PAUSE,pause 
-	_dict_entry,3+F_IFUNC,PAD,pad_ref 
-	_dict_entry,2+F_OR,OR,TK_OR ; OR operator 
-	_dict_entry,2,ON,cmd_on 
-	_dict_entry,3+F_IFUNC,ODR,const_odr 
-	_dict_entry,3+F_NOT,NOT,TK_NOT;NOT operator
-	_dict_entry,4,NEXT,next 
-	_dict_entry,3,NEW,new
-	_dict_entry,6+F_IFUNC,LSHIFT,lshift
-	_dict_entry,4+F_IFUNC,LOG2,log2 
-	_dict_entry 4,LIST,cmd_list
-	_dict_entry 3,LET,let 
-	_dict_entry,4+F_IFUNC,KEY?,qkey
-	_dict_entry,3+F_CFUNC,KEY,key 
-	_dict_entry,7,IWDGREF,refresh_iwdg
-	_dict_entry,6,IWDGEN,enable_iwdg
-	_dict_entry,5,INPUT,input_var  
-	_dict_entry,2,IF,if 
-	_dict_entry,3+F_IFUNC,IDR,const_idr 
-.if INCLUDE_I2C 
-	_dict_entry,9,I2C.WRITE,i2c_write
-	_dict_entry,8,I2C.READ,i2c_read 
-	_dict_entry,8,I2C.OPEN,i2c_open
-	_dict_entry,9,I2C.CLOSE,i2c_close
-.endif ; INLCUDE_I2C 
-	_dict_entry,3,HEX,hex_base
-	_dict_entry,4,GOTO,goto 
-	_dict_entry,5,GOSUB,gosub 
-	_dict_entry,3,GET,cmd_get 
-	_dict_entry,4+F_IFUNC,FREE,free
-	_dict_entry,3,FOR,for 
-	_dict_entry,4,FCPU,fcpu 
-	_dict_entry,5,ERASE,cmd_erase 
-	_dict_entry,3,END,cmd_end  
-	_dict_entry,6+F_IFUNC,EEPROM,const_eeprom_base   
-	_dict_entry,6+F_IFUNC,EEFREE,func_eefree 
-	_dict_entry,4,EDIT,cmd_edit 
-	_dict_entry,6+F_CMD,DWRITE,digital_write
-	_dict_entry,4,DROP,xdrop ; drop n element from xtack 
-	_dict_entry,5+F_IFUNC,DREAD,digital_read
-	_dict_entry,2,DO,do_loop
-	_dict_entry,3,DIR,cmd_dir
-	_dict_entry,3,DIM,cmd_dim 
-	_dict_entry,3,DEC,dec_base
-	_dict_entry,3+F_IFUNC,DDR,const_ddr 
-	_dict_entry,4,DATA,data  
-	_dict_entry,3+F_IFUNC,CR2,const_cr2 
-	_dict_entry,3+F_IFUNC,CR1,const_cr1 
-	_dict_entry,5,CONST,cmd_const 
-	_dict_entry,4+F_CFUNC,CHAR,func_char
-	_dict_entry,5,CHAIN,cmd_chain
-	_dict_entry,3,BYE,bye 
-	_dict_entry,6,BUFFER,alloc_buffer 
-	_dict_entry,5,BTOGL,bit_toggle
-	_dict_entry,5+F_IFUNC,BTEST,bit_test 
-	_dict_entry,4,BSET,bit_set 
-	_dict_entry,4,BRES,bit_reset
-	_dict_entry,3+F_IFUNC,BIT,bitmask
-	_dict_entry,3,AWU,awu 
-	_dict_entry,7,AUTORUN,cmd_auto_run
-	_dict_entry,3+F_IFUNC,ASC,ascii
-	_dict_entry,3+F_AND,AND,TK_AND ; AND operator 
-	_dict_entry,5,ALLOC,xalloc ; allocate space on xtack 
-	_dict_entry,7+F_IFUNC,ADCREAD,analog_read
-	_dict_entry,5,ADCON,power_adc 
+dict_end:
+	_dict_entry,3,"XOR",XOR_IDX ; xor operator
+	_dict_entry,5,"WRITE",WRITE_IDX  
+	_dict_entry,5,"WORDS",WORDS_IDX 
+	_dict_entry 4,"WAIT",WAIT_IDX
+	_dict_entry,3,"USR",USR_IDX
+	_dict_entry,5,"UNTIL",UNTIL_IDX 
+	_dict_entry,6,"UFLASH",UFLASH_IDX 
+	_dict_entry,6,"UBOUND",UBOUND_IDX
+	_dict_entry,5,"TRACE",TRACE_IDX
+	_dict_entry,4,"TONE",TONE_IDX  
+	_dict_entry,2,"TO",TO_IDX
+	_dict_entry,5,"TIMER",TIMER_IDX
+	_dict_entry,7,"TIMEOUT",TIMEOUT_IDX 
+	_dict_entry,5,"TICKS",TICKS_IDX
+	_dict_entry,4,"STOP",STOP_IDX
+	_dict_entry,4,"STEP",STEP_IDX
+	_dict_entry,6,"SPI.WR",SPIWR_IDX
+	_dict_entry,7,"SPI.SEL",SPISEL_IDX
+	_dict_entry,6,"SPI.RD",SPIRD_IDX 
+	_dict_entry,6,"SPI.EN",SPIEN_IDX
+	_dict_entry,5,"SLEEP",SLEEP_IDX
+    _dict_entry,4,"SIZE",SIZE_IDX
+	_dict_entry,4,"SAVE",SAVE_IDX 
+	_dict_entry 3,"RUN",RUN_IDX
+	_dict_entry,6,"RSHIFT",RSHIFT_IDX
+	_dict_entry,3,"RND",RND_IDX
+	_dict_entry,6,"RETURN",RET_IDX
+	_dict_entry,7,"RESTORE",REST_IDX 
+	_dict_entry 3,"REM",REM_IDX
+	_dict_entry,6,"REBOOT",RBT_IDX 
+	_dict_entry,4,"READ",READ_IDX  
+	_dict_entry,3,"PUT",PUT_IDX
+	_dict_entry,4,"PUSH",PUSH_IDX 
+	_dict_entry,5,"PORTI",PORTI_IDX 
+	_dict_entry,5,"PORTG",PORTG_IDX 
+	_dict_entry,5,"PORTF",PORTF_IDX
+	_dict_entry,5,"PORTE",PORTE_IDX
+	_dict_entry,5,"PORTD",PORTD_IDX
+	_dict_entry,5,"PORTC",PORTC_IDX
+	_dict_entry,5,"PORTB",PORTB_IDX
+	_dict_entry,5,"PORTA",PORTA_IDX 
+	_dict_entry 5,"PRINT",PRINT_IDX 
+	_dict_entry,4,"POUT",POUT_IDX
+	_dict_entry,3,"POP",POP_IDX  
+	_dict_entry,4,"POKE",POKE_IDX 
+	_dict_entry,5,"PMODE",PIN_MODE_IDX 
+	_dict_entry,4,"PINP",PINP_IDX
+	_dict_entry,4,"PICK",PICK_IDX
+	_dict_entry,4,"PEEK",PEEK_IDX 
+	_dict_entry,5,"PAUSE",PAUSE_IDX 
+	_dict_entry,3,"PAD",PAD_IDX 
+	_dict_entry,2,"OR",OR_IDX ; OR operator 
+	_dict_entry,2,"ON",ON_IDX
+	_dict_entry,3,"ODR",ODR_IDX 
+	_dict_entry,3,"NOT",NOT_IDX;NOT operator
+	_dict_entry,4,"NEXT",NEXT_IDX 
+	_dict_entry,3,"NEW",NEW_IDX
+	_dict_entry,6,"LSHIFT",LSHIFT_IDX
+	_dict_entry,4,"LOG2",LOG2_IDX
+	_dict_entry 4,"LIST",LIST_IDX
+	_dict_entry 3,"LET",LET_IDX
+	_dict_entry,4,"KEY?",QKEY_IDX
+	_dict_entry,3,"KEY",KEY_IDX
+	_dict_entry,7,"IWDGREF",IWDGREF_IDX
+	_dict_entry,6,"IWDGEN",IWDGEN_IDX
+	_dict_entry,5,"INPUT",INPUT_IDX 
+	_dict_entry,2,"IF",IF_IDX 
+	_dict_entry,3,"IDR",IDR_IDX 
+	_dict_entry,9,"I2C.WRITE",I2C_WRITE_IDX
+	_dict_entry,8,"I2C.READ",I2C_READ_IDX
+	_dict_entry,8,"I2C.OPEN",I2C_OPEN_IDX
+	_dict_entry,9,"I2C.CLOSE",I2C_CLOSE_IDX 
+	_dict_entry,3,"HEX",HEX_IDX 
+	_dict_entry,4,"GOTO",GOTO_IDX  
+	_dict_entry,5,"GOSUB",GOSUB_IDX 
+	_dict_entry,3,"GET",GET_IDX 
+	_dict_entry,4,"FREE",FREE_IDX 
+	_dict_entry,3,"FOR",FOR_IDX 
+	_dict_entry,4,"FCPU",FCPU_IDX 
+	_dict_entry,5,"ERASE",ERASE_IDX  
+	_dict_entry,3,"END",END_IDX 
+	_dict_entry,6,"EEPROM",EEPROM_IDX   
+	_dict_entry,6,"EEFREE",EEFREE_IDX 
+	_dict_entry,4,"EDIT",EDIT_IDX 
+	_dict_entry,6,"DWRITE",DWRITE_IDX
+	_dict_entry,4,"DROP",DROP_IDX ; drop n element from xtack 
+	_dict_entry,5,"DREAD",DREAD_IDX
+	_dict_entry,2,"DO",DO_IDX
+	_dict_entry,3,"DIR",DIR_IDX
+	_dict_entry,3,"DIM",DIM_IDX  
+	_dict_entry,3,"DEC",DEC_IDX
+	_dict_entry,3,"DDR",DDR_IDX 
+	_dict_entry,4,"DATA",DATA_IDX 
+	_dict_entry,3,"CR2",CR2_IDX 
+	_dict_entry,3,"CR1",CR1_IDX  
+	_dict_entry,5,"CONST",CONST_IDX
+	_dict_entry,4,"CHAR",CHAR_IDX
+	_dict_entry,5,"CHAIN",CHAIN_IDX 
+	_dict_entry,3,"BYE",BYE_IDX 
+	_dict_entry,6,"BUFFER",BUFFER_IDX 
+	_dict_entry,5,"BTOGL",BTOGL_IDX
+	_dict_entry,5,"BTEST",BTEST_IDX 
+	_dict_entry,4,"BSET",BSET_IDX
+	_dict_entry,4,"BRES",BRES_IDX
+	_dict_entry,3,"BIT",BIT_IDX
+	_dict_entry,3,"AWU",AWU_IDX 
+	_dict_entry,7,"AUTORUN",AUTORUN_IDX
+	_dict_entry,3,"ASC",ASC_IDX
+	_dict_entry,3,"AND",AND_IDX ; AND operator 
+	_dict_entry,5,"ALLOC",ALLOC_IDX ; allocate space on xtack 
+	_dict_entry,7,"ADCREAD",ADCREAD_IDX
+	_dict_entry,5,"ADCON",ADCON_IDX 
 kword_dict::
-	_dict_entry,3+F_IFUNC,ABS,abs
-
+	_dict_entry,3,"ABS",ABS_IDX 
+; the following are not displayed
+; by WORDS command 
+	_dict_entry,1,":",COLON_IDX 
+	_dict_entry,1,^/","/,COMMA_IDX 
+	_dict_entry,1,^/";"/,SCOL_IDX
+	_dict_entry,1,"'",REM_IDX 
+	_dict_entry,1,"@",ARRAY_IDX 
+	_dict_entry,1,"(",LPAREN_IDX 
+	_dict_entry,1,")",RPAREN_IDX 
+	_dict_entry,1,"?",PRINT_IDX 
+	_dict_entry,1,"=",REL_EQU_IDX 
+	_dict_entry,2,">=",REL_GE_IDX
+	_dict_entry,1,">",REL_GT_IDX
+	_dict_entry,1,"<",REL_LT_IDX
+	_dict_entry,2,"<=",REL_LE_IDX 
+	_dict_entry,2,"><",REL_NE_IDX
+	_dict_entry,2,"<>",REL_NE_IDX
+	_dict_entry,1,"+",ADD_IDX
+	_dict_entry,1,"-",SUB_IDX 
+	_dict_entry,1,"*",MULT_IDX 
+	_dict_entry,1,"/",DIV_IDX 
+all_words:
+	_dict_entry,1,"%",MOD_IDX 

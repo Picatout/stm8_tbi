@@ -21,19 +21,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-    .module COMPILER 
-
+.if SEPARATE 
+    .module COMPILER  
     .include "config.inc"
 
-.if SEPARATE
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-	.include "tbi_macros.inc" 
+    .area CODE 
 .endif 
 
-;    .area  CODE 
 
 ;-------------------------------------
 ; search text area for a line#
@@ -54,7 +48,7 @@ search_lineno::
 	ldw y,txtbgn
 	tnz a 
 	jreq search_ln_loop
-	ldw y,basicptr 
+	ldw y,line.addr  
 search_ln_loop:
 	cpw y,txtend 
 	jrpl 8$
@@ -170,7 +164,7 @@ insert_line:
 	call del_line 
 	jra 1$
 0$: ldw (DEST,sp),y
-1$: ld a,#3 
+1$: ld a,#4 
 	cp a,(LLEN+1,sp)
 	jreq 9$
 ; check for space 
@@ -250,7 +244,7 @@ parse_quote:
 	incw x 
 	ldw y,x 
 	clrw x 
-	ld a,#TK_QSTR  
+	ld a,#QUOTE_IDX  
 	_drop VSIZE
 	ret 
 
@@ -283,70 +277,60 @@ escaped:: .asciz "abtnvfr"
 ;-------------------------
 ; integer parser 
 ; input:
-;   X 		point to output buffer  
+;   X      *output buffer (&pad[n])
 ;   Y 		point to tib 
+;   in.w    offset in tib 
 ;   A 	    first digit|'$' 
 ; output:  
-;   X 		integer bits 15..0 
-;   A 		TK_INTGR
-;   acc24   24 bits integer 
+;   A:X 	int24   
+;   acc24   24 bits integer
+;   in.w    updated 
+;   Y       &pad[n] 
 ;-------------------------
-	BASE=1
-	TCHAR=2 
-	XSAVE=3
-	VSIZE=4 
+	; local variables 
+	BASE=1 
+	XSAVE=2
+	VSIZE=3
 parse_integer: ; { -- n }
-	pushw x 	
-	push #0 ; TCHAR
-	push #10 ; BASE=10
+	pushw x ; XSAVE 
+	push #0 ; BASE 10	
 	cp a,#'$
 	jrne 2$ 
-    _drop #1
-	push #16  ; BASE=16
+	cpl (BASE,sp)  ; BASE=16
 2$:	ld (x),a 
 	incw x 
 	ld a,([in.w],y)
 	_inc in 
 	call to_upper 
-	ld (TCHAR,sp),a 
+	tnz (BASE,sp)
+	jrne 4$  
+3$:  ; decimal number 
 	call is_digit 
 	jrc 2$
-	ld a,#16 
-	cp a,(BASE,sp)
-	jrne 3$ 
-	ld a,(TCHAR,sp)
-	cp a,#'A 
-	jrmi 3$ 
-	cp a,#'G 
-	jrmi 2$ 
-3$: dec in 	
+	jra 5$
+4$: ; hexadecimal number 	
+	call is_hex_digit
+	jrc 2$ 
+5$: dec in 	
     clr (x)
 	ldw x,(XSAVE,sp)
 	ldw y,#XSTACK_EMPTY 
 	call atoi24
 	ldw y,(XSAVE,sp)
 	ld a,acc24 
-	ld (y),a 
-	incw y  
 	ldw x,acc16 
-	ldw (y),x 
-	addw y,#2
-	ld a,#TK_INTGR
-	_drop VSIZE  
-	ret 	
+	_drop VSIZE 
+	ret
 
 ;-------------------------
 ; binary integer parser
 ; build integer in acc24  
 ; input:
-;   X 		point to output buffer  
 ;   Y 		point to tib 
-;   A 	    '&' 
+;   in.w 	offset in tib  
 ; output:  
-;   buffer  TK_INTGR integer  
-;   X 		int16 
-;   A 		TK_INTGR
-;   acc24    int24 
+;   A:X 	int24 
+;   in.w    updated 
 ;-------------------------
 	BINARY=1 ; 24 bits integer 
 	VSIZE=3
@@ -371,14 +355,44 @@ parse_binary: ; { -- n }
 bin_exit:
 	dec in 
 	ldw y,x
+; load 24 bits integer in A:X 
 	ld a,(BINARY,sp)
-	ld (y),a 
-	incw y 
 	ldw x,(BINARY+1,sp)
-	ldw (y),x 
-	addw y,#2  
-	ld a,#TK_INTGR 	
 	_drop VSIZE 
+	ret
+
+;-------------------------------------
+; input:
+;   A:X  24 bits integer 
+;   Y    &pad[n]
+; output:
+;    pad   LIT_IDX,int24|LITC_IDX,int8 
+;    y   &pad[n+4]|&pad[n+2]
+;------------------------------------
+compile_integer:
+; 24 bits integer in A:X 
+	rrwa x ; X:A format 
+	tnzw x 
+	jrne 1$ 
+; integer <256 compile as 8 bits integer 
+; compiled as .byte LITC_IDX,int8 
+	ld (1,y),a 
+	ld  a,#LITC_IDX 
+	push a 
+	ld (y),a
+	addw y,#2 
+	jra 9$ 
+1$: ; compile as 24 bits integer
+	; compiled as .byte LIT_IDX,most,middle,least (big indian)
+	rlwa x ; restore to initial A:X format 
+	ld (1,y),a 
+	ld a,#LIT_IDX
+	push a 
+	ld (y),a 
+	addw y,#2 
+	LDW (Y),x 
+	addw y,#2
+9$:	pop a 
 	ret
 
 ;-------------------------------------
@@ -414,6 +428,24 @@ is_digit::
 	ccf 
 1$:	ccf 
     ret
+
+;------------------------------------
+; check if character in {'0'..'9','A'..'F'}
+; input:
+;    A  character to test
+; output:
+;    Carry  0 not hex_digit | 1 hex_digit
+;------------------------------------
+is_hex_digit:
+	call is_digit 
+	jrc 9$
+	cp a,#'A 
+	jrc 1$
+	cp a,#'G 
+	ccf 
+1$: ccf 
+9$: ret 
+
 
 ;-------------------------------------
 ; return true if character in  A 
@@ -464,7 +496,7 @@ is_symbol_char:
 ;   Y   point after lexical unit 
 ;---------------------------
 parse_symbol:
-	incw x ; keep space for TK_ID 
+	incw x ; keep space for token identifier
 symb_loop: 
 ; symbol are converted to upper case 
 	call to_upper  
@@ -486,8 +518,8 @@ symb_loop:
 ;   Y 		point to text
 ;   A 	    first letter  
 ; output:
-;   X		exec_addr|var_addr 
-;   A 		TK_CMD|TK_IFUNC|TK_CFUNC|TK_AND|TK_OR|TK_XOR   
+;   Y		point in pad after token  
+;   A 		token identifier
 ;   pad 	keyword|var_name  
 ;--------------------------  
 	XFIRST=1
@@ -498,25 +530,29 @@ parse_keyword:
 	ldw x,(XFIRST,sp) 
 	ld a,(2,x)
 	jrne 2$
-; one letter variable name 
+; one letter symbol is variable name 
 	ld a,(1,x) 
 	sub a,#'A 
 	ldw x,#3 
 	mul x,a 
-	addw x,#vars 
-	ld a,#TK_VAR 
-	jra 4$ 
-2$: ; check for keyword, otherwise syntax error.
+	addw x,#vars ; variable address 
+	ldw y,(XFIRST,sp)
+	ldw (1,y),x 
+	ld a,#VAR_IDX 
+	ld (y),a
+	addw y,#3
+	jra 6$ 
+2$: ; check in dictionary, if not found is label.
 	_ldx_dict kword_dict ; dictionary entry point
 	ldw y,(XFIRST,sp) ; name to search for
 	incw y 
 	call search_dict
-	tnz a
+	cp a,#NONE_IDX 
 	jrne 4$
 ; not in dictionary
-; compile it as TK_LABEL
+; compile it as LABEL
+	ld a,#LABEL_IDX 
 	ldw y,(XFIRST,sp)
-	ld a,#TK_LABEL 
 	ld (y),a 
 	incw y
 	ldw x,y 
@@ -536,24 +572,13 @@ parse_keyword:
 	ld (y),a 
 3$: incw y 
 	_drop 1 
-	ld a,#TK_LABEL 
-	clrw x 
-	jra 5$ 
-4$:	
+	ld a,#LABEL_IDX  
+	jra 6$ 
+4$:	; word in dictionary 
 	ldw y,(XFIRST,sp)
-	cp a,#TK_NOT 
-	jrmi 41$
-	ld (y),a 
+	ld (y),a ; compile token 
 	incw y 
-	jra 5$ 
-41$:	
-	cpw x,#let  
-	jreq 5$  ; don't compile LET command 
-	ld (y),a 
-	incw y 
-	ldw (y),x
-	addw y,#2  
-5$:	_drop VSIZE 
+6$:	_drop VSIZE 
 	ret  	
 
 ;------------------------------------
@@ -578,15 +603,18 @@ skip:
 	
 
 ;------------------------------------
-; scan text for next token
+; scan text for next lexeme
+; compile its TOKEN_IDX and value
+; in output buffer.  
+; update input and output pointers 
 ; input: 
 ;	X 		pointer to buffer where 
-;	        token id and value are copied 
+;	        token idx and value are compiled 
 ; use:
 ;	Y       pointer to text in tib 
+;   in.w    offset in tib, i.e. tib[in.w]
 ; output:
-;   A       token attribute 
-;   X 		token value
+;   A       token index  
 ;   Y       updated position in output buffer   
 ;------------------------------------
 	; use to check special character 
@@ -595,185 +623,174 @@ skip:
 	cp a,(TCHAR,sp) 
 	jrne t
 	.endm 
-
-	TCHAR=1
-	ATTRIB=2
+; local variables 
+	TCHAR=1 ; parsed character 
+	ATTRIB=2 ; token value  
 	VSIZE=2
-get_token:: 
+parse_lexeme:: 
 	_vars VSIZE
-;	ld a,in 
-;	sub a,count
-;   jrmi 0$
-;	clr a 
-;	ret 
-0$: 
 	ldw y,#tib    	
 	ld a,#SPACE
 	call skip
-	mov in.saved,in 
 	ld a,([in.w],y)
 	jrne 1$
 	ldw y,x 
 	jp token_exit ; end of line 
 1$:	_inc in 
 	call to_upper 
-	ld (TCHAR,sp),a 
+	ld (TCHAR,sp),a ; first char of lexeme 
 ; check for quoted string
 str_tst:  	
 	_case '"' nbr_tst
-	ld a,#TK_QSTR
-	ld (x),a 
+	ld a,#QUOTE_IDX
+	push a 
+	ld (x),a ; compile TOKEN INDEX 
 	incw x 
-	call parse_quote
+	call parse_quote ; compile quoted string 
+	pop a 
 	jp token_exit
-nbr_tst:
 ; check for hexadecimal number 
-	ld a,#'$'
-	cp a,(TCHAR,sp) 
-	jreq 1$
+nbr_tst:
+	_case '$' bin_test 
+	jra integer 
 ;check for binary number 
-	ld a,#'&
-	cp a,(TCHAR,sp)
-	jrne 0$
-	ld a,#TK_INTGR
-	ld (x),a 
-	incw x 
+bin_test: 
+	_case '&' digit_test 
 	call parse_binary ; expect binary integer 
+	call compile_integer
 	jp token_exit 
 ; check for decimal number 	
-0$:	ld a,(TCHAR,sp)
+digit_test: 
+	ld a,(TCHAR,sp)
 	call is_digit
-	jrnc 3$
-1$:	ld a,#TK_INTGR 
-	ld (x),a 
-	incw x 
+	jrnc other_tests
+integer: 
 	ld a,(TCHAR,sp)
 	call parse_integer 
+	call compile_integer
 	jp token_exit 
-3$: 
+other_tests: 
 	_case '(' bkslsh_tst 
-	ld a,#TK_LPAREN
+	ld a,#LPAREN_IDX 
 	jp token_char   	
 bkslsh_tst: ; character token 
 	_case '\',rparnt_tst
-	ld a,#TK_CHAR 
+	ld a,#BSLASH_IDX 
 	ld (x),a 
+	push a 
 	incw x 
 	ld a,([in.w],y)
+	_inc in  
 	ld (x),a 
 	incw x
-	ldw y,x 	 
-	_inc in  
-	clrw x 
-	ld xl,a 
-	ld a,#TK_CHAR 
+	ldw y,x 
+	pop a 	 
 	jp token_exit 
 rparnt_tst:		
 	_case ')' colon_tst 
-	ld a,#TK_RPAREN 
+	ld a,#RPAREN_IDX  
 	jp token_char
 colon_tst:
 	_case ':' comma_tst 
-	ld a,#TK_COLON 
+	ld a,#COLON_IDX  
 	jp token_char  
 comma_tst:
 	_case COMMA semic_tst 
-	ld a,#TK_COMMA
+	ld a,#COMMA_IDX 
 	jp token_char
 semic_tst:
 	_case SEMIC dash_tst
-	ld a,#TK_SEMIC 
+	ld a,#SCOL_IDX  
 	jp token_char 	
 dash_tst: 	
 	_case '-' at_tst 
-	ld a,#TK_MINUS  
+	ld a,#SUB_IDX  
 	jp token_char 
 at_tst:
 	_case '@' qmark_tst 
-	ld a,#TK_ARRAY 
+	ld a,#ARRAY_IDX  
 	jp token_char
 qmark_tst:
 	_case '?' tick_tst 
-	ld a,#TK_CMD  
+	ld a,#PRINT_IDX   
 	ld (x),a 
 	incw x 
 	ldw y,x 
-	ldw x,#cmd_print
-	ldw (y),x 
-	addw y,#2
 	jp token_exit
 tick_tst: ; comment 
 	_case TICK plus_tst 
-	ld a,#TK_CMD
+	ld a,#REM_IDX 
 	ld (x),a 
 	incw x
-	ldw y,#remark 
-	ldw (x),y 
-	addw x,#2  
 copy_comment:
 	ldw y,#tib 
 	addw y,in.w
 	pushw y 
 	call strcpy
 	subw y,(1,sp)
-	incw y ; strlen+1 
-	ldw (1,sp),y 
+	incw y ; strlen+1
+	pushw y  
 	addw x,(1,sp) 
-	_drop 2 
-	clr a 
 	ldw y,x 
+	popw x 
+	addw x,(1,sp)
+	decw x 
+	subw x,#tib 
+	ldw in.w,x 
+	_drop 2 
+	ld a,#REM_IDX
 	jp token_exit 
 plus_tst:
 	_case '+' star_tst 
-	ld a,#TK_PLUS  
+	ld a,#ADD_IDX  
 	jp token_char 
 star_tst:
 	_case '*' slash_tst 
-	ld a,#TK_MULT 
+	ld a,#MULT_IDX  
 	jp token_char 
 slash_tst: 
 	_case '/' prcnt_tst 
-	ld a,#TK_DIV 
+	ld a,#DIV_IDX  
 	jp token_char 
 prcnt_tst:
 	_case '%' eql_tst 
-	ld a,#TK_MOD
+	ld a,#MOD_IDX 
 	jp token_char  
 ; 1 or 2 character tokens 	
 eql_tst:
 	_case '=' gt_tst 		
-	ld a,#TK_EQUAL
+	ld a,#REL_EQU_IDX 
 	jp token_char 
 gt_tst:
 	_case '>' lt_tst 
-	ld a,#TK_GT 
+	ld a,#REL_GT_IDX 
 	ld (ATTRIB,sp),a 
 	ld a,([in.w],y)
 	_inc in 
 	cp a,#'=
 	jrne 1$
-	ld a,#TK_GE 
+	ld a,#REL_GE_IDX  
 	jra token_char  
 1$: cp a,#'<
 	jrne 2$
-	ld a,#TK_NE 
+	ld a,#REL_NE_IDX  
 	jra token_char 
 2$: dec in
 	ld a,(ATTRIB,sp)
 	jra token_char 	 
 lt_tst:
 	_case '<' other
-	ld a,#TK_LT 
+	ld a,#REL_LT_IDX  
 	ld (ATTRIB,sp),a 
 	ld a,([in.w],y)
 	_inc in 
 	cp a,#'=
 	jrne 1$
-	ld a,#TK_LE 
+	ld a,#REL_LE_IDX 
 	jra token_char 
 1$: cp a,#'>
 	jrne 2$
-	ld a,#TK_NE 
+	ld a,#REL_NE_IDX  
 	jra token_char 
 2$: dec in 
 	ld a,(ATTRIB,sp)
@@ -785,10 +802,10 @@ other: ; not a special character
 	jp syntax_error 
 30$: 
 	call parse_keyword
-	cpw x,#remark 
-	jrne token_exit 
+	cp a,#REM_IDX  
+	jrne token_exit   
 	ldw x,y 
-	jp copy_comment 
+	jp copy_comment
 token_char:
 	ld (x),a 
 	incw x
@@ -808,32 +825,44 @@ token_exit:
 ;   
 ; input:
 ;   none
-; modified variables:
-;   basicptr     token list buffer address 
+; used variables:
 ;   in.w  		 3|count, i.e. index in buffer
 ;   count        length of line | 0  
+;   basicptr    
+;   pad buffer   compiled BASIC line  
+;
+; If there is a line number copy pad 
+; in program space. 
 ;-----------------------------------
 	XSAVE=1
 	VSIZE=2
 compile::
-	pushw y ; preserve xstack pointer 
+	pushw y 
 	_vars VSIZE 
 	mov basicptr,txtbgn
 	bset flags,#FCOMP 
 	ld a,#0
 	ldw x,#0
-	ldw pad,x ; destination buffer 
-	ld pad+2,a ; count 
+	ldw pad,x ; line# in destination buffer 
+	ld pad+2,a ; line length  
+	clr in.w 
+	clr in  ; offset in input text buffer 
+	ld a,tib 
+	call is_digit
+	jrnc 1$ 
+	inc in 
 	ldw x,#pad+3
-	clr in 
-	call get_token
-	cp a,#TK_INTGR
-	jrne 2$
-	cpw x,#1 
-	jrpl 1$
-	ld a,#ERR_BAD_VALUE
+	ldw y,#tib   
+	call parse_integer 
+	tnz a 
+	jrne 0$
+	cpw x,#1
+	jrslt 0$
+	ldw pad,x 
+	jra 1$ 
+0$:	ld a,#ERR_BAD_VALUE
 	jp tb_error
-1$:	ldw pad,x ; line# 
+1$:	 
 	ldw y,#pad+3 
 2$:	cpw y,#xstack_full 
 	jrult 3$
@@ -841,10 +870,12 @@ compile::
 	jp tb_error 
 3$:	
 	ldw x,y 
-	call get_token 
-	cp a,#TK_NONE 
+	call parse_lexeme 
+	tnz a 
 	jrne 2$ 
 ; compilation completed  
+	clr (y)
+	incw y 
 	subw y,#pad ; compiled line length 
     ld a,yl
 	ldw x,#pad 
@@ -852,46 +883,20 @@ compile::
 	ld (2,x),a 
 	ldw x,(x)  ; line# 
 	jreq 10$
-	call insert_line
-	clr  count 
+	call insert_line ; in program space 
+	clr  count
+	clr  a ; not immediate command  
 	jra  11$ 
 10$: ; line# is zero 
+; for immediate execution from pad buffer.
 	ldw x,ptr16  
-	ldw basicptr,x 
 	ld a,(2,x)
-	ld count,a 
-	mov in,#3 
+	ld count,a
+	ldw line.addr,x
+	addw x,#3
+	ldw basicptr,x 	
 11$:
 	_drop VSIZE 
 	bres flags,#FCOMP 
-	popw y 
-	ret 
-
-;---------------------------------
-; speed optimization by replacing 
-; GOTO|GOSUB target line# by 
-; line address. 
-; This apply only to programs 
-; saved in flash memory 
-; BASIC: OPTIMIZE label 
-;   command line only 
-;---------------------------------
-optimize:
-	call cmd_line_only
-	ld a,#TK_LABEL 
-	call expect  
-	pushw x 
-	call skip_string
-	popw x 
-	call search_program 
-    jrne 1$ 
-	ldw x,#ERR_NO_PROGRAM
-	jp tb_error 
-1$: pushw y 
-	ldw y,x ; source address 
-	subw x,#4
-	ldw x,(2,x) ; program size 
-	addw x,#4 
-
-	popw y 
+	popw y
 	ret 

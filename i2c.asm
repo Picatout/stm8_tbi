@@ -16,6 +16,13 @@
 ;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 
+.if SEPARATE 
+    .module I2C   
+    .include "config.inc"
+
+    .area CODE 
+.endif 
+
 ;--------------------------------
 ;  I2C peripheral drive 
 ;  pins: 
@@ -26,7 +33,6 @@
 ;  and master mode 
 ;--------------------------------
 
-.if INCLUDE_I2C
 I2C_STATUS_DONE=7 ; bit 7 of i2c_status indicate operation completed  
 I2C_STATUS_NO_STOP=6 ; don't send a stop at end of transmission
 
@@ -135,7 +141,7 @@ i2c_bytes_left: .asciz " bytes left.\n"
 ; BASIC: I2C.ERROR 
 ; display error message 
 ;---------------------------
-i2c_display_error:
+cmd_i2c_error:
     ld a,i2c_status 
     and a,#15 
     jrne 0$
@@ -150,7 +156,7 @@ i2c_display_error:
     ldw x,#i2c_bytes_left 
     call puts 
     bres I2C_CR1,#I2C_CR1_PE  
-    jp warm_start  
+    jra 6$  
 0$: 
     ldw x,#i2c_error
     call puts 
@@ -178,8 +184,9 @@ i2c_display_error:
     ldw x,(x)
     call puts 
     clr i2c_status
+6$:    
+; reset AFR to default peripheral 
     jp warm_start   
-
 
 ;--------------------------------
 ; BASIC: I2C.open freq 
@@ -188,9 +195,14 @@ i2c_display_error:
 ; freq:
 ;   SCL in Khz 
 ;--------------------------------
-i2c_open:
-    ld a,#TK_INTGR
-    call expect  
+cmd_i2c_open:
+; program i2c alternate function on PB4 and PB5
+; get argument on xstack 
+    call arg_list 
+    cp a,#1 
+    jreq 1$
+    jp syntax_error 
+1$:
 ; enable peripheral clock
 	bset CLK_PCKENR1,#CLK_PCKENR1_I2C 	
     ld a,#16 ; peripheral clock frequency 
@@ -198,9 +210,9 @@ i2c_open:
     ld I2C_FREQR,a
 ; SCL fequency parameter 
     clr I2C_CCRH 
-    call get_int24 
+    _xpop   ; A:X freq. 
     pushw y 
-    pushw x 
+    pushw x ; A is ignored  
     ldw y,x 
     ldw x,#16000 ; Fmaster = 16000 Khz 
     divw x,y
@@ -241,7 +253,7 @@ i2c_open:
 ; BASIC: I2C.CLOSE 
 ; turn off i2c peripheral 
 ;-------------------------------------
-i2c_close:
+cmd_i2c_close:
 ; disable interrupts 
     bset I2C_CR2,#I2C_CR2_SWRST 
     nop 
@@ -296,7 +308,7 @@ set_op_params:
 ; buf_addr: address of bytes buffer 
 ; no_stop: dont't send a stop
 ;---------------------------------
-i2c_write:
+cmd_i2c_write:
     call set_op_params
 start_op:  
     clr i2c_idx 
@@ -305,11 +317,11 @@ start_op:
     ld a,#(1<<I2C_ITR_ITBUFEN)|(1<<I2C_ITR_ITERREN)|(1<<I2C_ITR_ITEVTEN) 
     ld I2C_ITR,a 
     ld a,#(1<<I2C_CR2_START)|(1<<I2C_CR2_ACK)
-    ld I2C_CR2,a 
+    ld I2C_CR2,a      
 1$: btjt i2c_status,#I2C_STATUS_DONE,9$ 
     ldw x,timer 
     jrne 1$ 
-    call i2c_display_error; operation timeout 
+    call cmd_i2c_error; operation timeout 
 9$: 
     ret 
 
@@ -320,11 +332,11 @@ start_op:
 ; buf_addr: buffer address 
 ; no_stop: don't send a stop condition 
 ;-----------------------------------
-i2c_read:
+func_i2c_read:
     call set_op_params 
     ld a,i2c_devid 
     or a,#1 ; bit0 -> 1 for read 
     ld i2c_devid,a
     jra start_op
 
-.endif ; INCLUDE_I2C 
+

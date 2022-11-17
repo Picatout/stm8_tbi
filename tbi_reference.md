@@ -1,4 +1,4 @@
-# référence du langage Tiny BASIC pour STM8 V2.0
+# référence du langage Tiny BASIC pour STM8 V2.5
 
 <a id="index-princ"></a>
 ## index principal 
@@ -87,7 +87,7 @@ Les opérateurs relationnels ont une priorités inférieure à celle des opérat
 1. **'='** Retourne vrai si les 2 termes sont identiques. 
 1. **'&lt;&gt;'** ou **'&gt;&lt;'** Retourne vrai si les 2 termes sont différents. 
 
-### Opérateur binaire/conditionnel 
+### Opérateurs binaires/Booléens 
 
 Les opérateurs **AND**,**NOT**, **OR** et **XOR** effectuent des opérations bit à bit mais peuvent-être aussi utilisés comme opérateurs en logique combinatoire. Si ces opérateurs sont utilisés avec le résultat d'une relation alors le résultat est le même que pour un opérateur logique du même nom. C'est à dire que le résultat sera **0** ou **-1**.
 par exemple:
@@ -128,30 +128,28 @@ Les opérateurs de priorité identiques sont évalués de gauche à droite. Les 
 
 Le code utilisé pour le texte est le code [ASCII](https://fr.wikipedia.org/wiki/American_Standard_Code_for_Information_Interchange).
 
-Un programme débute par un numéro de ligne suivit d'une ou plusieurs commandes séparées par l'espace ou le caractère **':'**. Ce caractère est facultatif, l'espace entre les commandes est suffisant pour les distinguées.  Par exemple:
+Un programme débute par un numéro de ligne suivit d'une ou plusieurs commandes séparées par le caractère **':'**.
 ```
->t=ticks for i=1 to 10000 a=10 next i ? ticks-t
-392 
+>let t=ticks:for i=1 to 10000: let a=10:next i : ? ticks-t
+400  
 ```
 fonctionne sans problème.
 
-Une commande est suivie de ses arguments séparés par une virgule. Les arguments des fonctions doivent-être mis entre parenthèses. Par fonction j'entends une sous-routine qui retourne une valeur. Cependant une fonction qui n'utilise pas d'arguments n'est pas suivie de parenthèses. Les commandes , c'est à dire les sous-routines qui ne retoune pas de valeur, reçoivent leur arguments sans parenthèses. 
+Une commande est suivie de ses arguments séparés par une virgule. Les arguments des fonctions doivent-être mis entre parenthèses. Par fonction j'entends une commande BASIC qui retourne une valeur. Cependant une fonction qui n'utilise pas d'arguments n'est pas suivie de parenthèses. Les commandes qui ne retoune pas de valeur reçoivent leur arguments sans parenthèses. 
 
 l'espace entre les unités lexicales est optionnel s'il n'y a pas d'embuiguité sur la séparation des unités lexicale.
 ```
 ?3*5  ' ici il n'y a pas d'ambiguité.
  15 
 
-> for i=1to 100 ? i; next i  ' ici il faut un espace entre 'to' et '100' 
+> for i=1to 100 :? i;: next i  ' ici il faut un espace entre 'to' et '100' 
 ```
 
 Cependant il n'est pas nécessaire de mettre un espace entre le *1** et le **TO** car lorsqu'une unité lexicale commence par un chiffre 
 il est évident que c'est un entier et l'analyseur s'arrête au dernier chiffre de l'entier. 
 
 Les commandes peuvent-être entrées indifféremment en minuscule ou majuscule.
-L'analyseur lexical convertie les lettres en  majuscule sauf à l'intérieur d'une chaîne entre guillemets.
-
-Les commandes peuvent-être abrégées au plus court à 2 caractères à condition qu'il n'y est pas d'ambiguité entre 2 commandes. L'abréviation doit-être d'au moins 2 lettres pour éviter la confusion avec les variables. Par exemple **GOTO** peut-être abrégé **GO** et **GOSUB** peut-être abrégé **GOS**. La recherche dans le dictionnaire se fait de la fin vers le début donc le **GOTO** est atteint avant le **GOSUB** voilà pourquoi **GO** peut-être utilisée pour le représenté.
+L'analyseur lexical convertie les lettres en  majuscules sauf à l'intérieur d'une chaîne entre guillemets.
 
 Depuis la version **2.x** les abbréviations de commandes ne fonctionnent plus. Elles venaient en conflit avec les noms de variables court. Par exemple:
 ```
@@ -161,14 +159,9 @@ Le compilateur recherchait **PI** dans le dictionnaire des mots réservés et tr
 
 Certaines commandes sont représentées facultativement par une caractère unique. Par exemple la commande **PRINT** peut-être remplacée par le caractère **'?'**. La commande **REM** peut-être remplacée par un apostrophe (**'**). 
 
-Plusieurs commandes peuvent-être présentent sur la même ligne. Le caractère **':'** est utilisé pour indiquer la fin d'une commande. Son utilisation est facultif s'il n'y pas pas d'ambiguité. 
+Plusieurs commandes peuvent-être présentent sur la même ligne. Le caractère **':'** est utilisé pour séparer les commandes sur une même ligne. Son utilisation est facultif s'il n'y pas pas d'ambiguité. 
 ```
->A=2:B=4   ' valide
-
->C=3 D=35 ' valide car il n'y pas d'ambiguité.
-
->? a=3 b<=45  ' pas d'ambiguité il s'agit de 2 comparaisons. 
-   0   -1
+>LET C=3 LET D=35 ' valide car il n'y pas d'ambiguité.
 
 ```
 
@@ -1130,21 +1123,22 @@ Cette fonction vérifie s'il y a un caractère en attente dans le tampon de réc
 
 [index](#index)
 <a id="let"></a>
-### LET *var*=*condition* {C,P}
-Affecte une valeur à une variable. En Tiny BASIC il n'y a que 26 variables représentées par les lettres de l'alphabet. Il y a aussi une variable tableau unidimensionnelle nommée **@**. **Notez** que le premier indice du tableau est **1**. 
+### LET *var*=*condition* [,var=condition] {C,P}
+Initialise une variable. En Tiny BASIC il n'y a que 26 variables représentées par les lettres de l'alphabet. Il y a aussi une variable tableau unidimensionnelle nommée **@**. **Notez** que le premier indice du tableau est **1**.  plusieurs variables peuvent-être initialisées dans la même commande
+en les séparants par une virgule.
 
-*condition* peut-être arithmétique ou relationnel. Le mot réservé **LET** est facultatif. Il a été ajouté pour des raison de compatibilité avec la version traditionnelle de Tiny BASIC. En réalité le compilateur le supprime. Si un programme dans leque **LET** a été utilisé est *LIST*er il n'apparaît pas dans le *listing*. 
+*condition* peut-être arithmétique ou relationnel. Le mot réservé **LET** est obligatoire depuis la version 2.5.  
 ```
 >LET A=24*2+3:?a
-  51
->b=3*(a>=51):?b
-   3
->c=-4*(a<51):?c
-   0
->@(3)=24*3
+51
+>LET A=31416, b=2*A:?B
+62832   
+>LET C=-4*(a<51):?C
+0
+>LET @(3)=24*3
 
 >?@(3)
-  72
+72
 
 >
 ```

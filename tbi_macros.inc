@@ -18,50 +18,43 @@
 ;--------------------------------------
         TAB_WIDTH=4 ; default tabulation width 
         EOF=0xff ; end of file marker 
-        ; keyword types 
-        F_CMD=0     ; command keyword
-        F_IFUNC=(1<<4) ; integer function keyword
-        F_CFUNC=(2<<4) ; character function keyword
-        F_CONST=(3<<4) ; function keyword that return a constant
-        F_NOT=(7<<4)   ; TK_NOT 
-        F_AND=(8<<4)   ; TK_AND
-        F_OR=(9<<4)    ; TK_OR
-        F_XOR=(10<<4)   ; TK_XOR   
         NLEN_MASK=0xf  ; mask to extract name len 
         KW_TYPE_MASK=0xf0 ; mask to extract keyword type 
 
 
 	STACK_SIZE=140
 	STACK_EMPTY=RAM_SIZE-1  
-        CELL_SIZE=3
-        XSTACK_SIZE=20 ; 20 * int24
-        XSTACK_EMPTY=STACK_EMPTY-STACK_SIZE 
-	FRUN=0 ; flags run code in variable flags
+    CELL_SIZE=3
+    XSTACK_SIZE=20 ; 20 * int24
+    XSTACK_EMPTY=STACK_EMPTY-STACK_SIZE 
+	
+    FRUN=0 ; flags run code in variable flags
 	FTRAP=1 ; inside trap handler 
 	FLOOP=2 ; FOR loop in preparation 
 	FSLEEP=3 ; halt produit par la commande SLEEP 
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 
-        FLN_REJECTED=6 ; a memory full error occured while in *insert_line*. 
-        FTRACE=7 ; trace flag 
+    FLN_REJECTED=6 ; a memory full error occured while in *insert_line*. 
+    FTRACE=7 ; trace flag 
 
-        FIRST_DATA_ITEM=6 ; first DATA item offset on line.
+    LINE_HEADER_SIZE=3 ; line number 2 bytes and line length 1 byte 
+    FIRST_DATA_ITEM=LINE_HEADER_SIZE+1 ; skip over DATA_IDX token.
 
 	MAX_LINENO=0x7fff; BASIC maximum line number 
 
 	RX_QUEUE_SIZE=8 
 
-        TIM2_CLK_FREQ=62500
+    TIM2_CLK_FREQ=62500
 
 	TIB_SIZE=80
-        PAD_SIZE=BLOCK_SIZE 
+    PAD_SIZE=BLOCK_SIZE 
 
-        NAME_MAX_LEN=15  ; CONST and DIM variables maximum length 
-        REC_XTRA_BYTES=5 
-        REC_LEN_MASK=31
+    NAME_MAX_LEN=15  ; CONST and DIM variables maximum length 
+    REC_XTRA_BYTES=5 
+    REC_LEN_MASK=31
 
-        STDOUT=1 ; output to uart1 
-        BUFOUT=3 ; buffered output  
+    STDOUT=1 ; output to uart
+    BUFOUT=3 ; buffered output  
 
 ;--------------------------------------
 ;   constantes related to Arduino 
@@ -70,62 +63,14 @@
         INP=0
         OUTP=1 
 
-;--------------------------------------
-;       token attribute
-;--------------------------------------
-        ; bits 4:5 identify token group 
-        ; 0x0n -> miscelinous 
-        ; 0x1n -> +|- operators 
-        ; 0x2n -> *|/|% operators
-        ; 0x3n -> relational operators 
-        TK_CMD=128      ; BASIC command   
-        TK_IFUNC=129    ; BASIC integer function
-        TK_CFUNC=130    ; BASIC character function
-        TK_CONST=131    ; BASIC constant 
-        TK_INTGR=132    ; 16 bits integer 
-        TK_VAR=133
-        TK_FLOAT=134    ; float32 
-        TK_NOT=135
-        TK_AND=136      ;
-        TK_OR=137       ;
-        TK_XOR=138      ; 
-        TK_NONE=0       ; not a token 
-        TK_QSTR=2       ; quoted string  
-        TK_LABEL=3      ; used for defined, constants, variables
-        TK_CHAR=4       ; ASCII character 
-        TK_ARRAY=5      ; array variable '@' 
-        TK_LPAREN=6     ; left parenthesis '('
-        TK_RPAREN=7     ; right parenthesis ')'
-        TK_COMMA=8      ; item separator ',' 
-        TK_COLON=9      ; command separator ':' 
-        TK_SEMIC=10     ; used in PRINT command.  ';' 
-        TK_SHARP=11     ; derefenrecing operator 
-        
-        TK_PLUS=0x10    ; addition operator '+'
-        TK_MINUS=0x11   ; subtraction operator '-'
-        TK_MULT=0x20    ; multiplication operator '*'
-        TK_DIV=0x21     ; division operator '/'
-        TK_MOD=0x22     ; modulo operator '%'
+    EOF=0xff ; end of file marker
+    
+    TYPE_MASK=0xf0 ; mask to extract data type, i.e. DIM variable symbol  or CONST symbol 
+    TYPE_DVAR=(1<<4); DIM variable type 
+    TYPE_CONST=(2<<4); CONST data 
+    NLEN_MASK=0xf  ; mask to extract name len 
+    NONE_IDX = 255 ; not a token 
 
-        ; don't change these token values 
-        ; values chosen to be used as a mask.
-        ; bit 7   1 for dictionary words else 0 
-        ; bits 6  always 0 
-        ; bits 5:4 identify group 
-        ; bits 3:0 token identifier inside group  
-        TK_GT=0x31      ; relation operator '>'
-        TK_EQUAL=0x32   ; assignment or relation operator '='
-        TK_GE=0x33      ; relation operator '>='
-        TK_LT=0x34      ; relation operator '<'
-        TK_LE=0x36      ; relation operator '<='
-        TK_NE=0x35      ; relation operator '<>' not equal 
-        ; token groups 
-        TK_GRP_MASK=0x30 ; groups bits selector 
-        TK_GRP_MISC=0x00 ; miscelinous group 
-        TK_GRP_ADD=0x10  ; additive operators
-        TK_GRP_MULT=0x20 ; multiplicative operators
-        TK_GRP_RELOP=0x30 ;relational operators. 
-        CMD_END=2 
 
 ;--------------------------------------
 ;   error codes 
@@ -166,14 +111,15 @@
     ; entry point of dictionary
     ; before calling 'search_dict'
     .macro _ldx_dict dict_name
-    ldw x,#dict_name+2
+        ldw x,#dict_name+2
     .endm 
 
     ; reset BASIC pointer
     ; to beginning of last token
     ; extracted except if it was end of line 
-    .macro _unget_token 
-     mov in,in.saved  
+    .macro _unget_token
+        .byte 0x45,bp.saved, basicptr ; mov basicptr,bp.saved ; 1 cy, 3 bytes 
+        .byte 0x45,bp.saved+1,basicptr+1 ; mov basicptr+1,bp.saved+1 
     .endm
 
     ;  increment variable in page 0 
@@ -181,21 +127,51 @@
         .byte 0x3c, v 
     .endm 
 
+    ;  increment 16 bits variable
+    ;  use 10 bytes  
+    .macro _inc_wvar  v 
+        inc v+1   ; 1 cy, 4 bytes 
+        jrne .+6  ; 1|2 cy, 2 bytes 
+        inc v     ; 1 cy, 4 bytes  
+    .endm ; 3 cy 
+
     ; extract 16 bits address from BASIC code  
     .macro _get_addr
+        addw x,#2
+        ldw basicptr,x 
+        subw x,#2 
         ldw x,(x)
-        _inc in 
-        _inc in
-        ;.byte 0x3C, in 
-        ; .byte 0x3c, in  
     .endm 
 
     ; extract character from BASIC code 
     .macro _get_char 
-        ld a,(x)
-        _inc in 
-    .endm 
+        ld a,(x)        ; 1 cy 
+        incw x          ; 1 cy 
+        ldw basicptr,x  ; 2 cy 
+    .endm  ; 4 cy 
     
+    ; extract next command token id 
+    .macro _next_cmd     
+        ldw x,basicptr  ; 2 cy
+        _get_char       ; 4 cy 
+    .endm   ; 6 cy 
+
+    ; get code address in x
+    .macro _code_addr 
+        clrw x 
+        ld xl,a 
+        sllw x 
+        ldw x,(code_addr,x)
+    .endm 
+
+    ; call subroutine from index in a 
+    .macro _call_code
+        clrw x      ; 1 cy 
+        ld xl,a     ; 1 cy 
+        sllw x      ; 2 cy 
+        ldw x, (code_addr,x) ; 2 cy 
+        call (x)    ; 4 cy 
+    .endm  ; 10 cy 
 
 ;---------------------------------------
 ;    xtack manipulation macros 
@@ -203,49 +179,121 @@
 ;----------------------------------------
     ; pop in A:X from XSTACK 
     .macro _xpop 
-    ld a,(y)
-    ldw x,y 
-    addw y,#CELL_SIZE 
+        ld a,(y)
+        ldw x,y 
+        addw y,#CELL_SIZE 
 ; last op in macro 
 ; so no need to do a tnzw x 
 ; after macro invocation
-    ldw x,(1,x) 
+        ldw x,(1,x) 
     .endm 
 
     ; push A:X  to XSTACK 
     .macro _xpush 
-    subw y,#CELL_SIZE
-    ld (y),a 
-    ldw (1,y),x 
+        subw y,#CELL_SIZE
+        ld (y),a 
+        ldw (1,y),x 
     .endm 
 
     ; drop from XSTACK 
     .macro _xdrop 
-    addw y,#CELL_SIZE 
+        addw y,#CELL_SIZE 
     .endm 
 
     ; @T fetch top xstack 
     .macro _at_top
-    ld a,(y)
-    ldw x,y 
-    ldw x,(1,x)
-    .endm 
-
-    ; @N  fetch next on xstack 
-    .macro _at_next 
-    ld a,(3,y)
-    ldw x,y 
-    ldw x,(4,x)
+        ld a,(y)
+        ldw x,y 
+        ldw x,(1,x)
     .endm 
 
     ; !T put on top of xtack 
     .macro _store_top 
-    ld (y),a 
-    ldw (1,y),x     
+        ld (y),a 
+        ldw (1,y),x     
+    .endm 
+
+    ; @N  fetch next on xstack 
+    .macro _at_next 
+        ld a,(3,y)
+        ldw x,y 
+        ldw x,(4,x)
     .endm 
 
     ; !N put next on xstack 
     .macro _store_next 
-    ld (3,y),a 
-    ldw (4,y),x 
+        ld (3,y),a 
+        ldw (4,y),x 
     .endm 
+
+;---------------------------------
+;  files.asm macros 
+;---------------------------------
+
+;----------------------------------
+;    file system 
+; file header:
+;   sign field:  2 bytes .ascii "TB" 
+;   program size: 1 word 
+;   data: n*BLOCK_SIZE 
+;   BLOCK_SIZE is 128 bytes depend 
+;   on MCU block erase size. 
+;----------------------------------
+
+FILE_SIGN_FIELD = 0 ; signature offset 
+FILE_SIZE_FIELD = 2 ; size offset 
+FILE_DATA= 4 ; data offset 
+FILE_HEADER_SIZE = 4 ; bytes 
+
+;---------------------
+; MACRO 
+; check if there is 
+; an erased program 
+; at this address 
+; input:
+;    X    file header address   
+; output:
+;    Z    1 erazed
+;         0 not erased|not program.  
+;--------------------
+	.macro _is_erased
+	    pushw x 
+	    ldw x,(x)
+        cpw x,ERASED 
+	    popw x 
+	.endm 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; MACRO 
+;  check for application signature 
+; input:
+;	x       file header address 
+; output:
+;   Z      1  signature present 
+;          0 no app signature  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+    .macro _qsign 
+	    pushw x 
+	    ldw x,(x)
+	    cpw x,SIGNATURE ; "TB" 
+	    popw x 
+	.endm 
+
+;------------------------------------
+;  board user LED control macros 
+;------------------------------------
+
+    .macro _led_on 
+        bset LED_PORT,#LED_BIT 
+    .endm 
+
+    .macro _led_off 
+        bres LED_PORT,#LED_BIT 
+    .endm 
+
+    .macro _led_toggle 
+        ld a,LED_PORT 
+        xor a,#LED_BIT 
+        ld LED_PORT,a 
+    .endm 
+

@@ -22,16 +22,13 @@
 ;
 ;--------------------------------------------------
 
-    .module XMODEM
+.if SEPARATE 
+    .module XMODEM   
+    .include "config.inc"
 
-    .nlist
-	.include "inc/nucleo_8s208.inc"
-	.include "inc/stm8s208.inc"
-	.include "inc/ascii.inc"
-	.include "inc/gen_macros.inc" 
-    .list 
+    .area CODE 
+.endif 
 
-	.area CODE 
 
 PACKET_SIZE=128
 

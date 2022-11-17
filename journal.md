@@ -1,3 +1,464 @@
+### 2022-11-17
+
+* Commit 16:40
+
+*  __Notes:__ 
+
+1. Sur la carte __NUCLEO_8S207K8__ le périphérique I2C n'est accessible que comme fonction alterntive sur les broches 
+__PB4__ __(CN4:7)__ et __PB5__ __(CN4:8)__. Pour utiliser ce périphérique il faut donc activé le bit 
+__6__ dans le registre __OPT2__ __(0x4803)__.  Ensuite pour activer la fonction alternative il faut réinitialisé le MCU. Ceci peut-être fait
+sur la ligne de commande de la façon suivante:
+```
+>LET A=PEEK($4803) OR 64:WRITE $4803,A:REBOOT 
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R0
+
+>
+```   
+Pour désactiver cette fonction alternative il faut faire:
+```
+>LET A=NOT 64 AND PEEK($4803):WRITE $4803,A: REBOOT
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R0
+
+>
+``` 
+
+2.  Sur la carte __NUCLEO_8S207K8__ le périphérique __SPI__ n'est pas relié aux connecteur __CN3__ même si le [manuel de l'utilisateur](docs/NUCLEO-8S207K8/) laisse
+entendre qu'il pourrait l'être. Pourtant tel qu'indiqué sur [la schématique](nucleo-32-S207K8-B03_Schematic.pdf) il n'y a aucune facilité sur la carte pour remplacer __TMR2_CH1 (CN3:13)__ par
+__SPI_NSS__ et __TMR2_CH2 (CN3_14)__ par __SPI_MOSI__.  Seul la broche __SPI_MISO (CN3:15)__ est disponible.  Une bourde de conception.  
+
+### 2022-11-16
+
+* commit 21:05 
+
+* Testé i2c avec le programme [i2c_oled.bas](BASIC/i2c_oled.bas) avec succès.
+
+* Testé i2c avec le programme [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) avec succès.
+
+* Modifié *check_forbidden*.
+
+* Modifié commande **I2C_OPEN** et **I2C.CLOSE**  pour utlisé le périphérique I2C sur les broches alternatives PB4,PB5 communes aux 2 cartes.
+
+* Modifié *next_line* pour ajouter un CR après l'impression du numéro de ligne.
+
+*  Travail sur [i2c.asm](i2c.asm)
+
+*  Mise à jour du manuel de référence [tbi_reference.md](tbi_reference.md).
+
+*  Réordonné la séquence de sélection dans routine *factor*. 
+
+*  Commit 9:34 hre  
+
+*  Modifié  [build.sh](build.sh)
+
+### 2022-11-15 
+
+* Modification du Makefile et config.inc pour accomoder plusieurs cartes cibles.
+
+	* Présentement supporte les cartes d'expérimentation suivantes:
+	
+		* __NUCLEO_8S208RB__ 
+		* __NUCLEO_8S207K8__ 
+
+	
+	* Modification de [config.inc](config.inc)
+
+	* Ajout du script [build.sh](build.sh) 
+
+		* USAGE: __./build.sh  s207||s208 [flash]__ 
+
+
+* Ajout du support pour la  carte [NUCLEO-8S207K8](https://www.st.com/en/evaluation-tools/nucleo-8s207k8.html)
+
+	* Ajout de [inc/stm8s207k8.inc](inc/stm8s207.inc)
+
+	* Ajout de [nucleo_8s207.inc](inc/nucleo_8s207.inc)
+
+### 2022-11-14
+
+* commit 15:56
+
+* Création du fichier [files.asm](files.asm) et déplacé routines de fichiers dans celui-ci.
+
+* Modifié commande **SAVE** pour éviter les doublons. Si un fichier avec le même nom existe il est remplacé.
+
+### 2022-11-12
+
+* commit 20:55 hre 
+
+* __Bogue:__ parfois la commande **SAVE** plante à la fin de son exécution. Cependant le programme est sauvegardé correctement. 
+
+* Modifié *itoa* , maintenant n'insère plus d'espace. En conséquence j'ai du modifié:
+	* *system_information* 
+	* La commande **PRINT** 
+	* *decompile*
+
+* Déboguer commande **SAVE**
+
+* Testé la commande **CHAIN** avec les programmes 
+	* [chain_main.bas](BASIC/chain_main.bas), 
+	* [chain_hello.bas](BASIC/chain_hello.bas), 
+	* [chain_world.bas](BASIC/chain_world.bas), 
+
+* Corrigé bogue dans commande **ERASE**. 
+
+* A faire: tester et déboguer commandes **SAVE**,**ERASE** et **CHAIN**. 
+
+* Modifié **CHAIN** et **END** pour tenir compte de la nouvelle structure de l'interpréteur.
+
+* Corrigé bogue dans commande **LIST** 
+
+* Modifié routines *decompile* et *itoa* pour améliorer la présentation de  la commande **LIST**.
+
+* Commit 11:40 hre 
+
+* Résultats du test [target.bas](BASIC/target.bas)
+```
+>run
+1000 loop each test
+GOTO using symbolic target 
+ 100 msec
+GOTO using line # 	
+ 98 msec
+GOSUB using symbolic target 	
+ 120 msec
+GOSUB using line # 	
+ 115 msec
+```
+
+
+* Testé avec succès [stack.bas](BASIC/stack.bas)
+
+* Créé la macro **_incw.s** pour en réduire la taille. l'assembleur *sdasstm8* ne reconnait pas l'adressage court. Donc je code l'instruction à la main. Utilise 4 octets de moins.
+```
+.macro _incw.s v 
+.byte 0x3c,v+1 ; inc v+1 forme courte, 2 octets au lieu de 4   
+jrne .+4
+.byte 0x3c,v   ; inc v  forme courte 
+.endm 
+```
+
+* commit 10:13 hre
+
+* Corrigé bogue dans *cmd_input_var*.  Testé [on.bas](BASIC/on.bas)
+
+* Corrigé bogue dans **.macro _incw v**. L'offset du *jrne* était de +4 alors qu'il doit-être de +6 
+```
+    ;  increment 16 bits variable 
+    .macro _incw  v 
+        inc v+1  
+        jrne .+6 ; 2 octets 
+        inc v  ; 4 octets 
+    .endm 
+```
+
+### 2022-11-11
+
+* À faire: débogué **ON expr GOTO|GOSUB**.  Réinialise le MCU 
+
+* Testé [restore.bas](BASIC/restore.bas)
+
+* Testé [hymne.bas](BASIC/hymne.bas)
+
+* Modifié et testé [input.bas](BASIC/input.bas)
+
+* Modifié et testé [goto_test.bas](BASIC/goto_test.bas)
+
+* Modifié et testé [gosub_test.bas](BASIC/gosub_test.bas)
+
+* Modifié et testé [const.bas](BASIC/const.bas)
+
+* Modifié et testé [usr_test.bas](BASIC/usr_test.bas)
+
+* Corrigé bogue dans *cmd_key*. Maintenant [pwm_soft.bas](BASIC/pwm-soft.bas) fonctionne.
+
+* commit 15:40 
+
+* programme [pwm_soft.bas](BASIC/pwm-soft.bas) ne fonctionne pas. 
+
+* Corrigé bogue dans **cmd_input_var**.
+
+* commit 14:30 
+
+* Corrigé bogue dans *insert_line* du module [compiler.asm](compiler.asm). 
+
+* Corrigé bogue dans *cmd_print** qui ne gérait pas correctement la fonction **CHAR_IDX**. 
+
+* Commit 12:30 hre
+
+* Corrigé bogue dans *cmd_write*, bogue régressif testant A pour le type de token.
+
+* Corrigé bogue dans *and_cond*,  les conditions entre parenthèses n'étaient pas prises en compte. 
+
+* Corrigé bogue dans *let_var*,  l'adresse de la variable dans ptr16 était écrasé lorsque l'évaluation d'expression appellait **uflash**.
+
+* Corrigé bogue dans *relation* la comparaison **REL_NE_IDX** n'était pas tenu en compte. 
+
+### 2022-11-10
+
+* Commit 22:00hre 
+
+* Débogué  *func_read_data* et associés. 
+
+* Corrigé bogue dans *let_dvar* et dans *kword_dim*.
+
+* commit 16:00 hre 
+
+* Débogué **cmd_if**. 
+
+* Corrigé bogue dans les macros **_code_addr** et **_call_code** 
+
+* Annulé l'utilisation de **SUB**. 
+
+* Test du nouveau mot réservé **SUB**. 
+
+* Déboguer liste d'arguments des fonctions et procédures. 
+
+* commit 9:54  version 2.5R0 , le mot réservé **LET** est maintenant obligatoire ainsi que le terminateur de commande **:**.
+
+* Débogué routine *relation*. 
+
+* Corrigé *_dict_entry,1,^/","/,COMMA_IDX* en enlevant le **\\** avant la virgule. dans **"\\,"**.  
+
+* [speed-test.bas](BASIC/speed-test.bas), version révisée. 
+```
+>run
+FOR...NEXT test
+ 110 msec
+DO...UNTIL test
+ 179 msec
+GOSUB test
+ 132 msec
+```
+* [speed-test1.bas](BASIC/speed-test1.bas), version originale. 
+```
+>list
+    1 '  speed test
+    2 ?  "FOR...NEXT test"
+    5 LET  T= TICKS 
+    7 FOR  I=  1TO  1000
+   10 LET  A=  23*  4+  5
+   20 NEXT  I
+   30 ? TICKS -  T;  " msec"
+   70 ?  "DO...UNTIL test"
+   80 LET  T= TICKS 
+  100 DO 
+  110 LET  A=  34*  56%  23+  4
+  120 LET  B=  B+  1: UNTIL  B>  1000
+  130 ? TICKS -  T;  " msec"
+  150 ?  "GOSUB test"
+  160 LET  T= TICKS 
+  170 FOR  I=  1TO  1000: GOSUB  300: NEXT  I
+  180 ? TICKS -  T;  " msec"
+  200 END 
+  300 RETURN 
+program address:  $91, program size:  304 bytes in RAM memory
+
+>run
+FOR...NEXT test
+ 67 msec
+DO...UNTIL test
+ 181 msec
+GOSUB test
+ 29 msec
+```
+Amélioration minime de performance. La version  2.1R2 donnait ceci:
+* Avant optimisation 
+```
+    1 rem speed test
+    2 ? "FOR...NEXT test"
+    5  T= TICKS
+    7  FOR I= 1 TO 1000
+   10  A= 23* 4+ 5
+   20  NEXT I
+   30  PRINT TICKS- T;" msec"
+   70  ? "DO...UNTIL test"
+   80  T=TICKS 
+   100 DO 
+   110 LET A=34*56%23+4 
+   120 LET B=B+1 : UNTIL B>1000 
+   130 ? TICKS-T;" msec" 
+   150 ? "GOSUB test"
+   160 T=TICKS 
+   170 FOR I=1 TO 1000 : GOSUB 300 : NEXT I
+   180 ? TICKS-T;" msec" 
+   200 END
+   300 RETURN 
+
+>run
+FOR...NEXT test
+ 68 msec
+DO...UNTIL test
+ 186 msec 
+GOSUB test
+ 33 msec 
+
+```
+
+
+### 2022-11-09
+
+* bogue dans decompile
+```
+>54 let a=23
+Registers state at break point.
+--------------------------
+EPC: $93D5( 37845)
+X: $36 ( 54)
+Y: $16BB ( 5819)
+A: $0 ( 0)
+CC: $20 ( 32)
+SP: $17F7 ( 6135)
+
+>list
+Registers state at break point.
+--------------------------
+EPC: $9731( 38705)
+X: $1664 ( 5732)
+Y: $1773 ( 6003)
+A: $3 ( 3)
+CC: $21 ( 33)
+SP: $17EE ( 6126)
+126
+Registers state at break point.
+--------------------------
+EPC: $9735( 38709)
+X: $1667 ( 5735)
+Y: $1773 ( 6003)
+A: $0 ( 0)
+CC: $23 ( 35)
+SP: $17EE ( 6126)
+
+program address:  $91, program size:  11 bytes in RAM memory
+
+```
+
+### 2022-11-08
+
+* bogue
+```
+>let a=23*4 : ? a
+ 92
+
+>let a=a*a
+
+>? a
+ 8464
+
+  $16B8	  $0  $0  $8 $77  $9  $0 $3F  $0 ___w__?_
+ 5825 5823
+syntax error
+    0 
+```
+
+* Retravaillé *parse_integer*
+
+* Travail sur le compilateur à complété.
+
+### 2022-11-07 
+
+#### session 2
+
+* commit fait à 11:31  avant de débuté une modification majeure du système qui consiste à tokenisé la machine virtuelle.
+
+	* changement de la structure du dictionnaire, le champ addresse code de type **.word** est remplacé par le champ token de type **.byte**
+	```
+	
+	```
+
+#### session 1
+
+* Remplacé les étiquette en début de ligne par **SUB nom**. 
+
+* Corrigé bogue dans *decompile* qui ne décompilait pas correctement les **TK_LABEL**. 
+
+* Modifié la commande **LET** pour accepté un liste de variables.
+
+### 2022-11-06
+
+* Travail complété, aucune amélioration de performance. 
+```
+>run
+FOR...NEXT test
+ 71 msec
+DO...UNTIL test
+ 186 msec
+GOSUB test
+ 33 msec
+
+```
+
+* Ajout TrapHandler 
+
+* Modifié   *print_registers* dans [debug_support.asm](debug_support.asm).  Doit-être appellé seulement via le *TrapHandler* 
+
+### 2022-11-05
+
+* bogue:
+```
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version  2.1R2
+
+>? a
+
+>let a=23*4+5
+
+>? a
+
+>? 23*4+5
+
+>? a
+
+>? 23*4+5: ? a
+ 97
+
+>? 23*4+5:
+ 97
+
+>? a: 
+ 0
+
+>let a=23*4+5:
+syntax error
+ 5816  A= 23* 4+ 5u
+>? a:
+ 97
+
+>
+
+```
+
+* Retravailler la chaîne d'évalution des conditions booléenne. 
+
+* Modifier *remark* 
+
+* Modifié *next_token*, *interpreter* et *_unget_token*.
+
+### 2022-11-04
+
+* Travail d'optimisation vitesse d'exécution.
+
+* Corrigé bogue dans *func_char*. 
+
+
+### 2022-11-03
+
+* Création de la branche V2_5. 
+
+* Rendre obligatoire le mot réservé **LET** et le séparateur de commande **:**.
+
+* Différencier les étiquettes cible en début de ligne de celles en argument des **GOSUB|GOTO**
+
+* les identifiants symboliques de variables et constantes sont identifiés par **TK_DVAR** et **TK_CONST**. 
+
 ### 2022-10-29
 
 * Création de la branche V3. 
@@ -16,7 +477,7 @@
    80  T=TICKS 
    100 DO 
    110 LET A=34*56%23+4 
-   120 B=B+1 : UNTIL B>1000 
+   120 LET B=B+1 : UNTIL B>1000 
    130 ? TICKS-T;" msec" 
    150 ? "GOSUB test"
    160 T=TICKS 
