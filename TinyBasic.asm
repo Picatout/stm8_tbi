@@ -258,14 +258,45 @@ clear_basic:
 	ret 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;   Tiny BASIC error messages     ;;
+;;   Tiny BASIC error messages 
+;;   addresses indexed table 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-err_msg:
-	.word 0,err_mem_full, err_syntax, err_math_ovf, err_div0,err_no_line    
-	.word err_run_only,err_cmd_only,err_duplicate,err_not_file,err_bad_value
-	.word err_no_access,err_no_data,err_no_prog,err_no_fspace,err_buf_full    
-	.word err_overflow,err_read_only,err_not_program  
 
+	; macro to create err_msg table 
+	.macro _err_entry msg_addr, error_code 
+	.word msg_addr  
+	error_code==ERR_IDX 
+	ERR_IDX=ERR_IDX+1
+	.endm 
+
+	ERR_IDX=0
+
+; array of pointers to 
+; error_messages strings table.	
+err_msg_idx:  	
+	_err_entry 0,ERR_NONE  
+	_err_entry err_mem_full,ERR_MEM_FULL
+	_err_entry err_syntax,ERR_SYNTAX
+	_err_entry err_math_ovf,ERR_MATH_OVF
+	_err_entry err_div0,ERR_DIV0
+	_err_entry err_no_line,ERR_NO_LINE 
+	_err_entry err_run_only,ERR_RUN_ONLY
+	_err_entry err_cmd_only,ERR_CMD_ONLY
+	_err_entry err_duplicate,ERR_DUPLICATE
+	_err_entry err_not_file,ERR_NOT_FILE
+	_err_entry err_bad_value,ERR_BAD_VALUE
+	_err_entry err_no_access,ERR_NO_ACCESS
+	_err_entry err_no_data,ERR_NO_DATA 
+	_err_entry err_no_prog,ERR_NO_PROG
+	_err_entry err_no_fspace,ERR_NO_FSPACE
+	_err_entry err_buf_full,ERR_BUF_FULL
+	_err_entry err_read_only,ERR_READ_ONLY
+	_err_entry err_not_program,ERR_NOT_PROGRAM 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; error messages strngs table 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+error_messages: 
 err_mem_full: .asciz "Rejected, memory full\n" 
 err_syntax: .asciz "syntax error\n" 
 err_math_ovf: .asciz "math operation overflow\n"
@@ -281,14 +312,28 @@ err_no_data: .asciz "No data found.\n"
 err_no_prog: .asciz "No program in RAM!\n"
 err_no_fspace: .asciz "File system full.\n" 
 err_buf_full: .asciz "Buffer full\n"
-err_overflow: .asciz "overflow\n" 
 err_read_only: .asciz "constant can't be modified\n"
 err_not_program: .asciz "no program at this address\n"
+
+;------------------------
+; print error message 
+; input:
+;    A   error code 
+; output:
+;	 none 
+;------------------------
+print_err_msg:
+	clrw x 
+	ld xl,a 
+	sllw x 
+	addw x,#err_msg_idx 
+	ldw x,(x)
+	call puts 
+	ret 
 
 ;-------------------------------------
 rt_msg: .asciz "\nrun time error, "
 comp_msg: .asciz "\ncompile error, "
-tk_id: .asciz "last token id: "
 
 syntax_error::
 	_unget_token
@@ -316,41 +361,20 @@ tb_error::
 	ldw x, #rt_msg 
 	call puts 
 0$:	pop a 
-	ldw x, #err_msg 
-	clr acc16 
-	sll a
-	rlc acc16  
-	ld acc8, a 
-	addw x,acc16 
-	ldw x,(x)
-	call puts
+	call print_err_msg
 	ldw x,basicptr 
 	subw x,line.addr 
 	ld a,xl 
 	sub a,#3 
 	ldw x,line.addr 
 	call prt_basic_line
-	ldw x,#tk_id 
-	call puts 
-	ldw x,basicptr 
-	ld a,(x)
-	clrw x 
-	ld xl,a 
-	call prt_i16
 	jra 6$
 1$:	
 	push a 
 	ldw x,#comp_msg
 	call puts 
 	pop a 
-	ldw x, #err_msg 
-	clr acc16 
-	sll a
-	rlc acc16  
-	ld acc8, a 
-	addw x,acc16 
-	ldw x,(x)
-	call puts
+	call print_err_msg
 	ldw x,#tib
 	call puts 
 	ld a,#CR 
@@ -408,7 +432,10 @@ interp_loop:
 .endif 	 
 	jra interp_loop ; 2 cy , total 22 cy
 
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; move basicptr to first token 
+; of next line 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 next_line:
 ; if FRUN is reset it is a command line
 	btjt flags, #FRUN, 1$
@@ -451,7 +478,7 @@ next_line:
 ; output:
 ;   A 		token attribute
 ;   X 		*token_value 
-;----------------------------------------
+;---------------------------
 next_token::
 	.byte 0xbe, basicptr ; ldw x,basicptr ; 2 cy,  2 bytes 
 	.byte 0xbf, bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
@@ -1375,7 +1402,7 @@ dvar_assign:
 	jp syntax_error 
 2$:	ld a,(x)
 	jrpl 4$
-	ld a,#ERR_RD_ONLY 
+	ld a,#ERR_READ_ONLY 
 	jp tb_error 
 4$:
 	addw x,(REC_LEN,sp)
@@ -1806,7 +1833,7 @@ cmd_edit:
 	popw x 
 	call search_program 
     jrne 1$ 
-	ldw x,#ERR_NO_PROGRAM
+	ldw x,#ERR_NOT_FILE 
 	jp tb_error 
 1$: pushw y 
 	ldw y,x ; file address 

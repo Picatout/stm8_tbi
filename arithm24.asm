@@ -208,7 +208,7 @@ mulu24_8:
     rlwa x 
     tnz a 
     jreq 1$
-    ld a,#ERR_OVERFLOW
+    ld a,#ERR_MATH_OVF
     jp tb_error 
 1$:
     ld a,xh  
@@ -282,7 +282,7 @@ mul24:
     _drop VSIZE 
     ret 
 8$: ; overflow
-    ld a,#ERR_OVERFLOW
+    ld a,#ERR_MATH_OVF
     jp tb_error 
 
 ;-------------------------------------

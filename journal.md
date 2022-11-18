@@ -1,5 +1,14 @@
 ### 2022-11-18
 
+* Commit 16:25 
+
+* Création de la sous-routine *print_err_msg*  pour factorisé cette opération qui apparaissait 2 fois dans *tb_error*.
+
+* Création de la macro _err_entry dans [TinyBasic.asm](TinyBasic.asm) pour créer la table *err_msg* et enlever les constantes 
+**ERR_XX** dans le fichier [tbi_macros.inc](tbi_macros.inc).  Cette méthode réduit les risques d'erreurs lors de modification de la table.
+
+* Supprimé l'affiche du *token id* dans la routine *tb_error*. 
+
 * commit 11:14
 
 * Corrigé bogue dans commande **SAVE** qui plantait après la sauvegarde. C'étai du à l'écrasement de l'octet fin de ligne 

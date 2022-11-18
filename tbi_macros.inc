@@ -72,29 +72,6 @@
     NONE_IDX = 255 ; not a token 
 
 
-;--------------------------------------
-;   error codes 
-;--------------------------------------
-    ERR_NONE=0
-    ERR_MEM_FULL=1 
-    ERR_SYNTAX=2
-    ERR_MATH_OVF=3
-    ERR_DIV0=4 
-    ERR_NO_LINE=5
-    ERR_RUN_ONLY=6
-    ERR_CMD_ONLY=7
-    ERR_DUPLICATE=8
-    ERR_NOT_FILE=9
-    ERR_BAD_VALUE=10
-    ERR_NO_ACCESS=11
-    ERR_NO_DATA=12 
-    ERR_NO_PROG=13
-    ERR_NO_FSPACE=14
-    ERR_BUF_FULL=15
-    ERR_OVERFLOW=16 
-    ERR_RD_ONLY=17
-    ERR_NO_PROGRAM=18
-    
 
 ;--------------------------------------
 ;   assembler flags 
