@@ -1,5 +1,7 @@
 ### 2022-11-17
 
+* Modification au [readme.md](readme.md)
+
 * Commit 16:40
 
 *  __Notes:__ 

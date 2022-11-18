@@ -1,3 +1,71 @@
+## 2022-11-17 
+
+Je viens de pousser le code de la version 2.5R0 sur le serveur. Il s'agit d'un travail que j'ai débuté à la fin septembre et qui est toujours en cours.
+
+* Il s'agit d'une réécriture importante du code source pour changer le modèle de l'interpréteur de bytecode. Je trouvais la boucle *interp_loop* et la fonction *next_token* trop compliqué. J'ai donc décidé de simplifier.
+
+* Cette modification implique que le mot réservé  **LET** utilisé pour initialier une variable et maintenant obligatoire. Cependant plusieurs variables peuvent-être initialisées dans la même commande en les séparant par une virgule. Exemple:
+```
+LET A=31416, B=2*A
+```
+
+* Aucune fonctionnalité supplémentaire n'a été ajouté, cependant lorsque la carte **NUCLEO_S207K8** est sélectionnée dans [config.inc](config.inc)
+Les commandes reliées au périphérique **SPI** sont retirées du code source.
+
+* Cette version ajoute le support pour la carte d'expérimentation [NUCLEO-8S207K8](https://www.st.com/en/evaluation-tools/nucleo-8s207k8.html).
+Le MCU sur cette carte est de la même catégorie que celui de la carte [NUCLEO-8S208RB](https://www.st.com/en/evaluation-tools/nucleo-8s208rb.html)
+sauf que cette carte est au format Arduino Nano et est enfichable sur un carte d'expérimentation sans soudure.  Voici les différences entre les 2 MCU.
+
+paramètre|STM8S2K08RB|STM8S207K8 
+--|--|-
+packaging|LQFP 64|LQFP 32
+broches|64|32
+RAM|6K|6K
+EEPROM|2K|1K
+FLASH|128K|64K
+
+Évidemment comme il y a 2 fois moins de broches, il y moins de GPIOs. Le périphérique **SPI** est pas relié aux connecteurs CN3,CN4 sur la carte **NUCLEO-8S207K8**, donc ne peut-être utilisé. 
+
+Le périphérique **I2C** est une fonction alternative sur la carte **NUCLEO-8S207K8**, donc la fonction alternative doit-être programmée dans le registre d'option **OPT2** avant son utilisation. Ça peut-être fait de la façon suivante:
+```
+>LET A=PEEK($4803) OR 64:WRITE $4803,A:REBOOT 
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R0
+
+>
+```   
+Pour désactiver cette fonction alternative il faut faire:
+```
+>LET A=NOT 64 AND PEEK($4803):WRITE $4803,A: REBOOT
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R0
+
+>
+``` 
+Toute modification à un registre d'option nécessite une réininitalisation du MCU pour prendre effet. Donc ça ne peut-être activé dans le programme BASIC lui-même.
+
+### Construction du projet. 
+
+1. Il faut d'abord configuré la carte cible dans le fichier [config.inc](config.inc). 
+2. Esuite pour construire le projet on utilise script bash [build.sh](build.sh).
+Ce script accepte 2 paramètres, le second est optionnel.
+
+* 1ier paramètre,sélection de la carte, valeurs: __s207__ ou __s208__.
+
+* 2ième paramètre,optionnel pour flasher la carte: __flash__.
+
+Sur la ligne de commande du PC ça donne ceci:
+```
+~/github/stm8_tbi$ ./build.sh s207 flash
+
+```
+
 ## 2022-06-25, version 2.1 
 
 Ajout de plusieurs commandes. 
