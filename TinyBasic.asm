@@ -315,22 +315,6 @@ err_buf_full: .asciz "Buffer full\n"
 err_read_only: .asciz "constant can't be modified\n"
 err_not_program: .asciz "no program at this address\n"
 
-;------------------------
-; print error message 
-; input:
-;    A   error code 
-; output:
-;	 none 
-;------------------------
-print_err_msg:
-	clrw x 
-	ld xl,a 
-	sllw x 
-	addw x,#err_msg_idx 
-	ldw x,(x)
-	call puts 
-	ret 
-
 ;-------------------------------------
 rt_msg: .asciz "\nrun time error, "
 comp_msg: .asciz "\ncompile error, "
@@ -361,7 +345,7 @@ tb_error::
 	ldw x, #rt_msg 
 	call puts 
 0$:	pop a 
-	call print_err_msg
+	callr print_err_msg
 	ldw x,basicptr 
 	subw x,line.addr 
 	ld a,xl 
@@ -374,7 +358,7 @@ tb_error::
 	ldw x,#comp_msg
 	call puts 
 	pop a 
-	call print_err_msg
+	callr print_err_msg
 	ldw x,#tib
 	call puts 
 	ld a,#CR 
@@ -385,6 +369,23 @@ tb_error::
 	call putc 
 6$: ldw x,#STACK_EMPTY 
     ldw sp,x
+
+;------------------------
+; print error message 
+; input:
+;    A   error code 
+; output:
+;	 none 
+;------------------------
+print_err_msg:
+	clrw x 
+	ld xl,a 
+	sllw x 
+	addw x,#err_msg_idx 
+	ldw x,(x)
+	call puts 
+	ret 
+
 
 warm_start:
 	call warm_init
