@@ -4342,6 +4342,7 @@ read01:
 	jreq 0$ 
 	jra data_error 
 
+.if NUCLEO_8S208RB
 ;---------------------------------
 ; BASIC: SPI.EN clkdiv, 0|1  
 ; clkdiv -> {0..7} Fspi=Fclk/2^(n+1)
@@ -4457,6 +4458,7 @@ cmd_spi_select:
 cs_high: 
 	bset PE_ODR,#SPI_CS_BIT
 	ret 
+.endif 
 
 ;-------------------------------
 ; BASIC: PAD 
@@ -4884,10 +4886,12 @@ dict_end:
 	_dict_entry,5,"TICKS",TICKS_IDX
 	_dict_entry,4,"STOP",STOP_IDX
 	_dict_entry,4,"STEP",STEP_IDX
+.if NUCLEO_8S208RB	
 	_dict_entry,6,"SPI.WR",SPIWR_IDX
 	_dict_entry,7,"SPI.SEL",SPISEL_IDX
 	_dict_entry,6,"SPI.RD",SPIRD_IDX 
 	_dict_entry,6,"SPI.EN",SPIEN_IDX
+.endif 	
 	_dict_entry,5,"SLEEP",SLEEP_IDX
     _dict_entry,4,"SIZE",SIZE_IDX
 	_dict_entry,4,"SAVE",SAVE_IDX 
