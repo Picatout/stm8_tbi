@@ -167,9 +167,9 @@ prt_reg16:
 	R_CC=9      ; 1 byte 
 	RET_ADDR=7    ; 2 byte 
 	SAV_OUT=5   ; 1 word 
-	SAV_ACC16=3 ; 1 byte 
-	SAV_ACC24=2 ; 1 word 
-	SAV_BASE=1  ; 1 BYTE 
+	SAV_ACC16=3 ; 1 word 
+	SAV_ACC24=2 ; 1 byte 
+	SAV_BASE=1  ; 1 byte  
 	VSIZE=6  
 print_registers::
 	_vars VSIZE 
@@ -225,8 +225,14 @@ print_registers::
 ; print SP 
 	ldw x,#REG_SP
 	ldw y,sp 
-	addw y,#(VSIZE+9)
+	addw y,#(VSIZE+12)
+	pushw y 
 	call prt_reg16  
+; print return address 
+	ldw x,#RET_ADR 
+	popw y 
+	ldw y,(y)
+	call prt_reg16 
 	ld a,#CR 
 	call putc
 	ldw x,(SAV_OUT,sp)
@@ -247,6 +253,7 @@ REG_X:   .asciz "\nX:"
 REG_A:   .asciz "\nA:" 
 REG_CC:  .asciz "\nCC:"
 REG_SP:  .asciz "\nSP:"
+RET_ADR: .asciz "\nReturn address: "
 
 ;----------------------
 ; input:

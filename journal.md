@@ -1,4 +1,33 @@
+### 2022-11-18
+
+* commit 11:14
+
+* Corrigé bogue dans commande **SAVE** qui plantait après la sauvegarde. C'étai du à l'écrasement de l'octet fin de ligne 
+pendant la procédure de sauvegare. Ajout code pour remettre à zéro.
+
+* Corrigé bogue dans commande **AUTORUN** l'option **\C** n'était par reconnue.
+
+* Modifié *print_registers* dans [debug_support.asm](debug_support.asm)  pour ajouter l'impression de l'adresse de retour. 
+Corrigé bogue, l'offset pour obtenir l'addresse de sp avant trap n'était pas correcte.
+
 ### 2022-11-17
+
+* La commande **RUN** n'initialisait pas correctement les pointeurs de variables dynamiques lors que le programme à exécuter 
+se trouvait en mémoire FLASH.  Bogue corrigé.  
+
+* erase \f n'efface que le premier block. Bogue corrigé.
+
+* bogues à corrigés:
+	
+	* save reboot le MCU lorsque hymne.bas est sauvegardé. 
+
+
+
+
+* Corrigé bogue dans routine *cold_start* du fichier [hardware_init.asm](hardware_init.asm). Dans la section *run_app* initialisait *txtbgn* avec 
+la mauvaise valeur. 
+
+* Commit 20:17 hre 
 
 * Modification au [readme.md](readme.md)
 

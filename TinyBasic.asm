@@ -291,12 +291,13 @@ comp_msg: .asciz "\ncompile error, "
 tk_id: .asciz "last token id: "
 
 syntax_error::
+	_unget_token
 	ld a,#ERR_SYNTAX 
 
 tb_error::
 	btjt flags,#FCOMP,1$
 	push a 
-.if DEBUG 	
+.if 0 ; DEBUG 	
 	clr farptr 
 	ldw x,line.addr 
 	ldw ptr16,x 
@@ -381,12 +382,14 @@ cmd_line: ; user interface
 ;; interpret 
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; dump compiled BASIC 	
-.if 0; DEBUG 
-ldw x,#pad 
-ldw txtbgn,x 
-addw x,#128
-ldw txtend,x 
-call dump_prog 
+.if 0 ; DEBUG 
+ldw x,#pad
+clr farptr 
+ldw ptr16,x 
+clrw x 
+ld a,count 
+ld xl,a 
+call hex_dump  
 .endif 
 ;;;;;;;;;;;;;;;;;;;;;;
 	jra interp_loop 
@@ -397,7 +400,7 @@ call dump_prog
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
 interp_loop:   
     _next_cmd ; 6 cy 
-.if 0; DEBUG 
+.if 0;  DEBUG 
 	_tp 'I 
 	_call_code 
 .else 
@@ -415,7 +418,8 @@ next_line:
 	jra cmd_line
 ; otherwise it is a program,
 ; goto next line.  
-1$:	ldw x,line.addr 
+1$:	
+	ldw x,line.addr 
 	ld a,(2,x)
 	ld acc8,a 
 	clr acc16 
@@ -2648,7 +2652,7 @@ call dump_prog
 	popw x  
 	call search_program
 	jrne 2$
-	ld a,#ERR_NO_PROGRAM
+	ld a,#ERR_NOT_FILE 
 	jp tb_error 
 2$: addw x,#FILE_HEADER_SIZE 
 	ldw txtbgn,x 
@@ -2667,12 +2671,20 @@ call dump_prog
 run_it:	 
 	_drop 2 ; drop return address 
 run_it_02: 
-    call func_ubound 
-	call clear_vars
 ; initialize DIM variables pointers 
 	ldw x,txtend 
-	ldw dvar_bgn,x 
+	cpw x,#app_space
+	jrult 1$
+; program in FLASH 	
+	ldw x,#free_ram
+	ldw dvar_bgn,x
+	ldw dvar_end,x 
+	jra 2$  
+1$: ; program in RAM 
+	ldw dvar_bgn,x 	
 	ldw dvar_end,x 	 
+2$: call func_ubound 
+	call clear_vars
 ; clear data pointer 
 	clrw x 
 	ldw data_ptr,x 
@@ -3040,7 +3052,7 @@ not_file:
 	ldw x,#app_space  
 	ldw farptr+1,x 
 	ld a,#FLASH_END>>16 
-	ldw x,#FLASH_END&0xffff
+	ldw x,#FLASH_END&0xffff	
 3$:
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x 
@@ -3054,14 +3066,17 @@ not_file:
     call putc 
 	call block_erase   
 ; this block is clean, next  
-5$:	ldw x,#BLOCK_SIZE
+5$:	
+	ld a,#'. 
+	call putc 
+	ldw x,#BLOCK_SIZE
 	call incr_farptr
 ; check limit, 24 bit substraction  	
 	ld a,(LIMIT,sp)
 	ldw x,(LIMIT+1,sp)
 	subw x,farptr+1
-	sbc a,farptr 
-	jrugt 4$ 
+	sbc a,farptr 	 
+	jrsge 4$ 
 9$: call clear_basic
 	ldw x,(LIMIT+1,sp)
 	cpw x,#EEPROM_END
@@ -3082,17 +3097,18 @@ not_file:
 	TOWRITE=5 ; how bytes left to write  
 	VSIZE=6 
 cmd_save:
-_tp 'S 
 	call cmd_line_only
 	pushw x 
 	pushw y 
 	_vars VSIZE
+	clr (COUNT,sp)
 	call prog_size 
 	jrne 0$
 	ldw x,#NO_PROG 
 	call puts  
 	jp 9$ ; no program to save 
-0$:	ldw (TOWRITE,sp),x ; program size
+0$:	addw x,#FILE_HEADER_SIZE
+	ldw (TOWRITE,sp),x ; program size
 ; to save it first line must be a label 
 	ldw x,txtbgn
 	ld a,(3,x)
@@ -3137,6 +3153,7 @@ _tp 'S
 	ldw (y),x 
 	addw y,#2
 	ldw x,(TOWRITE,sp)
+	subw x,#FILE_HEADER_SIZE 
 	ldw (y),x
 	addw y,#2   
 	ld a,#(BLOCK_SIZE-4)
@@ -3172,11 +3189,12 @@ _tp 'S
 8$: ; no label can't save
 	ldw x,#NO_LABEL 
 	call puts 	
-9$:	 
+9$:	
+	ldw x,basicptr 
+	clr (x)
 	_drop VSIZE 
     popw y 
 	popw x 
-_tp 'E 
 	ret 
 
 NO_PROG: .asciz "No program in RAM."
@@ -4613,7 +4631,7 @@ cmd_auto_run:
 	call next_token 
 	cp a,#LABEL_IDX 
 	jreq set_autorun  
-	cp a,#CHAR_IDX 
+	cp a,#BSLASH_IDX 
 	jrne 0$ 
 	ld a,(x)
 	incw x 

@@ -431,6 +431,7 @@ run_app:
 	ldw y,XSTACK_EMPTY
 	call warm_init
 	ldw x,EEPROM_BASE+2 
+	addw x,#FILE_HEADER_SIZE
 	ldw txtbgn,x
 	subw x,#2 
 	ldw x,(x)

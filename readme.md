@@ -66,7 +66,7 @@ Sur la ligne de commande du PC ça donne ceci:
 
 ```
 
-* Présentement le code du fichier [dbg_support.asm](debug_support.asm) est compilé puisque ce projet est encore développement. Il y a une option dans le fichier [config.inc](config.inc) pour le retirer du projet. 
+* Présentement le code du fichier [debug_support.asm](debug_support.asm) est compilé puisque ce projet est encore développement. Il y a une option dans le fichier [config.inc](config.inc) pour le retirer du projet. 
 
 ## 2022-06-25, version 2.1 
 

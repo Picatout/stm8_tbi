@@ -115,7 +115,9 @@ erase_file:
 2$:	ldw (BLOCKS,sp),x 
 	ldw x,(ADDR,sp)
 	ldw ptr16,x 
-3$:	call block_erase
+3$:	ld a,#'E 
+	call putc 
+	call block_erase
 	ldw x,#BLOCK_SIZE 
 	call incr_farptr
 	ldw x,(BLOCKS,sp)
