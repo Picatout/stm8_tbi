@@ -59,7 +59,7 @@ search_program:
 	pushw y 
 	_vars VSIZE 
 	ldw (PNAME,sp),x 
-	ldw x,0xFFFF  
+	ldw x,#0xFFFF  
 	ldw (LIMIT,sp),x ; search end address 
 	ldw x,#app_space ; search start address 
 1$:	ldw (WLKPTR,sp),x  
@@ -219,7 +219,7 @@ search_fit:
 	ld xl,a  
 	cpw x,(PG_SIZE,sp) ; size program to save 
 	jruge 8$   ; fit 
-	ldw x,acc16 
+	_ldxz acc16 
 	jra 2$
 ; is free space large enough?
 5$: ldw acc16,x  
@@ -230,7 +230,7 @@ search_fit:
     jruge 8$
     clrw x 
     jra 9$
-8$: ldw x,acc16 ; fit in this one 	
+8$: _ldxz acc16 ; fit in this one 	
 9$:	_drop VSIZE 
 	ret  
 
