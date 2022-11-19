@@ -1,5 +1,19 @@
 ### 2022-11-18
 
+* Taille actuel au moment du commit, 15246 octets.
+
+* Je débute un travail de réduction de la taille du binaire. La taille actuelle sans tenir compte de l'alignement de 128 octets avant *app_space* 
+est de 15253 octets compilé avec [debug_support.asm](debug_support.asm).
+
+* Corrigé bogue dans *readln* du fichier [terminal.asm](terminal.asm).
+	
+	1. CTRL-E ne fonctionne pas.  Bogue corrigé. 
+	1. Insertion en début de ligne fait disparaître le **&gt;** du prompt. Bogue corrég dans routine *move_left*  Lorsque le paramètre **n** de la commande
+	ANSI **ESC[nD]  était à zéro reculait quand même d'un caractère. 
+
+* Modifié routine *decompile* dans [decompiler.asm](decompiler.asm), maintenant accepte un paramètre dans A pour choisir si 
+le numéro de ligne doit-être aligné à droite sur 5 espaces. 
+
 * Commit 16:25 
 
 * Création de la sous-routine *print_err_msg*  pour factorisé cette opération qui apparaissait 2 fois dans *tb_error*.

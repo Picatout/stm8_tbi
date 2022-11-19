@@ -389,13 +389,15 @@ send_parameter:
 ;   none
 ;--------------------------
 move_left:
+	tnz a 
+	jreq 9$
 	push a 
 	call send_escape
     pop a
 	call send_parameter 
 	ld a,#'D 
 	call putc 
-	ret	
+9$:	ret	
 
 
 ;--------------------------
@@ -659,13 +661,15 @@ readln_loop:
     clr (y) 	
 	jp readln_quit  
 51$:
-	ldw basicptr,x
+	ldw line.addr,x
 	ld a,(2,x)
 	ld count,a 
+	addw x,#LINE_HEADER_SIZE
+	ldw basicptr,x 
 	ldw x,#tib 
 	ld a,#BUFOUT 
 	call set_output
-	mov in,#3
+	clr a 
 	call decompile
 	ld a,#STDOUT 
 	call set_output 
@@ -761,7 +765,7 @@ accept_char:
 	ld a,#TIB_SIZE-1
 	cp a, (LL,sp)
 	jrpl 1$
-	jp readln_loop
+	jp readln_loop ; max length reached 
 1$:	tnz (OVRWR,sp)
 	jrne overwrite
 ; insert mode 

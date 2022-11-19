@@ -124,15 +124,19 @@ var_name::
 ; decompile tokens list 
 ; to original text line 
 ; input:
+;   A      0 don't align line number 
+;          !0 align it. 
 ;   line.addr start of line 
 ;   basicptr  at first token 
 ;   count     stop position.
 ;------------------------------------
 	BASE_SAV=1 ; 1 byte 
 	PSTR=2     ;  1 word 
-	VSIZE=3
+	ALIGN=3 
+	VSIZE=4
 decompile::
 	_vars VSIZE
+	ld (ALIGN,sp),a 
 	ld a,base
 	ld (BASE_SAV,sp),a  
 	ldw x,line.addr
@@ -141,10 +145,12 @@ decompile::
 	clr acc24 
 	ldw acc16,x
 	clr a ; unsigned conversion  
-	call itoa  
+	call itoa
+	tnz (ALIGN,sp)
+	jreq 1$  
 	ld a,#5 
 	call right_align 
-	call puts 
+1$:	call puts 
 	ld a,#SPACE 
 	call putc
 decomp_loop:

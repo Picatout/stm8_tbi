@@ -79,7 +79,7 @@ strlen::
 ;   X 		char* first string 
 ;   Y       char* second string 
 ; output:
-;   Z flag 	0 not == | 1 ==  
+;   Z flag 	0 != | 1 ==  
 ;-------------------------------------
 strcmp:
 	ld a,(x)
@@ -89,13 +89,12 @@ strcmp:
 	incw x 
 	incw y 
 	jra strcmp 
-5$: ; same
+5$: ; end of first string 
 	cp a,(y)
 9$:	ret 
 
-
 ;---------------------------------------
-;  copy src to dest 
+;  copy src string to dest 
 ; input:
 ;   X 		dest 
 ;   Y 		src 
@@ -167,6 +166,65 @@ move_exit:
 	pop a 
 	ret 	
 
+;-----------------------
+;  display system 
+;  information 
+;-----------------------
+	MAJOR=2
+	MINOR=5
+	REV=1
+
+software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
+
+system_information:
+	ldw x,#software 
+	call puts 
+	mov base, #10 
+	ld a,#MAJOR 
+	callr prt_i8 
+	ld a,#'.
+	call putc 
+	ld a,#MINOR 
+	callr prt_i8   
+	ld a,#'R 
+	call putc 
+	ld a,#REV 
+	callr prt_i8
+	ld a,#CR 
+	call putc
+;call test 
+	ret
+
+;------------------------
+; print int8 
+; input:
+;    A    int8 
+; output:
+;    none 
+;-----------------------
+prt_i8:
+	clrw x 
+	rlwa x 
+	call prt_i16 
+	ret 
+
+warm_init:
+	ldw y,#XSTACK_EMPTY
+	ldw x,#uart_putc 
+	ldw out,x ; standard output   
+	clr flags 
+	clr loop_depth 
+	mov base,#10 
+	clrw x  
+	ldw basicptr,x 
+	ldw line.addr,x 
+	clr count
+; DIM @(10) minimum size 	
+	ldw x,#tib 
+	subw x,#10*CELL_SIZE 
+	ldw end_free_ram,x 
+	ret 
+
 ;------------------------------------
 ;  set all variables to zero 
 ; input:
@@ -187,66 +245,15 @@ clear_vars:
 	popw x 
 	ret 
 
-
-;-----------------------
-;  display system 
-;  information 
-;-----------------------
-	MAJOR=2
-	MINOR=5
-	REV=0
-
-software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
-
-system_information:
-	ldw x,#software 
-	call puts 
-	ld a,#MAJOR 
-	clrw x 
-	rlwa x 
-	mov base, #10 
-	call prt_i16 
-	ld a,#'.
-	call putc 
-	ld a,#MINOR 
-	clrw x
-	rlwa x  
-	call prt_i16   
-	ld a,#'R 
-	call putc 
-	ld a,#REV 
-	clrw x 
-	rlwa x 
-	call prt_i16
-	ld a,#CR 
-	call putc
-;call test 
-	ret
-
-warm_init:
-	ldw y,#XSTACK_EMPTY
-	ldw x,#uart_putc 
-	ldw out,x ; standard output   
-	clr flags 
-	clr loop_depth 
-	mov base,#10 
-	ldw x,#0 
-	ldw basicptr,x 
-	ldw in.w,x 
-	clr count
-	ldw x,#tib 
-	subw x,#10*CELL_SIZE 
-	ldw end_free_ram,x 
-	ret 
-
 ;---------------------------
 ; reset BASIC text variables 
 ; and clear variables 
 ;---------------------------
 clear_basic:
 	pushw x 
-	clr count
-	clr in  
+;	clr count
+;	clrw x 
+;	ldw line.addr,x   
 	ldw x,#free_ram 
 	ldw txtbgn,x 
 	ldw txtend,x 
@@ -320,26 +327,12 @@ rt_msg: .asciz "\nrun time error, "
 comp_msg: .asciz "\ncompile error, "
 
 syntax_error::
-	_unget_token
 	ld a,#ERR_SYNTAX 
-
 tb_error::
 	btjt flags,#FCOMP,1$
 	push a 
 .if 0 ; DEBUG 	
-	clr farptr 
-	ldw x,line.addr 
-	ldw ptr16,x 
-	ld a,(2,x)
-	clrw x 
-	ld xl,a 
-	call hex_dump 
-	ldw x,basicptr 
-	call prt_i16 
-	ldw x,bp.saved
-	call prt_i16 
-	ld a,#CR 
-	call putc 
+	call dump_prog
 .endif 
 	btjf flags,#FRUN,0$ 
 	ldw x, #rt_msg 
@@ -349,7 +342,7 @@ tb_error::
 	ldw x,basicptr 
 	subw x,line.addr 
 	ld a,xl 
-	sub a,#3 
+	sub a,#LINE_HEADER_SIZE 
 	ldw x,line.addr 
 	call prt_basic_line
 	jra 6$
@@ -385,7 +378,6 @@ print_err_msg:
 	ldw x,(x)
 	call puts 
 	ret 
-
 
 warm_start:
 	call warm_init
@@ -1867,7 +1859,6 @@ prt_basic_line:
 	ld a,#CR 
 	call putc 
 	ret 
-
 
 ;---------------------------------
 ; BASIC: PRINT|? arg_list 
