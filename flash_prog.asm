@@ -164,7 +164,7 @@ write_buffer:
 	pushw x 
 	tnz farptr 
 	jrne to_flash 
-	ldw x,farptr+1 
+	_ldxz farptr+1 
 	cpw x,#app_space  
 	jruge to_flash 
 to_eeprom:
@@ -192,7 +192,7 @@ block_erase:
 	pushw x 
 	_ldaz farptr 
 	jrne erase_flash
-	ldw x,farptr+1
+	_ldxz farptr+1
 	cpw x,#app_space 
 	jruge erase_flash 
 ; erase eeprom block
@@ -368,7 +368,7 @@ row_align:
 	ld a,#0x7f 
 	and a,farptr+2 
 	jreq 1$ 
-	ldw x,farptr+1 
+	_ldxz farptr+1 
 	addw x,#BLOCK_SIZE 
 	jrnc 0$
 	_incz farptr 
