@@ -165,9 +165,9 @@ putc:
 ;---------------------------------
 buf_putc:
 	ld [ptr16],a
-	_inc ptr8 
+	_incz ptr8 
 	jrne 9$
-	_inc ptr16 
+	_incz ptr16 
 9$:	clr [ptr16] 
 	ret 
 
@@ -194,7 +194,7 @@ uart_putc::
 ;---------------------------------
 qgetc::
 uart_qgetc::
-	ld a,rx1_head 
+	_ldaz rx1_head 
 	sub a,rx1_tail 
 	ret 
 
@@ -217,10 +217,10 @@ uart_getc::
 	ld xl,a 
 	ld a,(x)
 	push a
-	ld a,rx1_head 
+	_ldaz rx1_head 
 	inc a 
 	and a,#RX_QUEUE_SIZE-1
-	ld rx1_head,a 
+	_straz rx1_head 
 	pop a  
 	popw x
 	ret 
@@ -471,12 +471,12 @@ insert_char:
     ld a,(LLEN,sp)
     sub a,(IPOS,sp)
     inc a 
-    ld acc8,a 
+    _straz acc8 
     clr acc16
     call move
     ldw y,#tib 
     ld a,(IPOS,sp)
-    ld acc8,a 
+    _straz acc8 
     addw y,acc16 
     ld a,(KCHAR,sp)
     ld (y),a
@@ -512,12 +512,12 @@ delete_under:
     ld a,(LLEN,sp)
     sub a,(CPOS,sp)
     inc a ; move including zero at end.
-    ld acc8,a 
+    _straz acc8 
     clr acc16 
 	call move 
     ldw y,#tib 
     ld a,(CPOS,sp)
-    ld acc8,a 
+    _straz acc8 
     addw y,acc16 
     ldw x,y 
     call puts 
@@ -663,7 +663,7 @@ readln_loop:
 51$:
 	ldw line.addr,x
 	ld a,(2,x)
-	ld count,a 
+	_straz count 
 	addw x,#LINE_HEADER_SIZE
 	ldw basicptr,x 
 	ldw x,#tib 
@@ -735,7 +735,7 @@ readln_loop:
 	ld (CPOS,sp),a
     ldw y,#tib
     clr acc16 
-    ld acc8,a 
+    _straz acc8 
     addw y,acc16  
 	jp readln_loop 
 10$: cp a,#CTRL_O
@@ -802,7 +802,7 @@ readln_quit:
     addw y,(LL_HB,sp)
     clr (y)
 	ld a,(LL,sp)
-	ld count,a 
+	_straz count 
 	ld a,#CR
 	call putc
 	_drop VSIZE 

@@ -45,7 +45,7 @@ I2cIntHandler:
     and a,#15 
     jreq 1$
     or a,i2c_status 
-    ld i2c_status,a 
+    _straz i2c_status 
     bset I2C_CR2,#I2C_CR2_STOP
     iret 
 1$: ; no error detected 
@@ -54,7 +54,7 @@ I2cIntHandler:
     iret 
 ; handle events 
 2$: clrw x 
-    ld a,i2c_idx 
+    _ldaz i2c_idx 
     ld xl,a 
     btjt I2C_SR1,#I2C_SR1_SB,evt_sb 
     btjt I2C_SR1,#I2C_SR1_ADDR,evt_addr 
@@ -65,7 +65,7 @@ I2cIntHandler:
     iret 
 
 evt_sb: ; start bit, send address 
-    ld a,i2c_devid
+    _ldaz i2c_devid
     ld I2C_DR,a 
     iret 
 
@@ -84,7 +84,7 @@ evt_txe:
 evt_txe_1:
     ld a,([i2c_buf],x)
     ld I2C_DR,a
-    _inc i2c_idx 
+    _incz i2c_idx 
     dec i2c_count
 1$: iret 
 
@@ -102,8 +102,8 @@ evt_rxne:
     jreq evt_stopf  
 1$: ld a,I2C_DR 
     ld ([i2c_buf],x),a  
-    _inc i2c_idx 
-    dec i2c_count
+    _incz i2c_idx 
+    _decz i2c_count
     jrne 4$
     bres I2C_CR2,#I2C_CR2_ACK
 4$: iret 
@@ -142,7 +142,7 @@ i2c_bytes_left: .asciz " bytes left.\n"
 ; display error message 
 ;---------------------------
 cmd_i2c_error:
-    ld a,i2c_status 
+    _ldaz i2c_status 
     and a,#15 
     jrne 0$
 ; i2c report no error but there was a timeout.
@@ -150,7 +150,7 @@ cmd_i2c_error:
     ldw x,#i2c_error_timeout 
     call puts 
     clrw x 
-    ld a,i2c_count
+    _ldaz i2c_count
     ld xl,a 
     call prt_i16
     ldw x,#i2c_bytes_left 
@@ -183,7 +183,7 @@ cmd_i2c_error:
     addw x,#i2c_error_msg 
     ldw x,(x)
     call puts 
-    clr i2c_status
+    _clrz i2c_status
 6$:    
 ; reset AFR to default peripheral 
     jp warm_start   
@@ -294,10 +294,10 @@ set_op_params:
     ldw i2c_buf,x 
     _xpop ; count 
     ld a,xl ; no more than 255 
-    ld i2c_count,a 
+    _straz i2c_count 
     _xpop ; devid 
     ld a,xl 
-    ld i2c_devid,a 
+    _straz i2c_devid 
     ret 
 
 ;--------------------------------
@@ -311,7 +311,7 @@ set_op_params:
 cmd_i2c_write:
     call set_op_params
 start_op:  
-    clr i2c_idx 
+    _clrz i2c_idx 
     ldw x,#500 
     ldw timer,x ; expiration timer
     ld a,#(1<<I2C_ITR_ITBUFEN)|(1<<I2C_ITR_ITERREN)|(1<<I2C_ITR_ITEVTEN) 
@@ -334,9 +334,9 @@ start_op:
 ;-----------------------------------
 func_i2c_read:
     call set_op_params 
-    ld a,i2c_devid 
+    _ldaz i2c_devid 
     or a,#1 ; bit0 -> 1 for read 
-    ld i2c_devid,a
+    _straz i2c_devid
     jra start_op
 
 

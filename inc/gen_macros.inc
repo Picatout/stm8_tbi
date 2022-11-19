@@ -54,3 +54,36 @@
     mov WWDG_CR,#0X80
     .endm 
 
+    ; increment zero page variable 
+    .macro _incz v 
+    .byte 0x3c, v 
+    .endm 
+
+    ; decrement zero page variable 
+    .macro _decz v 
+    .byte 0x3a,v 
+    .endm 
+    
+    ; clear zero page variable 
+    .macro _clrz v 
+    .byte 0x3f, v 
+    .endm 
+
+    ; load A zero page variable 
+    .macro _ldaz v 
+    .byte 0xb6,v 
+    .endm 
+
+    ; store A zero page variable 
+    .macro _straz v 
+    .byte 0xb7,v 
+    .endm 
+
+    ;  increment 16 bits variable
+    ;  use 10 bytes  
+    .macro _inc_wvar  v 
+        inc v+1   ; 1 cy, 4 bytes 
+        jrne .+6  ; 1|2 cy, 2 bytes 
+        inc v     ; 1 cy, 4 bytes  
+    .endm ; 3 cy 
+

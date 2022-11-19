@@ -219,7 +219,7 @@ parse_quote:
 2$:	
 	ld a,([in.w],y)
 	jreq 6$
-	_inc in 
+	_incz in 
 	ld (CURR,sp),a 
 	ld a,#'\
 	cp a, (PREV,sp)
@@ -300,7 +300,7 @@ parse_integer: ; { -- n }
 2$:	ld (x),a 
 	incw x 
 	ld a,([in.w],y)
-	_inc in 
+	_incz in 
 	call to_upper 
 	tnz (BASE,sp)
 	jrne 4$  
@@ -311,13 +311,13 @@ parse_integer: ; { -- n }
 4$: ; hexadecimal number 	
 	call is_hex_digit
 	jrc 2$ 
-5$: dec in 	
+5$: _decz in 	
     clr (x)
 	ldw x,(XSAVE,sp)
 	ldw y,#XSTACK_EMPTY 
 	call atoi24
 	ldw y,(XSAVE,sp)
-	ld a,acc24 
+	_ldaz acc24 
 	ldw x,acc16 
 	_drop VSIZE 
 	ret
@@ -340,7 +340,7 @@ parse_binary: ; { -- n }
 	push #0
 2$:	
 	ld a,([in.w],y)
-	_inc in 
+	_incz in 
 	cp a,#'0 
 	jreq 3$
 	cp a,#'1 
@@ -353,7 +353,7 @@ parse_binary: ; { -- n }
 	rlc (BINARY,sp) 
 	jra 2$  
 bin_exit:
-	dec in 
+	_decz in 
 	ldw y,x
 ; load 24 bits integer in A:X 
 	ld a,(BINARY,sp)
@@ -503,11 +503,11 @@ symb_loop:
 	ld (x), a 
 	incw x
 	ld a,([in.w],y)
-	_inc in 
+	_incz in 
 	call is_symbol_char 
 	jrc symb_loop 
 	clr (x)
-	dec in  
+	_decz in  
 	ret 
 
 ;---------------------------
@@ -596,7 +596,7 @@ skip:
 	jreq 2$
 	cp a,(C,sp)
 	jrne 2$
-	_inc in
+	_incz in
 	jra 1$
 2$: _drop 1 
 	ret
@@ -636,7 +636,7 @@ parse_lexeme::
 	jrne 1$
 	ldw y,x 
 	jp token_exit ; end of line 
-1$:	_inc in 
+1$:	_incz in 
 	call to_upper 
 	ld (TCHAR,sp),a ; first char of lexeme 
 ; check for quoted string
@@ -680,7 +680,7 @@ bkslsh_tst: ; character token
 	push a 
 	incw x 
 	ld a,([in.w],y)
-	_inc in  
+	_incz in  
 	ld (x),a 
 	incw x
 	ldw y,x 
@@ -766,7 +766,7 @@ gt_tst:
 	ld a,#REL_GT_IDX 
 	ld (ATTRIB,sp),a 
 	ld a,([in.w],y)
-	_inc in 
+	_incz in 
 	cp a,#'=
 	jrne 1$
 	ld a,#REL_GE_IDX  
@@ -783,7 +783,7 @@ lt_tst:
 	ld a,#REL_LT_IDX  
 	ld (ATTRIB,sp),a 
 	ld a,([in.w],y)
-	_inc in 
+	_incz in 
 	cp a,#'=
 	jrne 1$
 	ld a,#REL_LE_IDX 
@@ -841,16 +841,16 @@ compile::
 	_vars VSIZE 
 	mov basicptr,txtbgn
 	bset flags,#FCOMP 
-	ld a,#0
-	ldw x,#0
+	clr a 
+	clrw x
 	ldw pad,x ; line# in destination buffer 
 	ld pad+2,a ; line length  
-	clr in.w 
-	clr in  ; offset in input text buffer 
+	_clrz in.w 
+	_clrz in  ; offset in input text buffer 
 	ld a,tib 
 	call is_digit
 	jrnc 1$ 
-	inc in 
+	_incz in 
 	ldw x,#pad+3
 	ldw y,#tib   
 	call parse_integer 
@@ -884,14 +884,14 @@ compile::
 	ldw x,(x)  ; line# 
 	jreq 10$
 	call insert_line ; in program space 
-	clr  count
+	_clrz  count
 	clr  a ; not immediate command  
 	jra  11$ 
 10$: ; line# is zero 
 ; for immediate execution from pad buffer.
 	ldw x,ptr16  
 	ld a,(2,x)
-	ld count,a
+	_straz count
 	ldw line.addr,x
 	addw x,#3
 	ldw basicptr,x 	

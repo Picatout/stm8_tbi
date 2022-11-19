@@ -11,7 +11,7 @@ INC=../inc/
 INCLUDES=$(BOARD_INC) $(INC)ascii.inc $(INC)gen_macros.inc cmd_idx.inc tbi_macros.inc dbg_macros.inc 
 BUILD=build/
 I2C=i2c.asm
-SRC=hardware_init.asm arithm24.asm debug_support.asm flash_prog.asm files.asm terminal.asm code_address.asm compiler.asm $(I2C) decompiler.asm $(NAME).asm app.asm 
+SRC=hardware_init.asm  arithm24.asm debug_support.asm flash_prog.asm files.asm terminal.asm code_address.asm compiler.asm $(I2C) decompiler.asm $(NAME).asm app.asm
 OBJECT=$(BUILD)$(NAME).rel
 OBJECTS=$(BUILD)$(SRC:.asm=.rel)
 LIST=$(BUILD)$(NAME).lst

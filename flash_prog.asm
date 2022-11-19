@@ -190,7 +190,7 @@ do_programming:
 ;--------------------------------------
 block_erase:
 	pushw x 
-	ld a,farptr 
+	_ldaz farptr 
 	jrne erase_flash
 	ldw x,farptr+1
 	cpw x,#app_space 
@@ -371,7 +371,7 @@ row_align:
 	ldw x,farptr+1 
 	addw x,#BLOCK_SIZE 
 	jrnc 0$
-	_inc farptr 
+	_incz farptr 
 0$: ld a,xl 
 	and a,#0x80
 	ld xl,a
@@ -387,7 +387,7 @@ row_align:
 incr_farptr:
 	addw x,farptr+1 
 	jrnc 1$
-	_inc farptr 
+	_incz farptr 
 1$:	ldw farptr+1,x  
 	ret 
 

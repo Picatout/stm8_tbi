@@ -101,7 +101,7 @@ search_program:
 	VSIZE=6
 erase_file:
 	call move_erase_to_ram
-	clr farptr 
+	_clrz farptr 
 	_vars VSIZE 
 1$:	 
 	ldw (ADDR,sp),x
@@ -246,7 +246,7 @@ search_fit:
 erase_header:
 	pushw x 
 	push #FILE_HEADER_SIZE ; COUNT 
-	clr farptr 
+	_clrz farptr 
 	ldw ptr16,x 
 	clr a 
 	clrw x 

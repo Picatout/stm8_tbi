@@ -160,11 +160,11 @@ neg_acc24: ;
     cpl acc24 
     cpl acc16 
     cpl acc8
-    inc acc8 
+    _incz acc8 
     jrne 9$
-    inc acc16 
+    _incz acc16 
     jrne 9$
-    inc acc24 
+    _incz acc24 
 9$: ret 
 
 
@@ -183,8 +183,8 @@ neg_acc24: ;
     VSIZE=1 
 mulu24_8:
     push a 
-	clr acc32
-    clr acc24  
+	_clrz acc32
+    _clrz acc24  
 ; multiply top bits 7..0 * U8   	
     ld a,(2,Y) ; top least byte  
     ld xl,a 
@@ -308,13 +308,13 @@ divu24_8:
     ldw acc24,x ; quotient 
 	pop a
 	ld xh,a
-	ld a,acc8
+	_ldaz acc8
 	ld xl,a
 	ld a,(U8,sp) ; divisor
 	div x,a  ; R:LL/U8
 	ld (U8,sp),a ; save remainder
 	ld a,xl
-	ld acc8,a
+	_straz acc8
 	pop a
 	popw x
 	ret
@@ -358,7 +358,7 @@ div24:
     cpl (QSIGN,sp)
     cpl (RSIGN,sp)
 2$: 
-;    ld acc24,a 
+;    _straz acc24 
 ;    ldw acc16,x 
     _store_top 
     ld a,#24 
@@ -369,11 +369,11 @@ div24:
     call cp24_ax ; A:X-acc24 ?
     jrule 22$ 
 ; quotient=0, remainder=divisor      
-    ld a,acc24 
+    _ldaz acc24 
     ldw x,acc16 
-    clr acc24 
-    clr acc16 
-    clr acc8 
+    _clrz acc24 
+    _clrz acc16 
+    _clrz acc8 
     jra 6$
 22$:     
     clr a 

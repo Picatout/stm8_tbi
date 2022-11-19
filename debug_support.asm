@@ -173,9 +173,9 @@ prt_reg16:
 	VSIZE=6  
 print_registers::
 	_vars VSIZE 
-	ld a, base 
+	_ldaz base 
 	ld (SAV_BASE,sp), a 
-	ld a,acc24 
+	_ldaz acc24 
 	ldw x,acc16 
 	ld (SAV_ACC24,sp),a 
 	ldw (SAV_ACC16,sp),x 
@@ -190,7 +190,7 @@ print_registers::
 	call puts 
 	ld a,(R_EPC,sp)
 	ldw x,(R_PC,sp)
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x 
 	clr a 
 	mov base,#16 
@@ -199,7 +199,7 @@ print_registers::
 	call putc 
 	ld a,(R_EPC,sp)
 	ldw x,(R_PC,sp)
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x 
 	clr a 
 	mov base,#10
@@ -239,10 +239,10 @@ print_registers::
 	ldw out,x 
 	ld a,(SAV_ACC24,sp)
 	ldw x,(SAV_ACC16,sp)
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x 
 	ld a, (SAV_BASE,sp)
-	ld base,a   	
+	_straz base   	
 	_drop VSIZE
 	ret
 
@@ -295,8 +295,8 @@ read_cmd:
 	jra 1$ 
 9$: clr (y)
 	pop a 
-	clr in.w 
-	clr in
+	_clrz in.w 
+	_clrz in
 	bset UART1_CR2,#UART_CR2_RIEN  
 	ret 
 
@@ -317,21 +317,21 @@ read_cmd:
 	VSIZE=11
 cmd_itf:
 	_vars VSIZE
-	ld a,count 
+	_ldaz count 
 	ld (SAV_COUNT,sp),a 
-	ld a,acc24 
+	_ldaz acc24 
 	ldw x,acc16 
 	ld (SAV_ACC24,sp),a 
 	ldw (SAV_ACC16,sp),x 
-	ld a,farptr 
+	_ldaz farptr 
 	ldw x,ptr16
 	ld (SAV_FPTR,sp),a 
 	ldw (SAV_FPTR+1,sp),x
 	ldw x,in.w 
 	ldw (SAV_INW,sp),x 
-	clr farptr 
-	clr farptr+1 
-	clr farptr+2  
+	_clrz farptr 
+	_clrz farptr+1 
+	_clrz farptr+2  
 repl:
 	ld a,#CR 
 	call putc 
@@ -341,7 +341,7 @@ repl:
 	ldw y,#tib  
 	ld a,(y)
 	jreq repl  
-	inc in 
+	_incz in 
 	call to_upper 
 	cp a,#'Q 
 	jrne test_p
@@ -349,13 +349,13 @@ repl_exit:
 ; restore original context 
 	ld a,(SAV_ACC24,sp)
 	ldw x,(SAV_ACC16,sp)
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x
 	ld a,(SAV_COUNT,sp)
-	ld count,a 
+	_straz count 
 	ld a,(SAV_FPTR,sp)
 	ldw x,(SAV_FPTR+1,sp)
-	ld farptr,a 
+	_straz farptr 
 	ldw ptr16,x 
 	ldw x,(SAV_INW,sp)
 	ldw in.w,x 
@@ -378,15 +378,15 @@ print_string:
 mem_peek:
 	mov base,#16
 	call parse_addr 
-	ld a, acc24 
+	_ldaz acc24 
 	or a,acc16 
 	or a,acc8 
 	jrne 1$ 
 	jra peek_byte  
 1$:	ldw x,acc24 
 	ldw farptr,x 
-	ld a,acc8 
-	ld farptr+2,a 
+	_ldaz acc8 
+	_straz farptr+2 
 peek_byte:
 	call print_farptr 
 	ld a,#8 
@@ -394,7 +394,7 @@ peek_byte:
 	clrw x 
 1$:	call fetchc  
 	pushw x 
-	ld acc8,a 
+	_straz acc8 
 	clrw x 
 	ldw acc24,x 
 	ld a,#16+128
@@ -404,13 +404,13 @@ peek_byte:
 	jrne 1$ 
 	ld a,#8 
 	add a,farptr+2 
-	ld farptr+2,a
+	_straz farptr+2
 	clr a 
 	adc a,farptr+1 
-	ld farptr+1,a 
+	_straz farptr+1 
 	clr a 
 	adc a,farptr 
-	ld farptr,a 
+	_straz farptr 
 	jp repl  
 
 invalid_cmd: .asciz "not a command\n" 
@@ -419,8 +419,8 @@ invalid_cmd: .asciz "not a command\n"
 ; display farptr address
 ;----------------------------
 print_farptr:
-	ld a ,farptr+2 
-	ld acc8,a 
+	_ldaz farptr+2 
+	_straz acc8 
 	ldw x,farptr 
 	ldw acc24,x 
 	clrw x 
@@ -495,9 +495,9 @@ show_row:
 	_vars VSIZE 
 	ld (CNT,sp),a 
 	ld (CNTDWN,sp),a 
-	ld a,farptr 
+	_ldaz farptr 
 	ldw x,ptr16 
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x 
 	call itoa 
 	ld a,#7 
@@ -515,9 +515,9 @@ row_loop:
 	addw x,#pad 
 	ld a,(BYTE,sp)
 	ld (x),a 
-	clr acc24 
-	clr acc16 
-	ld acc8,a 
+	_clrz acc24 
+	_clrz acc16 
+	_straz acc8 
 	call itoa 
 	ld a,#4
 	call right_align 
@@ -548,7 +548,7 @@ row_loop:
 hex_dump:
 	push a 
 	_vars VSIZE
-	ld a,base
+	_ldaz base
 	ld (BASE,sp),a 
 	mov base,#16
 	ld a,#CR 
@@ -565,18 +565,18 @@ hex_dump:
 	cpw x,#1
 	jrpl 1$
 	ld a,(BASE,sp)
-	ld base,a
+	_straz base
 	_drop VSIZE
 	pop a 
 	ret 
 
 dump_prog:
 	pushw y 
-	ld a,acc24 
+	_ldaz acc24 
 	ldw x,acc16 
 	push a 
 	pushw x 
-	clr farptr 
+	_clrz farptr 
 	ldw x,txtend 
 	ldw y,txtbgn
 	ldw ptr16,y 
@@ -584,7 +584,7 @@ dump_prog:
 	call hex_dump
 	popw x 
 	pop a 
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x 
 	popw y 
 	ret 

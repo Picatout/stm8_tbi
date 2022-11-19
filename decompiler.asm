@@ -89,7 +89,7 @@ prt_quote:
 	call putc  
 	pop a 
 	sub a,#7
-	ld acc8,a 
+	_straz acc8 
 	clr acc16
 	pushw x
 	ldw x,#escaped 
@@ -154,7 +154,7 @@ decompile::
 	ld a,#SPACE 
 	call putc
 decomp_loop:
-	ld a,count 
+	_ldaz count 
 	jrne 0$
 	jp decomp_exit 
 0$:	dec count 
@@ -213,7 +213,7 @@ literal: ; LIT_IDX
 	dec count 
 	dec count 
 	dec count  
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x
 	call prt_acc24
 	jp prt_space 
@@ -257,7 +257,7 @@ letter:
 	jp prt_space 
 decomp_exit: 
 	ld a,(BASE_SAV,sp)
-	ld base,a 
+	_straz base 
 	_drop VSIZE 
 	ret 
 
@@ -283,7 +283,7 @@ tok_to_name:
 1$:	ldw (NFIELD,sp),x
 	ld a,(x)
 	add a,#2 
-	ld acc8,a 
+	_straz acc8 
 	addw x,acc16
 	ld a,(x) ; TOK_IDX     
 	cp a,(TOKEN,sp)

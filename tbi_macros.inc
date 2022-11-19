@@ -100,19 +100,6 @@
         .byte 0x45,bp.saved+1,basicptr+1 ; mov basicptr+1,bp.saved+1 
     .endm
 
-    ;  increment variable in page 0 
-    .macro _inc v 
-        .byte 0x3c, v 
-    .endm 
-
-    ;  increment 16 bits variable
-    ;  use 10 bytes  
-    .macro _inc_wvar  v 
-        inc v+1   ; 1 cy, 4 bytes 
-        jrne .+6  ; 1|2 cy, 2 bytes 
-        inc v     ; 1 cy, 4 bytes  
-    .endm ; 3 cy 
-
     ; extract 16 bits address from BASIC code  
     .macro _get_addr
         addw x,#2

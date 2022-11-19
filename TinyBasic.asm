@@ -148,7 +148,7 @@ move_down: ; start from bottom address with incr=1
 	decw y
 	inc (LB,sp) ; incr=1 
 move_loop:	
-    ld a, acc16 
+    _ldaz acc16 
 	or a, acc8
 	jreq move_exit 
 	addw x,(INCR,sp)
@@ -212,13 +212,13 @@ warm_init:
 	ldw y,#XSTACK_EMPTY
 	ldw x,#uart_putc 
 	ldw out,x ; standard output   
-	clr flags 
-	clr loop_depth 
+	_clrz flags 
+	_clrz loop_depth 
 	mov base,#10 
 	clrw x  
 	ldw basicptr,x 
 	ldw line.addr,x 
-	clr count
+	_clrz count
 ; DIM @(10) minimum size 	
 	ldw x,#tib 
 	subw x,#10*CELL_SIZE 
@@ -251,7 +251,7 @@ clear_vars:
 ;---------------------------
 clear_basic:
 	pushw x 
-;	clr count
+;	_clrz count
 ;	clrw x 
 ;	ldw line.addr,x   
 	ldw x,#free_ram 
@@ -260,7 +260,7 @@ clear_basic:
 	ldw dvar_bgn,x 
 	ldw dvar_end,x 
 	call clear_vars 
-	clr chain_level
+	_clrz chain_level
 	popw x
 	ret 
 
@@ -400,16 +400,16 @@ cmd_line: ; user interface
 ;;;;;;;;;;;;;;;;;;;;;;
 ;; dump compiled BASIC 	
 .if 0 ; DEBUG 
-ldw x,#pad
-clr farptr 
-ldw ptr16,x 
-clrw x 
-ld a,count 
-ld xl,a 
-call hex_dump  
+	ldw x,#pad
+	_clrz farptr 
+	ldw ptr16,x 
+	clrw x 
+	_ldaz count 
+	ld xl,a 
+	call hex_dump  
 .endif 
 ;;;;;;;;;;;;;;;;;;;;;;
-	jra interp_loop 
+;	jra interp_loop 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; This is the interpreter loop
@@ -441,8 +441,9 @@ next_line:
 1$:	
 	ldw x,line.addr 
 	ld a,(2,x)
-	ld acc8,a 
-	clr acc16 
+	_straz acc8
+	_straz count  
+	_clrz acc16 
 	addw x,acc16 	
 	cpw x,txtend 
 	jrmi 0$
@@ -450,11 +451,9 @@ next_line:
 	jp kword_end 
 ; set pointers to next line 	
 0$:	ldw line.addr,x 
-	ld a,(2,x)
-	ld count,a ; line length 
-; skip first 3 bytes of line 
+; skip line header  
 ; line# and line length 	 
-	addw x,#3 
+	addw x,#LINE_HEADER_SIZE 
 	ldw basicptr,x 
 	btjf flags,#FTRACE,2$
 	ldw x,[line.addr]
@@ -524,16 +523,16 @@ skip_label:
 ;    A:X   int24  
 ;--------------------
 get_int24:
-	pushw y 
-	ldw y,x 
-	ld a,(x)
-	ldw x,(1,x)
-; skip 3 bytes
-	addw y,#3 
-	ldw basicptr,y 
-	popw y 
+	ld a,(x)    ; 1cy 
+	ldw x,(1,x) ; 2cy 
+	push a      ; 1cy 
+	_ldaz basicptr+1 ; ld a,basicptr+1 ; 1cy 
+	add a,#3    ; 1cy 
+	jrne 1$     ; 1cy
+	_incz basicptr ; 1cy 
+1$:	_straz basicptr+1 ; ld basicptr+1,a ; 1cy
+	pop a ; 1cy = 10 cy 
 	ret 
-
 
 ;-----------------------------------
 ; print a 16 bit integer 
@@ -546,7 +545,7 @@ get_int24:
 ;   terminal  
 ;-----------------------------------
 prt_i16:
-	clr acc24 
+	_clrz acc24 
 	ldw acc16,x 
 	ld a,#16
 	cp a,base
@@ -576,10 +575,9 @@ prt_acc24:
 ;---------------------------------------
 print_top: 
 	_xpop 
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x 
-	call prt_acc24 
-	ret 
+	jra prt_acc24 
 
 ;------------------------------------
 ; convert integer in acc24 to string
@@ -600,7 +598,7 @@ itoa::
 	clr (SIGN,sp)    ; sign
 	tnz A
 	jreq 1$ ; unsigned conversion  
-	ld a,base 
+	_ldaz base 
 	cp a,#10
 	jrne 1$
 	; base 10 string display with negative sign if bit 23==1
@@ -615,7 +613,7 @@ itoa::
 	decw x 
 	clr (x)
 itoa_loop:
-    ld a,base
+    _ldaz base
     call divu24_8 ; acc24/A 
     add a,#'0  ; remainder of division
     cp a,#'9+1
@@ -626,12 +624,12 @@ itoa_loop:
     ld (x),a
 	inc (LEN,sp)
 	; if acc24==0 conversion done
-	ld a,acc24
+	_ldaz acc24
 	or a,acc16
 	or a,acc8
     jrne itoa_loop
 	;conversion done, next add '$' or '-' as required
-	ld a,base 
+	_ldaz base 
 	cp a,#16
 	jreq 8$
 	ld a,(SIGN,sp)
@@ -730,7 +728,7 @@ atoi24::
     call neg24
 atoi_exit:
 	_xpop 
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x
 	ldw y,(XTEMP,sp)
 	decw y ; after number   
@@ -791,8 +789,8 @@ str_match:
 	ld a,(X)
 ; move x to token field 	
 	add a,#2 ; to skip length byte and 0 at end  
-	ld acc8,a 
-	clr acc16 
+	_straz acc8 
+	_clrz acc16 
 	addw x,acc16 
 	ld a,(x) ; token index
 search_exit: 
@@ -1226,7 +1224,7 @@ and_cond:
 	jra 9$ 
 3$:	call and_factor  
 	_xpop 
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x
 	_at_top 
 	and a,acc24 
@@ -1266,7 +1264,7 @@ condition:
 2$:	ld (OP,sp),a ; boolean operator  
 	call and_cond
 	_xpop  ; rigth arg 
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x 
 	_at_top  ; left arg  
 	ld (ATMP,sp),a 
@@ -1403,7 +1401,7 @@ dvar_assign:
 	ldw ptr16,x
 	_xpop 
 	ld [ptr16],a 
-	_inc ptr8 
+	_incz ptr8 
 	ldw [ptr16],x 
 9$: _drop VSIZE 	
 	ret 
@@ -1438,9 +1436,9 @@ let_eval:
 	_xdrop ; drop var address 
 3$:
 	ld [ptr16],a
-	_inc ptr8
+	_incz ptr8
 	jrne 4$
-	_inc ptr16 
+	_incz ptr16 
 4$:	ldw [ptr16],x
 	call next_token 
 	cp a,#COMMA_IDX 
@@ -1529,7 +1527,7 @@ func_eefree:
 search_name:
 	pushw y 
 	_vars VSIZE
-	clr acc16 
+	_clrz acc16 
 	ld (NLEN,sp),a    
 	ldw (NAMEPTR,sp),x
 	ldw x,dvar_end 
@@ -1551,7 +1549,7 @@ search_name:
 	ldW Y,(WLKPTR,sp)
 	ld a,(y)
 	and a,#REC_LEN_MASK  
-	ld acc8,a 
+	_straz acc8 
 	addw y,acc16 
 	jra 1$  
 7$: ; no match found 
@@ -1648,7 +1646,7 @@ kword_dim2:
 	ldw ptr16,x 
 	_xpop 
 	ld [ptr16],a 
-	_inc ptr8 
+	_incz ptr8 
 	ldw [ptr16],x 
 	jra 4$ 
 8$:	
@@ -1790,8 +1788,8 @@ list_loop:
 	call prt_basic_line
 	ldw x,(LN_PTR,sp)
 	ld a,(2,x)
-	ld acc8,a 
-	clr acc16 
+	_straz acc8
+	_clrz acc16 
 	addw x,acc16
 	cpw x,txtend 
 	jrpl list_exit
@@ -1852,7 +1850,7 @@ cmd_edit:
 ;   none 
 ;----------------------------------	
 prt_basic_line:
-	ld count,a 
+	_straz count 
     addw x,#3  
 	ldw basicptr,x
 	call decompile
@@ -1957,7 +1955,7 @@ save_context:
 	ldw (LNADR,sp),x 
 	ldw x,basicptr 
 	ldw (BPTR,sp),x
-	ld a,count 
+	_ldaz count 
 	ld (CNT,sp),a  
 	ret
 
@@ -1972,7 +1970,7 @@ rest_context:
 	ldw x,(BPTR,sp)
 	ldw basicptr,x 
 	ld a,(CNT,sp)
-	ld count,a  
+	_straz count  
 	ret
 
 
@@ -2014,7 +2012,7 @@ input_loop:
 	ld a,#':
 	call putc 
 	call save_context 
-	clr count  
+	_clrz count  
 	call readln 
 	ldw y,#tib 
 	ld a,#SPACE 
@@ -2022,7 +2020,7 @@ input_loop:
 	ldw x,y 
 	call atoi24 
 	ld [ptr16],a 
-	inc ptr8 
+	_incz ptr8 
 	ldw [ptr16],x 
 	call rest_context
 	call next_token 
@@ -2222,7 +2220,7 @@ func_peek:
 	jreq 1$
 	jp syntax_error
 1$: _xpop ; address  
-	ld farptr,a 
+	_straz farptr 
 	ldw ptr16,x 
 	ldf a,[farptr]
 	clrw x 
@@ -2331,7 +2329,7 @@ store_loop_addr:
 	ldw x,line.addr 
 	ldw (LN_ADDR,sp),x   
 	bres flags,#FLOOP 
-	_inc loop_depth   
+	_incz loop_depth   
 	ret 
 
 ;--------------------------------
@@ -2365,9 +2363,9 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 	ld [ptr16],a
  ; because all variables in page 0
  ; inc ptr8 never overflow   	
-	inc ptr8
+	_incz ptr8
 	ldw [ptr16],x 
-	ld acc24,a 
+	_straz acc24 
 	ldw acc16,x 
 	ld a,(LIMIT,sp)
 	ldw x,(LIMIT+1,sp)
@@ -2381,7 +2379,7 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 	ld a,(FSTEP,sp)
 	jrpl 4$
 ;negative step
-    ld a,acc8 
+    _ldaz acc8 
 	jrslt loop_back   
 	jra loop_done  
 4$: ; positive step
@@ -2393,7 +2391,7 @@ loop_back:
 	ldw line.addr,x 
 	btjf flags,#FRUN,1$ 
 	ld a,(2,x)
-	ld count,a
+	_straz count
 1$:	ret 
 loop_done:
 	; remove loop data from stack  
@@ -2459,7 +2457,7 @@ look_target_symbol:
 	pushw y   ; YSAVE  
 	pushw x   ; LBL_PTR  
 	call skip_string 
-	clr acc16 
+	_clrz acc16 
 	ldw y,txtbgn 
 1$:	ld a,(3,y) ; first token on line 
 	cp a,#SUB_IDX 
@@ -2467,7 +2465,7 @@ look_target_symbol:
 	cp a,#LABEL_IDX 
 	jreq 3$ 
 2$:	ld a,(2,y); line length 
-	ld acc8,a 
+	_straz acc8 
 	addw y,acc16 ;point to next line 
 	cpw y,txtend 
 	jrult 1$
@@ -2566,9 +2564,9 @@ _tp '9
 ; move to end of line, then gosub 
 _tp 'G 
 	ldw x,line.addr 
-	clr acc16 
+	_clrz acc16 
 	ld a,(2,x)
-	ld acc8,a 
+	_straz acc8 
 	addw x,acc16 
 	decw x ; point at EOL_IDX 
 	ldw basicptr,x   
@@ -2589,7 +2587,7 @@ kword_goto_1:
 jp_to_target:
 	ldw line.addr,x 
 	ld a,(2,x)
-	ld count,a 
+	_straz count 
 	addw x,#3
 	ldw basicptr,x  
 	btjf flags,#FTRACE,9$ 
@@ -2638,7 +2636,7 @@ kword_return:
 	ldw x,(RET_LN_ADDR,sp)
 	ldw line.addr,x 
 	ld a,(2,x)
-	ld count,a  
+	_straz count  
 	popw x 
 	_drop VSIZE 
 	jp (x)
@@ -2712,7 +2710,7 @@ run_it_02:
 	ldw x,txtbgn 
 	ldw line.addr,x 
 	ld a,(2,x)
-	ld count,a
+	_straz count
 	addw x,#3
 	ldw basicptr,x 
 	bset flags,#FRUN 
@@ -2738,7 +2736,7 @@ kword_end:
 	ldw x,(CHAIN_LN,sp) ; chain saved in and count  
 	ldw line.addr,x 
 	ld a,(2,x)
-	ld count,a 
+	_straz count 
 	ldw x,(CHAIN_BP,sp) ; chain saved basicptr 
 	ldw basicptr,x 
 	ldw x,(CHAIN_TXTBGN,sp)
@@ -2768,9 +2766,9 @@ cmd_get:
 	jreq 2$
 	call getc  
 2$: clr [ptr16]
-	_inc ptr8 
+	_incz ptr8 
 	clr [ptr16]
-	_inc ptr8 
+	_incz ptr8 
 	ld [ptr16],a 
 	ret 
 
@@ -2890,7 +2888,7 @@ func_analog_read:
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
 2$: ld a,xl
-	ld acc8,a 
+	_straz acc8
 	ld a,#5
 	sub a,acc8 
 	ld ADC_CSR,a
@@ -3004,7 +3002,7 @@ kword_stop:
 	ldw x,#tib 
 	ldw basicptr,x
 	clr (x)
-	clr count  
+	_clrz count  
 	clrw x 
 	ldw in.w,x
 	bres flags,#FRUN 
@@ -3020,7 +3018,7 @@ break_point: .asciz "\nbreak point, RUN to resume.\n"
 ;------------------------
 cmd_new: 
 	call cmd_line_only
-0$:	clr flags 
+0$:	_clrz flags 
 	call clear_basic 
 	ret 
 
@@ -3036,7 +3034,7 @@ cmd_new:
 	VSIZE = 3 
 cmd_erase:
 	call cmd_line_only
-	clr farptr 
+	_clrz farptr 
 	call next_token
 	cp a,#LABEL_IDX 
 	jrne not_file
@@ -3140,7 +3138,7 @@ cmd_save:
 	jreq 11$
 	call erase_file 
 11$:
-	clr farptr 
+	_clrz farptr 
 	ldw x,(TOWRITE,sp)
 	call search_fit
 	tnzw x 
@@ -3299,7 +3297,7 @@ rw_zone:
 cmd_write:
 	call expression
     _xpop 
-	ld farptr,a 
+	_straz farptr 
 	ldw ptr16,x
 	call check_forbidden 
 1$:	
@@ -3434,7 +3432,7 @@ func_key:
 ;-----------------------
 func_qkey:: 
 	clrw x 
-	ld a,rx1_head
+	_ldaz rx1_head
 	sub a,rx1_tail 
 	jreq 9$ 
 	cplw x
@@ -3456,7 +3454,7 @@ func_qkey::
 ;	A:X		FLASH free address
 ;---------------------------
 func_uflash:
-	clr farptr 
+	_clrz farptr 
 	ldw x,#app_space 
 	pushw x 
 1$:	ldw ptr16,x 
@@ -3602,7 +3600,7 @@ awu02:
 ;	X 		LIT_IDX
 ;-------------------------------
 func_ticks:
-	ld a,ticks 
+	_ldaz ticks 
 	ldw x,ticks+1 
 	ret 
 
@@ -3822,10 +3820,10 @@ func_random:
 	sllw x 
 	ld a,xh 
 	xor a,seedx 
-	ld acc16,a 
+	_straz acc16 
 	ld a,xl 
 	xor a,seedx+1 
-	ld acc8,a 
+	_straz acc8 
 ; seedx=seedy 
 	ldw x,seedy 
 	ldw seedx,x  
@@ -3834,10 +3832,10 @@ func_random:
 	srlw x 
 	ld a,xh 
 	xor a,seedy 
-	ld seedy,a  
+	_straz seedy  
 	ld a,xl 
 	xor a,seedy+1 
-	ld seedy+1,a 
+	_straz seedy+1 
 ; acc16>>3 
 	ldw x,acc16 
 	srlw x 
@@ -3846,19 +3844,19 @@ func_random:
 ; x=acc16^x 
 	ld a,xh 
 	xor a,acc16 
-	ld acc16,a 
+	_straz acc16 
 	ld a,xl 
 	xor a,acc8 
-	ld acc8,a 
+	_straz acc8 
 ; seedy=acc16^seedy 
 	xor a,seedy+1
 	ld xl,a 
-	ld a,acc16 
+	_ldaz acc16 
 	xor a,seedy
 	ld xh,a 
 	ldw seedy,x 
 ; return seedx_lo&0x7f:seedy modulo expr + 1 
-	ld a,seedx+1
+	_ldaz seedx+1
 	and a,#127
 	_xpush 
 	pop a 
@@ -4098,7 +4096,7 @@ kword_do:
 	ldw (DOLP_ADR,sp),x
 	ldw x,line.addr  
 	ldw (DOLP_LN_ADDR,sp),x
-	_inc loop_depth 
+	_incz loop_depth 
 	ret 
 
 ;--------------------------------
@@ -4122,7 +4120,7 @@ kword_until:
 	ldw x,(DOLP_LN_ADDR,sp)
 	ldw line.addr,x 
 	ld a,(2,x)
-	ld count,a 
+	_straz count 
 	ret 
 9$:	; remove loop data from stack  
 	popw x
@@ -4309,8 +4307,8 @@ set_data_pointer:
 ;-------------------
 try_next_line: 
 	ld a,(2,x)
-	ld acc8,a 
-	clr acc16 
+	_straz acc8 
+	_clrz acc16 
 	addw x,acc16 
 	cpw x,txtend 
 	jrult 1$
@@ -4360,8 +4358,8 @@ read01:
 ; to end of line.	
 	ldw x,line.addr 
 	ld a,(2,x)
-	clr acc16 
-	ld acc8,a 
+	_clrz acc16 
+	_straz acc8 
 	addw x,acc16
 	decw x 
 	ldw basicptr,x  
@@ -4616,7 +4614,7 @@ cmd_xput:
 	pop a 
 	popw x 
 	ld [ptr16],a 
-	_inc ptr8 
+	_incz ptr8 
 	ldw [ptr16],x 
 	ret 
 
@@ -4672,7 +4670,7 @@ set_autorun:
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
 2$: pushw x 
-	clr farptr 
+	_clrz farptr 
 	ldw x,#EEPROM_BASE
 	ldw ptr16,x 
 	ld a,AR_SIGN 
@@ -4764,7 +4762,7 @@ cmd_chain:
 	ldw txtend,x  
 	ldw x,(CHAIN_ADDR,sp)
 	ld a,(2,x)
-	ld count,a 
+	_straz count 
 	addw x,#3 
 	ldw basicptr,x 
 	ldw x,(CHAIN_LN,sp)
@@ -4778,10 +4776,10 @@ cmd_chain:
 	jreq 8$ 
 	ldw line.addr,x 
 	ld a,(2,x)
-	ld count,a
+	_straz count
 	addw x,#3
 	ldw basicptr,x  
-8$: _inc chain_level
+8$: _incz chain_level
 ;_tp 'C
 	popw x 
 	_drop DISCARD
@@ -4868,9 +4866,9 @@ cmd_alloc_buffer:
 	ldw x,end_free_ram 
 	subw x,(BSIZE,sp)
 	clr [ptr16]
-	_inc ptr8 
+	_incz ptr8 
 	jrnc 4$
-	_inc ptr16
+	_incz ptr16
 4$:  
 	ldw [ptr16],x 
 5$: ; zero buffer 

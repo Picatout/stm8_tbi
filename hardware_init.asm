@@ -189,7 +189,7 @@ TrapHandler:
 ;--------------------------------
 Timer4UpdateHandler:
 	clr TIM4_SR 
-	ld a,ticks 
+	_ldaz ticks 
 	ldw x,ticks+1
 	addw x,#1 
 	adc a,#0 
@@ -197,7 +197,7 @@ Timer4UpdateHandler:
 ; reset to 0 when negatif 
 	clr a 
 	clrw x 
-0$:	ld ticks,a 
+0$:	_straz ticks 
 	ldw ticks+1,x 
 	ldw x,timer
 	jreq 1$
@@ -402,23 +402,25 @@ cold_start:
 .endif 
 ; initialize TICKS timer 
 	call timer4_init
-; display system information
 	rim ; enable interrupts 
 ; RND function seed 
 ; must be initialized 
 ; to value other than 0.
-	_inc seedy+1 
-	_inc seedx+1 
+; take values from ROM space 
+	ldw x,0x6000
+	ldw seedy,x  
+	ldw x,0x6006 
+	ldw seedx,x  
 	call func_eefree ; eeprom free address 
 	call func_ubound ; @() size 
 	call clear_basic
-	call beep_1khz  ; 
-	call system_information ; display system information
 2$:	
 ; check for autorun application
 	ldw x,EEPROM_BASE 
 	cpw x,AR_SIGN 
 	jreq run_app
+	call beep_1khz  ; 
+	call system_information ; display system information
 	jp warm_start 
 run_app:
 	clr a 
@@ -437,9 +439,8 @@ run_app:
 	ldw x,(x)
 	addw x,txtbgn 
 	ldw txtend,x 
-	ldw x,#AUTO_RUN 
-	call puts 
-	call program_info 
+	ldw x,#AUTO_RUN
+	call puts  
 	jp run_it_02  
     jra .  
 

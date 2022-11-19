@@ -1,3 +1,7 @@
+### 2022-11-19
+
+* Modifié *cold_start* dans [hardware_init.asm](hardware_init.asm) pour ne pas afficher l'information système en autorun. 
+
 ### 2022-11-18
 
 * Taille actuel au moment du commit, 15246 octets.
