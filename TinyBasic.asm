@@ -156,7 +156,7 @@ move_loop:
 	ld a,(y)
 	ld (x),a 
 	pushw x 
-	ldw x,acc16 
+	_ldxz acc16 
 	decw x 
 	ldw acc16,x 
 	popw x 
@@ -339,11 +339,11 @@ tb_error::
 	call puts 
 0$:	pop a 
 	callr print_err_msg
-	ldw x,basicptr 
+	_ldxz basicptr 
 	subw x,line.addr 
 	ld a,xl 
 	sub a,#LINE_HEADER_SIZE 
-	ldw x,line.addr 
+	_ldxz line.addr 
 	call prt_basic_line
 	jra 6$
 1$:	
@@ -356,7 +356,7 @@ tb_error::
 	call puts 
 	ld a,#CR 
 	call putc
-	ldw x,in.w
+	_ldxz in.w
 	call spaces
 	ld a,#'^
 	call putc 
@@ -439,7 +439,7 @@ next_line:
 ; otherwise it is a program,
 ; goto next line.  
 1$:	
-	ldw x,line.addr 
+	_ldxz line.addr 
 	ld a,(2,x)
 	_straz acc8
 	_straz count  
@@ -472,11 +472,11 @@ next_line:
 ;   X 		*token_value 
 ;---------------------------
 next_token::
-	.byte 0xbe, basicptr ; ldw x,basicptr ; 2 cy,  2 bytes 
-	.byte 0xbf, bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
+	_ldxz  basicptr ; ldw x,basicptr ; 2 cy,  2 bytes 
+	_strxz bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
 	ld a,(x) ; 1 cy 
 	incw x   ; 1 cy 
-	.byte 0xbf,basicptr  ; ldw basicptr, x ; 2 cy 
+	_strxz basicptr  ; ldw basicptr, x ; 2 cy 
 .if 0; DEBUG
 	_tp 'N 
 .endif 	
@@ -503,7 +503,7 @@ skip_string:
 	ret 
 
 skip_label:
-	ldw x,basicptr 
+	_ldxz basicptr 
 1$:	ld a,(x)
 	jreq 8$
 	incw x 
@@ -1319,7 +1319,7 @@ cmd_dec_base:
 ;--------------------------
 func_free:
 	clr a 
-	ldw x,end_free_ram
+	_ldxz end_free_ram
 	subw x,dvar_end 
 	ret 
 
@@ -1332,13 +1332,13 @@ cmd_size:
 	push base 
 	ldw x,#PROG_ADDR 
 	call puts 
-	ldw x,txtbgn     
+	_ldxz txtbgn     
 	mov base,#16 
 	call prt_i16
 	pop base 
 	ldw x,#PROG_SIZE 
 	call puts 
-	ldw x,txtend 
+	_ldxz txtend 
 	subw x,txtbgn 
 	call prt_i16
 	ldw x,#STR_BYTES 
@@ -1373,7 +1373,7 @@ let_dvar:
 	ldw (VAR_NAME,sp),x
 	clr (REC_LEN,sp) 
 	call skip_string 
-	ldw x,basicptr 
+	_ldxz basicptr 
 	ld a,(x)
 	cp a,#REL_EQU_IDX  
 	jreq dvar_assign
@@ -1530,7 +1530,7 @@ search_name:
 	_clrz acc16 
 	ld (NLEN,sp),a    
 	ldw (NAMEPTR,sp),x
-	ldw x,dvar_end 
+	_ldxz dvar_end 
 	ldw (LIMIT,sp),x 
 	ldw y,dvar_bgn
 1$:	ldw (WLKPTR,sp),y
@@ -1618,7 +1618,7 @@ kword_dim2:
 	ld a,#ERR_MEM_FULL
 	jp tb_error
 3$:
-	ldw x,dvar_end 
+	_ldxz dvar_end 
 	ld a,(REC_LEN+1,sp)
 	or a,(RONLY,sp)
 	ld (x),a 
@@ -1641,7 +1641,7 @@ kword_dim2:
 	jrne 8$
 ; initialize variable 
 	call condition 
-5$: ldw x,dvar_end 
+5$: _ldxz dvar_end 
 	subw x,#CELL_SIZE 
 	ldw ptr16,x 
 	_xpop 
@@ -1660,7 +1660,7 @@ kword_dim2:
 ; return program size 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 prog_size:
-	ldw x,txtend 
+	_ldxz txtend 
 	subw x,txtbgn 
 	ret 
 
@@ -1670,7 +1670,7 @@ prog_size:
 program_info: 
 	ldw x,#PROG_ADDR 
 	call puts 
-	ldw x,txtbgn 
+	_ldxz txtbgn 
 	mov base,#16 
 	call prt_i16
 	mov base,#10  
@@ -1680,7 +1680,7 @@ program_info:
 	call prt_i16 
 	ldw x,#STR_BYTES 
 	call puts
-	ldw x,txtbgn
+	_ldxz txtbgn
 	cpw x,#app 
 	jrult 2$
 	ldw x,#FLASH_MEM 
@@ -1715,7 +1715,7 @@ cmd_list:
 	jrugt 3$
 	ret 
 3$: _vars VSIZE
-	ldw x,txtbgn 
+	_ldxz txtbgn 
 	ldw (LN_PTR,sp),x 
 	ldw x,(x) 
 	ldw (FIRST,sp),x ; list from first line 
@@ -1951,9 +1951,9 @@ trap
 	_arg BPTR 3
 	_arg CNT 5
 save_context:
-	ldw x,line.addr
+	_ldxz line.addr
 	ldw (LNADR,sp),x 
-	ldw x,basicptr 
+	_ldxz basicptr 
 	ldw (BPTR,sp),x
 	_ldaz count 
 	ld (CNT,sp),a  
@@ -2324,9 +2324,9 @@ kword_step: ; {var limit -- var limit step}
 ; leave loop back entry point on cstack 
 ; cstack is 1 call deep from interpreter
 store_loop_addr:
-	ldw x,basicptr
+	_ldxz basicptr
 	ldw (BPTR,sp),x 
-	ldw x,line.addr 
+	_ldxz line.addr 
 	ldw (LN_ADDR,sp),x   
 	bres flags,#FLOOP 
 	_incz loop_depth   
@@ -2527,12 +2527,12 @@ _tp '9
 	jreq 5$
 	jp syntax_error 
 3$: ; got a line number 
-	ldw x,basicptr 
+	_ldxz basicptr 
 	addw x,#3 ; skip int24 
 	ldw basicptr,x 
 	jra 6$
 4$: ; got a small line number 
-	_inc_wvar basicptr  
+	_incwz basicptr  
 	jra 6$ 
 5$: call skip_string ; skip over label 	
 6$: ; if another element comma present 
@@ -2558,12 +2558,12 @@ _tp '9
 	cpw x,#kword_goto 
 	jrne 8$ 
 ;_tp 'F 
-	ldw x,ptr16 
+	_ldxz ptr16 
 	jra jp_to_target
 8$: 
 ; move to end of line, then gosub 
 _tp 'G 
-	ldw x,line.addr 
+	_ldxz line.addr 
 	_clrz acc16 
 	ld a,(2,x)
 	_straz acc8 
@@ -2618,11 +2618,11 @@ kword_gosub_2:
 	_vars VSIZE  
 	pushw x ; RET_ADDR 
 ; save BASIC subroutine return point.   
-	ldw x,basicptr
+	_ldxz basicptr
 	ldw (RET_BPTR,sp),x 
-	ldw x,line.addr 
+	_ldxz line.addr 
 	ldw (RET_LN_ADDR,sp),x
-	ldw x,ptr16  
+	_ldxz ptr16  
 	jra jp_to_target
 
 ;------------------------
@@ -2679,7 +2679,7 @@ call dump_prog
 	ldw txtend,x 
 	jra run_it 	
 3$: _unget_token 
-	ldw x,txtbgn
+	_ldxz txtbgn
 	cpw x,txtend 
 	jrmi run_it 
 	ldw x,#err_no_prog
@@ -2689,7 +2689,7 @@ run_it:
 	_drop 2 ; drop return address 
 run_it_02: 
 ; initialize DIM variables pointers 
-	ldw x,txtend 
+	_ldxz txtend 
 	cpw x,#app_space
 	jrult 1$
 ; program in FLASH 	
@@ -2707,7 +2707,7 @@ run_it_02:
 	ldw data_ptr,x 
 	ldw data_ptr,x 
 ; initialize BASIC pointer 
-	ldw x,txtbgn 
+	_ldxz txtbgn 
 	ldw line.addr,x 
 	ld a,(2,x)
 	_straz count
@@ -3121,13 +3121,13 @@ cmd_save:
 	clr (COUNT,sp)
 	call prog_size 
 	jrne 0$
-	ldw x,#NO_PROG 
+	_ldxz #NO_PROG 
 	call puts  
 	jp 9$ ; no program to save 
 0$:	addw x,#FILE_HEADER_SIZE
 	ldw (TOWRITE,sp),x ; program size
 ; to save it first line must be a label 
-	ldw x,txtbgn
+	_ldxz txtbgn
 	ld a,(3,x)
 	cp a,#LABEL_IDX 
 	jreq 1$
@@ -3178,7 +3178,7 @@ cmd_save:
 	jrugt 4$
 	ld a,xl 
 4$:	ld (CNT_LO,sp),a   
-	ldw x,txtbgn 
+	_ldxz txtbgn 
 	ldw (XTEMP,sp),x 
 5$: 
 	ldw x,(XTEMP,sp)
@@ -3207,7 +3207,7 @@ cmd_save:
 	ldw x,#NO_LABEL 
 	call puts 	
 9$:	
-	ldw x,basicptr 
+	_ldxz basicptr 
 	clr (x)
 	_drop VSIZE 
     popw y 
@@ -3266,7 +3266,7 @@ check_forbidden:
 	tnz farptr 
 	jrne rw_zone 
 ; memory 0x8000..0xffff	
-	ldw x,ptr16 
+	_ldxz ptr16 
 	cpw x,#app_space
 	jruge rw_zone 
 	cpw x,#OPTION_END  
@@ -3536,7 +3536,7 @@ cmd_pause:
     _xpop 
 pause02:
 	ldw timer,x 
-1$: ldw x,timer 
+1$: _ldxz timer 
 	jrne 1$ 
 	ret 
 
@@ -3601,7 +3601,7 @@ awu02:
 ;-------------------------------
 func_ticks:
 	_ldaz ticks 
-	ldw x,ticks+1 
+	_ldxz ticks+1 
 	ret 
 
 ;------------------------------
@@ -3812,7 +3812,7 @@ func_random:
 	jp tb_error
 2$: 
 ; acc16=(x<<5)^x 
-	ldw x,seedx 
+	_ldxz seedx 
 	sllw x 
 	sllw x 
 	sllw x 
@@ -3825,10 +3825,10 @@ func_random:
 	xor a,seedx+1 
 	_straz acc8 
 ; seedx=seedy 
-	ldw x,seedy 
+	_ldxz seedy 
 	ldw seedx,x  
 ; seedy=seedy^(seedy>>1)
-	ldw x,seedy 
+	_ldxz seedy 
 	srlw x 
 	ld a,xh 
 	xor a,seedy 
@@ -3837,7 +3837,7 @@ func_random:
 	xor a,seedy+1 
 	_straz seedy+1 
 ; acc16>>3 
-	ldw x,acc16 
+	_ldxz acc16 
 	srlw x 
 	srlw x 
 	srlw x 
@@ -3962,7 +3962,7 @@ cmd_set_timer:
 ;------------------------------
 func_timeout:
 	clr a 
-	ldw x,timer 
+	_ldxz timer 
 	jreq 1$
 	clrw x
 	ret  
@@ -4092,9 +4092,9 @@ kword_do:
 	popw x 
 	_vars VSIZE 
 	pushw x 
-	ldw x,basicptr 
+	_ldxz basicptr 
 	ldw (DOLP_ADR,sp),x
-	ldw x,line.addr  
+	_ldxz line.addr  
 	ldw (DOLP_LN_ADDR,sp),x
 	_incz loop_depth 
 	ret 
@@ -4254,7 +4254,7 @@ cmd_restore:
 	cp a,#CMD_END 
 	jrugt 0$ 
 	_unget_token 
-	ldw x,txtbgn 
+	_ldxz txtbgn 
 	jra 4$ 
 0$:	cp a,#LIT_IDX
 	jreq 2$
@@ -4343,9 +4343,9 @@ read01:
 	ld a,[data_ptr]
 	jreq 3$ ; end of line
 0$:
-	ldw x,data_line 
+	_ldxz data_line 
 	ldw line.addr,x 
-	ldw x,data_ptr 
+	_ldxz data_ptr 
 	ldw basicptr,x
 	ld a,(x)
 	jreq 3$  
@@ -4356,7 +4356,7 @@ read01:
 	jreq 2$
 ; if not comma skip
 ; to end of line.	
-	ldw x,line.addr 
+	_ldxz line.addr 
 	ld a,(2,x)
 	_clrz acc16 
 	_straz acc8 
@@ -4364,7 +4364,7 @@ read01:
 	decw x 
 	ldw basicptr,x  
 2$:
-	ldw x,basicptr 
+	_ldxz basicptr 
 	ldw data_ptr,x 
 	call rest_context
 	_xpop 
@@ -4372,7 +4372,7 @@ read01:
 	ret 
 3$: ; end of line reached 
 	; try next line  	
-	ldw x,data_line   
+	_ldxz data_line   
 	call try_next_line
 	jreq 0$ 
 	jra data_error 
@@ -4744,13 +4744,13 @@ cmd_chain:
 	jra 6$ 
 5$:  _unget_token 
 6$: ; save chain context 
-	ldw x,line.addr 
+	_ldxz line.addr 
 	ldw (CHAIN_LNADR,sp),x 
-	ldw x,basicptr  
+	_ldxz basicptr  
 	ldw (CHAIN_BP,sp),x
-	ldw x,txtbgn 
+	_ldxz txtbgn 
 	ldw (CHAIN_TXTBGN,sp),x
-	ldw x,txtend 
+	_ldxz txtend 
 	ldw (CHAIN_TXTEND,sp),x  
 ; set chained program context 	
 	ldw x,(CHAIN_ADDR,sp)
@@ -4851,7 +4851,7 @@ cmd_alloc_buffer:
 	addw x,#REC_XTRA_BYTES  
 	ld a,xl
 	or a,#128 ; this is a CONST that content buffer address  
-	ldw x,dvar_end 
+	_ldxz dvar_end 
 	ld (x),a 
 	incw x 
 	pushw y 
@@ -4863,7 +4863,7 @@ cmd_alloc_buffer:
 	ldw ptr16,x
 ; allocate buffer space at end of 
 ; free RAM  
-	ldw x,end_free_ram 
+	_ldxz end_free_ram 
 	subw x,(BSIZE,sp)
 	clr [ptr16]
 	_incz ptr8 
@@ -4878,7 +4878,7 @@ cmd_alloc_buffer:
 	jrne 5$
 	ldw x,[ptr16] 
 	ldw end_free_ram,x
-	ldw x,ptr16
+	_ldxz ptr16
 	addw x,#2 
 	ldw dvar_end,x 
 	_drop VSIZE

@@ -63,7 +63,7 @@
     .macro _decz v 
     .byte 0x3a,v 
     .endm 
-    
+
     ; clear zero page variable 
     .macro _clrz v 
     .byte 0x3f, v 
@@ -79,11 +79,21 @@
     .byte 0xb7,v 
     .endm 
 
+    ; load x from variable in zero page 
+    .macro _ldxz v 
+    .byte 0xbe,v 
+    .endm 
+
+    ; store x in zero page variable 
+    .macro _strxz v 
+    .byte 0xbf,v 
+    .endm 
+
     ;  increment 16 bits variable
     ;  use 10 bytes  
-    .macro _inc_wvar  v 
-        inc v+1   ; 1 cy, 4 bytes 
-        jrne .+6  ; 1|2 cy, 2 bytes 
-        inc v     ; 1 cy, 4 bytes  
+    .macro _incwz  v 
+        _incz v+1   ; 1 cy, 2 bytes 
+        jrne .+4  ; 1|2 cy, 2 bytes 
+        _incz v     ; 1 cy, 2 bytes  
     .endm ; 3 cy 
 

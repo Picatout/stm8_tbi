@@ -1,5 +1,9 @@
 ### 2022-11-19
 
+* Création de plusierus macros dans [gen_macros.inc](inc/gen_macros.inc) pour combler les déficiences de l'assembleur qui n'optimise pas les 
+opérations sur la page zéro qui peuvent-être codées sur 2 octets au lieu de 3,4 ou même 5. Ces macros ont permis de gagner 219 octets. Les macros
+concernées finissent par **z**, i.e. **_incz**, **_decz**, etc. 
+
 * Modifié *cold_start* dans [hardware_init.asm](hardware_init.asm) pour ne pas afficher l'information système en autorun. 
 
 ### 2022-11-18

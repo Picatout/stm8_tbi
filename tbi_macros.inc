@@ -103,7 +103,7 @@
     ; extract 16 bits address from BASIC code  
     .macro _get_addr
         addw x,#2
-        ldw basicptr,x 
+        _strxz basicptr ; ldw basicptr,x 
         subw x,#2 
         ldw x,(x)
     .endm 
@@ -112,12 +112,12 @@
     .macro _get_char 
         ld a,(x)        ; 1 cy 
         incw x          ; 1 cy 
-        ldw basicptr,x  ; 2 cy 
+        _strxz basicptr ;ldw basicptr,x  ; 2 cy 
     .endm  ; 4 cy 
     
     ; extract next command token id 
     .macro _next_cmd     
-        ldw x,basicptr  ; 2 cy
+        _ldxz basicptr ;ldw x,basicptr  ; 2 cy
         _get_char       ; 4 cy 
     .endm   ; 6 cy 
 
