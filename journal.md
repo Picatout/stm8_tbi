@@ -1,5 +1,7 @@
 ### 2022-11-19
 
+* Remplacé ldw x,zp_var par _ldxz zp_var dans TinyBasic.asm et fait un commit. 
+
 * Création de plusierus macros dans [gen_macros.inc](inc/gen_macros.inc) pour combler les déficiences de l'assembleur qui n'optimise pas les 
 opérations sur la page zéro qui peuvent-être codées sur 2 octets au lieu de 3,4 ou même 5. Ces macros ont permis de gagner 219 octets. Les macros
 concernées finissent par **z**, i.e. **_incz**, **_decz**, etc. 

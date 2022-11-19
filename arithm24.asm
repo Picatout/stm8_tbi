@@ -212,7 +212,7 @@ mulu24_8:
     jp tb_error 
 1$:
     ld a,xh  
-    ldw x,acc16   
+    _ldxz acc16   
     _drop VSIZE 
     ret
 
@@ -301,7 +301,7 @@ divu24_8:
 	pushw x ; save x
 	push a 
 	; ld dividend UU:MM bytes in X
-	ldw x,acc24
+	_ldxz acc24
 	ld a,(U8,SP) ; divisor
 	div x,a ; UU:MM/U8
 	push a  ;save remainder
@@ -370,7 +370,7 @@ div24:
     jrule 22$ 
 ; quotient=0, remainder=divisor      
     _ldaz acc24 
-    ldw x,acc16 
+    _ldxz acc16 
     _clrz acc24 
     _clrz acc16 
     _clrz acc8 
