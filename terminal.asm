@@ -152,7 +152,7 @@ set_output:
 ;---------------------------------
 putc:
 	pushw x 
-	ldw x,out 
+	_ldxz out 
 	call (x)
 	popw x 
 	ret 
