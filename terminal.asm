@@ -549,6 +549,30 @@ delete_line:
 	ret 
 
 
+;----------------------------------
+; change cursor shape according 
+; to editing mode 
+; input:
+;   A      -1 block shape (overwrite) 
+;           0 vertical line (insert)
+; output:
+;   none 
+;-----------------------------------
+cursor_style:
+	tnz a 
+	jrne 1$ 
+	ld a,#'5 
+	jra 2$
+1$: ld a,#'1
+2$:	push a 
+	call send_escape
+	pop a 
+	call putc 
+	call space
+	ld a,#'q 
+	call putc 
+	ret 
+
 
 ;------------------------------------
 ; read a line of text from terminal
@@ -586,7 +610,9 @@ readln::
 	ldw (LL,sp),x 
 	ldw (CPOS,sp),x 
 	cpl (OVRWR,sp) ; default to overwrite mode 
- 	ldw y,#tib ; terminal input buffer
+ 	ld a,(OVRWR,sp)
+	call cursor_style
+	ldw y,#tib ; terminal input buffer
 readln_loop:
 	call getc
 	ld (RXCHAR,sp),a
@@ -742,6 +768,8 @@ readln_loop:
 	jrne 11$ 
 ; toggle between insert/overwrite
 	cpl (OVRWR,sp)
+ 	ld a,(OVRWR,sp)
+	call cursor_style
 	call beep_1khz
 	jp readln_loop 
 11$: cp a,#SUP 
@@ -807,6 +835,8 @@ readln_quit:
 	call putc
 	_drop VSIZE 
 	popw y 
+ 	ld a,#-1 
+	call cursor_style
 	ret
 
 ;------------------------------

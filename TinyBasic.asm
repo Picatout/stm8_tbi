@@ -334,7 +334,6 @@ tb_error::
 .if 0 ; DEBUG 	
 	call dump_prog
 .endif 
-	btjf flags,#FRUN,0$ 
 	ldw x, #rt_msg 
 	call puts 
 0$:	pop a 
@@ -362,7 +361,8 @@ tb_error::
 	call putc 
 6$: ldw x,#STACK_EMPTY 
     ldw sp,x
-
+	jra warm_start 
+	
 ;------------------------
 ; print error message 
 ; input:
@@ -1913,6 +1913,7 @@ trap
 	 jra reset_semicol
 6$: ; appelle la foncton CHAR()
 	_call_code 
+	rrwa x 
 	call putc 
 	jra reset_semicol	 	    
 7$:	
@@ -3349,14 +3350,14 @@ func_back_slash:
 	rlwa x 
 	ret 
 
-;---------------------
+;----------------------------
 ;BASIC: CHAR(expr)
 ; évaluate expression 
 ; and take the 7 least 
 ; bits as ASCII character
 ; output: 
-; 	A char 
-;---------------------
+; 	A:X ASCII code {0..127}
+;-----------------------------
 func_char:
 	call func_args 
 	cp a,#1
@@ -3365,6 +3366,7 @@ func_char:
 1$:	_xpop
 	rrwa x 
 	and a,#0x7f 
+	rlwa x  
 	ret
 
 ;---------------------

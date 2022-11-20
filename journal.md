@@ -1,3 +1,16 @@
+### 2022-11-20
+
+* Commit 11:39
+
+* Révision du manuel de référence TinyBasic. 
+
+* Ajout de la routine *cursor_style* dans [terminal.inc](terminnal.inc) pour changer la forme du curseur lorsque le mode d'édition est modifié par 
+**CTRL+O**.
+
+* Corrigé bogue dans la fonction BASIC **CHAR()**. Retournais le code dans A maintenant le retourne comme un entier dans A:X {0..127}. 
+
+* Corrigé bogue dans *tb_error*  du fichier [TinyBasic.inc](TinyBasic.inc).
+
 ### 2022-11-19
 
 * Commit version 2.5R1 prerelease. 19:50.

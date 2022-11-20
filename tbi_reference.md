@@ -35,7 +35,23 @@ Cependant pour des fins d'impression des chaînes de caractères entre guillemet
 
 Le type caractère est aussi disponible sous la forme **\c** i.e. un *backslash* suivit d'un caractère ASCII. 
 
-Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()**. Qui retourne un jeton de type **TK_CHAR**. Les fonctions qui retourne un jeton **TK_CHAR** peuvent-être utilisées dans une expression arithmétique, dans ce cas la valeur est convertie en type **TK_INTGR** automatiquement.  
+Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()**. **CHAR()** retourne un entier dans l'intervalle {0..127} du code ASCII.
+Cette fonction peut-être utilisée dans une expression arithmétique mais la commande **PRINT** la traîte séparément en imprimant le caractère.
+Dans l'exemple suivant la commande **PRINT** reçoit comme premier paramètre la function **CHAR(33)** et imprime le caractère ASCII **'!'**. Le deuxième paramètre 
+est une expression arithmétique utilisant la fonction **CHAR(33)**. Dans ce cas l'expression est évaluée et sa valeur imprimé.
+
+Le 2ième exemple produit une erreur de syntaxe car la commande **PRINT** consomme la fonction **CHAR(33)** et laisse une expression mal formée. 
+ ```
+ >? char(33),2*char(33)
+!	66 
+
+>? char(33)*2
+!
+run time error, syntax error
+    0 ? CHAR ( 33 ) * 
+
+>
+``` 
 
 [index principal](#index-princ)
 
@@ -44,25 +60,25 @@ Il est aussi possible d'imprimer un caractère en utilisant la fonction **CHAR()
 
 Dans la version **1.x**, Le nombre des variables était limité à 26, chacune d'elle étant représentée par une lettre de l'alphabet. 
 
-La version **2.x** ajoute les variables définies par la commande [DIM](#dim). Ces variables peuvent avoir un nom d'un maximum de 15 caractères.
+La version **2.0** ajoute les variables définies par la commande [DIM](#dim). Ces variables peuvent avoir un nom d'un maximum de 15 caractères.
 
 ### Tableau 
 
-Il n'y a qu'un seul tableau appelé **@** et dont la taille dépend de la taille du programme. En effet ce tableau utilise la mémoire RAM laissée libre par le programme. Un programme peut connaître la taille de ce tableau en invoquant la fonction **UBOUND**. Si le programme s'exécute à partir de la mémoire FLASH alors toute la RAM à l'exception de celle utilisée par le système BASIC est disponible pour le tableau **@**. 
+Il n'y a qu'un seul tableau appelé **@** et dont la taille dépend de la taille du programme. En effet ce tableau utilise la mémoire RAM laissée libre par le programme. Un programme peut connaître la taille de ce tableau en invoquant la fonction [UBOUND](#ubound). Si le programme s'exécute à partir de la mémoire FLASH alors toute la RAM à l'exception de celle utilisée par le système BASIC est disponible pour le tableau **@**.  
 
 Depuis la version **2.0**.  Le tableau **@** partage la mémoire RAM restante avec les constantes définies avec la directive [CONST](#const) et les variables définies avec la directive [DIM](#dim). Cependant le système réserve l'espace pour un tableau **@** de dimension **10**. 
 
 ### Symboles et étiquettes
 
-Depuis la version **2.x** Il est possible de définir des noms symboliques d'au maximum 15 caractères. Ces noms doivent débuté par une lettre suivit de lettres, chiffres et des caractères **'_'**, **'.'** ainsi que **'?'**.  Ces symboles ont 3 usages.
+Depuis la version **2.0** Il est possible de définir des noms symboliques d'au maximum 15 caractères. Ces noms doivent débuté par une lettre suivit de lettres, chiffres et des caractères **'_'**, **'.'** ainsi que **'?'**.  Ces symboles ont 3 usages.
 
 <a id="label"></a>
-1. Une __Étiquette__ est un symbole placé en début de ligne et qui peut servir de cible à une commande [GOTO](#goto) ou [GOSUB](#gosub). Une étiqutte sur la permière ligne d'un programme sert à identifié le nom du programme pour la commande [DIR](#dir).
+1. Une __Étiquette__ est un symbole placé en début de ligne et qui peut servir de cible à une commande [GOTO](#goto) ou [GOSUB](#gosub). Une étiquette sur la permière ligne d'un programme sert à identifier le nom du programme pour les commandes [SAVE](#save) et [DIR](#dir).
 
-1. La version **2.x** ajoute la directive  [CONST](#const) qui permet de définir des constantes symboliques dans un programme. Les noms de constantes obéissent aux même critères que les étiquettes.  
+1. Depuis la version **2.0** le mot réservé  [CONST](#const) permet de définir des constantes symboliques dans un programme. Les noms de constantes obéissent aux même critères que les étiquettes.  
 
-1. La version **2.x** ajoute la directive [DIM](#dim) qui permet de définir des variables symboliques dans un programme. Les noms de variables obéissent aux même critères ques les étiquettes.
-Donc la version **2.x** n'est plus limitées au 26 lettres de l'alphabet comme nom de variables. Notez cependant que les variables nommées par une lettre **A..Z** sont plus rapide d'accès puisque leur adresse est connue par le compilateur alors que les variables définies par [DIM](#dim) doivent-être recherchées dans un table à chaque invocation.
+1. Depuis la version **2.0** le mot réservé [DIM](#dim) permet de définir des variables symboliques dans un programme. Les noms de variables obéissent aux même critères ques les étiquettes.
+Donc depuis la version **2.0** un programme n'est plus limité au 26 lettres de l'alphabet comme nom de variable. Notez cependant que les variables nommées par une lettre **A..Z** sont plus rapide d'accès puisque leur adresse est connue par le compilateur alors que les variables définies par [DIM](#dim) doivent-être recherchées dans un table à chaque invocation.
 
 [index principal](#index-princ)
 <a id="expressions"></a>
@@ -78,18 +94,18 @@ La division est tronquée vers le zéro et le quotient à le même signe que le 
 
 ### opérateurs relationnels.
 
-Les opérateurs relationnels ont une priorités inférieure à celle des opérateurs arithmétiques. Le résultat d'une relation est **0 si fuax et -1 si vrai**. Ce résultat peut-être utilisé dans une expression arithmérique. Puisque les relations sont de moindre priorité elle doivent-être misent entre parenthèses lorsqu'elles sont utilisées dans une expression arithmétique.
+Les opérateurs relationnels ont une priorités inférieure à celle des opérateurs arithmétiques. Le résultat d'une relation est **0 si faux et -1 si vrai**. Ce résultat peut-être utilisé dans une expression arithmérique. Puisque les relations sont de moindre priorité elle doivent-être misent entre parenthèses lorsqu'elles sont utilisées dans une expression arithmétique.
 
 1. **'&gt;'**   Retourne vrai si le premier terme est plus grand que le second.
 1. **'&lt;'** Retourne vrai si le premier terme est plus petit que le second.
 1. **'&gt;='** Retourne vrai si le premier terme est plus grand ou égal au second. 
 1. **'&lt;='** Retourne vrai si le premier terme est plus petit ou égal au second. 
-1. **'='** Retourne vrai si les 2 termes sont identiques. 
+1. **'='** Retourne vrai si les 2 termes ont la même valeur. 
 1. **'&lt;&gt;'** ou **'&gt;&lt;'** Retourne vrai si les 2 termes sont différents. 
 
 ### Opérateurs binaires/Booléens 
 
-Les opérateurs **AND**,**NOT**, **OR** et **XOR** effectuent des opérations bit à bit mais peuvent-être aussi utilisés comme opérateurs en logique combinatoire. Si ces opérateurs sont utilisés avec le résultat d'une relation alors le résultat est le même que pour un opérateur logique du même nom. C'est à dire que le résultat sera **0** ou **-1**.
+Les opérateurs **AND**,**NOT**, **OR** et **XOR** effectuent des opérations bit à bit mais peuvent-être aussi être utilisés comme opérateurs en logique combinatoire. Si ces opérateurs sont utilisés avec le résultat d'une relation alors le résultat est le même que pour un opérateur logique du même nom. C'est à dire que le résultat sera **0** ou **-1**.
 par exemple:
 ```
 a=3 ? a and 5
@@ -151,7 +167,7 @@ il est évident que c'est un entier et l'analyseur s'arrête au dernier chiffre 
 Les commandes peuvent-être entrées indifféremment en minuscule ou majuscule.
 L'analyseur lexical convertie les lettres en  majuscules sauf à l'intérieur d'une chaîne entre guillemets.
 
-Depuis la version **2.x** les abbréviations de commandes ne fonctionnent plus. Elles venaient en conflit avec les noms de variables court. Par exemple:
+Depuis la version **2.0** les abbréviations de commandes ne fonctionnent plus. Elles venaient en conflit avec les noms de variables court. Par exemple:
 ```
 10 DIM PI=31416 
 ```
@@ -210,7 +226,7 @@ version 2.0
 
 Certaines commandes ne peuvent-être utilisées qu'à l'intérieur d'un programme et d'autres seulement en mode ligne de commande. L'exécution est interrompue et un message d'erreur est affiché si une commande est utilisée dans un contexte innaproprié. 
 
-Le programme en mémoire RAM est perdu à chaque réinitialiation du processeur sauf s'il a été sauvegardé en mémoire flash avec la commande [SAVE](#save). Si un programme doit-être sauvegardé en mémoire FLASH il doit comprendre au début de la première ligne une [étiquette](#label) pour être identifié par la commande [DIR](#dir). 
+Le programme en mémoire RAM est perdu à chaque réinitialiation du processeur sauf s'il a été sauvegardé en mémoire flash avec la commande [SAVE](#save). Si un programme doit-être sauvegardé en mémoire FLASH il doit comprendre au début de la première ligne une [étiquette](#label) pour être identifié par les commande [SAVE](#save),[DIR](#dir) et [RUN](#run). 
 
 Notez qu'il peut-être intéressant d'écrire vos programmes sur le PC avec un éditeur de texte qui accepte  l'encodage ASCII ou UTF8. Les fichiers sur le PC peuvent-être envoyer à la carte avec le script [send.sh](send.sh) qui est dans le répertoire racine. Ce script fait appel à l'utilitaire [SendFile](BASIC/SendFile).
 
@@ -1127,7 +1143,13 @@ Cette fonction vérifie s'il y a un caractère en attente dans le tampon de réc
 Initialise une variable. En Tiny BASIC il n'y a que 26 variables représentées par les lettres de l'alphabet. Il y a aussi une variable tableau unidimensionnelle nommée **@**. **Notez** que le premier indice du tableau est **1**.  plusieurs variables peuvent-être initialisées dans la même commande
 en les séparants par une virgule.
 
-*condition* peut-être arithmétique ou relationnel. Le mot réservé **LET** est obligatoire depuis la version 2.5.  
+*condition* peut-être arithmétique ou relationnel.
+
+Depuis la version **2.0** il est possible de définir des variables supplémentaires en utilisant le mot réservé [DIM](#dim). 
+
+Depuis la version **2.5** le mot réservé **LET** est obligatoire. 
+
+
 ```
 >LET A=24*2+3:?a
 51
