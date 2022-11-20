@@ -139,7 +139,7 @@ decompile::
 	ld (ALIGN,sp),a 
 	ld a,base
 	ld (BASE_SAV,sp),a  
-	ldw x,line.addr
+	_ldxz line.addr
 	ldw x,(x)
 	mov base,#10
 	clr acc24 
@@ -229,15 +229,15 @@ lit_char: ; LITC_IDX
 comment: ; REM_IDX 
 	ld a,#''
 	call putc
-	ldw x,basicptr
+	_ldxz basicptr
 	call puts 
 	jp decomp_exit 
 ; print label   	
 label: ; LABEL_IDX 
-	ldw x,basicptr 
+	_ldxz basicptr 
 	subw x,line.addr 
 1$:
-	ldw x,basicptr 
+	_ldxz basicptr 
 	pushw x 
 	call skip_string
 	popw x 
