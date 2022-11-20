@@ -119,12 +119,12 @@ open_gap:
 	addw x,acc16  
 	ldw (DEST,sp),x 
 ;compute size to move 	
-	ldw x,txtend 
+	_ldxz txtend 
 	subw x,(SRC,sp)
 	ldw acc16,x ; size to move
 	ldw x,(DEST,sp) 
 	call move
-	ldw x,txtend
+	_ldxz txtend
 	addw x,(LEN,sp)
 	ldw txtend,x
 	ldw dvar_bgn,x 
@@ -152,7 +152,7 @@ insert_line:
 	ldw x,[ptr16]
 	ldw (LINENO,sp),x 
 	clr (LLEN,sp)
-	ldw x,ptr16 
+	_ldxz ptr16 
 	ld a,(2,x)
 	ld (LLEN+1,sp),a 
 	clr a 
@@ -168,7 +168,7 @@ insert_line:
 	cp a,(LLEN+1,sp)
 	jreq 9$
 ; check for space 
-	ldw x,txtend 
+	_ldxz txtend 
 	addw x,(LLEN,sp)
 	cpw x,#tib-10*CELL_SIZE ; keep 10 slots space for @() array.  
 	jrult 3$
@@ -318,7 +318,7 @@ parse_integer: ; { -- n }
 	call atoi24
 	ldw y,(XSAVE,sp)
 	_ldaz acc24 
-	ldw x,acc16 
+	_ldxz acc16 
 	_drop VSIZE 
 	ret
 
@@ -889,7 +889,7 @@ compile::
 	jra  11$ 
 10$: ; line# is zero 
 ; for immediate execution from pad buffer.
-	ldw x,ptr16  
+	_ldxz ptr16  
 	ld a,(2,x)
 	_straz count
 	ldw line.addr,x

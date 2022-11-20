@@ -1,5 +1,7 @@
 ### 2022-11-19
 
+* Remplacé ldw x,zp_var par _ldxz zp_var dans debug_support.asm et fait un commit.
+
 * Remplacé ldw x,zp_var par _ldxz zp_var dans files.asm et fait un commit.
 
 * Remplacé ldw x,zp_var par _ldxz zp_var dans flash_prog.asm et fait un commit.
