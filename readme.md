@@ -1,3 +1,14 @@
+## 2022-11-19
+
+Version 2.5R1  pre-release viens d'être créé. Cette version ne concerne que la correction de plusieurs bogues ainsi qu'un effort d'optimisation pour réduire la 
+taille du binaire. Je crois bien que tous les bogues évidents, c'est à dire ceux qui se présentent de façon constante sont réglés. Il serait naïf de croire qu'il n'y en 
+a pas de subtils qui se cachent encore dans le code. Si vous  découvrez un bogue il serait apprécié d'ouvrir un ticket à ce sujet avec suffisamment d'information pour que je puisse le reproduire.
+
+###  optimsation de taille 
+Malheureusement l'assembleur **sdasstm8** n'est pas doué pour l'optimisation. J'ai donc été obligé de la faire à la main en créant des macros qui se trouvent 
+dans le fichier [gen_macros.inc](inc/gen_macros.inc). L'assembleur n'utilise que la forme *longmem* des instructions, les macros que j'ai créées code la forme 
+*shortmem*. Toutes les macros ont un nom qui débute par le caractère **'_'**  et celles qui concerne l'adressage *shortmem* se terminent par un **'z'**. **'z'** pour *zero page* car la forme *shortmem* sert à adresser les variables dans la page zéro {0..255} comme pour le processeur **MOS-6502**. 
+
 ## 2022-11-17 
 
 Je viens de pousser le code de la version 2.5R0 sur le serveur. Il s'agit d'un travail que j'ai débuté à la fin septembre et qui est toujours en cours.
