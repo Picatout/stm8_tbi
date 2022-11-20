@@ -176,10 +176,10 @@ print_registers::
 	_ldaz base 
 	ld (SAV_BASE,sp), a 
 	_ldaz acc24 
-	ldw x,acc16 
+	_ldxz acc16 
 	ld (SAV_ACC24,sp),a 
 	ldw (SAV_ACC16,sp),x 
-	ldw x,out 
+	_ldxz out 
 	ldw (SAV_OUT,sp),x
 	ldw x,#uart_putc
 	ldw out,x 
@@ -320,14 +320,14 @@ cmd_itf:
 	_ldaz count 
 	ld (SAV_COUNT,sp),a 
 	_ldaz acc24 
-	ldw x,acc16 
+	_ldxz acc16 
 	ld (SAV_ACC24,sp),a 
 	ldw (SAV_ACC16,sp),x 
 	_ldaz farptr 
-	ldw x,ptr16
+	_ldxz ptr16
 	ld (SAV_FPTR,sp),a 
 	ldw (SAV_FPTR+1,sp),x
-	ldw x,in.w 
+	_ldxz in.w 
 	ldw (SAV_INW,sp),x 
 	_clrz farptr 
 	_clrz farptr+1 
@@ -372,7 +372,7 @@ test_p:
 	jrne invalid 
 print_string:
 	call parse_addr 	
-	ldw x,acc16
+	_ldxz acc16
 	call puts
 	jp repl 	
 mem_peek:
@@ -383,7 +383,7 @@ mem_peek:
 	or a,acc8 
 	jrne 1$ 
 	jra peek_byte  
-1$:	ldw x,acc24 
+1$:	_ldxz acc24 
 	ldw farptr,x 
 	_ldaz acc8 
 	_straz farptr+2 
@@ -421,7 +421,7 @@ invalid_cmd: .asciz "not a command\n"
 print_farptr:
 	_ldaz farptr+2 
 	_straz acc8 
-	ldw x,farptr 
+	_ldxz farptr 
 	ldw acc24,x 
 	clrw x 
 	ld a,#16 
@@ -496,7 +496,7 @@ show_row:
 	ld (CNT,sp),a 
 	ld (CNTDWN,sp),a 
 	_ldaz farptr 
-	ldw x,ptr16 
+	_ldxz ptr16 
 	_straz acc24 
 	ldw acc16,x 
 	call itoa 
@@ -573,11 +573,11 @@ hex_dump:
 dump_prog:
 	pushw y 
 	_ldaz acc24 
-	ldw x,acc16 
+	_ldxz acc16 
 	push a 
 	pushw x 
 	_clrz farptr 
-	ldw x,txtend 
+	_ldxz txtend 
 	ldw y,txtbgn
 	ldw ptr16,y 
 	subw x,ptr16 

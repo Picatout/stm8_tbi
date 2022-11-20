@@ -1,5 +1,11 @@
 ### 2022-11-19
 
+* Remplacé ldw x,zp_var par _ldxz zp_var dans files.asm et fait un commit.
+
+* Remplacé ldw x,zp_var par _ldxz zp_var dans flash_prog.asm et fait un commit.
+
+* Remplacé ldw x,zp_var par _ldxz zp_var dans arithm24.asm et fait un commit. 
+
 * Remplacé ldw x,zp_var par _ldxz zp_var dans TinyBasic.asm et fait un commit. 
 
 * Création de plusierus macros dans [gen_macros.inc](inc/gen_macros.inc) pour combler les déficiences de l'assembleur qui n'optimise pas les 
