@@ -319,7 +319,7 @@ start_op:
     ld a,#(1<<I2C_CR2_START)|(1<<I2C_CR2_ACK)
     ld I2C_CR2,a      
 1$: btjt i2c_status,#I2C_STATUS_DONE,9$ 
-    ldw x,timer 
+    _ldxz timer 
     jrne 1$ 
     call cmd_i2c_error; operation timeout 
 9$: 

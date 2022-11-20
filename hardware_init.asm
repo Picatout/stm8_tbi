@@ -190,7 +190,7 @@ TrapHandler:
 Timer4UpdateHandler:
 	clr TIM4_SR 
 	_ldaz ticks 
-	ldw x,ticks+1
+	_ldxz ticks+1
 	addw x,#1 
 	adc a,#0 
 	jrpl 0$
@@ -199,7 +199,7 @@ Timer4UpdateHandler:
 	clrw x 
 0$:	_straz ticks 
 	ldw ticks+1,x 
-	ldw x,timer
+	_ldxz timer
 	jreq 1$
 	decw x 
 	ldw timer,x 

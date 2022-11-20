@@ -1,5 +1,7 @@
 ### 2022-11-19
 
+* Remplacé ldw x,zp_var par _ldxz zp_var dans terminal.asm et fait un commit.
+
 * Remplacé ldw x,zp_var par _ldxz zp_var dans decompiler.asm et fait un commit. 
 
 * Remplacé ldw x,zp_var par _ldxz zp_var dans compiler.asm et fait un commit. 
