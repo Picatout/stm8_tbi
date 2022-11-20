@@ -3320,7 +3320,7 @@ cmd_write:
 4$: ; write character 
 	ld a,(x)
 	incw x 
-	ldw  basicptr,x 
+	_strxz basicptr 
 	clrw x 
 	call write_byte 
 	jra 1$ 

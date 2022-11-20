@@ -1,5 +1,11 @@
 ### 2022-11-19
 
+* Commit version 2.5R1 prerelease. 19:50.
+
+* Résultat après toutes ces optimisations: taille réelle (avant .bndry 128 ) 14916 octets avec [debug_support.asm](debug_support.asm) et 14084 octets sans [debug_support.asm](debug_support.asm). 
+
+* Remplacé ldw x,zp_var par _ldxz zp_var dans i2c.asm et hardware_init.asm et fait un commit.
+
 * Remplacé ldw x,zp_var par _ldxz zp_var dans terminal.asm et fait un commit.
 
 * Remplacé ldw x,zp_var par _ldxz zp_var dans decompiler.asm et fait un commit. 
