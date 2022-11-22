@@ -181,14 +181,8 @@ decomp_loop:
 	jrne 7$
 	jra lit_char 
 7$:	cp a,#BSLASH_IDX
-	jrne 74$
-	jp letter 
-74$:
-	cp a,#SUBRTN_IDX 
 	jrne 8$
-	ldw x,#sbr 
-	call puts 
-	jp label 
+	jp letter 
 ; print command,funcion or operator 	 
 8$:	
 	call tok_to_name 
@@ -260,8 +254,6 @@ decomp_exit:
 	_straz base 
 	_drop VSIZE 
 	ret 
-
-sbr: .asciz "SUB "
 
 ;----------------------------------
 ; search name in dictionary

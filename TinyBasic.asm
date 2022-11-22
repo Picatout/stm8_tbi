@@ -528,7 +528,7 @@ get_int24:
 	push a      ; 1cy 
 	_ldaz basicptr+1 ; ld a,basicptr+1 ; 1cy 
 	add a,#3    ; 1cy 
-	jrne 1$     ; 1cy
+	jrnc 1$     ; 1cy
 	_incz basicptr ; 1cy 
 1$:	_straz basicptr+1 ; ld basicptr+1,a ; 1cy
 	pop a ; 1cy = 10 cy 
@@ -3886,12 +3886,24 @@ cmd_words:
 	ld a,#5 
 	ld (COL_CNT,sp),a 
 	clr (WCNT,sp)
-	ldw y,#kword_dict+2
+	ldw y,#all_words+2
+	clr acc16  
 0$:	ldw x,y
-	call print_word 
+	ld a,(x)
+	incw x 
+	and a,#NAME_MAX_LEN
+	inc a 
+	ld acc8,a 	
+	ld a,#'$
+	call putc 
+	ld a,([acc16],x)
+	callr print_hex  
+	call puts 
 	inc (WCNT,sp)
 	dec (COL_CNT,sp)
 	jreq 2$
+	ld a,acc8
+	add a,#3  
 	cp a,#8 
 	jruge 1$    
 	ld a,#TAB  
@@ -3919,27 +3931,24 @@ cmd_words:
 	ret 
 words_count_msg: .asciz " words in dictionary\n"
 
-;---------------------------
-;  print counted string 
-;  input:
-;    X     *ctring 
-;--------------------------
-	WLEN=1 ;1 byte 
-print_word: 
-	ld a,(x)
-	and a,#NAME_MAX_LEN
-	push a
-	push a  
-1$: incw x 
-	ld a,(x)
+;------------------------------
+; print byte  in hexadecimal 
+; on console
+; input:
+;    A		byte to print
+;------------------------------
+print_hex::
+	push a 
+	swap a 
+	call to_hex_char 
 	call putc 
-	dec (WLEN,sp)
-	jrne 1$ 
-	pop a
-	pop a  		
+    ld a,(1,sp) 
+	call to_hex_char
+	call putc
+	ld a,#SPACE 
+	call putc 
+	pop a 
 	ret 
-
-
 
 ;-----------------------------
 ; BASIC: TIMER expr 
@@ -5023,26 +5032,27 @@ dict_end:
 	_dict_entry,5,"ADCON",ADCON_IDX 
 kword_dict::
 	_dict_entry,3,"ABS",ABS_IDX 
-; the following are not displayed
-; by WORDS command 
-	_dict_entry,1,":",COLON_IDX 
-	_dict_entry,1,^/","/,COMMA_IDX 
-	_dict_entry,1,^/";"/,SCOL_IDX
+; the following are not searched
+; by compiler
 	_dict_entry,1,"'",REM_IDX 
-	_dict_entry,1,"@",ARRAY_IDX 
-	_dict_entry,1,"(",LPAREN_IDX 
-	_dict_entry,1,")",RPAREN_IDX 
 	_dict_entry,1,"?",PRINT_IDX 
-	_dict_entry,1,"=",REL_EQU_IDX 
-	_dict_entry,2,">=",REL_GE_IDX
-	_dict_entry,1,">",REL_GT_IDX
-	_dict_entry,1,"<",REL_LT_IDX
-	_dict_entry,2,"<=",REL_LE_IDX 
 	_dict_entry,2,"><",REL_NE_IDX
 	_dict_entry,2,"<>",REL_NE_IDX
-	_dict_entry,1,"+",ADD_IDX
-	_dict_entry,1,"-",SUB_IDX 
+	_dict_entry,1,">",REL_GT_IDX
+	_dict_entry,1,"<",REL_LT_IDX
+	_dict_entry,2,">=",REL_GE_IDX
+	_dict_entry,1,"=",REL_EQU_IDX 
+	_dict_entry,2,"<=",REL_LE_IDX 
 	_dict_entry,1,"*",MULT_IDX 
-	_dict_entry,1,"/",DIV_IDX 
-all_words:
 	_dict_entry,1,"%",MOD_IDX 
+	_dict_entry,1,"/",DIV_IDX 
+	_dict_entry,1,"-",SUB_IDX 
+	_dict_entry,1,"+",ADD_IDX
+	_dict_entry,1,"@",ARRAY_IDX 
+	_dict_entry,1,'"',QUOTE_IDX
+	_dict_entry,1,")",RPAREN_IDX 
+	_dict_entry,1,"(",LPAREN_IDX 
+	_dict_entry,1,^/";"/,SCOL_IDX
+	_dict_entry,1,^/","/,COMMA_IDX 
+all_words:
+	_dict_entry,1,":",COLON_IDX 

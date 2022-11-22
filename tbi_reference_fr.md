@@ -1,3 +1,5 @@
+[english](tbi_reference_en.md)
+
 # référence du langage Tiny BASIC pour STM8 V2.5
 
 <a id="index-princ"></a>

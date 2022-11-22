@@ -99,7 +99,6 @@ code_addr:
     _code_entry kword_return, RET_IDX    ; $28
     _code_entry kword_step, STEP_IDX     ; $29 
     _code_entry kword_stop, STOP_IDX     ; $2A
-    _code_entry syntax_error, SUBRTN_IDX ; $2B
     _code_entry kword_to, TO_IDX         ; $2C
     _code_entry kword_until, UNTIL_IDX   ; $2D
     KWORD_LAST=TOK_IDX-1 

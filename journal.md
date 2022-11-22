@@ -1,3 +1,11 @@
+### 2022-11-22
+
+* commit 12:13
+
+* Modification au mot **WORDS** pour afficher la valeur du token avant le mot. En plus affiche les opérateurs. 
+
+* Corrigé bogue dans **get_int24** du fichier [TinyBasic.inc](TinyBasic.inc).
+
 ### 2022-11-20
 
 * Commit 11:39
