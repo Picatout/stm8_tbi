@@ -75,6 +75,7 @@ search_program:
 	ldw y,(PNAME,sp)
 	call strcmp
 	jreq 6$
+	ldw x,(WLKPTR,sp)
 4$: ; erased file ignore it. 
 	call skip_to_next
 	cpw x,(LIMIT,sp)

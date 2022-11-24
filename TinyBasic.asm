@@ -2913,8 +2913,13 @@ func_digital_read:
 	jreq 1$
 	jp syntax_error
 1$: _xpop 
+.if NUCLEO_8S208RB
 	cpw x,#15 
-	jrule 2$
+.endif 	
+.if NUCLEO_8S207K8 
+	cpw x,#12 
+.endif 	
+	jrule 2$	
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
 2$:
@@ -2955,7 +2960,12 @@ cmd_digital_write:
 	ld a,xl 
 	ld (PINVAL,sp),a
 	_xpop 
+.if NUCLEO_8S208RB	
 	cpw x,#15 
+.endif 
+.if NUCLEO_8S207K8
+	cpw x,#12
+.endif 	
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
@@ -3542,7 +3552,7 @@ pause02:
 ; halt mcu for 'expr' milliseconds
 ; use Auto wakeup peripheral
 ; all oscillators stopped except LSI
-; range: 1ms - 511ms
+; range: 1msec - 30.7 sec 
 ; input:
 ;  none
 ; output:
@@ -3551,10 +3561,17 @@ pause02:
 cmd_awu:
   call expression
 awu02:
+  mov AWU_TBR,#1
   _xpop 
+  cpw x,#30720
+  jrule 0$ 
+  ld a,#ERR_BAD_VALUE
+  jp tb_error
+0$:
   cpw x,#5120
   jrmi 1$ 
   mov AWU_TBR,#15 
+; divisor is x/480
   ld a,#30
   div x,a
   ld a,#16
@@ -3564,6 +3581,7 @@ awu02:
   cpw x,#2048
   jrmi 2$ 
   mov AWU_TBR,#14
+; divisor is x/80 
   ld a,#80
   div x,a 
   jra 4$   
@@ -3585,7 +3603,7 @@ awu02:
   and a,#0x3e 
   ld AWU_APR,a 
   bset AWU_CSR,#AWU_CSR_AWUEN
-  halt
+  halt ; HSI stopped 
   ret 
 
 ;------------------------------
@@ -3699,12 +3717,21 @@ cmd_pin_mode:
 	_vars VSIZE 
 	call arg_list 
 	cp a,#2 
-	jreq 1$
+	jreq 0$
 	jp syntax_error 
-1$: _xpop 
+0$: _xpop 
 	ldw ptr16,x ; mode 
 	_xpop ; Dx pin 
-	call select_pin 
+.if NUCLEO_8S208RB	
+	cpw x,#15 
+.endif 
+.if NUCLEO_8S207K8
+	cpw x,#12
+.endif 	
+	jrule 1$
+	ld a,#ERR_BAD_VALUE
+	jp tb_error 
+1$:	call select_pin 
 	ld (PINNO,sp),a  
 	ld a,#1 
 	tnz (PINNO,sp)
@@ -3752,7 +3779,12 @@ cmd_pin_mode:
 ;---------------------------
 select_pin:
 	sllw x 
-	addw x,#arduino_to_8s208 
+.if NUCLEO_8S208RB
+	addw x,#arduino_to_8s208
+.endif 
+.if NUCLEO_8S207K8
+addw x,#arduino_to_8s207
+.endif 
 	ldw x,(x)
 	ld a,xl 
 	push a 
@@ -3762,7 +3794,8 @@ select_pin:
 	addw x,#GPIO_BASE 
 	pop a 
 	ret 
-; translation from Arduino D0..D15 to stm8s208rb 
+.if NUCLEO_8S208RB	
+; translation from Arduino D0..D15 to NUCLEO_8S208RB 
 arduino_to_8s208:
 .byte 3,6 ; D0 
 .byte 3,5 ; D1 
@@ -3780,6 +3813,25 @@ arduino_to_8s208:
 .byte 2,5 ; D13
 .byte 4,2 ; D14
 .byte 4,1 ; D15
+.endif 
+
+.if NUCLEO_8S207K8	
+; translation from Arduino D0..D12 to NUCLEO_8S207K8
+arduino_to_8s207:
+.byte 3,5 ; D0 
+.byte 3,6 ; D1 
+.byte 3,0 ; D2 
+.byte 2,1 ; D3
+.byte 3,2 ; D4
+.byte 2,2 ; D5
+.byte 2,3 ; D6
+.byte 0,1 ; D7
+.byte 0,2 ; D8
+.byte 2,4 ; D9
+.byte 3,4 ; D10
+.byte 3,3 ; D11
+.byte 2,7 ; D12
+.endif 
 
 
 ;------------------------------

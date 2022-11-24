@@ -1,3 +1,13 @@
+### 2022-11-24
+
+* commit 16:54
+
+* Modifié **PMODE**,**DREAD** et **DWRITE** pour tenir compte de l'ajout de la carte NUCLEO_8S207K8. 
+
+* débogué RUN nom, la commande ne trouve que le premier fichier. Bogue résoluse était dans la routine *search_file du fichier [files.asm](files.asm).
+
+* Travail sur documentation. 
+
 ### 2022-11-23
 
 * Commit 21:10

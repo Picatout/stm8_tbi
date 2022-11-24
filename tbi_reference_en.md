@@ -467,6 +467,304 @@ This function return 2^*expr*, i.e. 2 power of *expr* which must bit in the rang
 > bset PORTC,bit(5) ' Turn on user LED on board.
 
 ```
+index](#index)
+<a id="bres"></a>
+### BRES addr,mask {C,P}
+This command reset one or more bits at **addr**. Each bit of *mask* that are at **1** are reset at target address. The address can be RAM or register. 
+```
+>bres PORTC,bit(5) ' turn off user LED on board. 
+```
+
+[index](#index)
+<a id="bset"></a>
+### BSET addr,mask  {C,P}
+This command set one or more bits at *addr*. Each bit of *mask* that is at **1** is set at target address. The address can be RAM or register.
+```
+>bset $500a,&100000 ' turn on user LED on board.
+```
+
+[index](#index)
+<a id="btest"></a>
+### BTEST(addr,bit) {C,P}
+This function return the state of a single bit at *addr*. *bit* is the position of bit to be tested in range {0..7}.
+```
+>? btest($50f3,5) ' BEEP_CSR enable bit 
+   0
+```
+
+[index](#index)
+<a id="btogl"></a>
+### BTOGL addr,mask  {C,P}
+This command toggle one or more bits at *addr*. bits of *mask* that are at **1** are inverted in target address. The address can be RAM or register.
+```
+>btogl PORTC,32 ' toggle user LED state.
+```
+
+[index](#index)
+<a id="buffer"></a>
+### BUFFER *name*, *size* {P}
+This command reserve buffer space in RAM.  This buffer can written to with [POKE](#poke) and 
+read from with [PEEK](#peek). 
+
+For usage examples look at [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) and [i2c_oled.bas](BASIC/i2c_oled.bas) programs. 
+
+* *name* is the name of variable holding buffer address.
+
+* *size* is in BYTES. 
+
+Size is limited by free RAM leftover by the program. 
+
+```
+>list
+   10  BUFFER BUF , 16: ' create buffer 
+   20  FOR I= BUF  TO I+ 15 POKE I, RND( 255) NEXT I : ' write to buffer
+   30  FOR I= BUF  TO I+ 15 PRINT PEEK( I); NEXT I : ' read from buffer
+program address:  $90, program size:  108 bytes in RAM memory
+
+>run
+ 215 248 88 147 11 229 252 86 214 192 27 194 136 88 227 115
+>
+```
+
+[index](#index)
+<a id="bye"></a>
+### BYE  {C,P}
+This command place the MCU in HALT mode from which only a reset can reset it.
+
+[index](#index)
+<a id="chain"></a>
+### CHAIN name[,line#] {P}
+This command is used to run a progrm stored in file system from the actual running program.
+
+* *name* is the program file name.
+
+* *line#' is optional and indicate at which line the execution should start. 
+
+When the chained program leave execution continue at the calling program after the **CHAIN** command. 
+
+A chained program can itself use **CHAIN** to execute another program file. The depth of chaining is limited by stack size. 
+
+[index](#index)
+<a id="char"></a>
+### CHAR(*expr*) {C,P}
+This function return the ASCII character corresponding code *expr* which must be in the range {0..127}.
+```
+>for a=32 to 126:? char(a);:next a 
+ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+>
+```
+
+[index](#index)
+<a id="const"></a>
+### CONST name=value [,name=value] {P}
+This keyword is used to define symbolic constants. The list of constants to be defined are separated by comma **','**. 
+
+ * **name** is constant name. 
+ * **value** is a constant expression. 
+ ```
+>list
+    5 ' Test symbolic constant speed in comparison to literal constant.
+   10 CONST TEST = 1024 
+   20 ? "assign a varaible." 
+   24 ? "literal constant: " ; 
+   30 LET T = TICKS : FOR I = 1 TO 10000 : LET A = 20490 : NEXT I 
+   32 ? TICKS - T ; "MSEC." 
+   34 ? "symbolic constant: " ; 
+   40 LET T = TICKS : FOR I = 1 TO 10000 : LET A = TEST : NEXT I 
+   44 ? TICKS - T ; "MSEC." 
+   50 CONST LED = 20490 
+   60 ? "Test toggling user LED on board." 
+   64 ? "Literal constant: " ; 
+   70 LET T = TICKS : FOR I = 1 TO 10000 : BTOGL 20490 , 32 : NEXT I 
+   72 ? TICKS - T ; "MSEC." 
+   74 ? "Symbolic constant: " ; 
+   80 LET T = TICKS : FOR I = 1 TO 10000 : BTOGL LED , 32 : NEXT I 
+   90 ? TICKS - T ; "MSEC." 
+program address: $91, program size: 496 bytes in RAM memory
+
+>run
+assign a varaible.
+literal constant: 418 MSEC.
+symbolic constant: 541 MSEC.
+Test toggling user LED on board.
+Literal constant: 587 MSEC.
+Symbolic constant: 714 MSEC.
+
+>
+```
+
+[index](#index)
+<a id="cr1"></a>
+### CR1 (C,P)
+This constant is the offset of **CR1** register from  GPIO base address. It must be added to **PORTx** constant to be accessed.  
+
+In input mode this register configure pull-up and in output mode it select between *push-pull* and *open-drain*. 
+
+See also [ODR](#odr),[IDR](#idr),[DDR](#ddr),[CR2](#cr2)
+
+[index](#index)
+<a id="cr2"></a>
+### CR2 {C,P}
+This constant is the offset of **CR2** register from GPIO base address. It must be added to **PORTx** constant to be accessed.  
+
+In input mode it is used to enable or disable external interrupt on pin. In output mode it is used to limit port slew ratte (i.e. toggling speed). 
+
+See also [ODR](#odr),[IDR](#idr),[DDR](#ddr),[CR1](#cr1)
+
+[index](#index)
+<a id="data"></a>
+### DATA {P}
+This keyword is used to declare a line containing only data. The interpreter skip over data lines. The data is accessed using [READ](#read) function. Each the a data item is read 
+the data pointer is moved to next item. Reading data after the last item is a fatal error.
+Note that contrary to Microsoft BASIC this is a function not a command. It doesn't accept any parameter. 
+
+See also [RESTORE](#restore).
+
+```
+>list
+    5 ' Play a tune from score in DATA lines 
+   10 RESTORE 
+   20 DATA 440,250,440,250,466,250,523,250,523,250,466,250,440,250
+   30 DATA 392,250,349,250,349,250,392,250,440,250,440,375,392,125
+   40 DATA 392,500
+   50 FOR I =1TO 15:TONE READ ,READ :NEXT I 
+```
+
+[index](#index)
+<a id="ddr"></a>
+### DDR {C,P}
+This constant is the offset of DDR register from GPIO base address. It must be added to **PORTx** constant to be accessed. 
+
+This register is used to set GPIO pin as input or output. 
+
+See also [ODR](#odr),[IDR](#idr),[CR1](#cr1),[CR2](#cr2)
+
+```
+>bset portc+ddr,bit(5) ' set user led pin as output
+
+>
+```
+
+[index](#index)
+<a id="dec"></a>
+### DEC {C,P}
+This command is used to set the number printing format to decimal. It is the default format 
+at startup. 
+
+See also [HEX](#hex).
+
+```
+>HEX:?-10:DEC:?-10
+$FFFFF6
+-10
+```
+[index](#index)
+<a id="dim"></a>
+### DIM var_name[=expr][,var_name[=expr]] {P}
+This keyword is used to define symbolic variables in extra to the 26 Tiny BASIC variables {A..Z}. 
+
+* *var_name* is variable name and must be at least 2 characters beginning with a letter. The first letter can be followed by **'_'**,**'.'**,**'?'** and letters. The maximum length is 15 characters. 
+
+* *expr* is optional and used to initialize the variable. If not present the variable is initialized to **0**. 
+
+* The comma **','** is used as list separator.
+
+[index](#index)
+<a id="do"></a>
+### DO {C,P}
+Keyword used to introduce a **DO..UNTIL *condition* ** loop. The instructions inside the loop are executed until *condition* become true. 
+
+See also [UNTIL](#until). 
+```
+>li
+   10 A = 1 
+   20 DO 
+   30 PRINT A;
+   40 A =A + 1 
+   50 UNTIL A > 10 
+
+>run
+   1 2 3 4 5 6 7 8 9 10
+``` 
+[index](#index)
+<a id="dir"></a>
+## DIR {C}
+This command display the list of program saved in file system. Program saved with command [SAVE](#save) are run in place. 
+
+See also [SAVE](#save),[ERASE](#erase) and [AUTORUN](#autorun).
+```
+>>DIR
+$BB04 84 bytes,BLINK
+$BB84 218 bytes,HYMNE
+$BC84 127 bytes,FIBONACCI
+```
+[index](#index)
+<a id="dread"></a>
+### DREAD *pin*
+This function return the state of a digital pin which as been defined as input with [PMODE](#pmode). The value returned is either **0** or **1**. Tables below give pinout for each board.
+
+<hr align="left" width="40%">
+NUCLEO-8S208RB<br/>
+
+MCU<BR>PORT | Arduino Dx | board con
+-|-|-
+PD6|D0_RX|CN7:1
+PD5|D1_TX|CN7:2
+PE0|D2_IO|CN7:3
+PC1|D3_TIM|CN7:4
+PG0|D4_IO|CN7:5
+PC2|D5_TIM|CN7:6 
+PC3|D6_TIM|CN7:7
+PD1|D7_IO|CN7_8
+PD3|D8_IO|CN8:1
+PC4|D9_TIM|CN8:2
+PE5|D10_TIM_SPI_CS|CN8:3
+PC6|D11_TIM_MOSI|CN8:4
+PC7|D12_MISO|CN8:5
+PC5|D13_SPI_CK|CN8:6 
+PE2|D14_SDA|CN8:9
+PE1|D15_SCL|CN8:10
+
+<hr align="left" width="40%">
+NUCLEO-8S207K8<BR/>
+
+MCU<BR>PORT | Arduino Dx | board con
+-|-|-
+PD5|D0_TX|CN3:1
+PD6|D1_RX|CN3:2
+PD0|D2|CN3:5
+PC1|D3|CN3:6
+PD2|D4|CN3:7
+PC2|D5|CN3:8
+PC3|D6|CN3:9
+PA1|D7|CN3:10
+PA2|D8|CN3:11
+PC4|D9|CN3:12
+PD4|D10|CN3:13
+PD3|D11|CN3:14
+PC7|D12|CN3:15
+
+
+```
+10 PMODE 5,PINP 
+20 ? DREAD(5)
+```
+[index](#index)
+<a id="drop"></a>
+### DROP *n* {C,P}
+This command free *n* top slots from data stack.
+
+See [ALLOC](#alloc).
+
+[index](#index)
+
+<a id="dwrite"></a>
+### DWRITE *pin*,*level* 
+Le connecteur **CN8**  de la carte **NUCLEO** indentifie les broches selon la convention *Arduino*. Ainsi les broches notées **D0...D15** peuvent-être utilisées en entrée ou sortie digitales, i.e. leur niveau est à 0 volt ou à Vdd.  **DWRITE** est une commande qui porte le même nom que la fonction Arduino et qui permet d'écrire **0|1** sur l'une de ces broche lorsqu'elle est configurée en mode sortie. *pin* est une numéro entre **0...15** et *level* est soit **PINP** ou **POUT**. Avant d'utiliser **DWRITE** sur une broche il faut utiliser **PMODE** pour configurée la broche en sortie. 
+```
+10 PMODE 10,POUT ' mettre D10 en sortie 
+20 DWRITE 10, 0  , Met la sortie D10 a zero.
+```
 
 <hr>
 

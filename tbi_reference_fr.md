@@ -574,17 +574,17 @@ Met le microcontrôleur en mode sommeil profond. Dans ce mode tous les oscilleur
 [index](#index)
 <a id="chain"></a>
 ### CHAIN name,line# {P}
-Cette commande permet de lancer l'exécution d'un programme à partir d'un autre programme. Lorsque le programme ainsi lancer se termine l'exécution poursuit dans le programme qui à lancer ce dernier après la commande **CHAIN**. Un programme lancer par **CHAIN** peut à son tour lancer un autre programme de la même façon. Chaque appel par cete commande utilise 8 octets sur la pile de contrôle. Il faut donc faire attention de ne pas créer une chaîne trop longue. La pile de contrôle est de 140 octets et est utilisées pour les boucles et les GOSUB, les interruptions et les appels de sous-routines en code machine. Les programmes appellés par **CHAIN** doivent résidés en mémoire FLASH. 
+Cette commande permet de lancer l'exécution d'un programme à partir d'un autre programme. Lorsque le programme ainsi lancer se termine l'exécution poursuit dans le programme qui à lancer ce dernier après la commande **CHAIN**. Un programme lancer par **CHAIN** peut à son tour lancer un autre programme de la même façon. Chaque appel par cette commande utilise 8 octets sur la pile de contrôle. Il faut donc faire attention de ne pas créer une chaîne trop longue. La pile de contrôle est de 140 octets et est utilisées pour les boucles et les GOSUB, les interruptions et les appels de sous-routines en code machine. Les programmes appellés par **CHAIN** doivent résidés en mémoire FLASH. 
 
 [index](#index)
 <a id="char"></a>
 ### CHAR(*expr*) {C,P}
 La fonction *character* retourne le caractère ASCII correspondant aux 7 bits les moins significatifs de l'expression utilisée en argument. Pour l'interpréteur cette fonction retourne un jeton de type **TK_CHAR** qui n'est reconnu que par les commandes **PRINT** et **ASC**.
-
-    >for a=32 to 126:? char(a),:next a 
-     !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
-    > 
-
+```
+>for a=32 to 126:? char(a);:next a 
+ !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
+>
+```
 
 [index](#index)
 <a id="const"></a>
@@ -594,33 +594,36 @@ Cette commande sert à créer des constantes qui utilisent la mémoire RAM dispo
  * **valeur** est la valeur de cette constante. Il peut s'agit d'une expression. 
  * Plusieurs constantes peuvent-être définies dans la même commande en les séparant par une virgule.
  ```
->li
-    5 ' test vitesse d'utilisation d'une constante symbolique par rapport
-    6 ' a une constante numerique. 
-   10 CONST TEST =1024
-   20 PRINT "test assignation d'une variable."
-   24 PRINT "constante numerique: ",
-   30 T=TICKS FOR I=1 TO 10000 A=20490 NEXT I PRINT TICKS-T "MSEC."
-   34 PRINT "constante symbolique: ",
-   40 T=TICKS FOR I=1 TO 10000 A= TEST NEXT I PRINT TICKS-T "MSEC."
-   50 CONST LED2 =20490
-   60 PRINT "test basculement etat LED2 sur la carte."
-   64 PRINT "constante numerique: ",
-   70 T=TICKS FOR I=1 TO 10000 BTOGL 20490,32 NEXT I PRINT TICKS-T "MSEC."
-   74 PRINT "constante symbolique: ",
-   80 T=TICKS FOR I=1 TO 10000 BTOGL LED2 ,32 NEXT I PRINT TICKS-T "MSEC."
-program address:  $80, program size:  600 bytes in RAM memory
+>list
+    5 ' Test symbolic constant speed in comparison to literal constant.
+   10 CONST TEST = 1024 
+   20 ? "assign a varaible." 
+   24 ? "literal constant: " ; 
+   30 LET T = TICKS : FOR I = 1 TO 10000 : LET A = 20490 : NEXT I 
+   32 ? TICKS - T ; "MSEC." 
+   34 ? "symbolic constant: " ; 
+   40 LET T = TICKS : FOR I = 1 TO 10000 : LET A = TEST : NEXT I 
+   44 ? TICKS - T ; "MSEC." 
+   50 CONST LED = 20490 
+   60 ? "Test toggling user LED on board." 
+   64 ? "Literal constant: " ; 
+   70 LET T = TICKS : FOR I = 1 TO 10000 : BTOGL 20490 , 32 : NEXT I 
+   72 ? TICKS - T ; "MSEC." 
+   74 ? "Symbolic constant: " ; 
+   80 LET T = TICKS : FOR I = 1 TO 10000 : BTOGL LED , 32 : NEXT I 
+   90 ? TICKS - T ; "MSEC." 
+program address: $91, program size: 496 bytes in RAM memory
 
 >run
-test assignation d'une variable.
-constante numerique:  397 MSEC.
-constante symbolique:  540 MSEC.
-test basculement etat LED2 sur la carte.
-constante numerique:  651 MSEC.
-constante symbolique:  770 MSEC.
+assign a varaible.
+literal constant: 418 MSEC.
+symbolic constant: 541 MSEC.
+Test toggling user LED on board.
+Literal constant: 587 MSEC.
+Symbolic constant: 714 MSEC.
 
 >
- ```
+```
 
 [index](#index)
 <a id="cr1"></a>
@@ -695,7 +698,7 @@ Mot réservé qui débute une boucle **DO ... UNTIL** Les instructions entre  **
 >li
    10 A = 1 
    20 DO 
-   30 PRINT A ,
+   30 PRINT A ;
    40 A =A + 1 
    50 UNTIL A > 10 
 
@@ -718,8 +721,50 @@ $BA04  138 bytes,FIBONACCI
 [index](#index)
 <a id="dread"></a>
 ### DREAD *pin*
-Cette fonction permet de lire l'état d'une des broches **D0..D15** du connecteur **CN8** 
-Lorsqu'elle est configuré avec **PMODE** en mode entrée. Cette fonction retourne **0** si l'entrée est à zéro volt ou **1** si l'entrée est à Vdd. 
+Cette fonction permet de lire l'état d'une des broches configurée en mode entrée digitale.
+Lorsqu'elle est configuré avec **PMODE** en mode entrée. Cette fonction retourne **0** si l'entrée est à zéro volt ou **1** si l'entrée est à Vdd.
+
+NUCLEO-8S208RB<br/>
+
+MCU<BR>PORT | Arduino Dx | board con
+-|-|-
+PD6|D0_RX|CN7:1
+PD5|D1_TX|CN7:2
+PE0|D2_IO|CN7:3
+PC1|D3_TIM|CN7:4
+PG0|D4_IO|CN7:5
+PC2|D5_TIM|CN7:6 
+PC3|D6_TIM|CN7:7
+PD1|D7_IO|CN7_8
+PD3|D8_IO|CN8:1
+PC4|D9_TIM|CN8:2
+PE5|D10_TIM_SPI_CS|CN8:3
+PC6|D11_TIM_MOSI|CN8:4
+PC7|D12_MISO|CN8:5
+PC5|D13_SPI_CK|CN8:6 
+PE2|D14_SDA|CN8:9
+PE1|D15_SCL|CN8:10
+
+<hr align="left" width="40%">
+NUCLEO-8S207K8<BR/>
+
+MCU<BR>PORT | Arduino Dx | board con
+-|-|-
+PD5|D0_TX|CN3:1
+PD6|D1_RX|CN3:2
+PD0|D2|CN3:5
+PC1|D3|CN3:6
+PD2|D4|CN3:7
+PC2|D5|CN3:8
+PC3|D6|CN3:9
+PA1|D7|CN3:10
+PA2|D8|CN3:11
+PC4|D9|CN3:12
+PD4|D10|CN3:13
+PD3|D11|CN3:14
+PC7|D12|CN3:15
+
+
 ```
 10 PMODE 5,PINP 
 20 ? DREAD(5)
