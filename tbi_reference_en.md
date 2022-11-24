@@ -155,7 +155,8 @@ Integers are printable only in decimal or hexadecimal.
 <hr>
 
 [main index](#index-princ)
-a id="cli"></a>
+
+<a id="cli"></a>
 ## Command line
 
 At startup a beep is sounded and system information is displayed on terminal. followed by
@@ -212,7 +213,7 @@ CTRL+O|Toggle between insert and overwirte mode. Cursor change shape.
 [main index](#index-princ)
 
 <a id="index"></a>
-## Vocabulary INDEXe
+## Vocabulary index
 name|description 
 -|-
 [ABS](#abs)|function that return absolute value.
@@ -328,7 +329,146 @@ name|description
 [WRITE](#write)|Write data to FLASH or EEPROM.
 [XOR](#xor)| Boolean operator exclusive OR.
 
-[main index](#index-princ)<hr>
+[main index](#index-princ)
+<hr>
+
+<a id="abs"></a>
+### ABS(*expr*)  {C,P}
+This function return the absolute value of the expression. 
+```
+>? abs(-45)
+45
+```
+[index](#index)
+<a id="adcon"></a>
+### ADCON 0|1 [,divisor]
+This command power on|off the analog/digital converter.
+**1** for **ON**, **0** for   **OFF*<br/> *divisor* parameter determine converter convertisseur et doit-être un entier dans l'intervalle {0..7}. This divisor is applied to Master clock Fosc. 11 clock cycles are required per convertion.  If divisor is not given it is consired to be **0**.
+
+paramer|divisor|Fconv
+-|-|-
+0|2|8Mhz
+1|3|5,33Mhz
+2|4|4Mhz
+3|6|2,66Mhz
+4|8|2Mhz
+5|10|1,6Mhz
+6|12|1,33Mhz 
+7|18|0,89Mhz
+```
+>adcon 1,0 ' enable ADC maximum frequency
+
+>?adcread(0) 'read channel 0 
+ 757
+
+>adcon 0 ' disable ADC 
+```
+Disabling ADC reduce MCU power consumption.
+
+[index](#index)
+<a id="adcread"></a>
+### ADCREAD(channer) {C,P}
+Read one of 7 analog inputs on CN4. 
+Pinout is different for each board.
+
+MCU<br>channel|NUCLEO-8S208RB<br>CN4:pin|NUCLEO-8S207K8<br>CN4:pin|
+-|-|-
+0|6|12
+1|5|11
+2|4|10
+3|3|9
+4|2|7
+5|1|8
+12|CN9:16|6
+
+
+```
+>adcon 1,0 ' active ADC fréquence maximale
+
+>?adcread(0) 'Lecture canal 0 
+ 655
+
+```
+
+[index](#index)
+<a id="alloc"></a>
+### ALLOC n {C,P}
+Reserve *n* slots on data stack. These slots can be used as temporary or local variables in subroutines. See also [PICK](#pick), [PUT](#put) and [DROP](#drop). 
+
+[index](#index)
+<a id="and"></a>
+### *expr1|rel1|cond1* **AND** *expr2|rel2|cond2* {C,P}
+Boolean operator to insert between two expressions or relations. This is a bit to bit **AND** operator. 
+
+See also [NOT](#not),[OR](#or),[XOR](#xor).
+
+```
+>a=2 ? a
+   2 
+
+>b=4 ? b
+   4 
+
+>if a>=2 and b<=4 ? "true" 
+   true
+
+>
+```
+
+[index](#index)
+<a id="asc"></a>
+### ASC(*string*|\c) {C,P}
+This function return the ASCII value for first character of a string or of single character.
+See also [CHAR](#char) function which is the opposite of this one.
+```
+    >? asc("AB")
+    65 
+
+    >? asc(\Z)
+    90
+
+    >
+```
+[index](#index)
+<a id="autorun"></a>
+### AUTORUN \C|name {C}
+This command enable or disable program auto execution at board power up or rinitialisation.
+
+* AUTORUN name  search for a file with that name and if found set it as autorun program.
+
+* AUTORUN \C   cancel any autorun. 
+
+* CTRL-Z  can also be used to cancel an autorun program if stuck in an infinite loop.
+
+[index](#index)
+<a id="awu"></a>
+### AWU *expr*  {C,P}
+This command put MCU in low power mode __(HALT)__ for some amount of milliseconds defined by *expr*.
+After wakeup the program continue execution after this command. The command name come from the peripheral used **A**uto-**W**ake**U**p.
+
+*expr* must be in range {1..32720}. The maximum delay is around 30.7 secondes.
+```
+>awu 1  ' 1 millisecond
+
+>awu 30720 ' 30.7 seconds
+
+>
+```
+
+[index](#index)
+<a id="bit"></a>
+### BIT(*expr*) {C,P}
+This function return 2^*expr*, i.e. 2 power of *expr* which must bit in the range {0..23}.
+
+```
+>for i=0 to 23: ? bit(i);:next i
+1 2 4 8 16 32 64 128 1 2 4 8 16 32 64 128 65536 131072 262144 524288 1048576 2097152 4194304 -8388608 
+
+> bset PORTC,bit(5) ' Turn on user LED on board.
+
+```
+
+<hr>
 
 <a id="files"></a>
 ### Files system 

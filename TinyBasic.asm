@@ -2875,8 +2875,7 @@ cmd_power_adc:
 ; BASIC: ADCREAD (channel)
 ; read adc channel {0..5}
 ; output:
-;   A 		LIT_IDX 
-;   X 		value 
+;   A:X  value 
 ;-----------------------------
 func_analog_read:
 	call func_args 
@@ -2884,20 +2883,17 @@ func_analog_read:
 	jreq 1$
 	jp syntax_error
 1$: _xpop 
-	cpw x,#5 
+	cpw x,#6 
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-2$: ld a,xl
-	_straz acc8
-	ld a,#5
-	sub a,acc8 
+2$: ld a,xl  
 	ld ADC_CSR,a
 	bset ADC_CR2,#ADC_CR2_ALIGN
 	bset ADC_CR1,#ADC_CR1_ADON
 	btjf ADC_CSR,#ADC_CSR_EOC,.
-	ldw x,ADC_DRH
-	ld a,#LIT_IDX
+	ldw x,ADC_DRH 
+	clr a 
 	ret 
 
 ;-----------------------
@@ -2906,8 +2902,7 @@ func_analog_read:
 ; read state of a digital pin 
 ; pin# {0..15}
 ; output:
-;    A 		LIT_IDX
-;    X      0|1 
+;    A:X      0|1 
 ;-------------------------
 	PINNO=1
 	VSIZE=1
@@ -2922,7 +2917,8 @@ func_digital_read:
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-2$:	call select_pin 
+2$:
+	call select_pin 
 	ld (PINNO,sp),a
 	ld a,(GPIO_IDR,x)
 	tnz (PINNO,sp)
@@ -2932,8 +2928,7 @@ func_digital_read:
 	jrne 3$ 
 8$: and a,#1 
 	clrw x 
-	ld xl,a 
-	clr a 
+	rlwa x 
 	_drop VSIZE
 	ret
 
@@ -3556,6 +3551,7 @@ pause02:
 cmd_awu:
   call expression
 awu02:
+  _xpop 
   cpw x,#5120
   jrmi 1$ 
   mov AWU_TBR,#15 
@@ -3589,8 +3585,7 @@ awu02:
   and a,#0x3e 
   ld AWU_APR,a 
   bset AWU_CSR,#AWU_CSR_AWUEN
-  halt 
-
+  halt
   ret 
 
 ;------------------------------

@@ -166,7 +166,7 @@ NonHandledInterrupt:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 AWUHandler:
 	bres AWU_CSR,#AWU_CSR_AWUEN
-	mov AWU_APR,0x3F
+	mov AWU_APR,#0x3F
 	clr AWU_TBR 
 	iret
 

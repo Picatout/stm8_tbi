@@ -1,4 +1,14 @@
+### 2022-11-23
+
+* Commit 21:10
+
+* Corrigé bogue dans *AWUHandler* du fichier [hardware_inti.asm](hardware_inti.asm).
+
+* Corrigé bogue dans function **ADCREAD** et **DREAD**. 
+
 ### 2022-11-22
+
+* Travail sur documentation [tbi_reference_en.md](tbi_reference_en.md).
 
 * commit 12:13
 

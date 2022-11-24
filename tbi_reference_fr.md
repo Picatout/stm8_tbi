@@ -398,6 +398,18 @@ paramètre|diviseur|fréquence
 5|10|1,6Mhz
 6|12|1,33Mhz 
 7|18|0,89Mhz
+
+Le brochage des canaux analogiques est différent selon la carte.
+MCU<br>channel|NUCLEO-8S208RB<br>CN4:pin|NUCLEO-8S207K8<br>CN4:pin|
+-|-|-
+0|6|12
+1|5|11
+2|4|10
+3|3|9
+4|2|7
+5|1|8
+12|CN9:4|6
+
 ```
 >adcon 1,0 ' active ADC fréquence maximale
 
@@ -462,8 +474,10 @@ La fonction **ascii** retourne la valeur ASCII du premier caractère de la chaî
 <a id="autorun"></a>
 ### AUTORUN \C|name {C}
 Cette commande sert à sélectionner un programme qui a été sauvegardé en mémoire FLASH pour qu'il démarre automatiquement lors de l'initialisation du système. 
-* **\E**  Annule la fonction autorun 
+* **\C**  Annule la fonction autorun 
 * *name* est le nom du programme a démarrarer automatiquement. Voir [fichiers](#fichiers) pour savoir comment nommer un programme.
+
+* **CTRL+Z**  peut aussi être utilisé pour annuler un autorun si le programme est bloqué dans une boucle infinie.
 
 [index](#index)
 <a id="awu"></a>
@@ -482,12 +496,12 @@ L'Oscillateur **LSI** possède une précision de +/-12.5% sur l'étendu de l'éc
 [index](#index)
 <a id="bit"></a>
 ### BIT(*expr*) {C,P}
-Cette fonction retourne 2^*expr*  (2 à la puissance n). *expr* doit-être entre {0..15} 
+Cette fonction retourne 2^*expr*  (2 à la puissance n). *expr* doit-être entre {0..23} 
 ```
->for i=0 to 15: ? bit(i),:next i
-   1   2   4   8  16  32  64 128 256 512 1024 2048 4096 8192 16384 -32768
-   
-> bset $500a,bit(5) ' allume LD2 sur la carte
+>for i=0 to 23: ? bit(i);:next i
+1 2 4 8 16 32 64 128 1 2 4 8 16 32 64 128 65536 131072 262144 524288 1048576 2097152 4194304 -8388608 
+  
+> bset portc,bit(5) ' allume la DEL utilisateur sur la carte.
 
 ```
 [index](#index)
