@@ -2496,7 +2496,7 @@ kword_on:
 	call runtime_only
 	call expression 
     _xpop
-_tp '9 	
+;_tp '9 	
 ; the selector is the element indice 
 ; in the list of arguments. {1..#elements} 
 	ld a,xl ; keep only least byte 
@@ -2563,7 +2563,7 @@ _tp '9
 	jra jp_to_target
 8$: 
 ; move to end of line, then gosub 
-_tp 'G 
+;_tp 'G 
 	_ldxz line.addr 
 	_clrz acc16 
 	ld a,(2,x)
@@ -2571,7 +2571,7 @@ _tp 'G
 	addw x,acc16 
 	decw x ; point at EOL_IDX 
 	ldw basicptr,x   
-_tp 'H 
+;_tp 'H 
 	jra kword_gosub_2 ; target in ptr16 
 9$: ; expr out of range skip to next line
 	jp next_line 

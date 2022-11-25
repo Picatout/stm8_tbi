@@ -1032,6 +1032,485 @@ See also [DEC](#dec).
 $FFFFF6
   -10
 ```
+[index](#index)
+
+<a id="i2c_close"></a>
+## I2C.CLOSE {C,P}
+This command disable the I2C peripheral. The I2C peripheral is a 2 wires communication device.
+The alternate function 6 must be programmed in **OPT2** register and MCU rebooted before using this peripheral.
+
+See also [I2C.OPEN](#i2c_open),[I2C.READ](#i2c_read),[I2C.WRITE](#i2c_write)
+
+[index](#index)
+
+<a id="i2c_open"></a>
+## I2C.OPEN *freq* (C,P)
+This command enable I2C periphal. The I2C peripheral is a 2 wires communication device.
+Good examples of usage are [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) and [i2c_oled.bas](BASIC/i2c_oled.bas).
+
+* *freq* in KiloHertz of communication speed. Usually  100 or 400 .
+
+### Pin out for each board.
+SIGNAL|MCU<BR>PORT|NUCLEO-8S208RB<BR>CON|NUCLEO-8S207K8<BR>CON
+-|-|-|-
+SCL|PB4|A1 (CN4:1)|A5 (CN4:8)
+SDA|PB5|A0 (CN4:2)|A4 (CN4:7)
+
+This peripheral is available as an alternate function. The **OPT2** bit 6 must be set and MCU rebooted before using it. It can be done on command 
+line. It need to be done only once. It is persistant unless the device is reprogrammed.
+```
+>LET A=PEEK($4803) OR 64:WRITE $4803,A:REBOOT ' connect I2C to pins 
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R1
+
+>
+```   
+To disconnet **I2C** alternate function:
+```
+>LET A=NOT 64 AND PEEK($4803):WRITE $4803,A: REBOOT ' disconnect I2C from pins. 
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R1
+
+>
+``` 
+See also [I2C.CLOSE](#i2c_close),[I2C.READ](#i2c_read),[I2C.WRITE](#i2c_write)
+
+[index](#index)
+
+<a id="i2c_read"></a>
+## I2C.READ *dev_id*,*count*,*buf*,*stop* {C,P}
+This command read data from I2C peripheral in a buffer. 
+
+* *dev_id*  is the 7 bit address of device to read. 
+* *count*   How many bytes to read. 
+* *buf*     buffer address to receive bytes.
+* *stop*    Take **0** or **1**. **0** -> free bus after transaction. **1** keep hold on bus after transaction.
+
+For usage example see [i2c_eeprom.bas](BASIC/i2c_eeprom.bas).
+
+See also [I2C.CLOSE](#i2c_close),[I2C.WRITE](#i2c_write),[I2C.OPEN](#i2c_open)
+
+[index](#index)
+
+<a id="i2c_write"></a>
+## I2C.WRITE *dev_id*,*count*,*buf*,*stop* {C,P}
+This command is used to write data to **I2C** device. See [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) and [i2c_oled.bas](BASIC/i2c_oled.bas)  usage examples.
+
+* *dev_id*  device 7 bits address. 
+* *count*   number of bytes to be written. 
+* *buf*     buffer address containing data to be transmitted.
+* *stop*    Take **0** or **1** value. **0** -> free bus after transaction. **1** hold bus after transaction.
+
+See also [I2C.CLOSE](#i2c_close),[I2C.READ](#i2c_read),[I2C.OPEN](#i2c_open)
+
+[index](#index)
+<a id="idr"></a>
+### IDR {C,P}
+This constant is the offset of register **IDR** from **PORTx** address. To be accessed it is added to **PORTx** value.
+
+GPIO port use 5 registers: 
+
+* [ODR](#odr) *Output Data Register*, offset 0 
+
+* [IDR](#idr) *Input Data Register*, offset 1 
+
+* [DDR](#ddr) *Data Direction Register*, offset 2 
+
+* [CR1](#cr1) *Control Register 1, offset 3 
+
+* [CR2](#cr2) *Control Register 2, offset 4 
+
+```
+>? "Nucleo board user LED ODR address: " PORTC+ODR
+Nucleo board user LED ODR address:20490 
+
+>          
+```
+
+[index](#index)
+
+<a id="if"></a>
+### IF *condition* : cmd [:cmd]* {C,P}
+This keyword is used for conditionnal execution. The commands that follow the condition on the same line are executed only if *condition* is true.
+
+* *condition* can be any integer expression, comparison or boolean expression.
+
+* _cmd [:cmd]*_ is list of commands to be executed if *condition* is true.
+
+```
+>a=5%2:if a:?"vrai",a
+vrai   1
+
+>if a>2 : ? "vrai",a
+
+>
+```
+
+[index](#index)
+
+<a id="input"></a>
+### INPUT [*string*]*var* [,[*string*]*var*]+  {C,P}
+This command is used to prompt user to enter some integer value.
+
+* *string*  optional prompt string 
+* *var*  variable to store inputted value.
+* More than 1 value can be queried separated by a comma. 
+
+```
+>list
+    5 ' test INPUT command 
+   10 INPUT "age? " A , "sex(1=M,2=F)? " S 
+   14 IF A = 0 : END 
+   20 IF S = 1 ? "man " ; : GOTO 40 
+   30 ? "woman " ; 
+   40 IF A > 59 : ? "babyboomer" : GOTO 10 
+   50 ? "still young" : GOTO 10 
+program address: $91, program size: 162 bytes in RAM memory
+
+>run
+age? :60
+sex(1=M,2=F)? :1
+man babyboomer
+age? :40
+sex(1=M,2=F)? :2
+woman still young
+age? :0
+sex(1=M,2=F)? :0
+
+>
+```
+[index](#index)
+
+<a id="iwdgen"></a>
+### IWDGEN *expr* {C,P}
+This command enable the *Independant WatchDog timer*.
+
+* *expr* in the range {1.16383} is delay for watchdog to expired and trigger an MCU reboot. To avoid MCU reboot the [IWDGREF](#iwdgref) command must be called before this delay.
+
+16383 value is about 1 second.
+
+```
+>li
+    5 ' indepencdent watchdog timer test 
+   10 IWDGEN 16383 ' enable **IWDG** with 1 second delay  
+   20 IF KEY?  GOTO 40
+   30 PRINT \.,:PAUSE 100:IWDGREF ' refresh **IWDG** before it expire. 
+   34 GOTO 20
+   40 PRINT "\nThe IWDG will reset MCU in 1 second ."
+program address:  $80, program size:  225 bytes in RAM memory
+
+>run
+.................
+The IWDG will reset MCU in 1 second .
+
+> �
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.0
+
+>
+```
+
+[index](#index)
+
+<a id="iwdgref"></a>
+### IWDGREF  {C,P}
+This command is used to reset *IWDG* before its delay to avoid MCU reboot.
+
+See also [IWDGEN](#iwdgen).
+
+[index](#index)
+
+<a id="key"></a>
+### KEY {C,P}
+This function wait for a character from terminal and return its integer value.
+```
+>do let a=a+1 until key? : ? a,char(key)
+53266 	q
+
+>
+```
+See also [KEY?](#qkey),[CHAR](#char)
+
+[index](#index)
+<a id="qkey"></a>
+### KEY? {C,P}
+This function return **TRUE (-1)** if a character is available in terminal reception queue.
+If none in queue return **FALSE (0)**. 
+```
+>do LET A=A+1 until key? : ? a, char(key)
+  -1 v
+
+>
+```
+See also [KEY](#key),[CHAR](#char)
+
+[index](#index)
+<a id="let"></a>
+### LET *var*=*expr* [,var=expr] {C,P}
+This keyword is used to initialize variables. More than one variable can be initialize in the same command provide they are separated by comma.
+
+* *var* is variable to initialize, may be a single letter variable, a symbolic one or an array element. 
+
+* *expr* may be integer expr, relation or boolean condition.
+
+```
+>LET A=24*2+3:?a
+51
+>LET A=31416, b=2*A:?B
+62832   
+>LET C=-4*(a<51):?C
+0
+>LET @(3)=24*3
+
+>?@(3)
+72
+
+>
+```
+
+[index](#index)
+<a id="list"></a>
+### LIST [*line_start*][,*line_end*] {C}
+This command print on terminal the listing of active program. This program can be in RAM or in FLASH depending which is active.
+
+* *line_start* start listing from this line or next above if doesn't exist.
+* *line_end* end listing at this line or nearest below if doesn't exist.
+```
+>list
+    5 ' test INPUT command 
+   10 INPUT "age? " A , "sex(1=M,2=F)? " S 
+   14 IF A = 0 : END 
+   20 IF S = 1 ? "man " ; : GOTO 40 
+   30 ? "woman " ; 
+   40 IF A > 59 : ? "babyboomer" : GOTO 10 
+   50 ? "still young" : GOTO 10 
+program address: $91, program size: 162 bytes in RAM memory
+
+>list 10-30
+   10 INPUT "age? " A , "sex(1=M,2=F)? " S 
+   14 IF A = 0 : END 
+   20 IF S = 1 ? "man " ; : GOTO 40 
+   30 ? "woman " ; 
+program address: $91, program size: 162 bytes in RAM memory
+
+>list -30
+    5 ' test INPUT command 
+   10 INPUT "age? " A , "sex(1=M,2=F)? " S 
+   14 IF A = 0 : END 
+   20 IF S = 1 ? "man " ; : GOTO 40 
+   30 ? "woman " ; 
+program address: $91, program size: 162 bytes in RAM memory
+
+>list 10-
+   10 INPUT "age? " A , "sex(1=M,2=F)? " S 
+   14 IF A = 0 : END 
+   20 IF S = 1 ? "man " ; : GOTO 40 
+   30 ? "woman " ; 
+   40 IF A > 59 : ? "babyboomer" : GOTO 10 
+   50 ? "still young" : GOTO 10 
+program address: $91, program size: 162 bytes in RAM memory
+
+>
+```
+
+[index](#index)
+<a id="log"></a>
+### LOG2(*expr*) {C,P}
+This function return the base 2 logarithm of *expr*. The logarithm is truncate toward zero.
+```
+>i=1 do ? log2(i),:i=i*2 until i=$400000 
+   0    1    2    3    4    5    6    7    8    9   10   11   12   13   14   15   16   17   18   19   20   21 
+>
+```
+This function is the inverse of [BIT](#bit).
+```
+>? log(bit(7))
+   7 
+```
+
+[index](#index)
+<a id="lshift"></a>
+### LSHIFT(*expr1*,*expr2*) {C,P}
+This function shift left *expr1*, *expr2* bits the least be being replaced by **0**.
+```
+>? lshift(1,15)
+ 32768
+
+>? lshift(3,2)
+12 
+
+>
+```
+See also [RSHIFT](#rshift)
+
+[index](#index)
+<a id="new"></a>
+### NEW {C}
+Clear program from RAM.  
+
+[index](#index)
+<a id="next"></a>
+### NEXT var {C,P}
+This keyword is part of **FOR..NEXT** loop. It does the variable increment and check for limit crossover.
+
+See also [FOR](#for), [TO](#to),[STEP](#step). 
+
+[index](#index)
+<a id="not"></a>
+### NOT *expr* {C,P}
+Unary boolean operator. Take the value of *expr* and invert all bits. It as the highest priority of all boolean operators.
+
+See also [AND](#and),[OR](#or),[XOR](#xor).
+
+```
+>hex
+
+>? not 0
+$FFFFFF 
+
+>? not $ffffff
+  $0 
+
+>? not 5
+$FFFFFA 
+
+>? not $fffffa
+  $5 
+
+>
+```
+
+[index](#index)
+<a id="odr"></a>
+### ODR {C,P}
+This constant is the offset of **ODR** register from **PORTx** constant. To access this register its value must be added to **PORTx** value.
+
+```
+>bset portc+odr,bit(5) ' turn on user LED
+
+>bres portc+odr,bit(5) ' turn off user LED 
+
+>
+``` 
+See also [IDR](#idr),[DDR](#ddr),[CR1](#cr1), [CR2](#cr2). 
+
+[index](#index)
+<a id="on"></a>
+### ON *expr* GOTO|GOSUB *target_list*
+This keyword is used as a selector for [GOSUB](#gosub) or [GOTO](#goto). 
+
+* *expr* to be evaluate to select the target in *target_list* 
+* *target_list* comma separated list of line number or label.
+
+*expr* must evaluate in range {1..length(list_target)} otherwise program execution continue on next line.
+
+The selected target is the one at position corresponding to *expr* value counting from left to right, starting at count **1**. 
+
+```
+>list
+    5 ? "testing ON expr GOTO line#,line#,..." 
+    7 INPUT "select 1-5" A 
+   10 ON A GOTO 100 , LBL1 , 300 , 400 , EXIT 
+   14 ? "Woops! selector out of range." : END 
+   20 GOTO 500 
+  100 ? "selected GOTO 100" : GOTO 500 
+  200 LBL1 ? "selected GOTO LBL1" : GOTO 500 
+  300 ? "selected GOTO 300" : GOTO 500 
+  400 ? "selected GOTO 400" 
+  500 ? "testing ON expr GOSUB line#,line#..." 
+  505 INPUT "select 1-7" B 
+  510 LET A = 1 : ON A * B GOSUB 600 , 700 , 800 , 900 , 1000 , LBL2 , EXIT 
+  520 IF B < 1 OR B > 7 : GOTO 14 
+  524 GOTO 5 
+  600 ? "selected GOSUB 600" : RETURN 
+  700 ? "selected GOSUB 700" : RETURN 
+  800 ? "selected GOSUB 800" : RETURN 
+  900 ? "selected GOSUB 900" : RETURN 
+ 1000 ? "selected GOSUB 1000" : RETURN 
+ 1100 LBL2 ? "selected GOSUB LBL2" : RETURN 
+ 2000 EXIT ? "selected EXIT" 
+ 2010 END 
+program address: $91, program size: 618 bytes in RAM memory
+
+>run
+testing ON expr GOTO line#,line#,...
+select 1-5:2
+selected GOTO LBL1
+testing ON expr GOSUB line#,line#...
+select 1-7:4
+selected GOSUB 900
+testing ON expr GOTO line#,line#,...
+select 1-5:6
+Woops! selector out of range.
+
+>
+```  
+
+[index](#index)
+<a id="or"></a>
+### *expr1* OR *expr2*  {C,P}
+ This boolean operator combine bit to bit with an OR operator value of *expr1* with value of *expr2*.
+```
+>a=3:b=5 if a>3 or a<5 ? b
+   5 
+
+>if a<3 or a>5 ? a
+
+>  
+```
+
+See also [AND](#and),[NOT](#not),[XOR](#xor).
+
+[index](#index)
+<a id="pad"></a>
+### PAD {C,P}
+This function return the address of a 128 bytes working buffer. This buffer is used from other usage to program FLASH memory block. Using it in program is safe provide there is no FLASH writing or number printing.
+```
+>? pad
+5816
+
+>
+```
+
+[index](#index)
+<a id="pause"></a>
+### PAUSE *expr* {C,P}
+This command suspend execution for the value of *expr* in milliseconds.
+```
+>list
+   10 input"suspend for seconds? "s
+   20 if s=0:end
+   30 pause 1000*s
+   40 goto 10
+
+>run
+suspend for seconds? 5
+suspend for seconds? 10
+suspend for seconds? 0
+
+>
+```
+
+[index](#index)
+<a id="peek"></a>
+### PEEK(*expr*) {C,P}
+Return byte value at address resulting from evaluation of *expr*.
+
+There is 32 interrupt vectors and they all begin with instruction **INT** which binary code is...
+```
+>hex: for i=$8000 to i+31*4 step 4: ? peek(i);:next i
+$82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 
+>
+```
+
 
 <hr>
 

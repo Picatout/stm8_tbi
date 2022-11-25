@@ -1040,11 +1040,44 @@ $FFFFF6
 ## I2C.CLOSE {C,P}
 Cette commande sert à fermer le périphérique I2C du MCU. voir [I2C.OPEN](#i2c_open).
 
+
 [index](#index)
 
 <a id="i2c_open"></a>
 ## I2C.OPEN *freq* (C,P)
 Cette commande sert à ouvrir le périphérique I2C du MCU. Ce périphérique est connecté aux broches PE:1 et PE:2 du MCU. Voir les programmes [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) et [i2c_oled.bas](BASIC/i2c_oled.bas)  pour des exemples de son utilisation.
+
+### brochage sur les cartes.
+SIGNAL|MCU<BR>PORT|NUCLEO-8S208RB<BR>CON|NUCLEO-8S207K8<BR>CON
+-|-|-|-
+SCL|PB4|A1 (CN4:1)|A5 (CN4:8)
+SDA|PB5|A0 (CN4:2)|A4 (CN4:7)
+
+
+ Le périphérique **I2C** n'est accessible que comme fonction alterntive. Pour utiliser ce périphérique il faut donc activé le bit __6__ dans le registre __OPT2__ __(0x4803)__.  Ensuite il faut réinitialiser le MCU. Ceci peut-être fait sur la ligne de commande de la façon suivante:
+```
+>LET A=PEEK($4803) OR 64:WRITE $4803,A:REBOOT 
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R1
+
+>
+```   
+Cette opération n'a besoin d'être faite qu'une seule fois après chaque reprogrammation du firmware.
+
+Pour désactiver cette fonction alternative il faut faire:
+```
+>LET A=NOT 64 AND PEEK($4803):WRITE $4803,A: REBOOT
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R1
+
+>
+``` 
 
 [index](#index)
 
@@ -1228,42 +1261,49 @@ Depuis la version **2.5** le mot réservé **LET** est obligatoire.
 
 [index](#index)
 <a id="list"></a>
-### LIST [\C] | [*line#1*][,*line#2*] {C}
+### LIST [*line_start*][ - *line_end*] {C}
 
-Cette commande a 2 fonctions afficher le programme en mémoire ou bien afficher la liste des [constantes](#const) sauvegardées **EEPROM**. 
-
-* [\C](#const) Cette option affiche la liste des constantes sauvegardées dans la mémoire **EEPROM**  et s'utilise à l'exclusion du listage de programme. 
+Cette commande imprime sur le terminal le listing du programme actif. Ce programme peut-être en RAM ou en FLASH si le dernier exécuté était un fichier.
+* *line_start* indique à partir de quelle ligne doit débuté le listing.
+* *line_end* indique à quelle ligne doit se terminer le listing.
 
 ```
->list \c
-LED2=20490 
-TEST=1024 
-  2 constants in EEPROM
+>list
+    5 ' test INPUT command 
+   10 INPUT "age? " A , "sex(1=M,2=F)? " S 
+   14 IF A = 0 : END 
+   20 IF S = 1 ? "man " ; : GOTO 40 
+   30 ? "woman " ; 
+   40 IF A > 59 : ? "babyboomer" : GOTO 10 
+   50 ? "still young" : GOTO 10 
+program address: $91, program size: 162 bytes in RAM memory
+
+>list 10-30
+   10 INPUT "age? " A , "sex(1=M,2=F)? " S 
+   14 IF A = 0 : END 
+   20 IF S = 1 ? "man " ; : GOTO 40 
+   30 ? "woman " ; 
+program address: $91, program size: 162 bytes in RAM memory
+
+>list -30
+    5 ' test INPUT command 
+   10 INPUT "age? " A , "sex(1=M,2=F)? " S 
+   14 IF A = 0 : END 
+   20 IF S = 1 ? "man " ; : GOTO 40 
+   30 ? "woman " ; 
+program address: $91, program size: 162 bytes in RAM memory
+
+>list 10-
+   10 INPUT "age? " A , "sex(1=M,2=F)? " S 
+   14 IF A = 0 : END 
+   20 IF S = 1 ? "man " ; : GOTO 40 
+   30 ? "woman " ; 
+   40 IF A > 59 : ? "babyboomer" : GOTO 10 
+   50 ? "still young" : GOTO 10 
+program address: $91, program size: 162 bytes in RAM memory
 
 >
 ```
-
-* LIST [*line#1*][*,line#2*] Affiche le programme contenu dans la mémoire à l'écran. Sans arguments toutes les lignes sont affichées. Avec un argument la liste débute à la ligne dont le numéro est **&gt;=line#1**. Avec 2 arguments la liste se termine au numéro **&lt;=line#2**. 
-```
->li
-   5  ' suite de fibonacci 
-  10  A=0 :B=1 :C=1 
-  20  PRINT A,
-  30  C=A:A=B:B=B+C
-  40  IF A<0 :END
-  50  GOTO 20 
-program address: $80 , program size: 119 bytes in RAM memory
-
->li 30,51
-  30  C=A:A=B:B=B+C
-  40  IF A<0 :END
-  50  GOTO 20 
-program address: $80 , program size: 119 bytes in RAM memory
-
->
-
-```
-Si le dernier programme exécuté était celui sauvegardé en mémoire **FLASH** avec la commande [SAVE](#save) alors le listing sera celui du programme en mémoire **FLASH*** l'adresse du programme ainsi que sa taille sont indiqués à la fin du listing.
 
 [index](#index)
 <a id="log"></a>
@@ -1286,7 +1326,10 @@ Cette fonction est l'inverse de [BIT](#bit).
 Cette fonction décale vers la gauche *expr1* par *expr2* bits. Le bit le plus faible est remplacé par **0**. 
 ```
 >? lshift(1,15)
- -32768
+ 32768
+
+>? lshift(3,2)
+12 
 
 >
 ```
@@ -1350,44 +1393,43 @@ Voir aussi [IDR](#idr),[DDR](#ddr),[CR1](#cr1), [CR2](#cr2).
 ### ON *expr* GOTO|GOSUB liste_destination
 Cette commande permet de sélectionner la destination d'un [GOTO](#goto) ou [GOSUB](#gosub) en fonction de la valeur d'une expression. *liste_destination* est une liste de numéros de lignes ou d'étiquttes dont un élément sera sélection comme destination. Les numéros sont séparés par une virgule. Si la valeur de l'expression est plus petite que **1** ou plus grande que le nombre d'élément de la liste, l'exécution se poursuit sur la ligne suivante.
 ```
->li
-    5 PRINT "testing ON expr GOTO line#,line#,..."
-    7 INPUT "select 1-5"A
-   10 ON A GOTO 100, LBL1 ,300,400, EXIT 
-   14 PRINT "Woops! selector out of range.":END
-   20 GOTO 500
-  100 PRINT "selected GOTO 100":GOTO 500
-  200  LBL1 PRINT "selected GOTO LBL1":GOTO 500
-  300 PRINT "selected GOTO 300":GOTO 500
-  400 PRINT "selected GOTO 400"
-  500 PRINT "testing ON expr GOSUB line#,line#..."
-  505 INPUT "select 1-7"B
-  510 A=1 ON A*B GOSUB 600,700,800,900,1000, LBL2 , EXIT 
-  520 IF B<1 OR B>7 GOTO 14
-  524 GOTO 5
-  600 PRINT "selected GOSUB 600":RETURN
-  700 PRINT "selected GOSUB 700":RETURN
-  800 PRINT "selected GOSUB 800":RETURN
-  900 PRINT "selected GOSUB 900":RETURN
- 1000 PRINT "selected GOSUB 1000":RETURN
- 1100  LBL2 PRINT "selected GOSUB LBL2":RETURN
- 2000  EXIT PRINT "selected EXIT"
- 2010 END
-program address:  $80, program size:  675 bytes in RAM memory
+>list
+    5 ? "testing ON expr GOTO line#,line#,..." 
+    7 INPUT "select 1-5" A 
+   10 ON A GOTO 100 , LBL1 , 300 , 400 , EXIT 
+   14 ? "Woops! selector out of range." : END 
+   20 GOTO 500 
+  100 ? "selected GOTO 100" : GOTO 500 
+  200 LBL1 ? "selected GOTO LBL1" : GOTO 500 
+  300 ? "selected GOTO 300" : GOTO 500 
+  400 ? "selected GOTO 400" 
+  500 ? "testing ON expr GOSUB line#,line#..." 
+  505 INPUT "select 1-7" B 
+  510 LET A = 1 : ON A * B GOSUB 600 , 700 , 800 , 900 , 1000 , LBL2 , EXIT 
+  520 IF B < 1 OR B > 7 : GOTO 14 
+  524 GOTO 5 
+  600 ? "selected GOSUB 600" : RETURN 
+  700 ? "selected GOSUB 700" : RETURN 
+  800 ? "selected GOSUB 800" : RETURN 
+  900 ? "selected GOSUB 900" : RETURN 
+ 1000 ? "selected GOSUB 1000" : RETURN 
+ 1100 LBL2 ? "selected GOSUB LBL2" : RETURN 
+ 2000 EXIT ? "selected EXIT" 
+ 2010 END 
+program address: $91, program size: 618 bytes in RAM memory
 
 >run
 testing ON expr GOTO line#,line#,...
-select 1-5:1
-selected GOTO 100
+select 1-5:2
+selected GOTO LBL1
 testing ON expr GOSUB line#,line#...
-select 1-7:6
-selected GOSUB LBL2
+select 1-7:4
+selected GOSUB 900
 testing ON expr GOTO line#,line#,...
-select 1-5:5
-selected EXIT
+select 1-5:6
+Woops! selector out of range.
 
 >
-
 ```  
 
 [index](#index)
@@ -1404,7 +1446,7 @@ selected EXIT
 >  
 ```
 
-Voir aussi [AND](#and),[NOT](#not),[OR](#or),[XOR](#xor).
+Voir aussi [AND](#and),[NOT](#not),[XOR](#xor).
 
 [index](#index)
 <a id="pad"></a>
@@ -1424,30 +1466,30 @@ Ce tampon se trouve juste sous la pile des expressionset après le *Terminal Inp
 ### PAUSE *expr* {C,P}
 Cette commande suspend l'exécution pour un nombre de millisecondes équivalent à la valeur d'*epxr*. pendant la pause le CPU est en mode suspendu c'est à dire qu'aucune instruction n'est exécutée jusqu'à la prochaine interruption. La commande **PAUSE** utilise l'instruction machine *wfi* pour suspendre le processeur. Le TIMER4 génère une interruption à chaque milliseconde. Le compteur de **PAUSE** est alors décrémenté et lorsqu'il arrive à zéro l'exécution du programme reprend.
 ```
->li
+>list
    10 input"pause en secondes? "s
-   20 if s=0:stop
+   20 if s=0:end 
    30 pause1000*s
    40 goto 10
 
->ru
+>run
 pause en secondes? 5
 pause en secondes? 10
 pause en secondes? 0
 
 >
 ```
+
 [index](#index)
 <a id="peek"></a>
 ### PEEK(*expr*) {C,P}
 Retourne la valeur de l'octet situé à l'adresse représentée par *expr*. Même s'il s'agit d'un octet il est retourné comme un entier positif entre {0..255}.
 ```
->hex:peek($5240)'UART3_SR 
- $D0
-> ' $D0 signifie que le UART3 est inactif.
-
+>hex: ? peek($8000) 'instruction INT dans la table des vecteurs  
+ $82
 >
 ```
+
 [index](#index)
 <a id="pick"></a>
 ## PICK(*n*) {C,P}
