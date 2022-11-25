@@ -3310,6 +3310,7 @@ cmd_write:
 	call next_token 
 	cp a,#COMMA_IDX 
 	jreq 2$ 
+	_unget_token
 	jra 9$ ; no more data 
 2$:	call next_token 
 	cp a,#CHAR_IDX 
@@ -3696,10 +3697,9 @@ func_rshift:
 ;-------------------------- 
 
 cmd_fcpu:
-	ld a,#LIT_IDX
+	ld a,#LITC_IDX 
 	call expect 
-	call get_int24 
-	ld a,xl 
+    _get_char 
 	and a,#7 
 	ld CLK_CKDIVR,a 
 	ret 

@@ -790,28 +790,20 @@ Le connecteur **CN8**  de la carte **NUCLEO** indentifie les broches selon la co
 ### EDIT name {C}
 Copie le programme *name* sauvegardé en mémoire FLASH dans la RAM pour modification.
 ```
-Tiny BASIC for STM8
-Copyright, Jacques Deschenes 2019,2022
-version 2 .0 
-running application at address: $AA84 479 
+>dir
+$BB04 84 bytes,BLINK
+$BB84 218 bytes,HYMNE
 
->size
-program address: $AA84 program size: 106 bytes
-
->edit PERFORMANCE 
+>edit blink
 
 >list
-program size: 106 bytes
-   1  PERFORMANCE
-  10  ' ceci est un test de performance 
-  20  T=TICKS
-  30  FOR I=1 TO 10000 GOSUB 100 NEXT I
-  40  PRINT TICKS-T
-  50  END
- 100  RETURN
-
->size
-program address: $80 program size: 106 bytes
+    1 BLINK 
+    5 ' Blink LED2 on card 
+   10 DO BTOGL PORTC , BIT ( 5 ) PAUSE 500 UNTIL KEY? 
+   20 LET A = KEY 
+   30 BRES PORTC , BIT ( 5 ) 
+   40 END 
+program address: $91, program size: 84 bytes in RAM memory
 
 >
 ```
@@ -819,46 +811,53 @@ program address: $80 program size: 106 bytes
 [index](#index)
 <a id="eefree"></a>
 ### EEFREE {C,P}
-Cette fonction retourne l'adresse EEPROM libre. C'est à dire celle après la dernière constante définie.
+Cette fonction retourne l'adresse EEPROM libre. L'EEPROM est vérifié à partir du début jusqu'à ce que 8 valeurs à **0** consécutives soient trouvées. L'EEPROM est considérée libre à partir de ce point.
+
+voir aussi [AUTORUN](#autorun),[EEPROM](#eeprom). 
+
 ```
->li \c
-   0 constants in EEPROM
+>hex ? eeprom
+$4000 
+
+>autorun blink
+
+>? eeprom
+$4000 
+
+>for i=EEPROM to i+15:? i;peek(i):next i
+$4000 $41 
+$4001 $52 
+$4002 $BB 
+$4003 $0 
+$4004 $0 
+$4005 $0 
+$4006 $0 
+$4007 $0 
+$4008 $0 
+$4009 $0 
+$400A $0 
+$400B $0 
+$400C $0 
+$400D $0 
+$400E $0 
+$400F $0 
 
 >? eefree
-16384 
+$4003 
 
->const LED2=bit(5)
-
->li \c
-LED2=  32
-   1 constants in EEPROM
-
->? eefree
-16393 
-
->
+>>
 ```
 
 [index](#index)
 <a id="eeprom"></a>
 ### EEPROM {C,P}
 Retourne l'adresse du début de la mémoire EEPROM.
+
+Voir aussi [AUTORUN](#autorun),[EEFREE](#eefree).
+
 ```
->?pe(ee) 'print peek(eeprom)
- $AA
-
->?ee,pe(ee)
- $4000 $AA
-
->?pe(ee+1)
-  $0
-
->wr ee+1,$55 'write 16385,85
-
->?pe(ee+1) ' verifie 
-  85
-
->
+>hex:? eeprom,peek(eeprom)
+$4000 	$41 
 ```
 
 [index](#index)
@@ -866,14 +865,15 @@ Retourne l'adresse du début de la mémoire EEPROM.
 ### END {C,P}
 Cette commande arrête l'exécution d'un programme et retourne le contrôle à la ligne de commande. Cette commande peut-être placée à plusieurs endroits dans un programme. Elle peut aussi être utlisée sur la ligne de commande pour interrompre un programme après l'invocation d'une commande STOP.
 ```
->lis
-   10 a=1
-   20 a=a+1
-   30 ? a,: if a>100:end 'arrete lorsque A depasse 100
-   40 goto 20
+>list
+   10 LET A = 0 
+   20 LET A = A + 1 
+   30 ? A ; : IF A > 100 : END 
+   40 GOTO 20 
+program address: $91, program size: 52 bytes in RAM memory
 
 >run
-   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20  21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40  41  42  43  44  45  46  47  48  49  50  51  52  53  54  55  56  57  58  59  60  61  62  63  64  65  66  67  68  69  70  71  72  73  74  75  76  77  78  79  80  81  82  83  84  85  86  87  88  89  90  91  92  93  94  95  96  97  98  99 100 101
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 
 >
 ```
 [index](#index)
@@ -1028,7 +1028,7 @@ GOTO label works!
 ### HEX {C,P}
 Sélectionne la base numérique hexadécimale pour l'affichage des entiers.
 
-Voir auddi [DEC](#dec).
+Voir aussi [DEC](#dec).
 ```
 >HEX ?-10 DEC:?-10
 $FFFFF6

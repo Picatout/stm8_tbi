@@ -1,5 +1,11 @@
 ### 2022-11-24
 
+* Commit 21:00
+
+* Corrigé bogue dans commadne **FCPU**. 
+
+* Corrigé bogue dans commande **WRITE**.
+
 * commit 16:54
 
 * Modifié **PMODE**,**DREAD** et **DWRITE** pour tenir compte de l'ajout de la carte NUCLEO_8S207K8. 

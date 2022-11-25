@@ -754,16 +754,283 @@ PC7|D12|CN3:15
 ### DROP *n* {C,P}
 This command free *n* top slots from data stack.
 
-See [ALLOC](#alloc).
+See [ALLOC](#alloc),[PICK](#pick),[PUT](#put),[PUSH](#push),[POP](#pop).
 
 [index](#index)
 
 <a id="dwrite"></a>
 ### DWRITE *pin*,*level* 
-Le connecteur **CN8**  de la carte **NUCLEO** indentifie les broches selon la convention *Arduino*. Ainsi les broches notées **D0...D15** peuvent-être utilisées en entrée ou sortie digitales, i.e. leur niveau est à 0 volt ou à Vdd.  **DWRITE** est une commande qui porte le même nom que la fonction Arduino et qui permet d'écrire **0|1** sur l'une de ces broche lorsqu'elle est configurée en mode sortie. *pin* est une numéro entre **0...15** et *level* est soit **PINP** ou **POUT**. Avant d'utiliser **DWRITE** sur une broche il faut utiliser **PMODE** pour configurée la broche en sortie. 
+This command change the state of a digital output pin defined as output by command [PMODE](#pmode). 
+
+* *pin* is one of available **Dx** on board.
+
+* *level* is **1** or **0**. 
+
+See also [PMODE](#pmode), [DREAD](#dread).
 ```
-10 PMODE 10,POUT ' mettre D10 en sortie 
-20 DWRITE 10, 0  , Met la sortie D10 a zero.
+10 PMODE 10,POUT ' configure D10 as output 
+20 DWRITE 10, 0  ' set pin to 0 level 
+```
+
+[index](#index)
+<a id="edit"></a>
+### EDIT name {C}
+Copy a program file from FLASH to RAM for modification.
+```
+>dir
+$BB04 84 bytes,BLINK
+$BB84 218 bytes,HYMNE
+
+>edit blink
+
+>list
+    1 BLINK 
+    5 ' Blink LED2 on card 
+   10 DO BTOGL PORTC , BIT ( 5 ) PAUSE 500 UNTIL KEY? 
+   20 LET A = KEY 
+   30 BRES PORTC , BIT ( 5 ) 
+   40 END 
+program address: $91, program size: 84 bytes in RAM memory
+
+>
+
+```
+[index](#index)
+<a id="eefree"></a>
+### EEFREE {C,P}
+This function return first free EEPROM address. The EEPROM is scanned from start address until 8 consecutives **0** values are found. The EEPROM is consedered free from that first zero to end.
+
+See also [AUTORUN](#autorun),[EEPROM](#eeprom).
+
+```
+>hex ? eeprom
+$4000 
+
+>autorun blink
+
+>? eeprom
+$4000 
+
+>for i=EEPROM to i+15:? i;peek(i):next i
+$4000 $41 
+$4001 $52 
+$4002 $BB 
+$4003 $0 
+$4004 $0 
+$4005 $0 
+$4006 $0 
+$4007 $0 
+$4008 $0 
+$4009 $0 
+$400A $0 
+$400B $0 
+$400C $0 
+$400D $0 
+$400E $0 
+$400F $0 
+
+>? eefree
+$4003 
+
+>
+```
+
+[index](#index)
+<a id="eeprom"></a>
+### EEPROM {C,P}
+Return the base address of EEPROM. 
+
+See also [AUTORUN](#autorun),[EEFREE](#eefree).
+```
+>hex:? eeprom,peek(eeprom)
+$4000 	$41 
+
+>
+```
+
+[index](#index)
+<a id="end"></a>
+### END {C,P}
+This keyword end program. It can be place anywhere in a program.
+
+See also [STOP](#stop)
+```
+>list
+   10 LET A = 0 
+   20 LET A = A + 1 
+   30 ? A ; : IF A > 100 : END 
+   40 GOTO 20 
+program address: $91, program size: 52 bytes in RAM memory
+
+>run
+1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101 
+>
+```
+[index](#index)
+<a id=erase></a>
+### ERASE \E|\F|NAME {C}
+This command is used to erase persistant memory, FLASH or EEPROM. 
+
+* *\E* erase all EEPROM 
+* *\F* erase all FLASH memory starting at **app_space**, i.e. after system firmware.
+* *NAME* erase a specific program file.
+
+See also [SAVE](#save),[DIR](#dir)
+
+[index](#index)
+<a id="fcpu"></a>
+### FCPU *integer*
+This command set CPU clock frequency without affecting peripheral clock which stay at 16Mhz.
+
+* *integer* in range **{0..7}**, Fcpu=16Mhz/2^7.
+
+Reducing CPU clock frequency reduce energy consumption.
+```
+>fcpu 7 ' 125Khz
+
+>let t=ticks: for i=1 to 10000:next i: ? ticks-t;" msec"
+18140  msec
+
+>fcpu 0 ' 16 Mhz 
+
+>let t=ticks: for i=1 to 10000:next i: ? ticks-t;" msec"
+97  msec
+
+>
+```
+
+[index](#index)
+<a id="for"></a>
+### FOR *var*=*expr1* TO *expr2* [STEP *expr3*] NEXT *var* {C,P}
+Keyword **FOR** intialiaze a counted loop that exit when the control variable pass the limit.
+
+* *var* is the control variable {A..Z}.
+* *expr1* is initial value of variable.
+* [TO](#to) keyword to introduce loop limit. 
+* *expr2* limit value.
+* [STEP](#step) keyword introduce the increment applied at variable at end of each loop.
+* *expr3* increment value.
+* [NEXT](#next) keyword that close the loop. NEXT apply the increment and check for limit.
+if limit is crossed over the loop exit.
+* *var* same as control variable.
+
+A FOR..NEXT loop can span many lines of codes except for the initialization which must me on the same line. 
+
+FOR..NEXT loops can be nested.
+
+```
+>list
+    5 'multipliation table 1..10 
+   10 FOR A = 1 TO 10 
+   20 FOR B = 1 TO 10 
+   30 ? A * B ,; 
+   40 NEXT B : ? 
+   50 NEXT A 
+program address: $91, program size: 91 bytes in RAM memory
+
+>run
+1 	2 	3 	4 	5 	6 	7 	8 	9 	10 	
+2 	4 	6 	8 	10 	12 	14 	16 	18 	20 	
+3 	6 	9 	12 	15 	18 	21 	24 	27 	30 	
+4 	8 	12 	16 	20 	24 	28 	32 	36 	40 	
+5 	10 	15 	20 	25 	30 	35 	40 	45 	50 	
+6 	12 	18 	24 	30 	36 	42 	48 	54 	60 	
+7 	14 	21 	28 	35 	42 	49 	56 	63 	70 	
+8 	16 	24 	32 	40 	48 	56 	64 	72 	80 	
+9 	18 	27 	36 	45 	54 	63 	72 	81 	90 	
+10 	20 	30 	40 	50 	60 	70 	80 	90 	100 	
+
+>
+``` 
+
+[index](#index)
+<a id="free"></a>
+### FREE {C,P}
+This function return size of free RAM in BYTES.
+```
+>new
+
+>? free
+5561 
+
+>10 ? "hello world!"
+
+>? free
+5542 
+
+>
+```
+
+[index](#index)
+<a id="get"></a>
+### GET *var* 
+This command read a character in a variable from terminal but contrary to [KEY](#key) it doesn't wait for it.
+If no character is available when invoked it return **0**.
+
+See also [KEY](#key),[KEY?](#qkey)
+
+```
+10 PRINT "Press a key to end.\n" : PAUSE 400
+20 DO ? "hello ";:  GET A: UNTIL A<>0 
+
+```
+
+[index](#index)
+<a id="gosub"></a>
+### GOSUB *line#*|*label* {P}
+Subroutine call.
+
+* *line#* is the line number where the subroutine is located.
+* *label* placed at beginning of line can be used as subroutine name instead of line number.
+label name obey same rules as variables and constants names.
+```
+>li
+5 ' test GOSUB with line# and label
+10 GOSUB 100 
+20 GOSUB LBL1 
+30 END 
+100 ? "GOSUB line# works!" return 
+200 LBL1 ? "GOSUB label works!" return 
+
+>run
+GOSUB line# works!
+GOSUB label works!
+
+>
+```
+
+[index](#index)
+<a id="goto"></a>
+### GOTO *line#*|*label* {P}
+This keyword do an unconditionnal jump to some other program line.
+* *line#*  is target program line.
+* *label* is a label at beginning of a line used as GOTO target.
+
+```
+>li
+    5 ' test GOTO avec line# et label 
+   10 GOTO 100
+   20  LBL1 PRINT "GOTO label works!"
+   30 END
+  100 PRINT "GOTO line# works!"GOTO LBL1 
+program address:  $80, program size:  119 bytes in RAM memory
+
+>run
+GOTO line# works!
+GOTO label works!
+
+>
+```
+[index](#index)
+<a id="hex"></a>
+### HEX {C,P}
+This command select integer output format for [PRINT](#print) command.
+
+See also [DEC](#dec).
+```
+>HEX ?-10 DEC:?-10
+$FFFFF6
+  -10
 ```
 
 <hr>
