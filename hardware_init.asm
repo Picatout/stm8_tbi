@@ -194,7 +194,7 @@ Timer4UpdateHandler:
 	addw x,#1 
 	adc a,#0 
 	jrpl 0$
-; reset to 0 when negatif 
+; reset to 0 when negative
 	clr a 
 	clrw x 
 0$:	_straz ticks 

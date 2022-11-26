@@ -288,14 +288,14 @@ name|description
 [POP](#pop)|Function that remove and return top of data stack .
 [POUT](#pout)|Change state of Arduino digital pin.
 [PRINT or ?](#print)| Print, string, charater or integer to terminal. 
-[PORTA](#prtx)|Return base address GPIO A 
-[PORTB](#prtx)|Return base address GPIO B
-[PORTC](#prtx)|Return base address GPIO C
-[PORTD](#prtx)|Return base address GPIO D
-[PORTE](#prtx)|Return base address GPIO E
-[PORTF](#prtx)|Return base address GPIO F
-[PORTG](#prtx)|Return base address GPIO G
-[PORTI](#prtx)|Return base address GPIO I
+[PORTA](#portx)|Return base address GPIO A 
+[PORTB](#portx)|Return base address GPIO B
+[PORTC](#portx)|Return base address GPIO C
+[PORTD](#portx)|Return base address GPIO D
+[PORTE](#portx)|Return base address GPIO E
+[PORTF](#portx)|Return base address GPIO F
+[PORTG](#portx)|Return base address GPIO G
+[PORTI](#portx)|Return base address GPIO I
 [PUSH](#push)|Push integer on data stack.
 [PUT](#put)| Put an integer on data stack at selected position.
 [READ](#read)|Read in a variable data item from DATA line.
@@ -400,6 +400,8 @@ Reserve *n* slots on data stack. These slots can be used as temporary or local v
 ### *expr1|rel1|cond1* **AND** *expr2|rel2|cond2* {C,P}
 Boolean operator to insert between two expressions or relations. This is a bit to bit **AND** operator. 
 
+When these allocated slots are no more used never forget to free them with [DROP](#drop).
+
 See also [NOT](#not),[OR](#or),[XOR](#xor).
 
 ```
@@ -414,6 +416,7 @@ See also [NOT](#not),[OR](#or),[XOR](#xor).
 
 >
 ```
+See also [DROP](#drop),[PICK](#pick),[PUT](#put),[PUSH](#push),[POP](#pop)
 
 [index](#index)
 <a id="asc"></a>
@@ -1508,6 +1511,631 @@ There is 32 interrupt vectors and they all begin with instruction **INT** which 
 ```
 >hex: for i=$8000 to i+31*4 step 4: ? peek(i);:next i
 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 
+>
+```
+
+[index](#index)
+<a id="pick"></a>
+## PICK(*n*) {C,P}
+This function return the value of nth slot from data stack. The value stay on stack.
+The top slot as indice zero. 
+
+See also 
+* [ALLOC n](#alloc) To reserve *n* slots on top of data stack.
+* [PUSH expr](#push)  Push value of *expr* on top of data stack. 
+* [POP](#pop) extract top value of data stack. 
+* [DROP n](#drop)  Discard *n* slots from top of data stack.
+* [PUT n,expr](#put) put at slot *n* value of *expr*.  
+
+```
+>push 1:push 2: ? pick(0);pick(1)
+2 1 
+
+>
+```
+
+[index](#index)
+<a id="pinp"></a>  {C,P}
+### PINP pin 
+This is a constant used by command [PMODE](#pmode)  to set pin as digital input.
+
+[index](#index)
+<a id="pmode"></a>
+### PMODE *pin*,*mode*
+This command configure *Dx* pin as digital input [PINP](#pinp) or digital output [POUT](#pout).
+The power on default mode is digital input.
+
+### NUCLEO-8S208RB Dx pins. 
+PIN|connector
+-|-
+D0|CN7:1
+D1|CN7:2
+D2|CN7:3
+D3|CN7:4
+D4|CN7:5
+D5|CN7:6
+D6|CN7:7
+D7|CN7:8
+D8|CN8:1
+D9|CN8:2
+D10|CN8:3
+D11|CN8:4
+D12|CN8:5
+D13|CN8:6
+D14|CN8:9
+D15|CN8:10
+
+### NUCLEO-8S207K8 Dx pins.
+PIN|connector
+-|-
+D0|CN3:2
+D1|CN3:1
+D2|CN3:5
+D3|CN3:6
+D4|CN3:7
+D5|CN3:8
+D6|CN3:9
+D7|CN3:10
+D8|CN3:11
+D9|CN3:12
+D10|CN3:13
+D11|CN3:14
+D12|CN3:15 
+
+```
+10 PMODE 10,POUT 
+20 DWRITE 10, 1
+```
+See also [PINP](#pinp),[POUT](#pout)
+
+
+[index](#index)
+<a id="poke"></a>
+### POKE *expr1*,*expr2*
+Put byte value of *expr2* at address of *expr1*
+
+* *expr1* must result in a RAM address or register address.
+* *expr2* result in an integer in range {0..255}.
+
+```
+>poke PORTC,32 ' turn on user LED.
+
+>
+```
+See also [PEEK](#peek)
+
+[index](#index)
+<a id="pop"></a>
+## POP {C,P}
+This function remove the top integer from data stack and return its value.
+ 
+```
+>push 1: push 2 :? pop; pop ' now data stack is empty
+2 1 
+
+>
+```
+See also [ALLOC](#alloc),[DROP](#drop),[PICK](#pick),[PUSH](#push),[PUT](#put)
+
+[index](#index)
+<a id="pout"></a>
+### POUT  {C,P} 
+This constant is used by [PMODE](#pmode) to configure **Dx** pin as digital output. 
+
+[index](#index)
+<a id="print"></a>
+### PRINT [*string*|*expr*|*char*][,*string*|*expr*|*char*][';'] {C,P}
+This command type to terminal. It accept 3 types of information.
+
+* *string*  Quoted string.
+* *expr*  any integer, relation or boolean expression.
+* *char*  ASCII character preceded by **\\** or [CHAR](#char) function.
+* *','*  comma send a tabulation character to terminal, i.e ASCII **9**. This move terminal cursor right to next column. Column width depend on terminal configuration. 
+* *';'* semi-colon at end of PRINT command cancel carriage-return. Between items it is a separator.
+
+The PRINT command can be abbreviate by **'?'** character.
+
+```
+>? 3
+ 3
+
+>?,3
+	 3
+
+>? "hello";" world!"
+hello world!
+
+>? "hello","world!"
+hello	world!
+
+>? "hello" "world!"
+helloworld!
+
+>LET A=51: ? "A=",a      
+A=	51 
+
+>?"A="a
+A=51 
+
+>
+```
+
+[index](#index)
+<a id="portx"></a>
+### PORTx {C,P}
+For each GPIO port there is a constant which value is the base address of the registers set of the port. Each use 5 registers for its configuration and data I/O.   
+
+* [ODR](#odr) Output data register 
+* [IDR](#idr) Input data register 
+* [DDR](#ddr) Data direction register 
+* [CR1](#CR1) Configuration register 1
+* [CR2](#cr2) Configuration register 2 
+
+For each of these register there is a defined constant when added to **PORTx** address give access to that register. 
+```
+>? porta
+ 20480
+
+>? portc+ddr
+20492 
+
+>hex: ? portc+odr
+ $500A
+
+>bset portc+odr,bit(5) ' turn on user LED 
+```
+
+[index](#index)
+<a id="push"></a>
+## PUSH *expr* {C,P}
+This command push the value of *expr* on top of data stack. Its inverse is [POP](#pop) remove the top value from data stack and return it. 
+
+
+```
+>push 1 push 2 ? pop pop 
+   2    1 
+
+>
+```
+See also [ALLOC](#alloc),[DROP](#drop),[PICK](#pick),[PUT](#put)
+
+[index](#index)
+<a id="put"></a>
+## PUT *n*,*expr* {C,P}
+This command place the value of *expr* at nth position on stack. It is the inverse of [PICK](#pick). Some slots must have been reserved with [ALLOC](#alloc) prior to using these 2. Or may a serie of [PUSH](#push). 
+
+```
+>LIST
+    1 XSTACK 
+    2 ' tset xstack functions and commands
+   10 ALLOC 3 
+   20 PUT 0 , - 1 : PUT 1 , - 2 : PUT 2 , - 3 
+   30 ? PICK ( 0 ) PICK ( 1 ) PICK ( 2 ) 
+   40 PUT 2 , - 5 
+   50 ? PICK ( 2 ) 
+program address: $91, program size: 128 bytes in RAM memory
+
+>run
+-1 -2 -3 
+-5 
+
+>
+```
+See also [ALLOC](#alloc),[DROP](#drop),[PICK](#pick),[PUSH](#push),[POP](#pop)
+
+[index](#index)
+<a id="read"></a>
+### READ {P}
+This function read next [DATA](#data) item and move pointer to next item. 
+
+* Data items are separated by a comma. 
+* DATA lines must be grouped for all items to be read.
+* Many DATA group may exist in the same program but at startup the DATA pointer is set to first group. To READ others group the command [RESTORE](#restore) must be used to set the DATA pointer to a specific group.
+
+Reading over the last DATA item result in a fatal error.
+```
+>list
+   10 RESTORE 
+   20 DATA 100,200
+   30 DATA 300
+   40 PRINT READ ,READ ,READ ,READ 
+
+>run
+ 100 200 300
+No data found.
+   40 PRINT READ ,READ ,READ ,READ 
+```
+At any point in a program the command [RESTORE](#restore) can be used to reset the pointer or set it to some specific line number.
+
+[index](#index)
+<a id="reboot"></a>
+### REBOOT {C,P}
+This command reset the MCU.
+```
+>reboot
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.0
+
+>
+```
+
+[index](#index)
+<a id="rem"></a>
+### REM|'  *texte*
+The keyword **REM** which can be replaced by the tick **\'** character mark a comment.
+Comments end with the line but can be after one or more commands.
+
+In listing only the tick is used to mark comments.
+```
+>10 rem This is a comment.  
+
+>20 ' Comment are skipped by the interpreter. 
+
+>list
+   10 ' This is a comment. 
+   20 ' Comment are skipped by the interpreter.
+program address:  $80, program size:   69 bytes in RAM memory
+
+>
+```
+
+[index](#index)
+<a id="restore"></a>
+### RESTORE [line#] {p}
+This command is used to restore data pointer to first line of data if there is no parameter 
+or to **line#** if one is given. 
+
+It is a fatal error to RESTORE to a line that doesn't exist or is not a data line.
+```
+>>LIST
+    5 ? "test RESTORE command." 
+   10 RESTORE 
+   20 ? READ READ READ 
+   30 RESTORE 300 
+   40 ? READ READ READ 
+   50 END 
+  100 DATA 1 , 2 , 3 
+  200 DATA 4 , 5 , 6 
+  300 DATA 7 , 8 , 9 
+program address: $91, program size: 102 bytes in RAM memory
+
+>RUN
+test RESTORE command.
+1 2 3 
+7 8 9 
+
+>
+```
+
+[index](#index)
+<a id="return"></a>
+### RETURN {P}
+This keyword is used to exit from a subroutine and return after the GOSUB that called that subroutine. 
+```
+>list
+   10 GOSUB 100 : ? "back from subroutine" 
+   20 END 
+  100 ? "inside subroutine" 
+  110 RETURN 
+program address: $91, program size: 65 bytes in RAM memory
+
+>run
+inside subroutine
+back from subroutine
+
+>
+```
+
+[index](#index)
+<a id="rnd"></a>
+### RND(*expr*)
+This function return a pseudo random integer in the interval {1..*expr*}
+
+*expr* must be a positive integer otherwise it is a fatal error.
+```
+>list
+   10 FOR I = 1 TO 100 
+   20 ? RND ( 1000 ) , ; : IF I % 10 = 0 : ? 
+   30 NEXT I 
+program address: $91, program size: 49 bytes in RAM memory
+
+>run
+767 	286 	763 	974 	413 	313 	955 	592 	228 	979 	
+784 	5 	372 	393 	765 	989 	354 	794 	254 	938 	
+598 	456 	318 	233 	945 	228 	803 	608 	831 	126 	
+638 	981 	459 	505 	247 	616 	859 	799 	753 	893 	
+163 	439 	844 	637 	964 	195 	637 	876 	2 	859 	
+766 	983 	5 	78 	525 	929 	193 	108 	936 	187 	
+437 	778 	261 	367 	676 	266 	561 	774 	473 	318 	
+420 	132 	179 	379 	708 	921 	356 	5 	759 	637 	
+140 	279 	580 	713 	930 	657 	294 	709 	177 	179 	
+827 	520 	117 	541 	214 	197 	58 	799 	330 	581 	
+
+>
+```
+
+[index](#index)
+<a id="rshift"></a>
+### RSHIFT(*expr1*,*expr2*) {C,P}
+This function shift right the value of *expr1* by *expr2* bits. The most significant bit is replaced by **0**.
+
+* *expr1* value to be right shifted 
+* *expr2* value must be in range {0..15} and is the number positions to be shifted.
+
+See also [LSHIFT](#lshift)
+
+```
+>? rshift($80,7)
+   1
+
+>?rshift($40,4) 
+   4
+
+>
+```
+
+[index](#index)
+<a id="run"></a>
+### RUN [name] {C}
+Without parameter execute the program residing in RAM. If *name* is given, a program file with that name is searched and if found executed from FLASH memory.
+
+There is 3 hot keys to stop a running program. 
+
+1.  **CTRL+C**  end program and fall back to command line.
+2.  **CTRL+X**  reboot the MCU.
+3.  **CTRL+Z**  clear autorun data in EEPROM and reboot.
+
+```
+>dir
+$B984   97 bytes,BLINK
+$BA04  138 bytes,FIBONACCI
+
+>run fibonacci
+   0    1    1    2    3    5    8   13   21   34   55   89  144  233  377  610  987 1597 2584 4181 6765 10946 17711 28657 46368 75025 121393 196418 317811 514229 832040 1346269 2178309 3524578 5702887
+>    
+```
+
+[index](#index)
+<a id="save"></a>
+### SAVE {C}
+This command is used to save the program in RAM to the file system in FLASH memory.
+To be saved the first line of the program must be labeled. A program saved can be run from 
+giving its name to the command [RUN](#run). The command [DIR](#dir) list on the terminal the files saved.
+
+[index](#index)
+<a id="size"></a>
+### SIZE {C}
+This command display the address and size of the program in RAM or in FLASH if such a program was the last executed.
+
+[index](#index)
+<a id="sleep"></a>
+### SLEEP {C,P}
+This command is used to place the MCU in HALT mode. In this mode the internal oscillator is stopped an the MCU is in lowest energy mode. Only a reset or an external interrupt can wake it up. All peripherals are suspended in this mode except for the IWDG if this one is clocked by the LSI.  
+
+If the **SLEEP** command is called inside a program and the MCU is woke up by an external interrupt the program continue execution after the **SLEEP** command.
+
+[index](#index)
+<a id="spien"></a>
+### SPIEN *div*,*0|1*  (NUCLEO-8S208RB only)
+This command enable the SPI peripheral.
+
+* *div*  clock frequency divisor {0..7}, Fspi=16Mhz/(2^div)+1 {2..256}.
+* *0|1*  **0** disable, **1** enable.
+
+### NUCLEO-8S208RB pinout 
+SPI<BR>SIGNAL|CONN.
+-|-
+~CS|CN8:3
+SCLK|CN8:6
+MISO|CN8:5
+MOSI|CN8:4
+
+
+[index](#index)
+<a id="spisel"></a>
+### SPISEL *1|0*  (NUCLEO-8S208RB only)
+This command is used to select or deselect SPI device.
+
+* *1|0*  The **~CS** pin follow the inverse of this value. 
+   * **1** select, i.e.~CS is low.
+   * **0** deselect, i.e. ~CS is high.
+
+**1** enable peripheral.
+
+```
+10 SPIEN 0,1 'enable SPI at 8Mhz. 
+20 SPISEL 1  ' Select the device.  
+30 SPIWR 5   ' write **5** to device.
+40 ? SPIRD   ' read value from device.
+50 SPISEL 0  ' deselect device. 
+```
+
+[index](#index)
+<a id="spird"></a>
+### SPIRD  (NUCLEO-8S208RB only)
+This function return a byte read from an SPI device. 
+
+[index](#index)
+<a id="spiwr"></a>
+### SPIWR *byte* [, byte]  (NUCLEO-8S208RB only)
+This command write one or more bytes to SPI device.  The following program show the use of an 25LC640 SPI EEPROM. 
+Cette commande permet d'envoyer un ou plusieurs octets vers le périphérique SPI. Le programme suivant illustre l'utilisation de l'interface SPI avec une mémoire externe EEPROM 25LC640. Le programme active l'interface SPI à la fréquence de 2Mhz (16Mhz/2^(2+1)). Ensuite doit activé le bit **WEL** du **25LC640** pour authorizer l'écriture dans l'EEPROM. Cette EEPROM est configurée en page de 32 octets. On écris donc 32 octets au hazard à partir de l'adresse zéro. pour ensuite refaire la lecture de ces 32 octets et les affichés à l'écran. 
+```
+>li 
+   10 SPIEN 2,1' spi clock 2Mhz
+   20 SPISEL 1:SPIWR 6:SPISEL 0 'enable WEL bit in EEPROM 
+   22 SPISEL 1:SPIWR 5:IF NOT (AND (SPIRD ,2)):GOTO 200
+   24 SPISEL 0
+   30 SPISEL 1:SPIWR 2,0,0
+   40 FOR I =0TO 31:SPIWR RND (256):NEXT I ' write 32 random values 
+   42 SPISEL 0
+   43 GOSUB 100' wait for write completed 
+   44 SPISEL 1:SPIWR 3,0,0
+   46 HEX :FOR I =0TO 31:PRINT SPIRD ,:NEXT I ' read back the written values
+   50 SPISEL 0
+   60 SPIEN 0,0
+   70 END  
+   90 ' wait for write completed 
+  100 SPISEL 1:SPIWR 5:S =SPIRD :SPISEL 0
+  110 IF AND (S ,1):GOTO 100
+  120 RETURN 
+  200 PRINT "failed to enable WEL bit in EEPROM"
+  210 SPISEL 0  ' deselect EEPROM 
+  220 SPIEN 0,0 ' disable SPI 
+
+>run
+ $3F $99 $19 $73 $4C $FE $B1 $66 $88 $7F $31 $FD $AD $BA $78 $1B $78 $2F $23 $59 $7D $C6 $2E $D0 $80 $7A $19 $E8 $53 $BC  $5 $AC
+>run
+ $A0 $AE $DD $32 $C5 $D6 $DB $43 $90 $CA $CF $60 $37 $B9 $D8 $C0  $7 $3B $AE $B2 $58 $5F $B5 $33 $8D $1D $7D $3F $94 $7D $FF $F3
+>
+```
+
+[index](#index)
+<a id="step"></a>
+### STEP *expr* {C,P}
+This keyword is part of **FOR..NEXT** loop initialization. It set the increment of control variable. 
+
+See [FOR](#for),[TO](#to),[NEXT](#next)
+
+[index](#index)
+<a id="stop"></a>
+### STOP {P}
+This command is a tool to help debugging a program. It is used to stop execution of a program at some point and go to command line. From command line variables content can be viewed or changed. When the [RUN](#run) command is invoked after a stop the program continue after the **STOP** point. 
+
+If [END]](#end) command is invoked from command line while in STOP mode, the program is ended.
+
+```
+>10 FOR A=1 TO 10:PRINT A:STOP:NEXT A
+
+>run
+   1 
+break point, RUN to resume.
+
+>run
+   2 
+break point, RUN to resume.
+
+>run
+   3 
+break point, RUN to resume.
+
+>run
+   4 
+break point, RUN to resume.
+
+>end
+
+>run
+   1 
+break point, RUN to resume.
+
+>end
+
+>
+```
+
+[index](#index)
+<a id="ticks"></a>
+### TICKS {C,P}
+The system as an internal 24 bits counter incremented every millisecond. **TIMER4** is used for that purpose. **TICKS** function return the value of this counter. The counter rollover at 0x7fffff to stay in positive values. the give about 2.3 hours rollover.
+When the [AWU](#awu) or [SLEEP](#sleep) is used the ticks counter is suspended during HALT period.
+
+```
+>let t=ticks: for a=1 to 1000:next a : ?ticks-t " msec"
+  10 msec 
+
+```
+
+[index](#index)
+<a id="timeout"></a>
+### TIMEOUT 
+This function check if the [TIMER](#timer) is expired. It return TRUE if so.
+
+```
+>TIMER 5:DO LET A=TIMEOUT:PRINT A;:UNTIL A
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 
+>
+```
+
+[index](#index)
+<a id="timer"></a>
+### TIMER *expr* {C,P}
+This command set a countdown timer. This count is decremented every millisecond.
+The function [TIMEOUT](#timeout) is used to know when the count reach **0**.
+```
+>timer 1000: do until timeout ' time out after 1 second
+
+>
+```
+
+[index](#index)
+<a id="to"></a>
+### TO *expr* {C,P}
+This keyword is part of [FOR..NEXT](#for) loop initialization.  It is used to set the limit.
+
+[index](#index)
+<a id="tone"></a>
+### TONE *expr1*,*expr2* {C,P}
+This command is used to generate a tone.
+* *expr1* value is tone frequency.
+* *expr2* value is tone duration in milliseconds.
+
+The audio output for NUCLEO-8S208RB is on **CN9:6**
+
+The audio outpout for NUCLEO-8S207K8 is on **CN3:3
+
+This tone is generated using TIMER2 channel 1 configured in PWM mode with 50% duty cycle.
+  
+```
+>list
+    5 ' play scale
+   10 LET @ ( 1 ) = 440 , @ ( 2 ) = 466 , @ ( 3 ) = 494 , @ ( 4 ) = 523 , @ ( 5 ) = 554 , @ ( 6 ) = 587 
+   20 LET @ ( 7 ) = 622 , @ ( 8 ) = 659 , @ ( 9 ) = 698 , @ ( 10 ) = 740 , @ ( 11 ) = 784 , @ ( 12 ) = 831 
+   30 FOR I = 1 TO 12 : TONE @ ( I ) , 200 : NEXT I 
+program address: $91, program size: 187 bytes in RAM memory
+
+>
+``` 
+[index](#index)
+<a id="ubound"></a>
+### UBOUND
+This function return the last indice of **@** array. As this value depend on RAM left free when a program is loaded a runtime function is required to know this value.
+The **@** array is garanteed to have at least a size of 10.
+
+The **@** indices are in range {1..ubound}.
+
+
+[index](#index)
+### UFLASH (C,P)
+<a id="uflash"></a>
+This function return the address of FLASH free for program use. This value varies as the numbers of files and size varies. So it should be called whenever a program want to write to FLASH memory.
+
+This address is always aligned to FLASH block which are 128 bytes in size.
+
+```
+>list
+    1 BLINK 
+    5 ' Blink LED2 on card 
+   10 DO BTOGL PORTC , BIT ( 5 ) PAUSE 500 UNTIL KEY? 
+   20 LET A = KEY 
+   30 BRES PORTC , BIT ( 5 ) 
+   40 END 
+program address: $91, program size: 84 bytes in RAM memory
+
+>? uflash
+47872 
+
+>save
+
+>dir
+$BB04 84 bytes,BLINK
+
+>? uflash
+48000 
+
 >
 ```
 

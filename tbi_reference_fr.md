@@ -333,14 +333,14 @@ nom|description
 [POP](#pop)|Retire et retourne le sommet de la pile des arguments.
 [POUT](#pout)|Modifie la sortie numérique d'une des broches sur un connecteur D.
 [PRINT ou ?](#print)| Imprime sur le terminal une liste de valeurs. 
-[PORTA](#prtx)|Constante système qui retourne l'adresse du port GPIO A 
-[PORTB](#prtx)|Constante système qui retourne l'adresse du port GPIO B
-[PORTC](#prtx)|Constante système qui retourne l'adresse du port GPIO C
-[PORTD](#prtx)|Constante système qui retourne l'adresse du port GPIO D
-[PORTE](#prtx)|Constante système qui retourne l'adresse du port GPIO E
-[PORTF](#prtx)|Constante système qui retourne l'adresse du port GPIO F
-[PORTG](#prtx)|Constante système qui retourne l'adresse du port GPIO G
-[PORTI](#prtx)|Constante système qui retourne l'adresse du port GPIO I
+[PORTA](#portx)|Constante système qui retourne l'adresse du port GPIO A 
+[PORTB](#portx)|Constante système qui retourne l'adresse du port GPIO B
+[PORTC](#portx)|Constante système qui retourne l'adresse du port GPIO C
+[PORTD](#portx)|Constante système qui retourne l'adresse du port GPIO D
+[PORTE](#portx)|Constante système qui retourne l'adresse du port GPIO E
+[PORTF](#portx)|Constante système qui retourne l'adresse du port GPIO F
+[PORTG](#portx)|Constante système qui retourne l'adresse du port GPIO G
+[PORTI](#portx)|Constante système qui retourne l'adresse du port GPIO I
 [PUSH](#push)|Empile la valeur de l'expression qui suit sur la pile des expressions.
 [PUT](#put)|Insère à la position n la valeur de l'expression sur la pile des expressions.
 [READ](#read)|Lecture d'une donnée sur une ligne DATA.
@@ -1510,7 +1510,6 @@ Les autres commandes et fonctions qui permettent d'utiliser directement la pile 
 >
 ```
 
-
 [index](#index)
 <a id="pinp"></a>  {C,P}
 ### PINP pin 
@@ -1525,6 +1524,7 @@ Configure le mode entrée/sortie d'une des 15 broches nommées **D0..D15** sur l
 10 PMODE 10,POUT 
 20 DWRITE 10, 1
 ```
+
 [index](#index)
 <a id="poke"></a>
 ### POKE *expr1*,*expr2*
@@ -1552,14 +1552,13 @@ Constante utilisée par la commande [PMODE](#pmode) pour définir une broche en 
 
 [index](#index)
 <a id="print"></a>
-### PRINT [#n]|[*string*|*expr*|*char*][,*string*|*expr*|*char*][';'] {C,P}
+### PRINT [*string*|*expr*|*char*][,*string*|*expr*|*char*][';'] {C,P}
 La commande **PRINT** sans argument envoie le curseur du terminal sur la ligne suivante. Si la commande se termine par une point-virgule il n'y a pas de saut à la ligne suivante et la prochaine commande **PRINT** se fera sur  la même ligne. Les arguments sont séparés optionnelement par la virgule, ou le point-virgule lorsqu'il y a ambiguité sur la fin d'une expression. 
 
 * La virgule envoie un caractère ASCII 9 (Horizontal tabulation) au terminal. La largeur des colonnes de tabulation horizontal dépendent de la configuration du terminal. Sur GTKTerm elle est de 8 caractères.
 
 * Le point-virgule à la fin de la commande **PRINT** annule le retour à la ligne suivante. Entre 2 items elle n'a aucun effet.
 
-l'option **#n** sert à fixer la largeur de champ réservé pour l'imprssion d'un entier.
 
 ```
 >? 3
@@ -1586,19 +1585,20 @@ Le **'?'** peut-être utilisé à la place de **PRINT**.
 **PRINT** accepte 3 types d'arguments: 
 
 * *string*,  chaîne de caractère entre guillemets
-* *expr*,   Toute expression arithmétique,relationnel ou contion logique.
+* *expr*,   Toute expression arithmétique,relationnel ou condition logique.
 * *char*,  Un caractère ASCII pécédé de **\\** ou tel que retourné par la fonction **CHAR()**.
 ```
 >? "la valeur de A=",a
-la valeur de A=  51
+la valeur de A=51
 
 >PRINT "Caractere recu du terminal ",char(key)
 Caractere recu du terminal Z
 
 >
 ```
+
 [index](#index)
-<a id="prtx"></a>
+<a id="portx"></a>
 ### PORTc {C,P}
 Les constanstes système **PORTc** renvoie l'adresse de base des registres de cntrôle d'un port GPIO. **c** est un caractère identifiant le port. Il y a 9 ports 
 sur le MCU STM8S208, **PORTA**...**PORTI**
@@ -1614,6 +1614,7 @@ sur le MCU STM8S208, **PORTA**...**PORTI**
 
 >bset portc+odr,bit(5) ' allume LD2
 ```
+
 [index](#index)
 <a id="push"></a>
 ## PUSH expr {C,P}
@@ -1705,25 +1706,24 @@ program address:  $80, program size:   69 bytes in RAM memory
 Cette commande initialise le pointeur de [DATA](#data) au début de la première ligne de données. Il peut être invoqué à l'intérieur d'une boucle si on veut relire les même données plusieurs fois. Pour un exemple d'utilisation voir la fonction [READ](#read). La commande peut accepter optionnellment un numéro de ligne  comme argument. Dans ce cas le pointeur [DATA](#data) sera placé sur cette ligne. Si cette ligne n'existe pas ou n'est pas une ligne de données le programme est interrompu avec un message d'erreur.  
 
 ```
->li
-    5 PRINT "test RESTORE command."
-   10 RESTORE
-   20 PRINT READ READ READ
-   30 RESTORE 300
-   40 PRINT READ READ READ
-   50 END
-  100 DATA 1,2,3
-  200 DATA 4,5,6
-  300 DATA 7,8,9
-program address:  $80, program size:  141 bytes in RAM memory
+>>LIST
+    5 ? "test RESTORE command." 
+   10 RESTORE 
+   20 ? READ READ READ 
+   30 RESTORE 300 
+   40 ? READ READ READ 
+   50 END 
+  100 DATA 1 , 2 , 3 
+  200 DATA 4 , 5 , 6 
+  300 DATA 7 , 8 , 9 
+program address: $91, program size: 102 bytes in RAM memory
 
->run
+>RUN
 test RESTORE command.
-   1    2    3 
-   7    8    9 
+1 2 3 
+7 8 9 
 
 >
-
 ```
 
 [index](#index)
@@ -1731,19 +1731,18 @@ test RESTORE command.
 ### RETURN {P}
 La commande **RETURN**  indique la fin d'une sous-routine. Lorsque cette commande est rencontrée l'exécution se poursuit à la commande qui suit le [GOSUB](#gosub) qui a appellé cette sous-routine.
 ```
->li
-   10 GOSUB 100:PRINT "de retour du gosub"
-   20 END
-  100 PRINT "dans la sous-routine"
-  110 RETURN
-program address:  $80, program size:   74 bytes in RAM memory
+>list
+   10 GOSUB 100 : ? "back from subroutine" 
+   20 END 
+  100 ? "inside subroutine" 
+  110 RETURN 
+program address: $91, program size: 65 bytes in RAM memory
 
 >run
-dans la sous-routine
-de retour du gosub
+inside subroutine
+back from subroutine
 
 >
-
 ```
 
 [index](#index)
@@ -1752,24 +1751,27 @@ de retour du gosub
 Cette fonction retourne un entier aléatoire dans l'intervalle {1..*expr*}.
 *expr* doit-être un nombre positif sinon le programme s'arrête et affiche un message d'erreur.
 ```
->>li 
-   10 FOR I=1 TO 100
-   20 PRINT RND(1000),:IF I%16=0 PRINT
-   30 NEXT I
-program address:  $80, program size:   66 bytes in RAM memory
+>list
+   10 FOR I = 1 TO 100 
+   20 ? RND ( 1000 ) , ; : IF I % 10 = 0 : ? 
+   30 NEXT I 
+program address: $91, program size: 49 bytes in RAM memory
 
 >run
-   2  103   57  145  868  657  123  352  358  904  354  117  765  520  164  527 
- 557  361  640  130  548  126  656  867  800  823  850  691  343  146  172  360 
- 867  601  318  916  251  509  296  686  413  492  165  167  651  362  768  237 
- 314  208  793  321  201  984  880  816  406  289  532  303  321  129  747  399 
- 632  889  447  524   40   66  181  300  147  593  703  702  888  520  876  329 
- 481  819  948  670  101  457  777  841  382  258  338  647  566  396  458  203 
- 855  958  846  555 
+767 	286 	763 	974 	413 	313 	955 	592 	228 	979 	
+784 	5 	372 	393 	765 	989 	354 	794 	254 	938 	
+598 	456 	318 	233 	945 	228 	803 	608 	831 	126 	
+638 	981 	459 	505 	247 	616 	859 	799 	753 	893 	
+163 	439 	844 	637 	964 	195 	637 	876 	2 	859 	
+766 	983 	5 	78 	525 	929 	193 	108 	936 	187 	
+437 	778 	261 	367 	676 	266 	561 	774 	473 	318 	
+420 	132 	179 	379 	708 	921 	356 	5 	759 	637 	
+140 	279 	580 	713 	930 	657 	294 	709 	177 	179 	
+827 	520 	117 	541 	214 	197 	58 	799 	330 	581 	
+
 >
-
-
 ```
+
 [index](#index)
 <a id="rshift"></a>
 ### RSHIFT(*expr1*,*expr2*) {C,P}
@@ -1786,12 +1788,20 @@ Voir aussi [LSHIFT](#lshift)
 
 >
 ```
+
 [index](#index)
 <a id="run"></a>
 ### RUN [nom] {C}
 Lance l'exécution du programme qui est chargé en mémoire RAM. Si aucun programme n'est chargé il ne se passe rien.  la combinaison **CTRL+C** permet d'interrompre le programme et de retombé sur la ligne de commande.
 
 Si un *nom* de programme sauvegardé en mémoire FLASH est donné à la commande ce dernier est exécuté.
+
+Il y a 3 combinaison de touches qui permettent d'arrêter un programmme en cours d'exécution.
+
+1.  **CTRL+C**  termine le programme et reviens à la ligne de commande.
+2.  **CTRL+X**  Réinialise le MCU.
+3.  **CTRL+Z**  Efface l'information d'autorun dans l'EEPROM et réinitialise le MCU.
+
 ```
 >dir
 $B984   97 bytes,BLINK
@@ -1932,18 +1942,14 @@ break point, RUN to resume.
 ```
 Dans cet exemple la commande **STOP** a été insérée à l'intérieur d'une boucle **FOR...NEXT** donc le programme s'arrête à chaque itération.
 
+
 [index](#index)
 <a id="ticks"></a>
 ### TICKS {C,P}
 Le systême entretien un compteur de millisecondes en utilisant le **TIMER4**.  Cette fonction retourne la valeur de ce compteur. Le compteur est de 24 bits mais il est remis à zéro lorsqu'il dépasse 0x7fffff donc le *roll over* est de 8388608 millisecondes soit environ 2.3 heures. Ce compteur peut-être utilisé pour chronométrer la durée d'exécution d'une routine. Par exemple ça prend combien de temps pour exécuter 1000 boucles FOR vide.
 ```
 >t=ticks: for a=1 to 1000:next a : ?ticks-t "msec"
-  13 msec 
-
-> REM  version sans ':' 
-
->t=ticks for a=1 to 1000 next a ? ticks-t "msec"
-  10 msec
+  10 msec 
 
 >
 ```
@@ -1954,8 +1960,8 @@ Le systême entretien un compteur de millisecondes en utilisant le **TIMER4**.  
 Cette foncition s'utilise avec la commande [TIMER](#timer) et retourne **-1** si la minuterie est expirée ou **0** autrement.
 
 ```
->TIMER 5 DO A=TIMEOUT PRINT A,UNTIL A
-   0    0    0    0    0    0    0    0    0    0    0    0   -1 
+>TIMER 5:DO LET A=TIMEOUT:PRINT A;:UNTIL A
+0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1 
 >
 ```
 
@@ -1964,7 +1970,9 @@ Cette foncition s'utilise avec la commande [TIMER](#timer) et retourne **-1** si
 ### TIMER *expr* {C,P}
 Cette commande sert à initialiser une minuterie. *expr* doit résulté en un entier qui représente le nombre de millisecondes. Contrairement à **PAUSE** la commande **TIMER** ne bloque pas l'exécution. On doit vérifier l'expiration de la minuterie avec la fonction [TIMEOUT](#timeout).  
 ```
->timer 1000 ' time out after 1 second.
+>timer 1000: do until timeout ' expire après 1 seconde.
+
+>
 ```
 
 [index](#index)
@@ -1978,59 +1986,46 @@ Ce mot réservé est utilisé lors de l'initialisation d'une boucle [FOR](#for).
 Cette commande génère une tonalité de fréquence déterminée par *expr1* et de durée *expr2* en millisecondes. La sortie est sur **GPIO D:4** branché sur **CN9-6**. La minuterie **TIMER2** est utilisée sur le chanal sortie **1** configuré en mode PWM avec un rapport cyclique de 50%.
   
 ```
->li
-    5 ' ce programme joue la gamme. 
-   10 @(1)=440:@(2)=466:@(3)=494:@(4)=523:@(5)=554:@(6)=587
-   20 @(7)=622:@(8)=659:@(9)=698:@(10)=740:@(11)=784:@(12)=831
-   30 FOR I=1 TO 12:TONE@(I),200:NEXT I
-program address:  $80, program size:  239 bytes in RAM memory
-
->run
+>list
+    5 ' play scale
+   10 LET @ ( 1 ) = 440 , @ ( 2 ) = 466 , @ ( 3 ) = 494 , @ ( 4 ) = 523 , @ ( 5 ) = 554 , @ ( 6 ) = 587 
+   20 LET @ ( 7 ) = 622 , @ ( 8 ) = 659 , @ ( 9 ) = 698 , @ ( 10 ) = 740 , @ ( 11 ) = 784 , @ ( 12 ) = 831 
+   30 FOR I = 1 TO 12 : TONE @ ( I ) , 200 : NEXT I 
+program address: $91, program size: 187 bytes in RAM memory
 
 >
 ``` 
+
 [index](#index)
 <a id="ubound"></a>
 ### UBOUND
 Cette fonction retourne la taille de la variable tableau **@**. Comme expliqué plus haut cette variable utilise la mémoire RAM qui n'est pas utilisée par le programme BASIC. Donc plus le programme prend de place plus sa taille diminue. Un programme peut donc invoqué cette commande pour connaître la taille de **@** dont il dispose.
-```
->li
-    5 ' ce programme joue la gamme. 
-   10 @(1)=440:@(2)=466:@(3)=494:@(4)=523:@(5)=554:@(6)=587
-   20 @(7)=622:@(8)=659:@(9)=698:@(10)=740:@(11)=784:@(12)=831
-   30 FOR I=1 TO 12:TONE@(I),200:NEXT I
-program address:  $80, program size:  239 bytes in RAM memory
 
->? ubound
-1789 
-
->new   
-
->? ubound
-1869 
-
->
-```
 [index](#index)
 ### UFLASH (C,P)
 <a id="uflash"></a>
 Retourne l'adresse du début de la mémoire FLASH disponible à l'utilisateur. S'il y a un programme sauvegardé en mémoire flash, l'adresse est située après ce programme puisque la mémoire flash est organisée en block de 128 octets. Cette addresse est alignée au début d'un block. 
 
 ```
->li
+>list
+    1 BLINK 
     5 ' Blink LED2 on card 
-   10 DO BTOGL PORTC,BIT(5) PAUSE 250 UNTIL KEY?
-   20 BRES PORTC,BIT(5)
-   30 END
-program address:  $80, program size:   87 bytes in RAM memory
+   10 DO BTOGL PORTC , BIT ( 5 ) PAUSE 500 UNTIL KEY? 
+   20 LET A = KEY 
+   30 BRES PORTC , BIT ( 5 ) 
+   40 END 
+program address: $91, program size: 84 bytes in RAM memory
 
->hex ? uflash
-$B600 
+>? uflash
+47872 
 
 >save
 
->hex ? uflash
-$B680 
+>dir
+$BB04 84 bytes,BLINK
+
+>? uflash
+48000 
 
 >
 ```
