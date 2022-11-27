@@ -2358,7 +2358,21 @@ See [arithmetic expressions](#expressions) for operators priorities.
 <a id="files"></a>
 ### Files system 
 
-**to be done**
+The are edited in RAM to minimize wear out of FLASH. Once a program is debugged it should be saved in FLASH memory.  The file system is a very simple one. As the MCU block erase is organized in block 128 bytes the file system is orgnaize around this size. So a program file always take a multiple of 128 bytes in FLASH memory. The memory used for this file system is the one left after Tiny BASIC. When no files are saved the size can be known by the following command:
+```
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022
+version 2.5R1
+
+>? $1000-uflash
+-44032 
+
+>? $10000-uflash
+17408 
+``` 
+As program files saved in this file system are executed in situ, the file system doesn't use extended memory, i.e. memory address over 65535. 
+
+Executing BASIC program in extended memory would require a modification to interpreter that would increase its size and slow it down. As it is not all STM8 MCU that have extended memory the choice was made to limit the system to {0...65535} memory range. But extended memory can be used for program data storage. It can  be written with command [WRITE](#write) and read with function [PEEK](#peek). 
 
 [main index](#main-index)
 <hr>
@@ -2366,23 +2380,81 @@ See [arithmetic expressions](#expressions) for operators priorities.
 <a id="install"></a>
 ### Firmware installation
 
-**to be done**
+The first step is to select options in [config.inc](config.inc) file. 
 
+* **DEBUG**  should be set to **0** for stable build where debugging is not required.
+* **SEPARATE**  should be set to **0** in most case. It is use only when debugging because sdasstm8 assembler message report is quite anoying. It doesn't report in which file there is an error when they are all assembled together.
+* **NUCLEO_8S208RB** put this to **1** if this is the target board otherwise set it to **0**.
+The **NUCLEO_8S207K8** is automatically selected when this one is deselected.
+
+In the root directory there is bash script [build.sh](build.sh) to launch the build process.
+This script take only 2 parameters:
+* first parameter **s207** or *s208*  to select the target board.
+* second and optional is **flash** if you want to flash the board after successfull build. If the build fail there will be no flash operation. 
+```
+picatout:~/github/stm8_tbi$ ./build.sh s207 flash
+
+***************
+cleaning files
+***************
+rm -f build/*
+
+*************************************
+compiling TinyBasic  for stm8s207K8      
+*************************************
+sdasstm8 -g -l -o build/TinyBasic.rel hardware_init.asm  arithm24.asm debug_support.asm flash_prog.asm files.asm terminal.asm code_address.asm compiler.asm i2c.asm decompiler.asm TinyBasic.asm app.asm 
+sdcc -mstm8 -lstm8 -L -I../inc -Wl-u -o build/TinyBasic.ihx build/TinyBasic.rel 
+objcopy -Iihex -Obinary  build/TinyBasic.ihx build/TinyBasic.bin 
+
+-rw-rw-r-- 1 jacques jacques 15108 nov 27 11:12 build/TinyBasic.bin
+
+
+******************
+flashing stm8s207K8 
+******************
+stm8flash -c stlinkv21 -p stm8s207K8 -s flash -w build/TinyBasic.ihx 
+Determine FLASH area
+STLink: v2, JTAG: v25, SWIM: v7, VID: 8304, PID: 4b37
+Due to its file extension (or lack thereof), "build/TinyBasic.ihx" is considered as INTEL HEX format!
+15108 bytes at 0x8000... OK
+Bytes written: 15108
+```
 [main index](#main-index)
 <hr>
 
 <a id="using"></a>
-### Using board
+### Using NUCLEO-8S20x board
+STM8 TinyBASIC is developped and built on Ubuntu system but the binary can be flashed on the board on Windows system as well. When the board is connected to PC USB port a new drive appears in file system. Dropping the file [build/TinyBasic.bin](build/TinyBasic.bin) on this drive will flash the firmware on the board. 
 
-**to be done**
+The STLINK programmer on the board also emulate a serial port. The only requirement to communicate with TinyBASIC system is to have a terminal emulator configured to connect on that serial port at 115200 BAUD, 8 bit, 1 STOP, no parity. On Windows system [TeraTerm](https://osdn.net/projects/ttssh2/releases/) or [Putty](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html) can be used. On Ubuntu there is many options. I use [GTKterm](https://github.com/Jeija/gtkterm) 
 
 [main index](#main-index)
 <hr>
 
 <a id="send"></a>
-### Sending a BASIC program to board
+### Sending a BASIC program to NUCLEO-8S20x board
+Although STM8 TinyBASIC as a line editor in the 80'S 8 bits BASIC computer style. Writting your program on the PC using a full featured editor is nice and can be done. 
 
-**to be done**
+I have written a small command line tool that can be used to send a BASIC program written on the PC to the board. This tool is only compiled for linux system though. There also bash script in root directory [send.sh](send.sh). This script expect the BASIC program to be in **BASIC** directory.
+```
+picatout:~/github/stm8_tbi$ ./send.sh blink.bas
+port=/dev/ttyACM0, baud=115200,delay=100 
+Sending file BASIC/blink.bas
+
+NEW 
+1  BLINK
+5 ' Blink LED2 on card 
+10 DO BTOGL PORTC,BIT(5) PAUSE 500 UNTIL KEY? 
+20 LET A=KEY 
+30 BRES PORTC,BIT(5) 
+40 END 
+  
+8 lines sent
+
+picatout:~/github/stm8_tbi$ 
+
+```
+When the board receive the program the program lines scroll on terminal screen. 
 
 [main index](#main-index)
 <hr>
@@ -2390,8 +2462,7 @@ See [arithmetic expressions](#expressions) for operators priorities.
 <a id="sources"></a>
 ### Source code 
 
+The source code for this project is on [https://github.com/Picatout/stm8_tbi](https://github.com/Picatout/stm8_tbi)
 
-
-**to be done**
 
 [main index](#main-index)

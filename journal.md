@@ -1,5 +1,11 @@
 ### 2022-11-27
 
+* commit 12:20
+
+* Complété manuel [tbi_reference_en.md](tbi_reference_en.md)
+
+* commit 11:15
+
 * Documentation
 
 * Modifié  commande **ERASE** pour ne pas envoyé un **.** au terminal pour les blocs effacés qui sont eux indiqués par un **E**.
