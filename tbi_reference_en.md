@@ -30,7 +30,7 @@
 * [Source code](#sources)
 <hr>
 
-[main index](#index-princ)
+[main index](#main-index)
 <a id="data"></a>
 ### Data types 
 
@@ -55,7 +55,7 @@ run time error, syntax error
 
 <hr>
 
-[main index](#index-princ)
+[main index](#main-index)
 <a id="variables"></a>
 ### Variables 
 
@@ -77,7 +77,7 @@ Labels name have the same format as dynamic variables and constants names.
 1. Can include digits,'**.**','**_**' and '**?**' characters
 <hr>
 
-[main index](#index-princ)
+[main index](#main-index)
 <a id="expressions"></a>
 ### Arithmetic expressions
 There is 5 arithmetic operators, plus parenthesis. Order of priority is:
@@ -103,7 +103,7 @@ Expressions can be compared for size with the following operators. Relations ret
 The **NOT**,**AND**,**OR** and **XOR** are binary operators like their machine level equivalent. But as relations return only **0|-1** they are effective as boolean expression operators used as condition in [IF](#if) and [UNTIL](#until) statement. 
 <hr>
 
-[main index](#index-princ)
+[main index](#main-index)
 <a id="syntax"></a>
 ### Syntax 
 The code use for writing program is [ASCII](https://en.wikipedia.org/wiki/American_Standard_Code_for_Information_Interchange).
@@ -132,7 +132,7 @@ The keyword [REM](#rem) can be replaced by a tick **'**.
 End of line mark the end of command. There is no command continuation on next line.
 <hr>
 
-[main index](#index-princ)
+[main index](#main-index)
 <a id="bases"></a>
 ### Numeric bases
 Integers can be typed in 3 numeric bases. 
@@ -154,7 +154,7 @@ Integers are printable only in decimal or hexadecimal.
 
 <hr>
 
-[main index](#index-princ)
+[main index](#main-index)
 
 <a id="cli"></a>
 ## Command line
@@ -204,13 +204,13 @@ right arrow| Move cursor right one character.
 CTRL+O|Toggle between insert and overwirte mode. Cursor change shape.
 <hr>
 
-[main index](#index-princ)
+[main index](#main-index)
 <a id="index"></a>
 # Commands and functions reference
 
 **{C,P}** after command name indicate which context is valid for this command. **C** for command line and **P** for program. 
 
-[main index](#index-princ)
+[main index](#main-index)
 
 <a id="index"></a>
 ## Vocabulary index
@@ -329,7 +329,7 @@ name|description
 [WRITE](#write)|Write data to FLASH or EEPROM.
 [XOR](#xor)| Boolean operator exclusive OR.
 
-[main index](#index-princ)
+[main index](#main-index)
 <hr>
 
 <a id="abs"></a>
@@ -2139,6 +2139,219 @@ $BB04 84 bytes,BLINK
 >
 ```
 
+[index](#index)
+<a id="until"></a>
+### UNTIL *expr* {C,P}
+This keyword close a [DO..UNTIL](#do) loop. When the *expr* evaluate to any not null integer the loop exit. 
+```
+>LIST
+   10 LET A = 1 
+   20 DO 
+   30 ? A ; 
+   40 LET A = A + 1 
+   50 UNTIL A > 10 
+program address: $91, program size: 51 bytes in RAM memory
+
+>RUN
+1 2 3 4 5 6 7 8 9 10 
+>
+```
+
+[index](#index)
+<a id="usr"></a>
+### USR(*addr*,*expr*) {C,P}
+This function is used to call a machine code routine. The machine code routine return a value on data stack.
+
+*  *addr*  is address of machine code routine
+* *expr* is a value used as input parameter to subroutine.
+* An integer is pushed to data stack by the machine code routine.
+
+In the following example the machine code stored in DATA line is written to FLASH 
+memory then it is called to compute the square of a small integer. 
+
+### machine code routine, file [square.asm](square.asm)
+```
+   .area CODE 
+
+.nlist
+.include "inc/stm8s207.inc" 
+.include "inc/nucleo_8s207.inc"
+.include "tbi_macros.inc" 
+.list 
+ square:
+   _at_top  
+   rrwa X
+   ld xl,a 
+   mul x,a 
+  clr a 
+  _xpush 
+   ret
+```
+### command to assemble source file. 
+```
+picatout:~/github/stm8_tbi$ sdasstm8 -l  square.asm
+```
+### part of listing containing the binary code, file [square.lst](square.lst)
+```
+                                      7 .list 
+      000000                          8  square:
+      000000                          9    _at_top  
+      000000 90 F6            [ 1]    1         ld a,(y)
+      000002 93               [ 1]    2         ldw x,y 
+      000003 EE 01            [ 2]    3         ldw x,(1,x)
+      000005 01               [ 1]   10    rrwa X
+      000006 97               [ 1]   11    ld xl,a 
+      000007 42               [ 4]   12    mul x,a 
+      000008 4F               [ 1]   13   clr a 
+      000009                         14   _xpush 
+      000009 72 A2 00 03      [ 2]    1         subw y,#CELL_SIZE
+      00000D 90 F7            [ 1]    2         ld (y),a 
+      00000F 90 EF 01         [ 2]    3         ldw (1,y),x 
+      000012 81               [ 4]   15    ret
+```
+### BASIC program with DATA lines containing binary code, file [usr_test.bas](BASIC/usr_test.bas)
+```
+>list
+    1 ' write binary code in flash and execute it.
+    2 ' square a number 
+   20 RESTORE 
+   22 ' machine code 
+   30 DATA 144 , 246 , 147 , 238 , 1 , 1 , 151 , 66 , 79 , 114 , 162 
+   40 DATA 0 , 3 , 144 , 247 , 144 , 239 , 1 , 129 
+   50 LET A = UFLASH : ? "routine at " ; A 
+   60 FOR I = 0 TO 18 
+   70 WRITE A + I , READ 
+   80 NEXT I 
+   90 INPUT "number {1..255, 0 quit} to square?" N 
+  100 ? USR ( A , N ) 
+  110 IF N <> 0 : GOTO 90 
+program address: $91, program size: 382 bytes in RAM memory
+
+>run
+routine at 48000 
+number {1..255, 0 quit} to square?:255
+65025 
+number {1..255, 0 quit} to square?:125
+15625 
+number {1..255, 0 quit} to square?:40
+1600 
+number {1..255, 0 quit} to square?:20
+400 
+number {1..255, 0 quit} to square?:12
+144 
+number {1..255, 0 quit} to square?:0
+0 
+
+>
+```
+If there is space available in RAM a [BUFFER](#buffer) for machine code can be created in RAM and data [poked](#poke) to that buffer instead of [writting](#write) it to FLASH. That would reduce FLASH wear out. 
+
+[index](#index)
+<a id="wait"></a>
+### WAIT *expr1*,*expr2*[,*expr3] {C,P}
+This command wait for a change of state in a register or memory.
+* *expr1*  address of register or memory
+* *expr2*  AND mask to apply to value at address.
+* *expr3*  XOR mask to apply after the AND mask. If the parameter is missing value **0** is used. 
+
+This command can be used to wait for an input pin to switch from low to high and verse-versa. Or for some register state change. The following example poke a value to UART1_DR register and wait for the transmission to complete by polling bit 6 of UART1_SR register as this bit goes to **1** when transmission is completed.
+```
+>poke $5231,65:wait $5230,bit(6)
+A
+>
+```
+
+[index](#index)
+<a id="words"></a>
+### WORDS {C,P}
+This command is used to print on terminal the list of commands, functions and operators used by Tiny BASIC with token number of each. This dictionary is used by [compiler](compiler.asm) and [decompiler](decompiler.asm).
+```
+>words
+$01 :		$02 ,		$03 ;		$04 (		$05 )
+$06 "		$0A @		$0C +		$0D -		$0E /
+$0F %		$10 *		$11 <=		$12 =		$13 >=
+$14 <		$15 >		$16 <>		$16 ><		$75 ?
+$27 '		$3F ABS		$58 ADCON	$40 ADCREAD	$85 ALLOC
+$18 AND		$41 ASC		$59 AUTORUN	$5A AWU		$42 BIT
+$5B BRES	$5C BSET	$43 BTEST	$5D BTOGL	$5E BUFFER
+$5F BYE		$60 CHAIN	$44 CHAR	$1B CONST	$2D CR1
+$2E CR2		$1C DATA	$2F DDR		$61 DEC		$1D DIM
+$62 DIR		$1E DO		$45 DREAD	$82 DROP	$63 DWRITE
+$64 EDIT	$46 EEFREE	$30 EEPROM	$1F END		$65 ERASE
+$66 FCPU	$20 FOR		$47 FREE	$67 GET		$21 GOSUB
+$22 GOTO	$68 HEX		$69 I2C.CLOSE	$6B I2C.OPEN	$48 I2C.READ
+$6C I2C.WRITE	$31 IDR		$23 IF		$6D INPUT	$6E IWDGEN
+$6F IWDGREF	$49 KEY		$4D KEY?	$24 LET		$70 LIST
+$4A LOG2	$4B LSHIFT	$71 NEW		$25 NEXT	$17 NOT
+$32 ODR		$26 ON		$19 OR		$33 PAD		$72 PAUSE
+$4C PEEK	$56 PICK	$34 PINP	$73 PMODE	$74 POKE
+$57 POP		$35 POUT	$75 PRINT	$36 PORTA	$37 PORTB
+$38 PORTC	$39 PORTD	$3A PORTE	$3B PORTF	$3C PORTG
+$3D PORTI	$83 PUSH	$84 PUT		$4E READ	$76 REBOOT
+$27 REM		$77 RESTORE	$28 RETURN	$4F RND		$50 RSHIFT
+$78 RUN		$79 SAVE	$7A SIZE	$7B SLEEP	$29 STEP
+$2A STOP	$51 TICKS	$52 TIMEOUT	$7C TIMER	$2B TO
+$7D TONE	$7E TRACE	$53 UBOUND	$54 UFLASH	$2C UNTIL
+$55 USR		$7F WAIT	$80 WORDS	$81 WRITE	$1A XOR
+
+130 words in dictionary
+
+>
+```
+
+[index](#index)
+<a id="write"></a>
+### WRITE *expr1*,*expr2*[,*expr*]* 
+This command is used to write data to persistant memory, i.e. EEPROM and FLASH. 
+* *expr1* is the starting address.
+* *data1*,_[,data2]*_ is a list of data elements to be written in consecutives adressess.
+these data elements can be of 3 types.
+   * integer expression resulting in value {0..255}. If value is &gt;255 only the least significant byte is used. 
+   * Quoted string, written as zero terminated string.
+   * escaped character, i.e. **\c** where **c** is any ASCII character.
+
+```
+>write EEPROM,"Hello world!"
+
+>for i=eeprom to i+11:? char(peek(i));:next i
+Hello world!
+>
+
+```
+
+[index](#index)
+<a id="xor"></a>
+### *term1* XOR *term2* {C,P}
+This boolean operator  apply **excluive or** bit to bit between left and right terms.
+Terms can be 
+* arithmetic expression.
+* comparison between 2 arithmetic expressions.
+* or boolean expressions themselve.
+
+See [arithmetic expressions](#expressions) for operators priorities.
+```
+>let a=5,b=10
+
+>? a xor b
+15 
+
+>? a>b xor b>9
+-1 
+
+>? a>b xor b<9
+0 
+
+>? a and b xor 7
+7 
+
+>? a and 4 xor 7
+3 
+
+>
+```
+[index](#index)
+
+[main index](#main-index)
 
 <hr>
 
@@ -2146,27 +2359,39 @@ $BB04 84 bytes,BLINK
 ### Files system 
 
 **to be done**
+
+[main index](#main-index)
 <hr>
 
 <a id="install"></a>
 ### Firmware installation
 
 **to be done**
+
+[main index](#main-index)
 <hr>
 
 <a id="using"></a>
 ### Using board
 
 **to be done**
+
+[main index](#main-index)
 <hr>
 
 <a id="send"></a>
 ### Sending a BASIC program to board
 
 **to be done**
+
+[main index](#main-index)
 <hr>
 
 <a id="sources"></a>
 ### Source code 
 
+
+
 **to be done**
+
+[main index](#main-index)

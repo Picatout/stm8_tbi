@@ -2035,59 +2035,104 @@ $BB04 84 bytes,BLINK
 ### UNTIL *expr* {C,P}
 Mot réservé qui ferme une boucle [DO...UNTIL](#do).  Les instructions entre le **DO** et le **UNTIL** s'exécutent en boucle aussi longtemps que **expr** est faux. Voir [DO](#do).
 ```
->li
-   10 A=1
-   20 DO
-   30 PRINT A,
-   40 A=A+1
-   50 UNTIL A>10
-program address:  $80, program size:   56 bytes in RAM memory
+>LIST
+   10 LET A = 1 
+   20 DO 
+   30 ? A ; 
+   40 LET A = A + 1 
+   50 UNTIL A > 10 
+program address: $91, program size: 51 bytes in RAM memory
 
->run
-   1    2    3    4    5    6    7    8    9   10 
+>RUN
+1 2 3 4 5 6 7 8 9 10 
 >
 ```
+
 [index](#index)
 <a id="usr"></a>
 ### USR(*addr*,*expr*) {C,P}
-La fonction **USR()** permet d'exécuter une routine écrite en code machine. *addr* est l'adresse de la routine et *expr* est un entier passé en argument à la routine. L'adresse à laquelle l'utilisateur peut écrire du code machine est obtenue avec la commande [UFLASH](#uflash). Le routine reçoit son argument sur la pile xstack et doit retourné son résultat sur cette pile.
+La fonction **USR()** permet d'exécuter une routine écrite en code machine. 
+* *addr* est l'adresse de la routine 
+* *expr* est un entier passé en argument à la routine. 
 
-Dans l'exemple suivant une routine en code machine calcule le carré d'un entier. Les macros *_at_top* et *_xpush* font parties du projet et sont dans le fichier [tbi_macros.inc](tbi_macros.inc). Le code 
-machine contenu dans les lignes [DATA](#data) est d'abord écris en mémoire flash avant d'être appellé par la function **USR**. 
+L'adresse à laquelle l'utilisateur peut écrire du code machine est obtenue avec la commande [UFLASH](#uflash). Le routine reçoit son argument sur la pile xstack et doit retourné son résultat sur cette pile.
+
+### fichier source de la routine en code machine, fichier [square.asm](square.asm)
 ```
->li
+   .area CODE 
+
+.nlist
+.include "inc/stm8s207.inc" 
+.include "inc/nucleo_8s207.inc"
+.include "tbi_macros.inc" 
+.list 
+ square:
+   _at_top  
+   rrwa X
+   ld xl,a 
+   mul x,a 
+  clr a 
+  _xpush 
+   ret
+```
+### commande pour assembler le fichier source. 
+```
+picatout:~/github/stm8_tbi$ sdasstm8 -l  square.asm
+```
+### partie du listing d'où est extrait le code machine, fichier [square.lst](square.lst)
+```
+                                      7 .list 
+      000000                          8  square:
+      000000                          9    _at_top  
+      000000 90 F6            [ 1]    1         ld a,(y)
+      000002 93               [ 1]    2         ldw x,y 
+      000003 EE 01            [ 2]    3         ldw x,(1,x)
+      000005 01               [ 1]   10    rrwa X
+      000006 97               [ 1]   11    ld xl,a 
+      000007 42               [ 4]   12    mul x,a 
+      000008 4F               [ 1]   13   clr a 
+      000009                         14   _xpush 
+      000009 72 A2 00 03      [ 2]    1         subw y,#CELL_SIZE
+      00000D 90 F7            [ 1]    2         ld (y),a 
+      00000F 90 EF 01         [ 2]    3         ldw (1,y),x 
+      000012 81               [ 4]   15    ret
+```
+### Programme BASIC pour tester la routine, fichier [usr_test.bas](BASIC/usr_test.bas)
+```
+>list
     1 ' write binary code in flash and execute it.
     2 ' square a number 
-    3 ' assembly code 
-    4 ' square:
-    5 '   _at_top 
-    6 '   _xpush 
-    7 '   call mul24 
-    8 '   ret 
    20 RESTORE
-   30 DATA 144,246,147,238,1,114,162,0,3,144,247,144
-   40 DATA 239,1,205,2+128,89+128,129
-   50 A=UFLASH
-   60 FOR I=1 TO 18
-   70 WRITE A,READ:A=A+1
-   80 NEXT I
-   90 INPUT "number to square?"N
-  100 PRINT USR(UFLASH,N)
-  110 GOTO 90
-program address:  $80, program size:  419 bytes in RAM memory
+   22 ' machine code 
+   30 DATA 144 , 246 , 147 , 238 , 1 , 1 , 151 , 66 , 79 , 114 , 162 
+   40 DATA 0 , 3 , 144 , 247 , 144 , 239 , 1 , 129 
+   50 LET A = UFLASH : ? "routine at " ; A 
+   60 FOR I = 0 TO 18 
+   70 WRITE A + I , READ 
+   80 NEXT I 
+   90 INPUT "number {1..255, 0 quit} to square?" N 
+  100 ? USR ( A , N ) 
+  110 IF N <> 0 : GOTO 90 
+program address: $91, program size: 382 bytes in RAM memory
 
 >run
-number to square?:15
- 225 
-number to square?:8
-  64 
-number to square?:50
-2500 
-number to square?:
-Program aborted by user.
+routine at 48000 
+number {1..255, 0 quit} to square?:255
+65025 
+number {1..255, 0 quit} to square?:125
+15625 
+number {1..255, 0 quit} to square?:40
+1600 
+number {1..255, 0 quit} to square?:20
+400 
+number {1..255, 0 quit} to square?:12
+144 
+number {1..255, 0 quit} to square?:0
+0 
 
 >
 ```
+Un tampon peut être créer en mémoire RAM avec la commande [BUFFER](#buffer) et la commande [POKE](#poke) utilisée pour copier le code machine du DATA au tampon. Le code machine sera alors exécuté en mémoire RAM. Cette façon de faire réduit l'usure de la mémoire FLASH.
 
 [index](#index)
 <a id="wait"></a>
@@ -2105,17 +2150,37 @@ Dans cet exemple l'adresse $5131 correspond au registre UART1_DR et $5230 au UAR
 [index](#index)
 <a id="words"></a>
 ### WORDS {C,P}
-Affiche la liste de tous les mots qui sont dans le dictionnaire. Le dictionnaire est une liste chaînée des noms des commandes et fonctions de Tiny Basic en relation avec l'adresse d'exécution. 
+Affiche la liste de tous les mots qui sont dans le dictionnaire. Le dictionnaire est une liste chaînée des noms des commandes et fonctions de Tiny Basic en relation avec leur numéro de jeton. Ce dictionnaire est utilisé par les [compilateur](compiler.asm) et [décompilateur](decompiler.asm). 
 ```
 >words
-ABS ADCON ADCREAD AND ASC AWU BIT BRES BSET BTEST BTOGL BYE CHAR CONST CR1
-CR2 DATA DDR DEC DO DREAD DWRITE EDIT EEFREE EEPROM END ERASE FCPU FOR FREE
-GET GOSUB GOTO HEX IDR IF INPUT IWDGEN IWDGREF KEY KEY? LET LIST LOG2 LSHIFT
-NEW NEXT NOT ODR ON OR PAD PAUSE PEEK PINP PMODE POKE POUT PRINT PORTA PORTB
-PORTC PORTD PORTE PORTF PORTG PORTH PORTI READ REBOOT REM RESTORE RETURN
-RND RSHIFT RUN SAVE SIZE SLEEP SPIEN SPIRD SPISEL SPIWR STEP STOP TICKS
-TIMEOUT TIMER TO TONE UBOUND UFLASH UNTIL USR WAIT WORDS WRITE XOR 
-  98 words in dictionary
+$01 :		$02 ,		$03 ;		$04 (		$05 )
+$06 "		$0A @		$0C +		$0D -		$0E /
+$0F %		$10 *		$11 <=		$12 =		$13 >=
+$14 <		$15 >		$16 <>		$16 ><		$75 ?
+$27 '		$3F ABS		$58 ADCON	$40 ADCREAD	$85 ALLOC
+$18 AND		$41 ASC		$59 AUTORUN	$5A AWU		$42 BIT
+$5B BRES	$5C BSET	$43 BTEST	$5D BTOGL	$5E BUFFER
+$5F BYE		$60 CHAIN	$44 CHAR	$1B CONST	$2D CR1
+$2E CR2		$1C DATA	$2F DDR		$61 DEC		$1D DIM
+$62 DIR		$1E DO		$45 DREAD	$82 DROP	$63 DWRITE
+$64 EDIT	$46 EEFREE	$30 EEPROM	$1F END		$65 ERASE
+$66 FCPU	$20 FOR		$47 FREE	$67 GET		$21 GOSUB
+$22 GOTO	$68 HEX		$69 I2C.CLOSE	$6B I2C.OPEN	$48 I2C.READ
+$6C I2C.WRITE	$31 IDR		$23 IF		$6D INPUT	$6E IWDGEN
+$6F IWDGREF	$49 KEY		$4D KEY?	$24 LET		$70 LIST
+$4A LOG2	$4B LSHIFT	$71 NEW		$25 NEXT	$17 NOT
+$32 ODR		$26 ON		$19 OR		$33 PAD		$72 PAUSE
+$4C PEEK	$56 PICK	$34 PINP	$73 PMODE	$74 POKE
+$57 POP		$35 POUT	$75 PRINT	$36 PORTA	$37 PORTB
+$38 PORTC	$39 PORTD	$3A PORTE	$3B PORTF	$3C PORTG
+$3D PORTI	$83 PUSH	$84 PUT		$4E READ	$76 REBOOT
+$27 REM		$77 RESTORE	$28 RETURN	$4F RND		$50 RSHIFT
+$78 RUN		$79 SAVE	$7A SIZE	$7B SLEEP	$29 STEP
+$2A STOP	$51 TICKS	$52 TIMEOUT	$7C TIMER	$2B TO
+$7D TONE	$7E TRACE	$53 UBOUND	$54 UFLASH	$2C UNTIL
+$55 USR		$7F WAIT	$80 WORDS	$81 WRITE	$1A XOR
+
+130 words in dictionary
 
 >
 ```
@@ -2126,24 +2191,36 @@ TIMEOUT TIMER TO TONE UBOUND UFLASH UNTIL USR WAIT WORDS WRITE XOR
 Cette commande permet d'écrire un octet ou plusieurs dans la mémoire EEPROM ou dans la mémoire FLASH. *expr1* est l'adresse ou débute l'écriture et la liste d'expressions qui suivent  donne les valeurs à écrire aux adresses successives. le **STM8S208RB** possède 4Ko de mémoire EEPROM 128Ko de mémoire FLASH. Pour la mémoire flash seul la plage d'adresse à partir de **UFLASH** peuvent-être écrite. Cette commande est utile pour injecter du code machine dans la mémoire flash pour exécution avec la fonction [USR](#usr). 
 
 ```
->write eeprom+100,1,2,3,4,5
+>write EEPROM,"Hello world!"
 
->for a=0to4:?peek(eeprom+100+a),:next a
-   1   2   3   4   5
+>for i=eeprom to i+11:? char(peek(i));:next i
+Hello world!
 >
 ```
-**AVERTISSEMENT: Écrire dans la mémoire FLASH en bas de l'adresse _UFLASH_ va endommagé le système Tiny BASIC** 
 
 [index](#index)
 <a id="xor"></a>
 ### *expr1|rel1|cond1* XOR *expr2|rel2|cond2* {C,P}
 Cet opérateur applique la fonction **ou exclusif** bit à bit entre les 2 epxressions,relation ou condition booléenne.
-```
->? xor($aa,$55)
- 255
 
->hex:?xor($aa,$a)
- $A0
+Voir [expression arithmétiques](#expressions) pour connaître la priorité des opérateurs.
+```
+>let a=5,b=10
+
+>? a xor b
+15 
+
+>? a>b xor b>9
+-1 
+
+>? a>b xor b<9
+0 
+
+>? a and b xor 7
+7 
+
+>? a and 4 xor 7
+3 
 
 >
 ```

@@ -1,3 +1,15 @@
+### 2022-11-27
+
+* Documentation
+
+* Modifié  commande **ERASE** pour ne pas envoyé un **.** au terminal pour les blocs effacés qui sont eux indiqués par un **E**.
+
+* Corrigé bogue dans commande **WRITE** , remplacé **CHAR_IDX** par **BSLASH_IDX**.
+
+### 2022-11-26
+
+* Documentation
+
 ### 2022-11-25
 
 * commit 22:49

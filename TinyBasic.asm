@@ -3087,12 +3087,13 @@ not_file:
 	jreq 5$  ; block already erased 
     ld a,#'E 
     call putc 
-	call block_erase   
+	call block_erase
+	jra 6$   
 ; this block is clean, next  
 5$:	
 	ld a,#'. 
 	call putc 
-	ldw x,#BLOCK_SIZE
+6$:	ldw x,#BLOCK_SIZE
 	call incr_farptr
 ; check limit, 24 bit substraction  	
 	ld a,(LIMIT,sp)
@@ -3313,7 +3314,7 @@ cmd_write:
 	_unget_token
 	jra 9$ ; no more data 
 2$:	call next_token 
-	cp a,#CHAR_IDX 
+	cp a,#BSLASH_IDX 
 	jreq 4$ 
 	cp a,#QUOTE_IDX
 	jreq 6$
