@@ -1,5 +1,19 @@
 [english](readme_en.md)
 
+## 2022-11-28  Version 2.5R3 
+
+Il s'agit de corrections de bogues, de modification de comportement de certaines fonctions et commandes et d'ajout de documentation.
+
+* Les manuels de référence français et anglais sont maintenant disponible en format PDF.
+
+* Dans le fichier [config.inc](config.inc) l'option **WANT_IWDG** a été ajoutée et désactivée. L'utilisation du **IWDG** me semble de peut d'usage. Cependant il demeure toujours possible de l'intégré en mettant **WANT_IWDG=1** dans [config.inc](config.inc).
+
+* Lorsqu'un programme est démarré en **AUTORUN** son nom est envoyé au terminal à l'initialisation de la carte.
+
+* Création de répertoires séparés dans dans **build** pour chaque carte. Modification du [Makefile](Makefile) et du [build.sh](build.sh) en conséquence.
+
+* Le travail sur la documentation se poursuit. Présentement en cours le manuel de l'utilisateur en français qui sera suivit de sa traduction en anglais.
+
 ## 2022-11-19
 
 Version 2.5R1  pre-release viens d'être créé. Cette version ne concerne que la correction de plusieurs bogues ainsi qu'un effort d'optimisation pour réduire la 
