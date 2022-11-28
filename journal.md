@@ -1,5 +1,9 @@
 ### 2022-11-27
 
+* Création d'un tag pour mise à jour du pre-release.
+
+* Modifié [Makefile](Makefile) pour construite dans un répertoire différent pour chaque carte.
+
 * commit 12:20
 
 * Complété manuel [tbi_reference_en.md](tbi_reference_en.md)

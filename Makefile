@@ -12,9 +12,9 @@ INCLUDES=$(BOARD_INC) $(INC)ascii.inc $(INC)gen_macros.inc cmd_idx.inc tbi_macro
 BUILD=build/
 I2C=i2c.asm
 SRC=hardware_init.asm  arithm24.asm debug_support.asm flash_prog.asm files.asm terminal.asm code_address.asm compiler.asm $(I2C) decompiler.asm $(NAME).asm app.asm
-OBJECT=$(BUILD)$(NAME).rel
-OBJECTS=$(BUILD)$(SRC:.asm=.rel)
-LIST=$(BUILD)$(NAME).lst
+OBJECT=$(BUILD)$(BOARD)/$(NAME).rel
+OBJECTS=$(BUILD)$(BOARD)/$(SRC:.asm=.rel)
+LIST=$(BUILD)$(BOARD)/$(NAME).lst
 FLASH=stm8flash
 
 
@@ -25,49 +25,49 @@ all: clean
 	@echo "*************************************"
 	@echo "compiling $(NAME)  for $(BOARD)      "
 	@echo "*************************************"
-	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(SRC) 
-	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(NAME).ihx $(OBJECT) 
-	objcopy -Iihex -Obinary  $(BUILD)$(NAME).ihx $(BUILD)$(NAME).bin 
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/$(NAME).rel $(SRC) 
+	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(BOARD)/$(NAME).ihx $(OBJECT) 
+	objcopy -Iihex -Obinary  $(BUILD)$(BOARD)/$(NAME).ihx $(BUILD)$(BOARD)/$(NAME).bin 
 	@echo 
-	@ls -l  $(BUILD)$(NAME).bin 
+	@ls -l  $(BUILD)$(BOARD)/$(NAME).bin 
 	@echo 
 
 
 .PHONY: clean 
-clean: build
+clean:
 	@echo
 	@echo "***************"
 	@echo "cleaning files"
 	@echo "***************"
-	rm -f $(BUILD)*
+	rm -f $(BUILD)$(BOARD)/*
 
-build:
-	mkdir build
+mkdir:
+	mkdir build/$(BOARD)
 
 test: 
-	$(SDAS) -g -l -o $(BUILD)test.rel test.asm
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/test.rel test.asm
 
 separate: clean $(SRC)
-	$(SDAS) -g -l -o $(BUILD)hardware_init.rel hardware_init.asm  
-	$(SDAS) -g -l -o $(BUILD)flash_prog.rel flash_prog.asm  
-	$(SDAS) -g -l -o $(BUILD)terminal.rel terminal.asm  
-	$(SDAS) -g -l -o $(BUILD)compiler.rel compiler.asm  
-	$(SDAS) -g -l -o $(BUILD)decompiler.rel decompiler.asm  
-	$(SDAS) -g -l -o $(BUILD)$(NAME).rel $(NAME).asm  
-	$(SDAS) -g -l -o $(BUILD)app.rel app.asm  
-	$(SDAS) -g -l -o $(BUILD)debug_support.rel debug_support.asm  
-	$(SDAS) -g -l -o $(BUILD)i2c.rel i2c.asm  
-	$(SDAS) -g -l -o $(BUILD)code_address.rel code_address.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/hardware_init.rel hardware_init.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/flash_prog.rel flash_prog.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/terminal.rel terminal.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/compiler.rel compiler.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/decompiler.rel decompiler.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/$(NAME).rel $(NAME).asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/app.rel app.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/debug_support.rel debug_support.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/i2c.rel i2c.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/code_address.rel code_address.asm  
 
 usr_test:
-	$(SDAS) -g -l -o $(BUILD)square.rel square.asm  
+	$(SDAS) -g -l -o $(BUILD)$(BOARD)/square.rel square.asm  
 
 flash: $(LIB)
 	@echo
 	@echo "******************"
 	@echo "flashing $(BOARD) "
 	@echo "******************"
-	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -w $(BUILD)$(NAME).ihx 
+	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -w $(BUILD)$(BOARD)/$(NAME).ihx 
 
 # read flash memory 
 read: 
