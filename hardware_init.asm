@@ -438,11 +438,16 @@ run_app:
 	subw x,#2 
 	ldw x,(x)
 	addw x,txtbgn 
-	ldw txtend,x 
+	ldw txtend,x
+	ld a,#SPACE 
+	call putc 
+	ldw x,txtbgn 
+	addw x,#FILE_HEADER_SIZE 
+	call puts 
 	ldw x,#AUTO_RUN
 	call puts  
 	jp run_it_02  
     jra .  
 
-AUTO_RUN: .asciz " auto run program\n"
+AUTO_RUN: .asciz " running\n"
 

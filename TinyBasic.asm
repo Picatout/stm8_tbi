@@ -2925,7 +2925,7 @@ func_digital_read:
 	cpw x,#15 
 .endif 	
 .if NUCLEO_8S207K8 
-	cpw x,#12 
+	cpw x,#13 
 .endif 	
 	jrule 2$	
 	ld a,#ERR_BAD_VALUE
@@ -2972,7 +2972,7 @@ cmd_digital_write:
 	cpw x,#15 
 .endif 
 .if NUCLEO_8S207K8
-	cpw x,#12
+	cpw x,#13
 .endif 	
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
@@ -3735,7 +3735,7 @@ cmd_pin_mode:
 	cpw x,#15 
 .endif 
 .if NUCLEO_8S207K8
-	cpw x,#12
+	cpw x,#13
 .endif 	
 	jrule 1$
 	ld a,#ERR_BAD_VALUE
@@ -3840,6 +3840,7 @@ arduino_to_8s207:
 .byte 3,4 ; D10
 .byte 3,3 ; D11
 .byte 2,7 ; D12
+.byte 2,5 ; D13 
 .endif 
 
 

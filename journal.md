@@ -1,5 +1,18 @@
 ### 2022-11-28
 
+* Convertion des fichier markdown au format PDF. Les documents suivant sont 
+maintenant disponibles en format PDF. 
+
+	* [manuel de référence en français](tbi_reference_fr.pdf)
+	* [manuel de référence en anglais](tbi_reference_en.pdf)
+	* [manuel de l'utilisateur en français](manuel_util_tb.pdf)
+
+* Travail sur [manuel_util_tb.md](manuel_util_tb.md).
+
+* Modifié la routine *cold_start* dans [hardware_init.asm](hardware_init.asm) pour afficher le nom du programme s'exécutant en autorun.
+
+* Modifié commandes **PMODE**,**DWRITE** et **DREAD** car j'avais oublié la broche **D13** sur la carte **NUCLEO-8S207K8**.
+
 * commit 11:15
 
 * Modifié manuels de références pour tenir compte du changement fait à la commande **WORDS**.
