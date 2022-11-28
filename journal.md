@@ -1,3 +1,14 @@
+### 2022-11-28
+
+* commit 11:15
+
+* Modifié manuels de références pour tenir compte du changement fait à la commande **WORDS**.
+
+* Modifié fichier [config.inc](config.inc) pour ajouter le paramètre **WANT_IWDG**. Je rends les mots **IDWGEND** et **IWDGREF** optionnel car leur utilité me semble douteuse.
+les fichier [code_address.asm](code_address.asm) et [TinyBasic.asm](TinyBasic.asm) ont étés modifiés pour rendre la compilation de ces 2 mots dépendante du paramètre **WANT_IWDG**.
+
+* Modification de la commande **WORDS** pour que les opérateurs n'apparaissent dans la liste que lorsque le paramètre **DEBUG** du fichier [config.inc](config.inc) est à 1. Les codes de jetons n'apparaissent aussi que dans cette circonstance.
+
 ### 2022-11-27
 
 * Création d'un tag pour mise à jour du pre-release.

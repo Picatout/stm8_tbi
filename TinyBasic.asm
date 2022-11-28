@@ -3942,24 +3942,32 @@ cmd_words:
 	ld a,#5 
 	ld (COL_CNT,sp),a 
 	clr (WCNT,sp)
+.if DEBUG 	
 	ldw y,#all_words+2
+.else 
+	ldw y,#kword_dict+2
+.endif 
 	clr acc16  
 0$:	ldw x,y
 	ld a,(x)
-	incw x 
+	incw x  	
 	and a,#NAME_MAX_LEN
-	inc a 
-	ld acc8,a 	
+	ld acc8,a
+.if DEBUG 	 	
+	inc acc8 
 	ld a,#'$
 	call putc 
 	ld a,([acc16],x)
 	callr print_hex  
+.endif 
 	call puts 
 	inc (WCNT,sp)
 	dec (COL_CNT,sp)
 	jreq 2$
 	ld a,acc8
-	add a,#3  
+.if DEBUG 
+	add a,#3
+.endif 	  
 	cp a,#8 
 	jruge 1$    
 	ld a,#TAB  
@@ -4038,15 +4046,15 @@ func_timeout:
 	ret 
  	
 
-
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+.if WANT_IWDG 
 ;-----------------------------------
 ; BASIC: IWDGEN expr1 
 ; enable independant watchdog timer
 ; expr1 is delay in multiple of 62.5µsec
 ; expr1 -> {1..16383}
 ;-----------------------------------
-cmd_enable_iwdg:
+cmd_iwdg_enable:
 	call arg_list
 	cp a,#1 
 	jreq 1$
@@ -4079,10 +4087,12 @@ cmd_enable_iwdg:
 ; refresh independant watchdog count down 
 ; timer before it reset MCU. 
 ;-----------------------------------
-cmd_refresh_iwdg:
+cmd_iwdg_refresh:
 	mov IWDG_KR,#IWDG_KEY_REFRESH 
 	ret 
 
+.endif ; WANT_IWDG 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;-------------------------------------
 ; BASIC: LOG2(expr)
@@ -5037,8 +5047,10 @@ dict_end:
 	_dict_entry 3,"LET",LET_IDX
 	_dict_entry,4,"KEY?",QKEY_IDX
 	_dict_entry,3,"KEY",KEY_IDX
+.if WANT_IWDG	
 	_dict_entry,7,"IWDGREF",IWDGREF_IDX
 	_dict_entry,6,"IWDGEN",IWDGEN_IDX
+.endif 
 	_dict_entry,5,"INPUT",INPUT_IDX 
 	_dict_entry,2,"IF",IF_IDX 
 	_dict_entry,3,"IDR",IDR_IDX 

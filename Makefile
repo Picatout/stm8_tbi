@@ -41,9 +41,6 @@ clean:
 	@echo "***************"
 	rm -f $(BUILD)$(BOARD)/*
 
-mkdir:
-	mkdir build/$(BOARD)
-
 test: 
 	$(SDAS) -g -l -o $(BUILD)$(BOARD)/test.rel test.asm
 

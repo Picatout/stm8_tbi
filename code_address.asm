@@ -175,8 +175,10 @@ code_addr:
 	_code_entry cmd_i2c_open,I2C_OPEN_IDX   ; $6D
 	_code_entry cmd_i2c_write,I2C_WRITE_IDX ; $6E
     _code_entry cmd_input_var, INPUT_IDX    ; $6F
-    _code_entry cmd_enable_iwdg, IWDGEN_IDX ; $70
-    _code_entry cmd_refresh_iwdg, IWDGREF_IDX ; $71
+.if WANT_IWDG
+    _code_entry cmd_iwdg_enable, IWDGEN_IDX ; $70
+    _code_entry cmd_iwdg_refresh, IWDGREF_IDX ; $71
+.endif 
     _code_entry cmd_list, LIST_IDX          ; $72
     _code_entry cmd_new, NEW_IDX            ; $73
     _code_entry cmd_pause, PAUSE_IDX        ; $74

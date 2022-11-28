@@ -6,6 +6,7 @@ DEBUG=0 ; set to 1 to include debugging code
 
 SEPARATE=0 ; set to 1 for 'make separate' 
 
+WANT_IWDG=0 ; set to 1 to add words IWDGEN and IWDGREF 
 
 ; boards list
 ; set selected board to 1  
