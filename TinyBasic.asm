@@ -175,6 +175,12 @@ move_exit:
 	REV=1
 
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
+board:
+.if NUCLEO_8S208RB 
+	.asciz "NUCLEO-8S208RB"
+.else 
+	.asciz "NUCLEO-8S207K8"
+.endif 
 
 system_information:
 	ldw x,#software 
@@ -192,6 +198,8 @@ system_information:
 	callr prt_i8
 	ld a,#CR 
 	call putc
+	ldw x,#board 
+	call puts 
 ;call test 
 	ret
 
