@@ -2,14 +2,14 @@
 ;;  configuration parameters 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-DEBUG=1 ; set to 1 to include debugging code 
+DEBUG=0 ; set to 1 to include debugging code 
 
 SEPARATE=0 ; set to 1 for 'make separate' 
 
 
 ; boards list
 ; set selected board to 1  
-NUCLEO_8S208RB=0
+NUCLEO_8S208RB=1
 ; use this to ensure 
 ; only one is selected 
 .if NUCLEO_8S208RB 
