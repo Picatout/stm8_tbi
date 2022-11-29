@@ -151,8 +151,8 @@ Dans cet exemple il s'agit encore de contrôler l'intensité de la LED mais cett
    40 FOR A = 0 TO R :NEXT A 
    50 BRES PORTC,BIT(5) 
    60 FOR A =A TO  1023 :NEXT A 
-   70 IF KEY? :LET K =KEY 
-   80 IF K =ASC (\q):ADCON  0 :END
+   70 IF KEY? :LET K =KEY AND $DF
+   80 IF K =ASC (\Q):ADCON  0 :END
    90 PRINT "\b\b\b\b\b\b";R;
   100 GOTO  20 
 ```
@@ -181,6 +181,60 @@ La commande **RUN** suivie d'un nom de fichier permet d'exécuter le fichier por
 La commande **AUTORUN** suivit d'un nom de fichier, ici **AN.READ** permet de lancer automatiquement ce programme lorsque la carte est mise sous tension ou réinitialisée avec le bouton **RESET**, la commande **REBOOT** ou encore **CTRL+X**. 
 
 La commande **REBOOT** est utilisée pour réinitialiser la carte ce qui a pour effet de démarrer le programme **AN.READ**. Le message **auto run program** est affiché sur le terminal. **432** est la valeur de lecture du potentiomètre. En tournant l'axe du potentiomètre cette valeur change et l'intensité de la LED aussi. 
+
+### exemple 4, PWM par périphérique TIMER1
+La minuterie TIMER1 qui est un compteur 16 bits permet de:
+* Compter des impulsions sur une entrée, c'est le mode *input capture*.
+* Générer des impulsions sur uen sortie, c'est le mode *output compare*.
+
+Cette minuterie possède 4 canaux qui peuvent-être configurés indépendemments à l'exception du compteur qui est commun aux 4. Dans l'exemple suivant le canal 1 qui branché sur **D3** est configuré en mode **PWM** (Pulse Widh Modulation) pour contrôler l'intensité d'une LED. 
+
+#### branchement de la LED
+* Cathode -&gt; GND 
+* Anode -&gt; résistance 100 ohm -&gt; D3 
+#### branchement du potentiomètre
+* Patte 1 -&gt; GND 
+* Patte 2 (milieu) -&gt; A0
+* Patte 3 -&gt; 3.3V
+
+1. On définie des constantes qui correspondes aux adresses des différents registres de contrôle du TIMER1. 
+1. ligne 60, on active le signal clock qui alimente le TIMER1.
+1. lignes 80-100, on configure le mode PWM sur le canal 1.
+1. ligne 110-120, on configure la période du compteur 1023 comptes.
+1. ligne 130, on ajuste le rapport cyclique à 50%.
+1. ligne 150, on active le canal PWM. 
+1. ligne 170, on active le convertisseur analogue numérique.
+1. lignes 190-220, Dans une boucle DO..UNTIL on fait une lecture d'un potentiomètre branché sur **A0** et on ajuste la valeur du rapport cyclique du  PWM avec cette valeur en la déposant dans TIM1.CCR1. Cette valeur contrôle l'intensité de la LED.
+1.  Lorsque l'utilisateur enfonce une touche sur le terminal. La bouche se termine et le périphérique TIMER1 est désactivé avant de quitter le programme.
+
+```
+1 PWM.HARD 
+5 ' pwm on D3 using TIMER1 channel 1
+10 CONST TIM1.CR1=$5250,TIM1.ARRH=$5262,TIM1.ARRL=$5263,TIM1.CCMR1=$5258 
+20 CONST TIM1.CCR1H=$5265,TIM1.CCR1L=$5266,TIM1.EGR=$5257,TIM1.CCER1=$525C 
+30 CONST TIM.CCMR.OCM=4,TIM1.PSCRH=$5260,TIM1.PSCRL=$5261,CLK.PCKENR1=$50C7
+40 CONST TIM1.BRK=$526D,TIM1.MOE=7
+50 ' Enable TIMER1 clock 
+60 BSET CLK.PCKENR1,bit(7) 
+70 ' Set up TIMER1 channel 1 for pwm output MODE 1 
+80 POKE TIM1.CCMR1, LSHIFT(6,TIM.CCMR.OCM):BSET TIM1.BRK,BIT(TIM1.MOE) 
+90 ' no prescale divisor on TIMER clock  
+100 POKE TIM1.PSCRH,0:POKE TIM1.PSCRL,0 
+110 ' 1023 for counter period, this give 10 bits resolution like the ADC 
+120 POKE TIM1.ARRH,3:POKE TIM1.ARRL,255
+130 POKE TIM1.CCR1H,1:POKE TIM1.CCR1L,255 
+140 ' enable counter 
+150 BSET TIM1.CCER1,BIT(0):BSET TIM1.EGR,BIT(0):BSET TIM1.CR1,BIT(0)
+160 ' enable analog digital converter 
+170 ADCON 1 
+180 ' read analog input channel and set TIM1.CCR1 register with value.
+190 DO 
+200 ? "\b\b\b\b\b";:LET N=ADCREAD(0): ? n;
+210 POKE TIM1.CCR1H,N/256:POKE TIM1.CCR1L,N
+220 UNTIL KEY? ' quit when a key is pressed 
+230 BRES TIM1.CCER1,BIT(0):BRES TIM1.CR1,BIT(0):BRES CLK.PCKENR1,BIT(7)
+240 END 
+```
 
 ### périphérique I2C 
 

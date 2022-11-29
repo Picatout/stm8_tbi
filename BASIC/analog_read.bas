@@ -7,7 +7,8 @@ NEW
    40 FOR A = 0 TO R :NEXT A 
    50 BRES PORTC,BIT(5) 
    60 FOR A =A TO  1023 :NEXT A 
-   70 IF KEY? :LET K =KEY 
-   80 IF K =ASC (\q):ADCON  0 :END
+   70 IF KEY? :LET K =KEY AND $DF
+   80 IF K =ASC (\Q):ADCON  0 :END
    90 PRINT "\b\b\b\b\b\b";R;
   100 GOTO  20 
+

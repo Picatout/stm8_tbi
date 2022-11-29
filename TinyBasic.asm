@@ -3729,7 +3729,7 @@ cmd_pin_mode:
 	jreq 0$
 	jp syntax_error 
 0$: _xpop 
-	ldw ptr16,x ; mode 
+	ldw acc16,x ; pin mode {PINP=0,POUT=1} 
 	_xpop ; Dx pin 
 .if NUCLEO_8S208RB	
 	cpw x,#15 
@@ -3740,7 +3740,7 @@ cmd_pin_mode:
 	jrule 1$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-1$:	call select_pin 
+1$:	call select_pin ; x=PORT base address, A=pin# 
 	ld (PINNO,sp),a  
 	ld a,#1 
 	tnz (PINNO,sp)
@@ -3748,13 +3748,12 @@ cmd_pin_mode:
 2$:	sll a 
 	dec (PINNO,sp)
 	jrne 2$ 
-	ld (PINNO,sp),a
-	ld a,(PINNO,sp)
+4$:	ld (PINNO,sp),a ; bit mask 
+;	ld a,(PINNO,sp)
 	or a,(GPIO_CR1,x) ;if input->pull-up else push-pull 
 	ld (GPIO_CR1,x),a 
-4$:	ld a,#OUTP
-	cp a,acc8 
-	jreq 6$
+	ld a,acc8 
+	jrne 6$
 ; input mode
 ; disable external interrupt 
 	ld a,(PINNO,sp)

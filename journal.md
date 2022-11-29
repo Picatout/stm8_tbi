@@ -1,4 +1,18 @@
+### 2022-11-29
+
+* commit 
+
+* Programme [pwm-hard.bas](BASIC/pwm-hard.bas) tester avec succès.
+
+* Continuer travail sur [pwm-hard.bas](BASIC/pwm-hard.bas)
+
+* Corrigé bogue dans commande **PMODE**.
+
 ### 2022-11-28
+
+* écrire et tester [pwm-hard.bas](BASIC/pwm-hard.bas)
+
+* Débogué commande **PMODE**. 
 
 * Convertion des fichier markdown au format PDF. Les documents suivant sont 
 maintenant disponibles en format PDF. 
