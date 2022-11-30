@@ -189,6 +189,9 @@ code_addr:
     _code_entry cmd_restore, REST_IDX       ; $79
     _code_entry cmd_run, RUN_IDX            ; $7A
     _code_entry cmd_save, SAVE_IDX          ; $7B
+    _code_entry cmd_servo_chan_enable, SERVO_CHAN_EN_IDX 
+    _code_entry cmd_servo_enable, SERVO_EN_IDX 
+    _code_entry cmd_servo_position, SERVO_POS_IDX 
     _code_entry cmd_size, SIZE_IDX          ; $7C
     _code_entry cmd_sleep, SLEEP_IDX        ; $7D
 .if NUCLEO_8S208RB

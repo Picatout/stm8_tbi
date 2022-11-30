@@ -236,6 +236,59 @@ Cette minuterie possède 4 canaux qui peuvent-être configurés indépendemments
 240 END 
 ```
 
+### Contrôle d'un petit servo-moteur 
+Les petits servo-moteurs sont aussi contrôlé par PWM (**P**ulse **W**idth **M**odulation). Dans l'exemple suivant le canal 2 de la minuterie est utilisé pour contrôlé un petit servo-moteur de type [SG90](https://www.amazon.ca/-/fr/servo-t%C3%A9l%C3%A9command%C3%A9-h%C3%A9licopt%C3%A8re-contr%C3%B4le-servomoteurs/dp/B072V529YD). 
+
+#### montage 
+
+![montage](docs/images/servo-motor.png)
+
+Le système fournis 3 commandes pour activer et contrôler les servo-moteurs. 
+
+* **SERVO.EN 0|1** 0 désactive la fonction, 1 l'active.
+* **SERVO.CH.EN ch#,0|1**
+  * **ch#** numéro do canal {1..4}
+  * **0|1** 0 désactive le canal, 1 l'actve 
+* **SERVO.POS ch#,usec** sert à positionné l'axe du servo-moteur.   
+  * **ch#** Numéro du canal à positionner
+  * **usec** largeur de l'impulsion en microsecondes {500..2500}
+
+Jusqu'à 4 servo-moteurs peuvent-être contrôlés sur les broches 
+
+canal<br>servo|Sortie|conn.
+-|-|-
+1|D3|CN3:6
+2|D5|CN3:8
+3|D6|CN3:9
+4|D9|CN3:12 
+
+
+__AVERTISSEMENT:__ Ne pas connecter l'alimentation du servo-moteur au 5V de la carte. Le moteur tire trop de courant lorsqu'il se met en rotation. Ça réinitialise la carte.
+
+Ces servo-moteurs sont contrôlés par des impulsions qui se répètent à un intervalle de 20 msec. C'est la largeur de l'impulsion qui détermine la position de l'axe en rotation. 
+
+Selon les spécifications du SG90 que j'ai trouvé dans l'internet l'axe devrait effectué une rotation totale de 180&deg; avec une largeur d'impulsion variant entre 1 msec et 2 msec. Ce n'est pas le résultat que j'obtient avec ceux que j'ai en mains. Pour obtenir une rotation totale de 180&deg; la largeur d'impulsion doit varier entre 0,5 msec et 2,5 msec. J'ai donc paramétré le programme en conséquence. 
+
+```
+1 SERVO.CTRL 
+5 ' servo-motor control on channel 1 on D3 
+6 ' servo-pulse range 500 usec - 2500 usec.
+10 ' enable servo-motor control
+20 SERVO.EN 1 ' 0 to disable 
+30 'enable channel 1
+40 SERVO.CH.EN 1,1 
+50 ADCON 1 
+60 ' read analog input channel and set TIM1.CCR1 register with value.
+70 DO 
+80 ? "\b\b\b\b\b";:LET N=ADCREAD(0)*2+500: ? n;
+90 SERVO.POS 1,N  
+100 UNTIL KEY? ' quit when a key is pressed 
+110 ' disable servo motor control 
+120  SERVO.CH.EN 1,0 ' disable channel 0
+130  SERVO.EN 0 ' disable TIMER1 
+140 END
+```
+
 ### périphérique I2C 
 
 **I2C** est l'acronyme anglophone pour **I**nter **I**ntegrated **C**ommunication. Il s'agit d'un protocole de type **bus** à 2 fils. **bus** veut dire que plus d'un dispositif peut-être branché sur le même bus. Chaque dispositif est identifié par une adresse de 7 bits (ou 10 bits). Dans le dossier **BASIC** il a 2 programme démontrant l'utilisation de ce périphérique. 

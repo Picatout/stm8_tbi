@@ -10,7 +10,7 @@ WANT_IWDG=0 ; set to 1 to add words IWDGEN and IWDGREF
 
 ; boards list
 ; set selected board to 1  
-NUCLEO_8S208RB=0
+NUCLEO_8S208RB=1
 ; use this to ensure 
 ; only one is selected 
 .if NUCLEO_8S208RB 

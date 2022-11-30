@@ -171,7 +171,7 @@ move_exit:
 ;  information 
 ;-----------------------
 	MAJOR=2
-	MINOR=5
+	MINOR=6
 	REV=1
 
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
@@ -2844,6 +2844,149 @@ beep:
 	popw y 
 	ret 
 
+;----------------------
+; BASIC: SERVO.CH.EN ch#,1|0
+; enable 1 of 4 channel
+; parameters:
+;    ch#    channel number
+;    1|0    1 to enable | 0 to disable
+;-----------------------
+cmd_servo_chan_enable:
+	call arg_list 
+	cp a,#2 
+	jreq 1$
+	jp syntax_error 
+1$: ; pop enable|disable parameter 
+	_xpop ; A:X = 1|0
+	tnzw x 
+	jrne 2$ ; enable channel 
+	jra  servo_chan_disable 
+2$: ; enable channel 
+	_xpop ; channel number 
+	rrwa x ; ch# -> A 
+	ldw x,#TIM1_CCER1 
+	cp a,#3 
+	jrmi 3$ ; channel 1,2 
+	incw x ; TIM1_CCER1 
+	cp a,#4 ; channel 3,4
+	jreq set_bit4 
+	jra set_bit0 
+3$: cp a,#2 
+	jreq set_bit4 
+set_bit0:
+	ld a,(x)
+	or a,#1
+	ld (x),a 
+	ret 
+set_bit4:
+	ld a,(x)
+	or a,#(1<<4)
+	ld (x),a 
+8$:
+	ret 
+
+; channel # on xstack 
+; reset bit CCxE in TIM1_CCERx 	
+servo_chan_disable:
+	_xpop 
+	rrwa x ; ch# -> A 
+	ldw x,#TIM1_CCER1 
+	cp a,#3 
+	jrmi 1$ ; channel 1,2 
+	incw x ; ch# 3,4 -> TIM1_CCER2
+	cp a,#4 
+	jreq reset_bit4
+	jra reset_bit0 
+1$: cp a,#2 
+	jreq reset_bit4	
+reset_bit0:	
+	ld a,(x)
+	and a,#~1 
+	ld (x),a 
+	ret   
+reset_bit4: 
+	ld a,(x)
+	and a,#~(1<<4)
+	ld (x),a 
+8$:	 
+	ret 
+
+;------------------------
+; BASIC: SERVO.EN 0|1 
+; enable disable TIMER1 
+; for servo-motor control 
+; parameter:
+;    0|1    0 disable | 1 enable 
+;------------------------
+cmd_servo_enable:
+	ld a,#LITC_IDX 
+	call expect 
+	_get_char 
+	tnz a 
+	jreq 8$
+; configure TIMER1 for servo control 	
+; enable TIMER1 peripheral clock 
+	bset CLK_PCKENR1,#CLK_PCKENR1_TIM1
+; set TIMER1 pre-divisor to 8
+; Ftimer=2Mhz 
+	clr TIM1_PSCRH 
+	mov TIM1_PSCRL,#7
+; 2Mhz/50hertz=40000 
+; set TIM1_ARRH=39999 for 20msec period 
+	mov TIM1_ARRH,#39999/256 
+	mov TIM1_ARRL,#39999 & 255
+; set all channels in PWM 1 mode 
+	ld a,#6<<4 
+	ldw x,#TIM1_CCMR1 
+	ld (x),a ; channel 1 
+	incw x 
+	ld (x),a ; channel 2
+	incw x 
+	ld (x),a ; channel 3
+	incw x 
+	ld (x),a ; channel 4 
+; enable counter  
+	bset TIM1_EGR,#TIM1_EGR_UG 
+	bset TIM1_CR1,#TIM_CR1_CEN
+	bset TIM1_BKR,#7 ; master output enable   		
+	ret 
+8$: ; disable TIMER1 
+	bres TIM1_CR1,#TIM_CR1_CEN 
+	bres CLK_PCKENR1,#CLK_PCKENR1_TIM1 
+	ret 
+
+
+;------------------------
+; BASIC: SERVO.POS ch#,pos 
+; set servo-motor position
+; parameters:
+;    ch#    channel number {1..4}
+;    pos    pulse width in usec. 
+;-------------------------
+cmd_servo_position:
+	call arg_list 
+	cp a,#2
+	jreq 1$
+	jp syntax_error 
+1$: 
+	_at_next  ; ch# 
+	decw x ; 1..4 -> 0..3 
+	sllw x  
+	addw x,#TIM1_CCR1H 
+	rcf 
+	rlc (2,y)
+	rlc (1,y)
+	ld a,(1,y) ; pos middle byte 
+	ld (x),a  
+	incw x  
+	ld a,(2,y) ; pos low byte 
+	ld (x),a
+; drop command parameters
+	_xdrop 
+	_xdrop  
+	ret 
+
+
 ;-------------------------------
 ; BASIC: ADCON 0|1 [,divisor]  
 ; disable/enanble ADC 
@@ -5006,6 +5149,9 @@ dict_end:
 .endif 	
 	_dict_entry,5,"SLEEP",SLEEP_IDX
     _dict_entry,4,"SIZE",SIZE_IDX
+	_dict_entry,9,"SERVO.POS",SERVO_POS_IDX
+	_dict_entry,8,"SERVO.EN",SERVO_EN_IDX
+	_dict_entry,11,"SERVO.CH.EN",SERVO_CHAN_EN_IDX
 	_dict_entry,4,"SAVE",SAVE_IDX 
 	_dict_entry 3,"RUN",RUN_IDX
 	_dict_entry,6,"RSHIFT",RSHIFT_IDX

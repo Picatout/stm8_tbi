@@ -1,5 +1,14 @@
 ### 2022-11-29
 
+* Ajout des commandes servo-moteur dans les manuels de référence.
+
+* Étant donné l'utilité des servo-moteurs je vais ajouter les commandes suivantes au firwmare:
+	* **SERVO.EN** Activation/désativation de la minuterie TIMER1 pour contrôler des servo-moteurs.
+	* **SERVO.CH.EN** activation/désactivation d'un canal servo-moteur {1..4}
+	* **SERVO.POS** commande de positionnement.
+
+* Créer et tester le programme [servo-motor.bas](BASIC/servo-motor.bas)
+
 * commit 
 
 * Programme [pwm-hard.bas](BASIC/pwm-hard.bas) tester avec succès.

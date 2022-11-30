@@ -307,6 +307,9 @@ name|description
 [RSHIFT](#rshift)|Shift right an integer.
 [RUN](#run)|Execute program.
 [SAVE](#save)| Save program in RAM to FLASH memory. 
+[SERVO.CH.EN](#servo-ch-en)| Enable|disable servo-motor channel.
+[SERVO.EN](#servo-en)| Enable|disable servo-motor fonction.
+[SERVO.POS](#servo-pos)| Send a position command to servo-motor.
 [SIZE](#size)| Display address and size of active program.
 [SLEEP](#sleep)|Put MCU in low energy mode.
 [SPIEN](#spien)|Enable SPI peripheral.
@@ -1904,6 +1907,48 @@ $BA04  138 bytes,FIBONACCI
 This command is used to save the program in RAM to the file system in FLASH memory.
 To be saved the first line of the program must be labeled. A program saved can be run from 
 giving its name to the command [RUN](#run). The command [DIR](#dir) list on the terminal the files saved.
+
+[index](#index)
+<a id="servo-ch-en"></a>
+### SERVO.CH.EN *ch#*,*0|1* {C,P}
+This command is used to enable or disable a servo-motor channel.
+
+* **ch#** select the channel {1..4}
+* **0|1** **0** to disable the channel, **1** to enable it.
+
+Before using this command the servo-motor function must be enabled using [SERVO.EN](#servo.en) command. 
+
+To position a specific servo-motor the command [SERVO.POS](#servo.pos) is used.
+
+[index](#index)
+<a id="servo-en"></a>
+### SERVO.EN *0|1* {C,P}
+This command is used to enable or disable the servo-motor control fonction.
+
+* **0|1** **0** disable function, **1** enable function.
+
+This command only configure TIMER1 for a 20msec period, which is repetition rate of servo-motor control pulses. 
+
+Each servo-motor channel must be actived separately by [SERVO.CH.EN](#servo-ch-en) command. 
+
+[SERVO.POS](#servo-pos) command is used to position individual servo-motor.
+
+servo<br>channel|output|conn.<br>NUCLEO-8S207K8|conn.<br>NUCLEO-8S208RB
+-|-|-|-
+1|D3|CN3:6|CN7:4
+2|D5|CN3:8|CN7:6
+3|D6|CN3:9|CN7:7
+4|D9|CN3:12|CN8:2 
+
+**NOTE:** When TIMER1 is used for this function channels that are not used for servo-motor control can't use TIMER1 for other function.
+
+[index](#index)
+<a id="servo-pos"></a>
+### SERVO.POS *ch#*,*pos*  {C,P}
+This command is used to send a positionning command to servo-motor.
+
+* **ch#** select the channel to command {1..4}.
+* **pos** Is the widh of control pulse in microseconds. Usually servo-motors have a pulse width range of {500 usec ... 2500 usec}. The servo-motor specification should be checked.
 
 [index](#index)
 <a id="size"></a>

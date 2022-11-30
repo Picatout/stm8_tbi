@@ -352,6 +352,9 @@ nom|description
 [RSHIFT](#rshift)|Décalage vers la droite d'un entier.
 [RUN](#run)|Commande pour lancer l'exécution d'un programme.
 [SAVE](#save)| Sauvegarde le programme en mémoire FLASH. 
+[SERVO.CH.EN](#servo-ch-en)| Active ou désactive un canal servo-moteur.
+[SERVO.EN](#servo-en)| Active ou déscative la fonction de contrôle servo-moteur.
+[SERVO.POS](#servo-pos)| Commande de positionnement d'un servo-moteur.
 [SIZE](#size)| Commande qui affiche  l'information sur le programme actif.
 [SLEEP](#sleep)|Met le MCU en sommeil. Il peut-être réactivé par une interruption externe.
 [SPIEN](#spien)|Active un périphérique SPI
@@ -1816,6 +1819,50 @@ $BA04  138 bytes,FIBONACCI
 <a id="save"></a>
 ### SAVE {C}
 Cette commande copie le programme qui est en mémoire RAM dans la mémoire FLASH le rendant ainsi persistant. Plusieurs programmes peuvent-être sauvegardés. Voir la commande [DIR](#dir). 
+
+[index](#index)
+<a id="servo-ch-en"></a>
+### SERVO.CH.EN *ch#*,*0|1* {C,P}
+Cette commande est utilisée pour activer ou désactiver un canal de contrôle de servo-moteur.
+
+* **ch#** sélectionne le canal {1..4}. 
+* **0|1** **0** pour désactiver le canal, **1** pour l'activer.
+
+Il faut d'abord activer la fonction servo-moteur avec la commande [SERVO.EN](#servo-en) avant d'utiliser cette commande.
+
+Pour donner une commande de positionnement à un servo-moteur il faut utiliser la commande [SERVO.POS](#servo-pos).
+
+[index](#index)
+<a id="servo-en"></a> 
+### SERVO.EN *0|1* {C,P}
+Cette commande est utilisée pour activer ou désactiver la fonction de contrôle de servo-moteur. 
+
+* **0|1**  **0** pour désactiver la fonction et **1** pour l'activer.
+
+La fonction est assurée par la minuterie TIMER1 et cette fonction ne fait que configurer la minuterie pour une période de 20 msec qui est la période de répétition des impulsions de contrôle des servo-moteurs. 
+
+Pour activer un canal spécifique il faut utiliser la commande [SERVO.CH.EN](#servo-ch-en). 
+
+Pour positionner un servo-moteur il faut utiliser la commande [SERVO.POS](#servo-pos).
+
+Jusqu'à 4 servo-moteurs peuvent-être contrôlés sur les broches 
+
+canal<br>servo|sortie|conn.<br>NUCLEO-8S207K8|conn.<br>NUCLEO-8S208RB
+-|-|-|-
+1|D3|CN3:6|CN7:4
+2|D5|CN3:8|CN7:6
+3|D6|CN3:9|CN7:7
+4|D9|CN3:12|CN8:2 
+
+Lorque le TIMER1 est utilisé pour la fonction servo-moteur, les canaux qui ne sort pas utillisés pour cette fonction ne peuvent utiliser le TIMER1 pour d'autres fonctions.
+
+[index](#index)
+<a id="servo-pos"></a>
+### SERVO.POS *ch#*,*pos* {C,P}
+Cette commande est utilisée pour positionner un servo-moteur.
+
+* **ch#** est le canal destination de la commande {1..4}.
+* **pos** est la durée en microsecondes de l'impulsion de contrôle. Il faut consulter le feuillet de spécification pour connaître cette information. En général l'entervalle est de {500usec..2500usec}.
 
 [index](#index)
 <a id="size"></a>

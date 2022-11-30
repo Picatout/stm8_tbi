@@ -1,4 +1,13 @@
 [english](readme_en.md)
+## 2022-11-29 Version 2.5R1
+
+Ajout de 3 nouvelles commandes 
+
+* __SERVO.EN__  Pour activer une fonction de contrôle de servo-moteur.
+* __SERVO.CH.EN__ Pour aactiver un canal spécifique. Il y en a 4.
+* __SERVO.POS__ Pour contrôler la position d'un servo-moteur. 
+
+Un pré-release avec le tag V2.5R1 a été créé pour cette nouvelle version.
 
 ## 2022-11-28  Version 2.5R3 
 
