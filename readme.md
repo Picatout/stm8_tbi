@@ -9,7 +9,7 @@ Ajout de 3 nouvelles commandes
 
 Un pré-release avec le tag V2.5R1 a été créé pour cette nouvelle version.
 
-## 2022-11-28  Version 2.5R3 
+## 2022-11-28  Version 2.6R3 
 
 Il s'agit de corrections de bogues, de modification de comportement de certaines fonctions et commandes et d'ajout de documentation.
 
