@@ -7,9 +7,9 @@ Ajout de 3 nouvelles commandes
 * __SERVO.CH.EN__ Pour aactiver un canal spécifique. Il y en a 4.
 * __SERVO.POS__ Pour contrôler la position d'un servo-moteur. 
 
-Un pré-release avec le tag V2.5R1 a été créé pour cette nouvelle version.
+Un pré-release avec le tag V2.6R1 a été créé pour cette nouvelle version.
 
-## 2022-11-28  Version 2.6R3 
+## 2022-11-28  Version 2.5R3 
 
 Il s'agit de corrections de bogues, de modification de comportement de certaines fonctions et commandes et d'ajout de documentation.
 
