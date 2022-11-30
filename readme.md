@@ -1,5 +1,5 @@
 [english](readme_en.md)
-## 2022-11-29 Version 2.5R1
+## 2022-11-29 Version 2.6R1
 
 Ajout de 3 nouvelles commandes 
 
