@@ -1,13 +1,143 @@
-# Manuel de l'utilisateur de Tiny BASIC 
+# Manuel de l'utilisateur de Tiny BASIC, version 2.6
 
-Tiny BASIC pour STM8 est un langage simple qui cependant permet de configurer et d'utiliser tous les périphériques du microcontrôleur. La seule limitation est que les interruptions ne sont pas utilisée. Tiny BASIC lui-même n'utilise que les interruptions suivantes: 
+<a id="index"></a>
+ * [présentation](#intro)
+ * [matériel supporté](#supported-bords)
+ * [installation du firmware Tiny BASIC sur la carte](#firmware-install)
+ * [Configuration du terminal](#terminal-setup)
+ * [exemples de programmes](#usage-examples)
+
+<a id="intro"></a>
+
+## Présentation 
+
+Tiny BASIC pour STM8 est un langage simple qui cependant permet de configurer et d'utiliser tous les périphériques du microcontrôleur STM8S20x sur les cartes d'expérimentations supportées. La seule limitation est que les interruptions ne sont pas supportées. Le système Tiny BASIC lui-même n'utilise que les interruptions suivantes: 
 
 * TIMER4 Update  pour le compteur de millisecondes
-* Uart(1 ou 3) RX full, pour la réception des caractères du terminal.
-* AWU pour la commande auto wake up.
+* UART(1 ou 3) RX full, pour la réception des caractères du terminal.
+* AWU pour la commande BASIC **AWU**.
 * Sur la carte **NUCLEO_8S208RB**, le bouton **USER** déclenche l'interruption externe **EXTI4**.
 
-L'objectif de ce manuel est de présenter les fonctionnalités du langage à travers des applications du microcontrôleur. Je n'ai pas définie toutes les constantes des registres du MCU dans le langage il est donc nécessaire de se réréfer au [feuillet de spécifications](docs/stm8s208rb.pdf) ainsi qu'au manuel de référence du [STM8S](docs/stm8s_reference.pdf). Les manuel d'utilisateur des des cartes [NUCLEO-8S208RB](docs/NUCLEO-8S208RB/nucleo-8s208rb_user_manual.pdf) et [NUCLEO-8S207K8](docs/NUCLEO-8S207K8/nucleo-stm8S207K8_user_man.pdf) sont aussi utile.
+Il s'agit d'un langage simple pour des applications microcontrolleurs simples.
+
+Le système est conçu pour fonctionner en autonomie, aucune installation n'est requise sur l'ordinateur hôte autre qu'un émulateur de terminal compatible **VT100**. De tels émulateurs sont disponibles sur tous les systèmes d'exploitations majeurs, Unix, Linux, Windows, OSX.
+
+Le projet STM8 Tiny BASIC est lui-même développé sur un ordinateur utilisant Ubuntu/Linux comme système d'exploitation. Le dépôt du projet est maintenu sur [https://github.com/Picatout/stm8_tbi](https://github.com/Picatout/stm8_tbi).
+
+### STM8
+
+**STM8** est le nom du microprocesseur au coeur d'une famille de microcontrôlleurs produit pas [STMicroelectronics](https://www.st.com/content/st_com/en.html). Il s'agit d'une architecture 8 bits classique qui ressemble à  une extension du processeur 8 bits MOS6502 de la fin des années 70. 
+#### Modèle de programmation du STM8
+<br>![modèle de programmation du STM8](docs/images/programming-model.png)
+STM8 TinyBASIC 
+
+L'objectif de ce manuel est de présenter les fonctionnalités du langage à travers des applications du microcontrôleur. Je n'ai pas définie toutes les constantes des registres du MCU dans le langage il est donc nécessaire de se référer au [feuillet de spécifications](docs/stm8s208rb.pdf) ainsi qu'au manuel de référence du [STM8S](docs/stm8s_reference.pdf). Les manuels d'utilisateur des cartes [NUCLEO-8S208RB](docs/NUCLEO-8S208RB/nucleo-8s208rb_user_manual.pdf) et [NUCLEO-8S207K8](docs/NUCLEO-8S207K8/nucleo-stm8S207K8_user_man.pdf) sont aussi utile.
+
+Pour le langage TIny BASIC lui-même il faut consulter le manuel de référence du langage disponible aux formats:
+
+* [Markdown](tbi_reference_fr.md)
+* [PDF](tbi_reference_fr.pdf) 
+
+[index](#index)
+<hr align="left">
+
+<a id="#supported-boards"></a>
+## Matériel supporté
+
+Actuellement le projet supporte 2 modèles de cartes NUCLEO vendues par [STMicroelectronics](https://www.st.com/content/st_com/en.html).
+
+* [NUCLEO-8S207K8](https://www.st.com/en/evaluation-tools/nucleo-8s207k8.html)
+  <br>![NUCLEO-8S207K8](docs/images/nucleo-8s207k8-board.png)
+* [NUCLEO-8S208RB](https://www.st.com/en/evaluation-tools/nucleo-8s208rb.html) 
+  <br>![NUCLEO-8S208RB](docs/images/nucleo-8s208rb-board.png)
+
+
+Chacune de ces cartes incorpore un programmeur STLINK et se branche au PC de développement via un cable USB. Le firmware du STLINK émule à la fois un unité de stockage et une interface port sériel. 
+
+Pour l'utilisateur de Tiny BASIC la communication avec la carte NUCLEO se fait par l'intermédiaire du port sériel en utilisant un émulateur de terminal.
+
+Pour la [configuration du terminal](#trminal-config) consultez la rubrique plus bas.
+
+[index](#index)
+<hr align="left">
+
+<a id="firmware-install"></a>
+## Installation du firmware Tiny BASIC sur la carte 
+
+Lorsque la carte NUCLEO est branchée sur le port USB de l'ordinateur une nouvelle unité de stockage apparaît. 
+
+* Sous Windows cette unité est identifiée par une lettre comme tous les autres disques et suivit de son nom:
+* **NOD_8S207** pour la carte NUCLEO-8S207K8.
+* **NODE_8S208** pour la carte NUCLEO-8S208RB.
+
+* Sous Ubuntu seul le nom de l'unité de stockage est utilisé.
+
+### programmation du firmware Tiny BASIC 
+1. Clonez ou téléchargez la dernière version de [STM8 tiny BASIC](https://Picatout/stm8_tbi)
+
+1. Dans l'arborescence du projet il y a un dossier **build** et pour chaque carte un sous-dossier portant le nom de la carte. En fonction de la carte choisie il suffit de copier le fichier **TinyBasic.bin** vers le disque **NOD_8S207** ou **NODE_8S208** pour programmer le firmware sur  la carte.  
+
+En cas d'échec de la copie il peut-être nécessaire de mettre à jour le [firmware du programmeur STLINK](https://www.st.com/en/development-tools/stsw-link007.html) lui-même. L'utilitaire pour ce faire n'est disponible que sous Windows. Une fois STLINK mis à jour réessayez l'étape 2.
+
+[index](#index)
+<hr align="left">
+
+<a id="terminal-setup"></a>
+## Configuration du terminal 
+
+Sur système Windows les émulateurs de terminal suivants peuvent-être utilisés.
+
+* [TeraTerm](https://osdn.net/projects/ttssh2/releases/) 
+* [PUtty](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html)
+
+Sur systèmes Linux 
+
+* Minicom<br>sur Ubuntu pour installer 
+```
+sudo apt install minicom 
+```
+* GTKTerm <br> Il s'agit d'un projet open source hébergé sur [https://github.com/Jeija/gtkterm](https://github.com/Jeija/gtkterm)
+```
+sudo apt install gtkterm
+```
+* Et de nombreuses autres possibilités. 
+
+La communication entre la carte NUCLEO et le terminal suit les paramètres suivants:
+
+* **115200 BAUD** 
+* **8 bits**
+* **1 stop bit**
+* **pas de parité**
+* **marque de fin de ligne CR (ASCII 13)**
+
+La carte envoie des séquences de contrôles ANSI conforme au terminaux VT100. Donc l'émulateur de terminal doit supporter ce protocole.
+
+### Exemple de configuration sous Ubuntu utilisant GTKTerm.
+![GTKTerm config](docs/images/gtkterm-cfg.png)
+
+Pour sauvegarder cette configuration utilisez dans le menu *configuration*, *save configuration*. Utilisez le nom *default* si vous voulez qu'elle soit utilisée automatiquement au démarrage de GTKterm.
+<hr align="left" width="40%">
+
+### Exemple de configuration sous Windows 10 utilisant TeraTerm.
+Au démarrage de Teraterm la fenêtre nouvelle connection s'affiche.
+![connection](docs/images/teraterm-cfg/nouvelle-connexion.png)<br>
+Il faut aussi ajuster les paramètres du terminal 
+![terminal](docs/images/teraterm-cfg/config-terminal.png)<br>
+Ainsi que les paramètres du port série.<br>
+![port série](docs/images/teraterm-cfg/serial-port-setup.png)<br>
+Encore là la configuration peut-être sauvegardée pour ne pas avoir à recommencer à chaque fois **(configuration - sauvegarder setup)**. Cependant une fois que vous avez récupérer la configuration **(configuration - restaurer setup)**, il faudra aller dans **configuration - port série** et simplement cliquer sur le bouton **New setting** pour activer cette configuration.  
+<hr align="left" width="40%">
+
+Voici de quoi ça a l'air dans GTKTerm<br>
+![fenêtre gtkterm](docs/images/gtkterm-console.png)
+Et dans TeraTerm sous Windows avec la police ajustée à 12 points.
+<br>![fenêtre teraterm](docs/images/teraterm-cfg/terminal-window.png)
+
+[index](#index)
+<hr align="left">
+
+<a id="examples"></a>
+## exemples de programmes
 
 Le réperoite **BASIC** contient plusieurs programmes qui peuvent servir d'exemples. 
 
@@ -302,4 +432,6 @@ Les commandes qui utilisent ce périphériques sont:
 Le programme [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) fait la démonstration de l'utilisation d'une mémoire EEPROM à interface I2C. 
 
 Le programme [i2c_oled.bas](BASIC/i2c_oled.bas) fait la démonstration d'un petit affichage OLED à interfaace I2C. 
+
+[index](#index)
 

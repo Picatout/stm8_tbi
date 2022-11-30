@@ -1,3 +1,9 @@
+### 2022-11-30
+
+* Commit 11:55
+
+* Travail sur [manuel de l'utilisateur](manuel_util_tb.md)
+
 ### 2022-11-29
 
 * Ajout des commandes servo-moteur dans les manuels de référence.
