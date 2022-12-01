@@ -1,5 +1,11 @@
 ### 2022-11-30
 
+* commit 20:56 hre.
+
+* Début de la traduction du manule de l'utilisateur en anglais.
+
+* Manuel de l'utilisateur français complété.
+
 * Commit 11:55
 
 * Travail sur [manuel de l'utilisateur](manuel_util_tb.md)

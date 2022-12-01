@@ -2,7 +2,7 @@
 
 <a id="index"></a>
  * [présentation](#intro)
- * [matériel supporté](#supported-bords)
+ * [matériel supporté](#supported-boards)
  * [installation du firmware Tiny BASIC sur la carte](#firmware-install)
  * [Configuration du terminal](#terminal-setup)
  * [exemples de programmes](#usage-examples)
@@ -13,10 +13,11 @@
 
 Tiny BASIC pour STM8 est un langage simple qui cependant permet de configurer et d'utiliser tous les périphériques du microcontrôleur STM8S20x sur les cartes d'expérimentations supportées. La seule limitation est que les interruptions ne sont pas supportées. Le système Tiny BASIC lui-même n'utilise que les interruptions suivantes: 
 
-* TIMER4 Update  pour le compteur de millisecondes
-* UART(1 ou 3) RX full, pour la réception des caractères du terminal.
-* AWU pour la commande BASIC **AWU**.
-* Sur la carte **NUCLEO_8S208RB**, le bouton **USER** déclenche l'interruption externe **EXTI4**.
+* **TIMER4 Update**  pour le compteur de millisecondes
+* **UART(1 ou 3) RX full**, pour la réception des caractères du terminal.
+* **I2C** pour les commandes associées.
+* **AWU** pour la commande BASIC **AWU**.
+* **EXTI4** seulement pour la carte **NUCLEO_8S208RB**, le bouton **USER** déclenche l'interruption externe .
 
 Il s'agit d'un langage simple pour des applications microcontrolleurs simples.
 
@@ -31,7 +32,7 @@ Le projet STM8 Tiny BASIC est lui-même développé sur un ordinateur utilisant 
 <br>![modèle de programmation du STM8](docs/images/programming-model.png)
 STM8 TinyBASIC 
 
-L'objectif de ce manuel est de présenter les fonctionnalités du langage à travers des applications du microcontrôleur. Je n'ai pas définie toutes les constantes des registres du MCU dans le langage il est donc nécessaire de se référer au [feuillet de spécifications](docs/stm8s208rb.pdf) ainsi qu'au manuel de référence du [STM8S](docs/stm8s_reference.pdf). Les manuels d'utilisateur des cartes [NUCLEO-8S208RB](docs/NUCLEO-8S208RB/nucleo-8s208rb_user_manual.pdf) et [NUCLEO-8S207K8](docs/NUCLEO-8S207K8/nucleo-stm8S207K8_user_man.pdf) sont aussi utile.
+L'objectif de ce manuel est de présenter les fonctionnalités du langage à travers des applications du microcontrôleur. Je n'ai pas définie toutes les constantes des registres du MCU dans le langage, il est donc nécessaire de se référer au [feuillet de spécifications](docs/stm8s208rb.pdf) ainsi qu'au manuel de référence du [STM8S](docs/stm8s_reference.pdf). Les manuels d'utilisateur des cartes [NUCLEO-8S208RB](docs/NUCLEO-8S208RB/nucleo-8s208rb_user_manual.pdf) et [NUCLEO-8S207K8](docs/NUCLEO-8S207K8/nucleo-stm8S207K8_user_man.pdf) sont aussi utile.
 
 Pour le langage TIny BASIC lui-même il faut consulter le manuel de référence du langage disponible aux formats:
 
@@ -41,22 +42,25 @@ Pour le langage TIny BASIC lui-même il faut consulter le manuel de référence 
 [index](#index)
 <hr align="left">
 
-<a id="#supported-boards"></a>
+<a id="supported-boards"></a>
 ## Matériel supporté
 
 Actuellement le projet supporte 2 modèles de cartes NUCLEO vendues par [STMicroelectronics](https://www.st.com/content/st_com/en.html).
 
 * [NUCLEO-8S207K8](https://www.st.com/en/evaluation-tools/nucleo-8s207k8.html)
-  <br>![NUCLEO-8S207K8](docs/images/nucleo-8s207k8-board.png)
+  <br>![NUCLEO-8S207K8](docs/images/nucleo-8s207k8-board.png)<br>
+  Cette petite carte est enfichable sur une carte de prototypage sans soudure ce qui est pratique. Il y a 15 broches de chaque côté. 
+
 * [NUCLEO-8S208RB](https://www.st.com/en/evaluation-tools/nucleo-8s208rb.html) 
-  <br>![NUCLEO-8S208RB](docs/images/nucleo-8s208rb-board.png)
+  <br>![NUCLEO-8S208RB](docs/images/nucleo-8s208rb-board.png)<br>
+  Cette carte est plus large et donne accès sur les connecteurs à l'interface SPI ce que ne fait pas la carte précédente.
 
 
-Chacune de ces cartes incorpore un programmeur STLINK et se branche au PC de développement via un cable USB. Le firmware du STLINK émule à la fois un unité de stockage et une interface port sériel. 
+Chacune de ces cartes incorpore un programmeur STLINK et se branche au PC de développement via un cable USB. Le firmware du STLINK émule à la fois un unité de stockage et une interface port série. 
 
-Pour l'utilisateur de Tiny BASIC la communication avec la carte NUCLEO se fait par l'intermédiaire du port sériel en utilisant un émulateur de terminal.
+Pour l'utilisateur de Tiny BASIC la communication avec la carte NUCLEO se fait par l'intermédiaire du port série en utilisant un émulateur de terminal.
 
-Pour la [configuration du terminal](#trminal-config) consultez la rubrique plus bas.
+Pour la [configuration du terminal](#terminal-setup) consultez la rubrique plus bas.
 
 [index](#index)
 <hr align="left">
@@ -77,7 +81,7 @@ Lorsque la carte NUCLEO est branchée sur le port USB de l'ordinateur une nouvel
 
 1. Dans l'arborescence du projet il y a un dossier **build** et pour chaque carte un sous-dossier portant le nom de la carte. En fonction de la carte choisie il suffit de copier le fichier **TinyBasic.bin** vers le disque **NOD_8S207** ou **NODE_8S208** pour programmer le firmware sur  la carte.  
 
-En cas d'échec de la copie il peut-être nécessaire de mettre à jour le [firmware du programmeur STLINK](https://www.st.com/en/development-tools/stsw-link007.html) lui-même. L'utilitaire pour ce faire n'est disponible que sous Windows. Une fois STLINK mis à jour réessayez l'étape 2.
+En cas d'échec de la copie il peut-être nécessaire de mettre à jour le [firmware du programmeur STLINK](https://www.st.com/en/development-tools/stsw-link007.html) lui-même. L'utilitaire pour ce faire n'est disponible que pour le système  Windows. Une fois STLINK mis à jour réessayez l'étape 2.
 
 [index](#index)
 <hr align="left">
@@ -85,7 +89,7 @@ En cas d'échec de la copie il peut-être nécessaire de mettre à jour le [firm
 <a id="terminal-setup"></a>
 ## Configuration du terminal 
 
-Sur système Windows les émulateurs de terminal suivants peuvent-être utilisés.
+Sur système Windows les émulateurs de terminal suivants peuvent-être utilisés. (Il y en a certainement d'autres.)
 
 * [TeraTerm](https://osdn.net/projects/ttssh2/releases/) 
 * [PUtty](https://www.chiark.greenend.org.uk/~sgtatham/putty/latest.html)
@@ -110,7 +114,7 @@ La communication entre la carte NUCLEO et le terminal suit les paramètres suiva
 * **pas de parité**
 * **marque de fin de ligne CR (ASCII 13)**
 
-La carte envoie des séquences de contrôles ANSI conforme au terminaux VT100. Donc l'émulateur de terminal doit supporter ce protocole.
+La carte envoie des séquences de contrôles ANSI conforme au terminaux VT100. Donc l'émulateur de terminal doit supporter ces commandes.
 
 ### Exemple de configuration sous Ubuntu utilisant GTKTerm.
 ![GTKTerm config](docs/images/gtkterm-cfg.png)
@@ -119,7 +123,7 @@ Pour sauvegarder cette configuration utilisez dans le menu *configuration*, *sav
 <hr align="left" width="40%">
 
 ### Exemple de configuration sous Windows 10 utilisant TeraTerm.
-Au démarrage de Teraterm la fenêtre nouvelle connection s'affiche.
+Au démarrage de Teraterm la fenêtre nouvelle connexion s'affiche.
 ![connection](docs/images/teraterm-cfg/nouvelle-connexion.png)<br>
 Il faut aussi ajuster les paramètres du terminal 
 ![terminal](docs/images/teraterm-cfg/config-terminal.png)<br>
@@ -136,14 +140,14 @@ Et dans TeraTerm sous Windows avec la police ajustée à 12 points.
 [index](#index)
 <hr align="left">
 
-<a id="examples"></a>
+<a id="usage-examples"></a>
 ## exemples de programmes
 
-Le réperoite **BASIC** contient plusieurs programmes qui peuvent servir d'exemples. 
+Le répertoire **BASIC** contient plusieurs programmes qui peuvent servir d'exemples. 
 
 Il est aussi recommandé de lire en pré-requis de ce manuel la [référence du langage Tiny BASIC](tbi_reference_fr.pdf)
 
-La commande **WORDS** affiche la liste complète des mots qui sont dans le dictionnaires. 
+La commande **WORDS** affiche la liste complète des mots qui sont dans le dictionnaire. 
 ```
 >words
 ABS		ADCON		ADCREAD		ALLOC		AND
@@ -177,10 +181,10 @@ Pour la carte **NUCLEO-8S208RB** il y a 4 commandes de plus car le périphériqu
 
 
 ### exécution des programmes
-Si une ligne de commande est saisie sans numéro de ligne elle est compilée et exécutée immédiatement. Par contre si le texte commence par un entier entre 1 et 32767 cette ligne est considérée comme faisant partie d'un programme et après sa compilation elle est insérée dans la zone texte réservée au progammes BASIC. Les programmes sont exécutés à partir de la mémoire RAM. Pour les cartes __NUCLEO-STM8S208RB__ et __NUCLEO-STM8S207K8__ il y a 6Ko de mémoire RAM une partie ce cette mémoire est utilisée par l'interpréteur et il reste environ 5561 octets disponibles pour les progammes. Les programmes sauvegardés en mémoire FLASH sont excécutés sur place.
+Si une ligne de commande est saisie sans numéro de ligne elle est compilée et exécutée immédiatement. Par contre si le texte commence par un entier entre 1 et 32767 cette ligne est considérée comme faisant partie d'un programme et après sa compilation elle est insérée dans la zone texte réservée au progammes BASIC. Les programmes sont exécutés à partir de la mémoire RAM. Pour les cartes __NUCLEO-STM8S208RB__ et __NUCLEO-STM8S207K8__ il y a 6Ko de mémoire RAM. Une partie de cette mémoire est utilisée par le système TinyBasic et il reste environ 5561 octets disponibles pour les progammes. Les programmes sauvegardés en mémoire FLASH sont excécutés sur place.
 
 ## exemple 1 blinky 
-Sur la carte il y a une LED indentifiée **LD2** ou **LD3**. Cette LED est connecté à la broche qui correspond au bit 5 du GPIO C. Cette GPIO   est pré-configurée en mode sortie par le système Tiny BASIC. Pour contrôler son état il suffit donc de modifier l'éatt du bit 5 du registre **ODR** du GPIO C. Dans ce premier exemple nous allons faire clignoer cette LED au rythme de 1 fois par seconde. Le programme est interrompu en enfonçant n'importe quelle touche du terminal.
+Sur la carte il y a une LED indentifiée **LD2** ou **LD3**. Cette LED est connecté à la broche qui correspond au bit 5 du port C. Ce broche   est pré-configurée en mode sortie par le système Tiny BASIC. Pour contrôler son état il suffit donc de modifier l'éatt du bit 5 du registre **ODR** du port C. Dans ce premier exemple nous allons faire clignoer cette LED au rythme de 1 fois par seconde. Le programme est interrompu en enfonçant n'importe quelle touche du terminal.
 ```
 1 BLINK 
 5 ' Blink LED2 on card 
@@ -197,7 +201,7 @@ Une autre méthode pour faire clignoter la LED est d'utiliser la commande **DWRI
 7 ' clignote 3 fois par seconde
 10 LET B = 1 
 20 FOR A = 0 TO 0 STEP 0 ' boucle infinie
-30 DWRITE 13 , B ' la LED sur la broche D13
+30 DWRITE 13 , B ' la est LED sur la broche D13
 40 LET B = 1 - B 
 50 PAUSE 333 
 60 NEXT A 
@@ -286,36 +290,36 @@ Dans cet exemple il s'agit encore de contrôler l'intensité de la LED mais cett
    90 PRINT "\b\b\b\b\b\b";R;
   100 GOTO  20 
 ```
- Le programme peut-être interrompue par len enfonçant la touche **q** sur le terminal. 
+ Le programme peut-être interrompue en enfonçant la touche **q** sur le terminal. 
 
 Sur le ligne 1 de ce programme on voit qu'il y a une étiquette **AN.READ**. Cette étiquette permet de sauvegarder ce programme en mémoire FLASH et de l'exécuter à partir de là. L'étiquette **AN.READ** va devenir le nom du fichier.
 ```
 >save
 
 >dir     
-$B704 206 bytes,AN.READ
+$B804 206 bytes,AN.READ
 
 >run an.read
 $0   
 >autorun an.read
 
 >reboot
- auto run program
+ AN.READ running
 432    
 >
 ```
-On utilise la commande **SAVE** pour sauvegarder le programme en mémoire FLASH ensuite la commande **DIR** nous donne la liste des programmes sauvegardés. Le premier chiffre en hexadécimal est l'adresse d'exécution du programme **$B704**, ensuite viens la taille en décimal **206 octets** et finalement son nom **AN.READ**. 
+On utilise la commande **SAVE** pour sauvegarder le programme en mémoire FLASH ensuite la commande **DIR** nous donne la liste des programmes sauvegardés. Le premier chiffre en hexadécimal est l'adresse d'exécution du programme **$B804**, ensuite viens la taille en décimal **206 octets** et finalement son nom **AN.READ**. 
 
 La commande **RUN** suivie d'un nom de fichier permet d'exécuter le fichier portant ce nom. 
 
 La commande **AUTORUN** suivit d'un nom de fichier, ici **AN.READ** permet de lancer automatiquement ce programme lorsque la carte est mise sous tension ou réinitialisée avec le bouton **RESET**, la commande **REBOOT** ou encore **CTRL+X**. 
 
-La commande **REBOOT** est utilisée pour réinitialiser la carte ce qui a pour effet de démarrer le programme **AN.READ**. Le message **auto run program** est affiché sur le terminal. **432** est la valeur de lecture du potentiomètre. En tournant l'axe du potentiomètre cette valeur change et l'intensité de la LED aussi. 
+La commande **REBOOT** est utilisée pour réinitialiser la carte ce qui a pour effet de démarrer le programme **AN.READ**. Le message **AN.READ running** est affiché sur le terminal. **432** est la valeur de lecture du potentiomètre. En tournant l'axe du potentiomètre cette valeur change et l'intensité de la LED aussi. 
 
-### exemple 4, PWM par périphérique TIMER1
+## exemple 4, PWM par périphérique TIMER1
 La minuterie TIMER1 qui est un compteur 16 bits permet de:
 * Compter des impulsions sur une entrée, c'est le mode *input capture*.
-* Générer des impulsions sur uen sortie, c'est le mode *output compare*.
+* Générer des impulsions sur une sortie, c'est le mode *output compare*.
 
 Cette minuterie possède 4 canaux qui peuvent-être configurés indépendemments à l'exception du compteur qui est commun aux 4. Dans l'exemple suivant le canal 1 qui branché sur **D3** est configuré en mode **PWM** (Pulse Widh Modulation) pour contrôler l'intensité d'une LED. 
 
@@ -327,7 +331,7 @@ Cette minuterie possède 4 canaux qui peuvent-être configurés indépendemments
 * Patte 2 (milieu) -&gt; A0
 * Patte 3 -&gt; 3.3V
 
-1. On définie des constantes qui correspondes aux adresses des différents registres de contrôle du TIMER1. 
+1. lignes 10-40, on définie des constantes qui correspondes aux adresses des différents registres de contrôle du TIMER1. 
 1. ligne 60, on active le signal clock qui alimente le TIMER1.
 1. lignes 80-100, on configure le mode PWM sur le canal 1.
 1. ligne 110-120, on configure la période du compteur 1023 comptes.
@@ -366,14 +370,16 @@ Cette minuterie possède 4 canaux qui peuvent-être configurés indépendemments
 240 END 
 ```
 
-### Contrôle d'un petit servo-moteur 
+## exemple 5, Contrôle d'un petit servo-moteur 
 Les petits servo-moteurs sont aussi contrôlé par PWM (**P**ulse **W**idth **M**odulation). Dans l'exemple suivant le canal 2 de la minuterie est utilisé pour contrôlé un petit servo-moteur de type [SG90](https://www.amazon.ca/-/fr/servo-t%C3%A9l%C3%A9command%C3%A9-h%C3%A9licopt%C3%A8re-contr%C3%B4le-servomoteurs/dp/B072V529YD). 
 
-#### montage 
+Depuis la version 2.6 TinyBasic possède 3 commandes pour contrôler des servo-moteurs ce qui grandement l'utilisation de ceux-ci. 
+
+### montage 
 
 ![montage](docs/images/servo-motor.png)
 
-Le système fournis 3 commandes pour activer et contrôler les servo-moteurs. 
+Le système les 3 commandes suivantes pour activer et contrôler les servo-moteurs. 
 
 * **SERVO.EN 0|1** 0 désactive la fonction, 1 l'active.
 * **SERVO.CH.EN ch#,0|1**
@@ -385,13 +391,12 @@ Le système fournis 3 commandes pour activer et contrôler les servo-moteurs.
 
 Jusqu'à 4 servo-moteurs peuvent-être contrôlés sur les broches 
 
-canal<br>servo|Sortie|conn.
--|-|-
-1|D3|CN3:6
-2|D5|CN3:8
-3|D6|CN3:9
-4|D9|CN3:12 
-
+canal<br>servo|sortie|conn.<br>NUCLEO-8S207K8|conn.<br>NUCLEO-8S208RB
+-|-|-|-
+1|D3|CN3:6|CN7:4
+2|D5|CN3:8|CN7:6
+3|D6|CN3:9|CN7:7
+4|D9|CN3:12|CN8:2 
 
 __AVERTISSEMENT:__ Ne pas connecter l'alimentation du servo-moteur au 5V de la carte. Le moteur tire trop de courant lorsqu'il se met en rotation. Ça réinitialise la carte.
 
@@ -419,14 +424,14 @@ Selon les spécifications du SG90 que j'ai trouvé dans l'internet l'axe devrait
 140 END
 ```
 
-### périphérique I2C 
+### exemple 6, périphérique I2C 
 
-**I2C** est l'acronyme anglophone pour **I**nter **I**ntegrated **C**ommunication. Il s'agit d'un protocole de type **bus** à 2 fils. **bus** veut dire que plus d'un dispositif peut-être branché sur le même bus. Chaque dispositif est identifié par une adresse de 7 bits (ou 10 bits). Dans le dossier **BASIC** il a 2 programme démontrant l'utilisation de ce périphérique. 
+**I2C** est l'acronyme anglophone pour **I**nter **I**ntegrated **C**ircuit. Il s'agit d'un protocole de type **bus** à 2 fils. **bus** veut dire que plus d'un dispositif peut-être branché sur le même bus. Chaque dispositif est identifié par une adresse de 7 bits (ou 10 bits). Dans le dossier **BASIC** il a 2 programmes démontrant l'utilisation de ce périphérique. 
 Les commandes qui utilisent ce périphériques sont:
 
-* **I2C.OPEN** pour activé le périphérique.
+* **I2C.OPEN** pour activer le périphérique.
 * **I2C.CLOSE** pour le fermer.
-* **I2C.WRITE** pour envoyé des données à un dispositif branché sur le bus.
+* **I2C.WRITE** pour envoyer des données à un dispositif branché sur le bus.
 * **I2C.READ** pour recevoir des données d'un dispositif branché sur le bus.
 
 Le programme [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) fait la démonstration de l'utilisation d'une mémoire EEPROM à interface I2C. 
