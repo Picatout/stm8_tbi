@@ -1,18 +1,4 @@
 [français](readme.md)
-
-## 2022-12-01 Version 2.6R2
-
-Documentation is completed in **english** and **french**. The following PDF documents are available in project root directory.
-
-* English
-  * [user_manual.pdf](user_manual.pdf)
-  * [tbi_reference_en.pdf](tbi_reference_en.pdf)
-
-* français
-  * [manuel_utilisateur.pdf](manuel_utilisateur.pdf)
-  * [tbi_reference_fr.pdf](tbi_reference_fr.pdf)
-
-
 # Tiny BASIC on STM8 NUCLEO board. 
 
 When I started this project in 2019 it was an implementation of  [Tiny BASIC](https://en.wikipedia.org/wiki/Tiny_BASIC) on STMicroelectronics NUCLEO-8S208RB board. 
@@ -20,7 +6,7 @@ When I started this project in 2019 it was an implementation of  [Tiny BASIC](ht
 Overtime the project has evolved to a more featured BASIC and since version 2.5 it support also NUCLEO-8S207K8 board.
 
 1. Original Tiny BASIC was supporting 16 bits integers. STM8 TBI support 24 bits integers.
-1. Symbolic targets for GOTO and GOSUB are supported.
+1. Symbolic targets for **GOTO** and **GOSUB** are supported.
 1. Keyword **CONST** is available to define symbolic constants.
 1. Keyword **DIM** is available to define symbolic variables. 
 1. **ON** *expr* **GOSUB|GOTO** *selection_list* is also available.
@@ -33,9 +19,11 @@ The system is completely installed on the NUCLEO board, it can be used with any 
 
 ## documentation 
 
-[language reference](tbi_reference_en.md) 
-
-[user's manual](user_man.md_)
+* Markdown format: [language reference](tbi_reference_en.md) 
+* PDF format: [docs/tbi_reference_en.pdf](docs/tbi_reference_en.pdf)
+* Markdown format: [user's manual](user_man.md_)
+* PDF format: [docs/user_manual.pdf](docs/user_manual.pdf)
+* Release notes in markdown: [release_notes.md](release_notes.md)
 
 ## boards supported 
 

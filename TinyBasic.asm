@@ -173,7 +173,7 @@ move_exit:
 	MAJOR=2
 	MINOR=6
 	REV=2
-
+		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
 board:
 .if NUCLEO_8S208RB 

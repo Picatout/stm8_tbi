@@ -1,3 +1,9 @@
+### 2022-12-02
+
+* Déplacer les document PDF dans le sous-dossier **docs**.
+
+* Réorganisation de la documentation. Ajout de fichiers markdown pour les notes de révision.
+
 ### 2022-12-01
 
 * commit 22:20
