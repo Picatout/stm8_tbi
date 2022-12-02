@@ -1,3 +1,11 @@
+### 2022-12-01
+
+* commit 22:20
+
+* Travail documentation complété.
+
+* Renommé manuel_util_tb.md [manuel_utilisateur.md](manuel_utilisateur.md).
+
 ### 2022-11-30
 
 * commit 20:56 hre.

@@ -3,6 +3,7 @@
 <a id="index"></a>
  * [présentation](#intro)
  * [matériel supporté](#supported-boards)
+ * [Construction à partir des sources](#tbi_build)
  * [installation du firmware Tiny BASIC sur la carte](#firmware-install)
  * [Configuration du terminal](#terminal-setup)
  * [exemples de programmes](#usage-examples)
@@ -17,20 +18,11 @@ Tiny BASIC pour STM8 est un langage simple qui cependant permet de configurer et
 * **UART(1 ou 3) RX full**, pour la réception des caractères du terminal.
 * **I2C** pour les commandes associées.
 * **AWU** pour la commande BASIC **AWU**.
-* **EXTI4** seulement pour la carte **NUCLEO_8S208RB**, le bouton **USER** déclenche l'interruption externe .
+* **EXTI4** seulement pour la carte **NUCLEO_8S208RB**, le bouton **USER** déclenche l'interruption externe et a pour effet de mettre fin à l'exécution du programme en cours d'exécution. 
 
 Il s'agit d'un langage simple pour des applications microcontrolleurs simples.
 
 Le système est conçu pour fonctionner en autonomie, aucune installation n'est requise sur l'ordinateur hôte autre qu'un émulateur de terminal compatible **VT100**. De tels émulateurs sont disponibles sur tous les systèmes d'exploitations majeurs, Unix, Linux, Windows, OSX.
-
-Le projet STM8 Tiny BASIC est lui-même développé sur un ordinateur utilisant Ubuntu/Linux comme système d'exploitation. Le dépôt du projet est maintenu sur [https://github.com/Picatout/stm8_tbi](https://github.com/Picatout/stm8_tbi).
-
-### STM8
-
-**STM8** est le nom du microprocesseur au coeur d'une famille de microcontrôlleurs produit pas [STMicroelectronics](https://www.st.com/content/st_com/en.html). Il s'agit d'une architecture 8 bits classique qui ressemble à  une extension du processeur 8 bits MOS6502 de la fin des années 70. 
-#### Modèle de programmation du STM8
-<br>![modèle de programmation du STM8](docs/images/programming-model.png)
-STM8 TinyBASIC 
 
 L'objectif de ce manuel est de présenter les fonctionnalités du langage à travers des applications du microcontrôleur. Je n'ai pas définie toutes les constantes des registres du MCU dans le langage, il est donc nécessaire de se référer au [feuillet de spécifications](docs/stm8s208rb.pdf) ainsi qu'au manuel de référence du [STM8S](docs/stm8s_reference.pdf). Les manuels d'utilisateur des cartes [NUCLEO-8S208RB](docs/NUCLEO-8S208RB/nucleo-8s208rb_user_manual.pdf) et [NUCLEO-8S207K8](docs/NUCLEO-8S207K8/nucleo-stm8S207K8_user_man.pdf) sont aussi utile.
 
@@ -39,11 +31,26 @@ Pour le langage TIny BASIC lui-même il faut consulter le manuel de référence 
 * [Markdown](tbi_reference_fr.md)
 * [PDF](tbi_reference_fr.pdf) 
 
+### licence 
+
+STM8 TinyBASIC est un projet open source sous licence [GPL V3](LICENSE.TXT)
+
+Le projet STM8 Tiny BASIC est lui-même développé sur un ordinateur utilisant Ubuntu/Linux comme système d'exploitation. Le dépôt du projet est maintenu sur [https://github.com/Picatout/stm8_tbi](https://github.com/Picatout/stm8_tbi).
+
+
+
 [index](#index)
 <hr align="left">
 
 <a id="supported-boards"></a>
 ## Matériel supporté
+
+### STM8
+
+**STM8** est le nom du microprocesseur au coeur d'une famille de microcontrôlleurs produit pas [STMicroelectronics](https://www.st.com/content/st_com/en.html). Il s'agit d'une architecture 8 bits classique qui ressemble à  une extension du processeur 8 bits MOS6502 de la fin des années 70. 
+#### Modèle de programmation du STM8
+<br>![modèle de programmation du STM8](docs/images/programming-model.png)
+STM8 TinyBASIC 
 
 Actuellement le projet supporte 2 modèles de cartes NUCLEO vendues par [STMicroelectronics](https://www.st.com/content/st_com/en.html).
 
@@ -65,8 +72,94 @@ Pour la [configuration du terminal](#terminal-setup) consultez la rubrique plus 
 [index](#index)
 <hr align="left">
 
+<a id="tbi_build"></a>
+## Construction à partir des sources
+
+### Outils de développement 
+
+Je travaille sur un PC avec Ubuntu 20.04 LTS comme système d'exploitation. Pour construire le projet les logiciels suivants sont nécessaires:
+
+* **GNU make**
+```
+sudo apt install make 
+```
+* **objcopy** qui fait parti des binutils 
+```
+sudo apt install binutils
+``` 
+* [sdcc](https://sourceforge.net/projects/sdcc/) qui contient aussi l'assembleur **sdasstm8**.  Peut-être construit et installé à partir des sources mais est aussi disponible dans les dépôts Ubuntu.    
+```
+sudo apt install sdcc 
+```
+* [stm8flash](https://github.com/vdudouyt/stm8flash) pour flasher le binaire sur la carte NUCLEO. Cet outil doit-être construit et installé à partir des sources. Il n'est pas strictement nécessaire si vous utilisez le disque virtuel de la carte NUCLEO, comme décrit dans la rubrique [Installation du firmware Tiny BASIC sur la carte](#firmware-install). 
+
+### construire et flasher le binaire
+* Cloner le dépôt
+
+```
+git clone https://github.com/Picatout/stm8_tbi
+```
+* Sélectionner les options dans le fichier [config.inc](config.inc)
+
+```
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  configuration parameters 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+DEBUG=0 ; set to 1 to include debugging code 
+
+SEPARATE=0 ; set to 1 for 'make separate' 
+
+WANT_IWDG=0 ; set to 1 to add words IWDGEN and IWDGREF 
+
+; boards list
+; set selected board to 1  
+NUCLEO_8S208RB=0
+; use this to ensure 
+; only one is selected 
+.if NUCLEO_8S208RB 
+NUCLEO_8S207K8=0
+.else 
+NUCLEO_8S207K8=1
+.endif 
+
+; NUCLEO-8S208RB config.
+.if NUCLEO_8S208RB 
+    .include "inc/stm8s208.inc" 
+    .include "inc/nucleo_8s208.inc"
+.endif  
+
+; NUCLEO-8S207K8 config. 
+.if NUCLEO_8S207K8 
+    .include "inc/stm8s207.inc" 
+    .include "inc/nucleo_8s207.inc"
+.endif 
+
+; all boards includes 
+
+	.include "inc/ascii.inc"
+	.include "inc/gen_macros.inc" 
+	.include "tbi_macros.inc" 
+```
+
+* **DEBUG** mette à **1** en phase de débogage pour inclure le code supportant les fonction de débogage qui sont dans le fichier [debug_support.asm](debug_support.asm).
+* **WANT_IWDG** mettre **1** pour inclure les mots BASIC **IWDGEN** et **IWDGREF**. Laisser à **0** normalement.
+* **NUCLEO_8S208RB** mettre à **1** pour contruire le projet pour cette carte. Autrement laisser à **0** pour construire pour la carte **NUCLEO_8S207K8**. 
+
+* Utilisez le script [build.sh](build.sh) pour construire le projet. Ce script prend 2 paramètres:
+  * modèle de carte, les options sont **s207** ou **s208**.
+  * Ajouter le paramètre **flash**  pour programmer la carte une fois la construction réussie.
+```
+~/github/stm8_tbi$ ./build.sh s207 flash
+```
+
+[index](#index)
+<hr align="left">
+
 <a id="firmware-install"></a>
 ## Installation du firmware Tiny BASIC sur la carte 
+
+Si vous ne voulez pas construire le projet à partir des sources mais seulement flasher la carte NUCLEO avec le binaire disponible sur le dépôt https://github.com/Picatout/stm8_tbi. Suivez les instructions suivantes.
 
 Lorsque la carte NUCLEO est branchée sur le port USB de l'ordinateur une nouvelle unité de stockage apparaît. 
 

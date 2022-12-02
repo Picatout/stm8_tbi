@@ -1,5 +1,18 @@
 [français](readme.md)
 
+## 2022-12-01 Version 2.6R2
+
+Documentation is completed in **english** and **french**. The following PDF documents are available in project root directory.
+
+* English
+  * [user_manual.pdf](user_manual.pdf)
+  * [tbi_reference_en.pdf](tbi_reference_en.pdf)
+
+* français
+  * [manuel_utilisateur.pdf](manuel_utilisateur.pdf)
+  * [tbi_reference_fr.pdf](tbi_reference_fr.pdf)
+
+
 # Tiny BASIC on STM8 NUCLEO board. 
 
 When I started this project in 2019 it was an implementation of  [Tiny BASIC](https://en.wikipedia.org/wiki/Tiny_BASIC) on STMicroelectronics NUCLEO-8S208RB board. 

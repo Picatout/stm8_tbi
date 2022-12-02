@@ -1,4 +1,17 @@
 [english](readme_en.md)
+
+## 2022-12-01 Version 2.6R2
+
+Documentation complétée en **français** et en **anglais**. Les documents suivant au format PDF sont dans le répertoire racine.
+
+* français
+  * [manuel_utilisateur.pdf](manuel_utilisateur.pdf)
+  * [tbi_reference_fr.pdf](tbi_reference_fr.pdf)
+
+* English
+  * [user_manual.pdf](user_manual.pdf)
+  * [tbi_reference_en.pdf](tbi_reference_en.pdf)
+
 ## 2022-11-29 Version 2.6R1
 
 Ajout de 3 nouvelles commandes 
