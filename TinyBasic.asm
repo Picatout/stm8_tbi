@@ -2275,7 +2275,7 @@ kword_for: ; { -- var_addr }
 	_get_addr
 	ldw (CVAR,sp),x  ; control variable 
 	call let_eval 
-	bset flags,#FLOOP 
+;	bset flags,#FLOOP 
 	call next_token 
 	cp a,#TO_IDX 
 	jreq kword_to 
@@ -2288,19 +2288,13 @@ kword_for: ; { -- var_addr }
 ; FTO bit in 'flags'
 ;-----------------------------------
 kword_to: ; { var_addr -- var_addr limit step }
-	btjt flags,#FLOOP,1$
-	jp syntax_error
-1$: call expression   
+    call expression   
 2$: _xpop
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x
 	call next_token 
-	cp a,#CMD_END   
-	jrule 4$  
 	cp a,#STEP_IDX 
 	jreq kword_step
-	jp syntax_error 	 
-4$:	
 	_unget_token
 	clr (FSTEP,sp) 
 	ldw x,#1   ; default step  
@@ -2314,9 +2308,7 @@ kword_to: ; { var_addr -- var_addr limit step }
 ; initialization. 	
 ;------------------------------------
 kword_step: ; {var limit -- var limit step}
-	btjt flags,#FLOOP,1$
-	jp syntax_error
-1$: call expression 
+    call expression 
 2$:	
 	_xpop 
 	ld (FSTEP,sp),a 

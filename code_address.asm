@@ -97,9 +97,9 @@ code_addr:
     _code_entry kword_on, ON_IDX         ; $26 
 	_code_entry kword_remark, REM_IDX    ; $27 
     _code_entry kword_return, RET_IDX    ; $28
-    _code_entry kword_step, STEP_IDX     ; $29 
+    _code_entry syntax_error, STEP_IDX   ; $29 
     _code_entry kword_stop, STOP_IDX     ; $2A
-    _code_entry kword_to, TO_IDX         ; $2C
+    _code_entry syntax_error, TO_IDX     ; $2C
     _code_entry kword_until, UNTIL_IDX   ; $2D
     KWORD_LAST=TOK_IDX-1 
 ; constant functions 

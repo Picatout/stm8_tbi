@@ -1,3 +1,17 @@
+### 2022-12-20
+
+* Modification à **kword_for**, **kword_to** et **kword_step**. 
+
+* [BASIC/speed-test.bas](BASIC/speed-test.bas).
+```
+FOR...NEXT test
+113  msec
+DO...UNTIL test
+185  msec
+GOSUB test
+135  msec
+```
+
 ### 2022-12-02
 
 * Déplacer les document PDF dans le sous-dossier **docs**.
