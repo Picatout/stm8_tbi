@@ -481,7 +481,7 @@ next_line:
 ;---------------------------
 next_token::
 	_ldxz  basicptr ; ldw x,basicptr ; 2 cy,  2 bytes 
-	_strxz bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
+;	_strxz bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
 	ld a,(x) ; 1 cy 
 	incw x   ; 1 cy 
 	_strxz basicptr  ; ldw basicptr, x ; 2 cy 
@@ -4485,7 +4485,6 @@ cmd_restore:
 	jrne set_data_pointer 
 	jra data_error 
 4$:
-	_unget_token  
 ; search first DATA line 	
 5$:	cpw x,txtend
 	jruge data_error 

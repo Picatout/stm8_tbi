@@ -1,6 +1,22 @@
 ### 2022-12-20
 
-* Modification à **kword_for**, **kword_to** et **kword_step**. 
+* commit 11:49 
+
+* [BASIC/speed-test.bas](BASIC/speed-test.bas).
+```
+FOR...NEXT test
+111  msec
+DO...UNTIL test
+178  msec
+GOSUB test
+132  msec
+```
+
+* Corrigé bogue dans commande **RESTORE** à **4$:** **_unget_token_** ne devait pas être là.
+
+* commit 11:04 
+
+* Modification à **kword_for**, **kword_to** et **kword_step**. Enlevé code inutile.
 
 * [BASIC/speed-test.bas](BASIC/speed-test.bas).
 ```

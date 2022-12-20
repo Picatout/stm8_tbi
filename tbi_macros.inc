@@ -96,8 +96,12 @@
     ; to beginning of last token
     ; extracted except if it was end of line 
     .macro _unget_token
-        .byte 0x45,bp.saved, basicptr ; mov basicptr,bp.saved ; 1 cy, 3 bytes 
-        .byte 0x45,bp.saved+1,basicptr+1 ; mov basicptr+1,bp.saved+1 
+        ;.byte 0x45,bp.saved, basicptr ; mov basicptr,bp.saved ; 1 cy, 3 bytes 
+        ;.byte 0x45,bp.saved+1,basicptr+1 ; mov basicptr+1,bp.saved+1 
+    ;    .byte 0x3A,basicptr+1 ; dec basicptr+1 
+    ;    _ldxz basicptr 
+        decw x 
+        _strxz basicptr 
     .endm
 
     ; extract 16 bits address from BASIC code  
