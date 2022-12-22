@@ -1,3 +1,24 @@
+### 2022-12-22
+
+* commit 11:53
+
+* [speed-test.bas](speed-test.bas) après modification et débogage.
+```
+FOR...NEXT test
+78  msec
+DO...UNTIL test
+147  msec
+GOSUB test
+99  msec
+```
+
+* Déboguer [arithm24.asm](arithm24.asm).
+
+### 2022-12-21
+
+* Retravaillé fichier [arithm24.asm](arithm24.asm) pour éliminer l'utilisation du xstack qui va éventuellement disparaître.
+	* Il y a un bogue avec les expressions. 
+
 ### 2022-12-20
 
 * commit 11:49 

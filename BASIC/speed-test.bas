@@ -1,6 +1,7 @@
   NEW 
     1 SPEED.TEST
-    2 ? "FOR...NEXT test"
+    2 TRACE 0
+    4 ? "FOR...NEXT test"
     5  LET T= TICKS
     7  FOR I= 1 TO 1000
    10  LET A=34*56%23+4
@@ -9,8 +10,9 @@
    70  ? "DO...UNTIL test"
    80  LET B=1 , T=TICKS 
    100 DO 
-   110 LET A=34*56%23+4 
-   120 LET B=B+1 : UNTIL B>1000 
+   110  LET A=34*56%23+4 
+   120  LET B=B+1 
+   124 UNTIL B>1000 
    130 ? TICKS-T;" msec" 
    150 ? "GOSUB test"
    160 LET T=TICKS 

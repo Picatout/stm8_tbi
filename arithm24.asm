@@ -35,6 +35,21 @@
     .area CODE 
 .endif 
 
+    INT_SIZE=3 ; int24 size in bytes
+
+    ; store int24 from A:AX to stack 
+    .macro _i24_store  i 
+    ld (i,sp),a 
+    ldw (i+1,sp),x 
+    .endm 
+
+    ; fetch int24 from stack to A:X 
+    .macro _i24_fetch i 
+    ld a,(i,sp)
+    ldw x,(i+1,sp)
+    .endm 
+
+.if 0
 ;-------------------------------
 ;  duplacte T 
 ;------------------------------
@@ -42,8 +57,6 @@ dup24:
     _at_top 
     _xpush 
     ret 
-
-
 
 ;-------------------------------
 ; add24 
@@ -74,17 +87,26 @@ sub24: ; ( N T -- N-T )
     _store_top  
     _drop 3 
     ret 
+.endif 
 
 ;------------------------------
-; cp24  N T -- 0x800000|0|0x010000
+; cp24  
+;  N1-N2 
+;  IF N1<N2 THEN 0xFF0000
+;  IF N1=N2 THEN 0x000000 
+;  IF N1>N2 THEN 0X010000
+; input:
+;    N1 
+;    N2 
+; output:
+;    A:X  0xFF0000|0|0x010000
 ;------------------------------
+    N1=3 
+    N2=N1+INT_SIZE
 cp24:
-    _xpop 
-    ld acc24,a 
-    ldw acc16,x
-    _at_top 
-    subw x,acc16
-    sbc a,acc24
+    _i24_fetch N1 
+    SUBW X,(N2+1,SP)
+    SBC A,(N2,SP)
     jrslt 1$
     jrne 2$
     tnzw x 
@@ -92,26 +114,14 @@ cp24:
     clr a 
     jra 9$ 
 1$: ; i1 < i2 
-    ld a,#255
+    ld a,#0xFF
     jra 9$ 
 2$: ; i1 > i2 
     ld a,#1 
 9$: clrw x
-     _store_top 
     ret 
 
-;-------------------------------
-; cp24_ax 
-; compare acc24 with A:X 
-;-------------------------------
-cp24_ax:
-    push a 
-    cpw x,acc16 
-    sbc a,acc24
-    pop a 
-    ret 
-
-
+.if 0
 ;-------------------------------
 ; abs24 
 ; abolute value of top  
@@ -130,18 +140,33 @@ cpl24:  ; i -- ~i
     cpl (1,y)
     cpl (2,y)
     ret 
+.endif 
 
 ;----------------------------    
-; two'2 complement of top  
+; two'2 complement of N 
+; input: 
+;   N    on stack 
 ;---------------------------
+    N=3 ; argument passed from caller 
 neg24: ; (i -- -i )
-    _at_top
+    _i24_fetch N 
     cpl  a  
     cplw x 
     addw x,#1
     adc a,#0
-    _store_top  
-9$: ret 
+    _i24_store N 
+    ret 
+
+;-------------------------------
+; cp24_ax 
+; compare acc24 with A:X 
+;-------------------------------
+cp24_ax:
+    push a 
+    cpw x,acc16 
+    sbc a,acc24
+    pop a 
+    ret 
 
 ;-----------------------------
 ; negate integer in A:X 
@@ -152,6 +177,7 @@ neg_ax:
     addw x,#1
     adc a,#0
     ret 
+
 
 ;------------------------------------
 ;  two's complement of acc24 
@@ -171,78 +197,86 @@ neg_acc24: ;
 ;--------------------------------------
 ; unsigned multiply uint24_t by uint8_t
 ; input:
-;	xstack	    uint24_t 
-;   a	        uint8_t
+;	N1	    uint24_t
+;   A 	    uint8_t
 ; output:
-;   xstack   not modified 
 ;   A:X     product 
-;   acc32   overflow, bits 31..24 
+;   N1      not changed 
 ;-------------------------------------
 ; local variables offset  on sp
-	U8   = 1 
-    VSIZE=1 
+	U8   = 1
+    PROD = U8+1
+    VSIZE=PROD+INT_SIZE-1 
+    N1=3+VSIZE ; argument passed from caller 
 mulu24_8:
-    push a 
-	_clrz acc32
-    _clrz acc24  
-; multiply top bits 7..0 * U8   	
-    ld a,(2,Y) ; top least byte  
-    ld xl,a 
-    ld a,(U8,sp)
+    _vars VSIZE 
+    LD (U8,SP),A 
+    clr  a
+    clrw x 
+    _i24_store PROD     
+;  multiply bits 7:0 * U8   	
+    ld a,(U8,SP)
+    ldw x,(N1+1,SP)
     mul x,a 
-    ldw acc16,x 
-; multiply top bits 15..8 * U8     
-    ld a,(1,Y) ; top middle byte 
-    ld xl,a 
-    ld a,(U8,sp) 
+    ldw (PROD+1,SP),X  
+; multiply bits 15:8 * U8     
+    ldw x,(N1,SP)
     mul x,a 
-    addw x,acc24
-    rlc acc32 
-    ldw acc24,x 
-; multiply top bits 23..16 * 8 
-    ld a,(Y)
-    ld xl,a 
-    ld a,(U8,sp)
+    addw x,(PROD,SP)
+    ldw (PROD,SP),X  
+; multiply bits 23:16 * 8 
+    ldw x,(N1-1,SP)
     mul x,a 
-    addw x,acc32
-    rlwa x 
-    tnz a 
-    jreq 1$
+    clr a 
+    rrwa x 
+    addw x,(PROD,SP)
+    jrnc 1$ 
+0$: 
     ld a,#ERR_MATH_OVF
     jp tb_error 
 1$:
-    ld a,xh  
-    _ldxz acc16   
+    ldw (PROD,SP),X   
+    _i24_fetch PROD 
     _drop VSIZE 
     ret
 
 
 ;-------------------------------
-; mul24 i1 i2 -- i1*i2  
+; mul24 
 ; multiply 24 bits integers 
+; if product overflow it 
+; generate a fatal error.
+; input:
+;   N1 (SP+VSIZE+3) 
+;   N2 (SP+VSIZE+3+INT_SIZE)
+; output:
+;   A:X  PRODUCT 
 ;------------------------------
-    PROD=1 
-    PROD_SIGN=4
-    N1=5
-    VSIZE=7  
+    N0=1 
+    PROD=N0+INT_SIZE  
+    PROD_SIGN=PROD+INT_SIZE 
+    VSIZE=7 
+    N1=VSIZE+3
+    N2=N1+INT_SIZE   
 mul24:
     _vars VSIZE
+; clear local vars 
+    clr a 
     clrw x 
-    ldw (PROD,sp),x 
-    ldw (PROD+2,sp),x
-    _xpop 
+    _i24_store PROD 
+    _i24_fetch N1 
     tnz a 
     jrpl 0$
     cpl (PROD_SIGN,sp)
-    call neg_ax 
-0$:    
-    ld (N1,sp),a 
-    ldw (N1+1,sp),x
-    tnz (Y)
+    call neg_ax     
+    _i24_store N1   
+0$: _i24_fetch N2 
+    tnz a
     jrpl 2$ 
     cpl (PROD_SIGN,sp) 
-    call neg24
-2$: 
+    call neg_ax 
+    _i24_store N2 
+2$: _i24_store N0 
     ld a,(N1+2,sp); least byte     
     jreq 4$
     call mulu24_8
@@ -278,7 +312,6 @@ mul24:
     jreq 9$
     call neg_ax 
 9$:
-    _store_top 
     _drop VSIZE 
     ret 
 8$: ; overflow
@@ -320,24 +353,34 @@ divu24_8:
 	ret
 
 
+
 ;-------------------------------
-; div24 N/T   
+; div24 N1/N2  
 ; divide 24 bits integers
-;  i1 i2 -- i1/i2 
+;  input:
+;     N1    dividend 
+;     N2    divisor 
 ;  output:
-;    T     quotient 
-;    A:X   remainder 
+;    A:X   quotient
+;    N2    remainder  
 ;------------------------------
-    DIVISOR=1
-    CNTR=4
-    QSIGN=5
-    RSIGN=6 
-    VSIZE=6 
+    CNTR=1    ; 1 BYTE
+    QSIGN=2   ; 1 BYTE 
+    RSIGN=3   ; 1 BYTE 
+    YSAVE=4   ; 2 BYTES 
+    VSIZE=5   ; 5 BYTES 
+    N1=3+VSIZE 
+    N2=N1+INT_SIZE
+    DIVIDEND=N1
+    QUOTIENT=N1  
+    DIVISOR=N2  
+    REMAINDER=N2 
 div24:
     _vars VSIZE 
     clr (RSIGN,sp)
     clr (QSIGN,sp)
-    _xpop 
+    LD A,(N2,SP)
+    LDW X,(N2+1,SP) 
     tnz a 
     jrpl 0$ 
     cpl (QSIGN,sp)
@@ -351,16 +394,18 @@ div24:
     ld a,#ERR_DIV0 
     jp tb_error 
 1$: ; dividend  
-    _at_top
+    LD A,(N1,SP)
+    LDW X,(N1+1,SP)
     tnz a 
     jrpl 2$
     call neg_ax
     cpl (QSIGN,sp)
     cpl (RSIGN,sp)
 2$: 
-;    _straz acc24 
-;    ldw acc16,x 
-    _store_top 
+    LD (DIVIDEND,SP),A 
+    LD acc24,A 
+    LDW (DIVIDEND+1,SP),X 
+    LDW acc16,X
     ld a,#24 
     ld (CNTR,sp),a
     ld a,(DIVISOR,sp)
@@ -368,26 +413,34 @@ div24:
 ; dividend >= divisor ? 
     call cp24_ax ; A:X-acc24 ?
     jrule 22$ 
-; quotient=0, remainder=divisor      
-    _ldaz acc24 
-    _ldxz acc16 
-    _clrz acc24 
-    _clrz acc16 
-    _clrz acc8 
+; quotient=0, remainder=dividend       
+    LD A,(DIVIDEND,SP)
+    LDW X,(DIVIDEND+1,SP) ; A:X remainder 
+    CLR (QUOTIENT,SP)
+    CLR (QUOTIENT+1,SP)
+    CLR (QUOTIENT+2,SP) ; N2 quotient 
     jra 6$
-22$:     
+22$:
+; if dividend and divisor fit in 16 bits 
+; use faster DIVW instruction 
+    TNZ (DIVIDEND,SP)
+    JRNE 24$
+    TNZ (DIVISOR,SP)
+    JREQ udiv16_16
+24$:    
     clr a 
     clrw x 
     rcf  
 3$: ; shift carry in acc24 bit 0 
-    rlc (2,y) 
-    rlc (1,y)
-    rlc (Y) 
+    rlc (DIVIDEND+2,SP) 
+    rlc (DIVIDEND+1,SP)
+    rlc (DIVIDEND,SP) 
     rlcw x  
     rlc a
 4$: subw x,(DIVISOR+1,sp) 
     sbc a,(DIVISOR,sp)
     jrnc 5$
+; A:X<DIVISOR, restore A:X      
     addw x,(DIVISOR+1,sp)
     adc a,(DIVISOR,sp)
 5$: ; shift carry in QUOTIENT 
@@ -395,38 +448,52 @@ div24:
     dec (CNTR,sp)
     jrne 3$ 
 ; shift quotient last bit     
-    rlc (2,y)
-    rlc (1,y) 
-    rlc (y) 
-6$:    
-    ld (DIVISOR,sp),a 
-    ldw (DIVISOR+1,sp),x 
-    tnz (QSIGN,sp)
-    jreq 8$
-    call neg24
-8$: 
-    ld a,(DIVISOR,sp)
-    ldw x,(DIVSOR+1,sp)
-81$:
+    rlc (DIVIDEND+2,SP) 
+    rlc (DIVIDEND+1,SP)
+    rlc (DIVIDEND,SP)  ; quotient > DIVIDEND 
+6$: ; A:X is remainder    
     tnz (RSIGN,sp)
+    jreq 8$
+    call neg_ax
+8$: 
+    LD (N2,SP),A 
+    LDW (N2+1,SP),X ; remainder > N2 
+81$:
+    LD A,(DIVIDEND,SP)
+    LDW X,(DIVIDEND+1,SP)
+    tnz (QSIGN,sp)
     jreq 9$
     call neg_ax       
 9$: _drop VSIZE 
     ret 
 
-
-;-------------------------------
-; mod24 A:X % acc24 
-; remainder 24 bits integers 
-; input:
-;    acc24   dividend 
-;    A:X     divisor 
-; output:
-;    acc24   acc24 % A:X 
-;------------------------------
-mod24:
-    call div24 
-    _store_top  ; replace quotient by remainder 
+udiv16_16:
+    LDW (YSAVE,SP),Y 
+    LDW X,(DIVIDEND+1,SP)
+    LDW Y,(DIVISOR+1,SP)
+    DIVW X,Y ; X=QUOTIENT, Y=REMAINDER  
+    CLR A 
+    TNZ (QSIGN,SP) 
+    JREQ 1$ 
+    CPL A 
+    CPLW X 
+    ADDW X,#1 
+    ADC A,#0  
+1$: 
+    LD (N1,SP),A 
+    CLR A 
+    TNZ (RSIGN,SP)  
+    JREQ 2$ 
+    CPL A 
+    CPLW Y
+    ADDW Y,#1 
+    ADC A,#0 
+2$:     
+    LD (N2,SP),A 
+    ldw (N2+1,SP),Y  ; remainder > N2  
+    ld a,(N1,SP) ; quotient > A:X 
+    ldw y,(YSAVE,SP)
+    _drop VSIZE 
     ret 
 
 

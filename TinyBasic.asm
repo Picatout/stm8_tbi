@@ -259,9 +259,6 @@ clear_vars:
 ;---------------------------
 clear_basic:
 	pushw x 
-;	_clrz count
-;	clrw x 
-;	ldw line.addr,x   
 	ldw x,#free_ram 
 	ldw txtbgn,x 
 	ldw txtend,x 
@@ -481,14 +478,13 @@ next_line:
 ;---------------------------
 next_token::
 	_ldxz  basicptr ; ldw x,basicptr ; 2 cy,  2 bytes 
-;	_strxz bp.saved ; ldw bp.saved, x ; 2 cy,  2 bytes 
 	ld a,(x) ; 1 cy 
 	incw x   ; 1 cy 
 	_strxz basicptr  ; ldw basicptr, x ; 2 cy 
 .if 0; DEBUG
 	_tp 'N 
 .endif 	
-	 ret ; 4 cy , total 12 cy 
+	 ret ; 4 cy , total 10 cy 
 
 
 ;-------------------------
@@ -676,37 +672,39 @@ to_upper::
 ;    x		* .asciz to convert
 ; output:
 ;    A:X        int24_t 
-;    acc24      int24_t
+;    acc24      int24_t 
 ;------------------------------------
 	; local variables
-	SIGN=1 ; 1 byte, 
-	BASE=2 ; 1 byte, numeric base used in conversion
-	TEMP=3 ; 1 byte, temporary storage
-	XTEMP=4 ; 2 bytes, preserve X 
-	VSIZE=5 ; 5 bytes reserved for local storage
+	N=1 ; 3 bytes 
+	SIGN=N+INT_SIZE ; 1 byte, 
+	BASE=SIGN+1 ; 1 byte, numeric base used in conversion
+	DIGIT=BASE+1 ; 1 byte, temporary storage
+	PSTR=DIGIT+1 ; 2 bytes, preserve X 
+	VSIZE=PSTR+1 ; 8 bytes reserved for local storage
 atoi24::
 	_vars VSIZE
-	ldw (XTEMP,sp),x 
+	ldw (PSTR,sp),x ; pointer to string 
 ; conversion made on xstack 
 	clr a 
 	clrw x 
-	_xpush 
+	_i24_store N   
 	clr (SIGN,sp)
 	ld a,#10
 	ld (BASE,sp),a ; default base decimal
-	ldw x,(XTEMP,sp)
+	ldw x,(PSTR,sp)
 	ld a,(x)
 	jreq 9$  ; completed if 0
 	cp a,#'-
 	jrne 1$
 	cpl (SIGN,sp)
 	jra 2$
-1$: cp a,#'$
+1$: 
+	cp a,#'$
 	jrne 3$
 	ld a,#16
 	ld (BASE,sp),a
 2$:	incw x
-	ldw (XTEMP,sp),x 
+	ldw (PSTR,sp),x 
 	ld a,(x)
 3$:	; char to digit 
 	cp a,#'a
@@ -720,29 +718,28 @@ atoi24::
 	sub a,#7
 	cp a,(BASE,sp)
 	jrpl 9$
-5$:	ld (TEMP,sp),a
+5$:	ld (DIGIT,sp),a
 	ld a,(BASE,sp)
 	call mulu24_8
-	_xpush 
-	clrw x 
-	ld a,(TEMP,sp)
-	rlwa x 
-	_xpush 
-	call add24 
-	ldw x,(XTEMP,sp)
+	rrwa x 
+	add a,(DIGIT,SP)
+	jrnc 6$
+	incw x 
+6$: rlwa x 
+	_i24_store N  
+	ldw x,(PSTR,sp)
 	jra 2$
 9$:	tnz (SIGN,sp)
-    jreq atoi_exit
+    jreq 10$
     call neg24
-atoi_exit:
-	_xpop 
-	_straz acc24 
-	ldw acc16,x
-	ldw y,(XTEMP,sp)
-	decw y ; after number   
+10$:
+	_i24_fetch N 
+	ld acc24,a 
+	ldw acc16,x 
+	ldw y,(PSTR,sp)
+	decw y ; *STR after number   
 	_drop VSIZE
 	ret
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;   TINY BASIC  operators,
@@ -939,13 +936,13 @@ get_array_element:
 ;***********************************
 ;   expression parse,execute 
 ;***********************************
+
 ;-----------------------------------
 ; factor ::= ['+'|'-'|e]  var | @ |
 ;			 integer | function |
 ;			 '('relation')' 
 ; output:
-;   A       token attribute 
-;   xstack  value  
+;   A:X     factr  
 ; ---------------------------------
 	NEG=1
 	VSIZE=1
@@ -972,14 +969,14 @@ factor:
 5$:
 	cp a,#LIT_IDX 
 	jrne 6$
-	call get_int24 ; A:X
+	call get_int24 ; >A:X
 	jra 18$
 6$:
 	cp a,#LITC_IDX 
 	jrne 64$
-	_get_char 
+	_get_char ; >A 
 	clrw x
-	rlwa x 
+	rlwa x    ; >A:X 
 	jra 18$
 64$:
 	cp a,#ARRAY_IDX 
@@ -1027,7 +1024,6 @@ factor:
 	call neg_ax   
 20$:
 ;_tp 'N 
-	_xpush 
 	_drop VSIZE
 	ret
 
@@ -1035,16 +1031,18 @@ factor:
 ;-----------------------------------
 ; term ::= factor [['*'|'/'|'%'] factor]* 
 ; output:
-;   A    	token attribute 
-;	xstack		value 
+;   A:X    	term  
 ;-----------------------------------
-	MULOP=1
-	VSIZE=1
+	N1=1 ; INT_SIZE 
+	N2=N1+INT_SIZE ; INT_SIZE 
+	MULOP=N2+INT_SIZE ; BYTE 
+	VSIZE=MULOP   
 term:
 ;_tp 'K 
 	_vars VSIZE
 ; first factor 	
 	call factor
+	_i24_store N1 
 term01:	 ; check for  operator '*'|'/'|'%' 
 	call next_token
 	ld (MULOP,sp),a
@@ -1057,40 +1055,47 @@ term01:	 ; check for  operator '*'|'/'|'%'
 1$:	; got *|/|%
 ;second factor
 	call factor
+	_i24_store N2 
 ; select operation 	
 	ld a,(MULOP,sp) 
 	cp a,#MULT_IDX 
 	jrne 3$
 ; '*' operator
 	call mul24 
-	jra term01
+	jra 5$
 3$: cp a,#DIV_IDX 
 	jrne 4$ 
 ; '/' operator	
 	call div24 
-	jra term01 
+	jra 5$ 
 4$: ; '%' operator
-	call mod24
+	call div24 
+	_i24_fetch N2 
+5$: 
+	_i24_store N1 
 	jra term01 
 term_exit:
+	_i24_fetch N1 
 ;_tp 'L 
 	_drop VSIZE 
 	ret 
 
 ;-------------------------------
 ;  expr ::= term [['+'|'-'] term]*
-;  result range {-32768..32767}
+;  result range {-16777215..16777215}
 ;  output:
-;   A    token attribute 
-;   xstack	 result    
+;   A:X   expression    
 ;-------------------------------
-	OP=1 
-	VSIZE=1 
+	N1=1 ; INT_SIZE
+	N2=N1+INT_SIZE  
+	OP=N2+INT_SIZE ; BYTE 
+	VSIZE=OP  
 expression:
 ;_tp 'I 
 	_vars VSIZE 
 ; first term 	
 	call term
+	_i24_store N1 
 1$:	; operator '+'|'-'
 	call next_token
 	ld (OP,sp),a 
@@ -1102,16 +1107,25 @@ expression:
 	jra 9$ 
 2$: ; second term 
 	call term
+	_i24_store N2 
 	ld a,(OP,sp)
 	cp a,#ADD_IDX 
 	jrne 4$
-; '+' operator	
-	call add24
-	jra 1$ 
+; '+' operator
+	LD A,(N2,SP)
+	ADDW X,(N1+1,SP)
+	ADC A,(N1,SP)
+	jra 5$ 
 4$:	; '-' operator 
-	call sub24
+	LD A,(N1,SP)
+	LDW X,(N1+1,SP)
+	SUBW X,(N2+1,SP)
+	SBC A,(N2,SP)
+5$:
+	_i24_store N1
 	jra 1$
 9$:
+	_i24_fetch N1 
 ;_tp 'J 
 	_drop VSIZE 
 	ret 
@@ -1121,17 +1135,18 @@ expression:
 ; rel_op ::=  '=','<','>','>=','<=','<>','><'
 ;  relation return  integer , zero is false 
 ;  output:
-;	 xstack		value  
+;	 A:X		relation result   
 ;---------------------------------------------
-  ; local variables 
-	REL_OP=1  ; relational operator 
-	UBYTE=2  ; result upper byte {23..16}
-	VSIZE=2 
+  ; local variables
+	N1=1 ; INT_SIZE 
+	N2=N1+INT_SIZE ; INT_SIZE 
+	REL_OP=N2+INT_SIZE  ; relational operator 
+	VSIZE=REL_OP  
 relation: 
 ;_tp 'G 
 	_vars VSIZE
-	clr (UBYTE,sp) 
 	call expression
+	_i24_store N1 
 ; expect rel_op or leave 
 	call next_token 
 	ld (REL_OP,sp),a 
@@ -1140,12 +1155,11 @@ relation:
 	cp a,#OP_REL_LAST 
 	jrule 2$ 
 1$:	_unget_token 
-	jra 9$ 
+	jra 8$ 
 2$:	; expect another expression
 	call expression
+	_i24_store N2 
 	call cp24 
-	_xpop
-	clrw x  ; result UBYTE:X -> FALSE 
 	tnz a 
 	jrmi 4$
 	jrne 5$
@@ -1171,11 +1185,14 @@ relation:
 	cp a,#REL_NE_IDX 
 	jrne 7$ ; relation false 
 6$: ; TRUE  ; relation true 
-	cpl (UBYTE,sp)
-	cplw x 
+	LD A,#255
+	LDW X,#0XFFFF
+	JRA 9$ 
 7$:	; FALSE 
-	ld a,(UBYTE,sp) ; A:X  result  
-	_xpush 
+	CLR A  ; A:X  result  
+	JRA 9$ 
+8$:
+	_i24_fetch N1 
 9$: 
 ;_tp 'H 
 	_drop VSIZE
@@ -1184,7 +1201,7 @@ relation:
 ;-------------------------------------------
 ;  AND factor:  [NOT] relation | (condition)
 ;  output:
-;     xstack      boolean 
+;     A:X      boolean 
 ;-------------------------------------------
 	NOT_OP=1
 and_factor:
@@ -1200,15 +1217,20 @@ and_factor:
 	call next_token 
 2$:	cp a,#LPAREN_IDX 
 	jrne 3$
-	call condition 
+	call condition
+	PUSH A
+	PUSHW X   
 	ld a,#RPAREN_IDX 
 	call expect 
+	POPW X 
+	POP A 
 	jra 5$
 3$:	_unget_token 
 	call relation 	
 5$:	tnz (NOT_OP,sp)
 	jreq 8$ 
-	call cpl24
+	CPL A 
+	CPLW X 
 8$:
 	_drop 1  
 ;_tp 'F 
@@ -1220,31 +1242,33 @@ and_factor:
 ;  format: relation | (condition) [AND relation|(condition)]*
 ;          
 ;  output:
-;    xtack   value 
+;    A:X   result  
 ;--------------------------------------------
+	B1=1 
+	VSIZE=INT_SIZE 
 and_cond:
+	_vars VSIZE 
 ;_tp 'C 
 	call and_factor
+	_i24_store B1 
 1$: call next_token 
 	cp a,#AND_IDX  
 	jreq 3$  
 	_unget_token 
 	jra 9$ 
 3$:	call and_factor  
-	_xpop 
-	_straz acc24 
-	ldw acc16,x
-	_at_top 
-	and a,acc24 
-	rlwa x 
-	and a,acc16 
-	rlwa x 
-	and a,acc8 
-	rlwa x
-	_store_top 
+	AND A,(B1,SP)
+	RRWA X 
+	AND A,(B1+1,SP)
+	RRWA X 
+	AND A,(B1+2,SP)
+	RRWA X 
+	_i24_store B1 
 	jra 1$  
 9$:	
+	_i24_fetch B1 
 ;_tp 'D 
+	_drop VSIZE 
 	ret 	 
 
 
@@ -1255,13 +1279,15 @@ and_cond:
 ; output:
 ;    xstack   value 
 ;--------------------------------------------
-	ATMP=1
-	OP=2
-	VSIZE=2 
+	B1=1 ; INT_SIZE
+	B2=B1+INT_SIZE  
+	OP=B2+INT_SIZE ; BYTE 
+	VSIZE=OP 
 condition:
 	_vars VSIZE 
-;_tp 'A 
 	call and_cond
+;_tp 'A 
+	_i24_store B1
 1$:	call next_token 
 	cp a,#OR_IDX  
 	jreq 2$
@@ -1271,35 +1297,36 @@ condition:
 	jra 9$ 
 2$:	ld (OP,sp),a ; boolean operator  
 	call and_cond
-	_xpop  ; rigth arg 
-	_straz acc24 
-	ldw acc16,x 
-	_at_top  ; left arg  
-	ld (ATMP,sp),a 
+	_i24_store B2
 	ld a,(OP,sp)
 	cp a,#XOR_IDX  
 	jreq 5$ 
-4$: ; A:X OR acc24   
-	ld a,(ATMP,sp)
-	or a,acc24 
-	rlwa x 
-	or a,acc16 
-	rlwa x 
-	or a,acc8 
-	rlwa x 
+4$: ; B1 = B1 OR B2   
+	ld a,(B1,sp)
+	LDW X,(B1+1,SP)
+	or a,(B2,SP)
+	rrwa x 
+	or a,(B2+1,SP)
+	rrwa x 
+	or a,(B2+2,SP) 
+	rRwa x 
 	jra 6$  
-5$: ; A:X XOR acc24 
-	ld a,(ATMP,sp)
-	xor a,acc24 
-	rlwa x 
-	xor a,acc16 
-	rlwa x 
-	xor a,acc8 
-	rlwa x 
-6$: _store_top 
+5$: ; B1 = B1 XOR B2 
+	LD A,(B1,SP)
+	LDW X,(B1+1,SP)
+	XOR A,(B2,SP)
+	RRWA X 
+	XOR A,(B2+1,SP)
+	RRWA X 
+	XOR A,(B2+2,SP)
+	RRWA X 
+6$: 
+	_i24_store B1 
 	jra 1$ 
-9$:	_drop VSIZE 
+9$:	 
+	_i24_fetch B1 ; result in A:X 
 ;_tp 'B 
+	_drop VSIZE
 	ret 
 
 
@@ -1434,14 +1461,10 @@ let_array:
 let_var:
 	_get_addr
 let_eval:
-	_xpush 
+	ldw ptr16,x  
 	ld a,#REL_EQU_IDX
 	call expect 
 	call condition   
-	_at_next  ; fetch var address 
-	ldw ptr16,x 
-	_xpop ; value 
-	_xdrop ; drop var address 
 3$:
 	ld [ptr16],a
 	_incz ptr8
@@ -1927,7 +1950,8 @@ trap
 7$:	
 	_unget_token 
 	call condition
-    call print_top
+    _xpush 
+	call print_top
 	call space
 	jp reset_semicol 
 8$:
@@ -2275,7 +2299,6 @@ kword_for: ; { -- var_addr }
 	_get_addr
 	ldw (CVAR,sp),x  ; control variable 
 	call let_eval 
-;	bset flags,#FLOOP 
 	call next_token 
 	cp a,#TO_IDX 
 	jreq kword_to 
@@ -2289,7 +2312,7 @@ kword_for: ; { -- var_addr }
 ;-----------------------------------
 kword_to: ; { var_addr -- var_addr limit step }
     call expression   
-2$: _xpop
+2$:
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x
 	call next_token 
@@ -2310,7 +2333,6 @@ kword_to: ; { var_addr -- var_addr limit step }
 kword_step: ; {var limit -- var limit step}
     call expression 
 2$:	
-	_xpop 
 	ld (FSTEP,sp),a 
 	ldw (FSTEP+1,sp),x ; step
 ; if step < 0 decrement LIMIT 
@@ -2329,7 +2351,6 @@ store_loop_addr:
 	ldw (BPTR,sp),x 
 	_ldxz line.addr 
 	ldw (LN_ADDR,sp),x   
-	bres flags,#FLOOP 
 	_incz loop_depth   
 	ret 
 
@@ -3685,7 +3706,6 @@ cmd_sleep:
 ;------------------------------
 cmd_pause:
 	call expression
-    _xpop 
 pause02:
 	ldw timer,x 
 1$: _ldxz timer 
@@ -3777,10 +3797,11 @@ func_abs:
 	cp a,#1 
 	jreq 0$ 
 	jp syntax_error
-0$:  
-	call abs24 
+0$: 
 	_xpop 
-	ret 
+	tnz a 
+	call neg_ax
+1$:	ret 
 
 ;------------------------------
 ; BASIC: LSHIFT(expr1,expr2)
@@ -3989,18 +4010,21 @@ arduino_to_8s207:
 ; output:
 ;	xstack 	random positive integer 
 ;------------------------------
+	N1=1 
+	N2=N1+INT_SIZE
+	VSIZE=6  
 func_random:
+	_vars VSIZE 
 	call func_args 
 	cp a,#1
 	jreq 1$
 	jp syntax_error
 1$:  
-	_xpop   
-	pushw x 
-	push a  
-	ld a,#0x80 
-	bcp a,(1,sp)
-	jreq 2$
+	_xpop 
+	LD (N2,SP),A 
+	LDW (N2+1,SP),X 
+	TNZ A 
+	JRPL 2$  
 	ld a,#ERR_BAD_VALUE
 	jp tb_error
 2$: 
@@ -4051,14 +4075,14 @@ func_random:
 ; return seedx_lo&0x7f:seedy modulo expr + 1 
 	_ldaz seedx+1
 	and a,#127
-	_xpush 
-	pop a 
-	popw x 
-	_xpush 
-	call mod24 
-	_xpop
+	ld (N1,SP),A 
+	ldw (N1+1,SP),X 
+	call div24 
+	LD A,(N2,SP)
+	LDW X,(N2+1,SP) ; remainder 
 	addw x,#1 
 	adc a,#0  
+	_drop VSIZE 
 	ret 
 
 ;---------------------------------
@@ -4322,7 +4346,6 @@ kword_until:
 	jp syntax_error 
 1$: 
 	call condition  
-	_xpop 
 	tnz a 
 	jrne 9$ 
 	tnzw x 
@@ -4330,10 +4353,11 @@ kword_until:
 	ldw x,(DOLP_ADR,sp)
 	ldw basicptr,x 
 	ldw x,(DOLP_LN_ADDR,sp)
-	ldw line.addr,x 
+	ldw line.addr,x
+	btjf flags,#FRUN,8$ 
 	ld a,(2,x)
-	_straz count 
-	ret 
+	_straz count  
+8$:	ret 
 9$:	; remove loop data from stack  
 	popw x
 	_drop VSIZE

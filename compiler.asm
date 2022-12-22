@@ -314,11 +314,8 @@ parse_integer: ; { -- n }
 5$: _decz in 	
     clr (x)
 	ldw x,(XSAVE,sp)
-	ldw y,#XSTACK_EMPTY 
 	call atoi24
 	ldw y,(XSAVE,sp)
-	_ldaz acc24 
-	_ldxz acc16 
 	_drop VSIZE 
 	ret
 
