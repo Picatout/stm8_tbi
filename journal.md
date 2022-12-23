@@ -1,5 +1,9 @@
 ### 2022-12-22
 
+* commt 21:53
+
+* Travail de déboguage suite à la transformation de [arithm24.asm](arithm24.asm) de nombreux changements sont à faire dans les autres modules.
+
 * commit 11:53
 
 * [speed-test.bas](speed-test.bas) après modification et débogage.

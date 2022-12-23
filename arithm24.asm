@@ -18,14 +18,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;    24 bits arithmetic
-;;  arguments are on xtack  
+;;  arguments are on stack  
 ;;  format in registers: A:X 
 ;;      A  bits 23..16 
 ;;      X  bits 15..0 
-;;  acc24 variable used for 
-;;  computation 
-;;   T   Top element on xstack 
-;;   N   Next element on xtack 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 .if SEPARATE 
@@ -35,7 +31,6 @@
     .area CODE 
 .endif 
 
-    INT_SIZE=3 ; int24 size in bytes
 
     ; store int24 from A:AX to stack 
     .macro _i24_store  i 
@@ -48,46 +43,6 @@
     ld a,(i,sp)
     ldw x,(i+1,sp)
     .endm 
-
-.if 0
-;-------------------------------
-;  duplacte T 
-;------------------------------
-dup24:
-    _at_top 
-    _xpush 
-    ret 
-
-;-------------------------------
-; add24 
-; add 24 bits integers 
-;------------------------------
-add24: ; ( N T -- N+T )
-    _xpop 
-    pushw x  
-    push a  
-    _at_top  
-    addw x,(2,sp)
-    adc a, (1,sp)
-    _store_top 
-    _drop 3 
-    ret 
-
-;-------------------------------
-; sub24 
-; subtract 24 bits integers 
-;------------------------------
-sub24: ; ( N T -- N-T ) 
-    _xpop 
-    pushw x 
-    push  a
-    _at_top  
-    subw x,(2,sp) 
-    sbc a, (1,sp)
-    _store_top  
-    _drop 3 
-    ret 
-.endif 
 
 ;------------------------------
 ; cp24  
@@ -120,27 +75,6 @@ cp24:
     ld a,#1 
 9$: clrw x
     ret 
-
-.if 0
-;-------------------------------
-; abs24 
-; abolute value of top  
-;-------------------------------
-abs24: ; ( i -- u )
-    ld a,(y)
-    cp a,#0x80 
-    jrpl neg24 ; negative integer
-    ret  
-
-;----------------------------
-;  one's compleement 
-;----------------------------
-cpl24:  ; i -- ~i 
-    cpl (y) 
-    cpl (1,y)
-    cpl (2,y)
-    ret 
-.endif 
 
 ;----------------------------    
 ; two'2 complement of N 
@@ -204,9 +138,9 @@ neg_acc24: ;
 ;   N1      not changed 
 ;-------------------------------------
 ; local variables offset  on sp
-	U8   = 1
-    PROD = U8+1
-    VSIZE=PROD+INT_SIZE-1 
+	U8   = 1     ; 1 byte 
+    PROD = U8+1  ; 3 bytes
+    VSIZE=4 ; bytes 
     N1=3+VSIZE ; argument passed from caller 
 mulu24_8:
     _vars VSIZE 
@@ -252,9 +186,9 @@ mulu24_8:
 ; output:
 ;   A:X  PRODUCT 
 ;------------------------------
-    N0=1 
-    PROD=N0+INT_SIZE  
-    PROD_SIGN=PROD+INT_SIZE 
+    N0=1  ; 3 
+    PROD=N0+INT_SIZE ; 3   
+    PROD_SIGN=PROD+INT_SIZE ; 1 
     VSIZE=7 
     N1=VSIZE+3
     N2=N1+INT_SIZE   

@@ -223,14 +223,16 @@ warm_init:
 	_clrz flags 
 	_clrz loop_depth 
 	mov base,#10 
-	clrw x  
+	ldw x,#free_ram  
 	ldw basicptr,x 
 	ldw line.addr,x 
 	_clrz count
 ; DIM @(10) minimum size 	
+	ldw x,#10 
+	ldw array_size,x 
 	ldw x,#tib 
 	subw x,#10*CELL_SIZE 
-	ldw end_free_ram,x 
+	ldw end_free_ram,x
 	ret 
 
 ;------------------------------------
@@ -574,15 +576,6 @@ prt_acc24:
 	pop a 
     ret	
 
-;---------------------------------------
-;  print value at xstack top 
-;---------------------------------------
-print_top: 
-	_xpop 
-	_straz acc24 
-	ldw acc16,x 
-	jra prt_acc24 
-
 ;------------------------------------
 ; convert integer in acc24 to string
 ; input:
@@ -611,9 +604,9 @@ itoa::
 	call neg_acc24
 1$:
 ; initialize string pointer 
-; build string before tib
-	ldw x,#tib 
-;	addw x,#TIB_SIZE
+; build string at end of pad  
+	ldw x,#pad 
+	addw x,#PAD_SIZE 
 	decw x 
 	clr (x)
 itoa_loop:
@@ -680,11 +673,11 @@ to_upper::
 	BASE=SIGN+1 ; 1 byte, numeric base used in conversion
 	DIGIT=BASE+1 ; 1 byte, temporary storage
 	PSTR=DIGIT+1 ; 2 bytes, preserve X 
-	VSIZE=PSTR+1 ; 8 bytes reserved for local storage
+	VSIZE=8 ; bytes reserved for local storage
 atoi24::
 	_vars VSIZE
 	ldw (PSTR,sp),x ; pointer to string 
-; conversion made on xstack 
+; conversion made on stack 
 	clr a 
 	clrw x 
 	_i24_store N   
@@ -707,14 +700,13 @@ atoi24::
 	ldw (PSTR,sp),x 
 	ld a,(x)
 3$:	; char to digit 
-	cp a,#'a
-	jrmi 4$
-	sub a,#32
-4$:	cp a,#'0
-	jrmi 9$
+	call to_upper 
 	sub a,#'0
+	jrmi 9$ 
 	cp a,#10
 	jrmi 5$
+	cp a,#17  
+	jrmi 9$ 
 	sub a,#7
 	cp a,(BASE,sp)
 	jrpl 9$
@@ -734,10 +726,7 @@ atoi24::
     call neg24
 10$:
 	_i24_fetch N 
-	ld acc24,a 
-	ldw acc16,x 
 	ldw y,(PSTR,sp)
-	decw y ; *STR after number   
 	_drop VSIZE
 	ret
 
@@ -875,7 +864,8 @@ func_args:
 ;--------------------------------
 arg_list:
 	push #0
-1$:	call condition 
+1$:	call condition
+	_xpush 
 	inc (1,sp)
 	call next_token 
 	cp a,#COMMA_IDX 
@@ -923,13 +913,14 @@ get_array_element:
 ; bounds {1..array_size}	
 2$: ld a,#ERR_BAD_VALUE 
 	jp tb_error 
-3$: tnzw  x
+3$: 
+	tnzw  x
 	jreq 2$ 
 	ld a,#CELL_SIZE  
 	mul x,a 
 	ldw acc16,x   
 	ldw x,#tib ; array is below tib 
-	subw x,acc16 
+	subw x,acc16
 	ret 
 
 
@@ -1033,10 +1024,10 @@ factor:
 ; output:
 ;   A:X    	term  
 ;-----------------------------------
-	N1=1 ; INT_SIZE 
-	N2=N1+INT_SIZE ; INT_SIZE 
-	MULOP=N2+INT_SIZE ; BYTE 
-	VSIZE=MULOP   
+	N1=1 ; 3 bytes 
+	N2=N1+INT_SIZE ; 3 bytes  
+	MULOP=N2+INT_SIZE ;1 bytes 
+	VSIZE=7   
 term:
 ;_tp 'K 
 	_vars VSIZE
@@ -1086,10 +1077,10 @@ term_exit:
 ;  output:
 ;   A:X   expression    
 ;-------------------------------
-	N1=1 ; INT_SIZE
-	N2=N1+INT_SIZE  
-	OP=N2+INT_SIZE ; BYTE 
-	VSIZE=OP  
+	N1=1 ; 3 bytes 
+	N2=N1+INT_SIZE ; 3 bytes  
+	OP=N2+INT_SIZE ; 1 byte
+	VSIZE=7 
 expression:
 ;_tp 'I 
 	_vars VSIZE 
@@ -1138,10 +1129,10 @@ expression:
 ;	 A:X		relation result   
 ;---------------------------------------------
   ; local variables
-	N1=1 ; INT_SIZE 
-	N2=N1+INT_SIZE ; INT_SIZE 
-	REL_OP=N2+INT_SIZE  ; relational operator 
-	VSIZE=REL_OP  
+	N1=1 ; 3 bytes 
+	N2=N1+INT_SIZE ; 3 bytes  
+	REL_OP=N2+INT_SIZE  ; 1 byte  relational operator 
+	VSIZE=7 ; bytes  
 relation: 
 ;_tp 'G 
 	_vars VSIZE
@@ -1279,10 +1270,10 @@ and_cond:
 ; output:
 ;    xstack   value 
 ;--------------------------------------------
-	B1=1 ; INT_SIZE
-	B2=B1+INT_SIZE  
-	OP=B2+INT_SIZE ; BYTE 
-	VSIZE=OP 
+	B1=1 ; 3 bytes 
+	B2=B1+INT_SIZE ; 3 bytes 
+	OP=B2+INT_SIZE ; 1 bytes 
+	VSIZE=7 
 condition:
 	_vars VSIZE 
 	call and_cond
@@ -1390,7 +1381,7 @@ cmd_size:
 ;--------------------------
 func_ubound:
 	call func_free 
-	ld a,#CELL_SIZE 
+	ld a,#INT_SIZE 
 	div x,a 
 	ldw array_size,x
 	clr a 
@@ -1399,9 +1390,10 @@ func_ubound:
 ;----------------------
 ; assign to a symbolic variable
 ;----------------------
-	VAR_NAME=1 
-	REC_LEN=3
-	VSIZE=4 
+	VAR_NAME=1  ; 2 bytes 
+	REC_LEN=VAR_NAME+2 ; 2 bytes 
+	VALUE=REC_LEN+2 
+	VSIZE=VALUE+INT_SIZE  
 let_dvar:
 	call runtime_only
 	_vars VSIZE 
@@ -1417,7 +1409,8 @@ dvar_assign:
 ; dvar assignment 
 	incw x 
 	ldw basicptr,x 
-	call condition  
+	call condition
+	_i24_store VALUE 
 	ldw x,(VAR_NAME,sp) ; pointer to var name 
 	call strlen 
 	add a,#REC_XTRA_BYTES
@@ -1434,7 +1427,7 @@ dvar_assign:
 	addw x,(REC_LEN,sp)
 	subw x,#CELL_SIZE 
 	ldw ptr16,x
-	_xpop 
+	_i24_fetch VALUE 
 	ld [ptr16],a 
 	_incz ptr8 
 	ldw [ptr16],x 
@@ -1598,9 +1591,10 @@ search_name:
 ; share most of his code with kword_dim 
 ;--------------------------------------------
 	VAR_NAME=1 
-	REC_LEN=3
-	RONLY=5
-	VSIZE=5
+	REC_LEN=VAR_NAME+2
+	RONLY=REC_LEN+1
+	VALUE=RONLY+1
+	VSIZE=VALUE+2 
 kword_const:
 	call runtime_only
 	_vars VSIZE 
@@ -1661,7 +1655,7 @@ kword_dim2:
 	decw x
 	addw x,(REC_LEN,sp)
 	ldw dvar_end,x 
-	subw x,#CELL_SIZE  
+	subw x,#INT_SIZE  
 	clr (x)
 	clr (1,x)  
 	clr (2,x)
@@ -1671,11 +1665,12 @@ kword_dim2:
 	cp a,#REL_EQU_IDX 
 	jrne 8$
 ; initialize variable 
-	call condition 
+	call condition
+	_i24_store VALUE  
 5$: _ldxz dvar_end 
 	subw x,#CELL_SIZE 
 	ldw ptr16,x 
-	_xpop 
+	_i24_fetch VALUE 
 	ld [ptr16],a 
 	_incz ptr8 
 	ldw [ptr16],x 
@@ -1950,8 +1945,9 @@ trap
 7$:	
 	_unget_token 
 	call condition
-    _xpush 
-	call print_top
+	ld acc24,a 
+	ldw acc16,x 
+	call prt_acc24
 	call space
 	jp reset_semicol 
 8$:
@@ -4584,7 +4580,8 @@ read01:
 	ldw basicptr,x
 	ld a,(x)
 	jreq 3$  
-	call expression 
+	call expression
+	_i24_store INT24  
 1$:
 	call next_token ; skip comma 
 	cp a,#COMMA_IDX 
@@ -4602,7 +4599,7 @@ read01:
 	_ldxz basicptr 
 	ldw data_ptr,x 
 	call rest_context
-	_xpop 
+	_i24_fetch INT24 
 	_drop VSIZE 
 	ret 
 3$: ; end of line reached 

@@ -100,7 +100,6 @@ stack_unf: ; stack underflow ; control_stack bottom
 ;--------------------------------------	
 
 ; keep the following 3 variables in this order 
-bp.saved: ; saved value of basicptr, overlay in.w  
 in.w::  .blkb 1 ; used by compiler 
 in::    .blkb 1 ; low byte of in.w 
 count:: .blkb 1 ; current BASIC line length and tib text length  

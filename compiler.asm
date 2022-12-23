@@ -288,34 +288,17 @@ escaped:: .asciz "abtnvfr"
 ;   Y       &pad[n] 
 ;-------------------------
 	; local variables 
-	BASE=1 
-	XSAVE=2
-	VSIZE=3
+	XSAVE=1
+	VSIZE=2 
 parse_integer: ; { -- n }
 	pushw x ; XSAVE 
-	push #0 ; BASE 10	
-	cp a,#'$
-	jrne 2$ 
-	cpl (BASE,sp)  ; BASE=16
-2$:	ld (x),a 
-	incw x 
-	ld a,([in.w],y)
-	_incz in 
-	call to_upper 
-	tnz (BASE,sp)
-	jrne 4$  
-3$:  ; decimal number 
-	call is_digit 
-	jrc 2$
-	jra 5$
-4$: ; hexadecimal number 	
-	call is_hex_digit
-	jrc 2$ 
-5$: _decz in 	
-    clr (x)
-	ldw x,(XSAVE,sp)
-	call atoi24
-	ldw y,(XSAVE,sp)
+	ldw x,#tib 
+	addw x,in.w
+	decw x   
+1$:	call atoi24 
+	subw y,#tib 
+	ldw in.w,y
+	ldw y,(XSAVE,SP)  
 	_drop VSIZE 
 	ret
 
