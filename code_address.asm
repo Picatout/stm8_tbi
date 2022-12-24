@@ -149,8 +149,6 @@ code_addr:
     _code_entry func_ubound, UBOUND_IDX     ; $55 
     _code_entry func_uflash, UFLASH_IDX     ; $56 
     _code_entry func_usr, USR_IDX           ; $57
-	_code_entry func_xpick,PICK_IDX         ; $58
- 	_code_entry func_xpop,POP_IDX           ; $59
     FUNC_LAST=TOK_IDX-1                     
 ; commands 
     _code_entry cmd_power_adc,ADCON_IDX     ; $5A adc on 
@@ -205,8 +203,4 @@ code_addr:
     _code_entry cmd_wait, WAIT_IDX          ; $84
     _code_entry cmd_words, WORDS_IDX        ; $85
     _code_entry cmd_write, WRITE_IDX        ; $86
-    _code_entry cmd_xdrop, DROP_IDX         ; $87
-	_code_entry cmd_xpush,PUSH_IDX          ; $88
-	_code_entry cmd_xput, PUT_IDX           ; $89
-	_code_entry cmd_xalloc, ALLOC_IDX       ; $8A
     CMD_LAST=TOK_IDX-1

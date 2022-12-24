@@ -217,7 +217,7 @@ prt_i8:
 	ret 
 
 warm_init:
-	ldw y,#XSTACK_EMPTY
+;	ldw y,#XSTACK_EMPTY
 	ldw x,#uart_putc 
 	ldw out,x ; standard output   
 	_clrz flags 
@@ -439,7 +439,7 @@ interp_loop:
 next_line:
 ; if FRUN is reset it is a command line
 	btjt flags, #FRUN, 1$
-	ldw y,#XSTACK_EMPTY 
+;	ldw y,#XSTACK_EMPTY 
 	ldw x,#STACK_EMPTY 
 	ldw sp,x 
 	jra cmd_line
@@ -537,8 +537,8 @@ get_int24:
 	jrnc 1$     ; 1cy
 	_incz basicptr ; 1cy 
 1$:	_straz basicptr+1 ; ld basicptr+1,a ; 1cy
-	pop a ; 1cy = 10 cy 
-	ret 
+	pop a ; 1cy
+	ret ; 4cy = 14cy   
 
 ;-----------------------------------
 ; print a 16 bit integer 
@@ -840,12 +840,7 @@ expect:
 func_args:
 	ld a,#LPAREN_IDX 
 	call expect 
-	call arg_list 
-	push a 
-	ld a,#RPAREN_IDX 
-	call expect 
-	pop a 
-	ret 
+	jp arg_list 
 
 ; expected to continue in arg_list 
 ; caller must check for RPAREN_IDX 
@@ -859,20 +854,33 @@ func_args:
 ; input:
 ;   none
 ; output:
-;   dstack{n}   arguments pushed on xstack
-;   A 	number of arguments pushed on xstack  
+;   stack{n}   arguments pushed on xstack
+;   A  	number of arguments pushed on xstack  
 ;--------------------------------
+	ARGN=2 
+	ARG_SIZE=INT_SIZE 
 arg_list:
+	popw y   
 	push #0
-1$:	call condition
-	_xpush 
-	inc (1,sp)
+1$: 
+	pop a 
+	sub sp, #ARG_SIZE
+	push a
+	pushw y 
+	call condition
+	popw y 
+	_i24_store ARGN   
+	inc (1,sp)	
 	call next_token 
 	cp a,#COMMA_IDX 
 	jreq 1$ 
+	cp a,#RPAREN_IDX 
+	jreq 7$ 
 	_unget_token 
-7$:	pop a  
-	ret 
+7$:	
+	pop a 
+	jp (y) 
+
 
 ;--------------------------------
 ;   BASIC commnands 
@@ -905,7 +913,7 @@ get_array_element:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: _xpop 
+1$: _i24_pop 
     ; ignore A, index < 65536 in any case 
 	; check for bounds 
 	cpw x,array_size 
@@ -1005,7 +1013,7 @@ factor:
 	call expression
 	ld a,#RPAREN_IDX 
 	call expect
-	_xpop 
+	_i24_pop 
 	jra 18$ 
 10$: ; must be a function 
 	_call_code 
@@ -1249,16 +1257,16 @@ and_cond:
 	jra 9$ 
 3$:	call and_factor  
 	AND A,(B1,SP)
-	RRWA X 
+	RLWA X 
 	AND A,(B1+1,SP)
-	RRWA X 
+	RLWA X 
 	AND A,(B1+2,SP)
-	RRWA X 
+	RLWA X 
 	_i24_store B1 
 	jra 1$  
 9$:	
 	_i24_fetch B1 
-;_tp 'D 
+;_tp 'D
 	_drop VSIZE 
 	ret 	 
 
@@ -1296,21 +1304,21 @@ condition:
 	ld a,(B1,sp)
 	LDW X,(B1+1,SP)
 	or a,(B2,SP)
-	rrwa x 
+	rlwa x 
 	or a,(B2+1,SP)
-	rrwa x 
+	rlwa x 
 	or a,(B2+2,SP) 
-	rRwa x 
+	rlwa x 
 	jra 6$  
 5$: ; B1 = B1 XOR B2 
 	LD A,(B1,SP)
 	LDW X,(B1+1,SP)
 	XOR A,(B2,SP)
-	RRWA X 
+	RLWA X 
 	XOR A,(B2+1,SP)
-	RRWA X 
+	RLWA X 
 	XOR A,(B2+2,SP)
-	RRWA X 
+	RLWA X 
 6$: 
 	_i24_store B1 
 	jra 1$ 
@@ -1454,16 +1462,15 @@ let_array:
 let_var:
 	_get_addr
 let_eval:
-	ldw ptr16,x  
+	pushw x   
 	ld a,#REL_EQU_IDX
 	call expect 
 	call condition   
 3$:
-	ld [ptr16],a
-	_incz ptr8
-	jrne 4$
-	_incz ptr16 
-4$:	ldw [ptr16],x
+	popw y 
+	ld (y),a
+	incw y 
+	ldw (y),x
 	call next_token 
 	cp a,#COMMA_IDX 
 	jreq kword_let
@@ -2090,13 +2097,13 @@ cmd_wait:
 	jp syntax_error 
 0$:	cp a,#3
 	jrult 1$
-	_xpop  ; xor mask 
+	_i24_pop  ; xor mask 
 	ld a,xl 
 	ld (XMASK,sp),a 
-1$: _xpop ; mask
+1$: _i24_pop ; mask
     ld a,xl  
 	ld (MASK,sp),a 
-	_xpop ; address
+	_i24_pop ; address
 2$:	ld a,(x)
 	and a,(MASK,sp)
 	xor a,(XMASK,sp)
@@ -2114,19 +2121,19 @@ cmd_wait:
 ; output:
 ;	none 
 ;--------------------------
+	MASK=1 
+	ADDR=MASK+INT_SIZE 
 cmd_bit_set:
 	call arg_list 
 	cp a,#2	 
 	jreq 1$ 
 	jp syntax_error
 1$: 
-	_xpop ; mask 
-	ld a,xl
-	push a  
-	_xpop ; addr  
-	pop a 
+	_i24_fetch ADDR 
+	ld a,(MASK+2,SP)
 	or a,(x)
 	ld (x),a
+	_drop 2*INT_SIZE 
 	ret 
 
 ;---------------------
@@ -2139,20 +2146,20 @@ cmd_bit_set:
 ; output:
 ;	none 
 ;--------------------------
+	MASK=1 
+	ADDR=MASK+INT_SIZE 
 cmd_bit_reset:
 	call arg_list 
 	cp a,#2  
 	jreq 1$ 
 	jp syntax_error
 1$: 
-	_xpop ; mask 
-	ld a,xl 
+	_i24_fetch ADDR 
+	ld a,(MASK+2,sp)
 	cpl a
-	push a  
-	_xpop ; addr  
-	pop a 
 	and a,(x)
 	ld (x),a 
+	_drop 2*INT_SIZE 
 	ret 
 
 ;---------------------
@@ -2165,20 +2172,20 @@ cmd_bit_reset:
 ; output:
 ;	none 
 ;--------------------------
+	MASK=1 
+	ADDR=MASK+INT_SIZE 
 cmd_bit_toggle:
 	call arg_list 
 	cp a,#2 
 	jreq 1$ 
 	jp syntax_error
-1$: _xpop ; mask 
-	ld a,xl
-	push a 
-	_xpop  ; addr  
-	pop a 
+1$: 
+	_i24_fetch ADDR 
+	ld a,(MASK+2,SP)
 	xor a,(x)
 	ld (x),a 
+	_drop 2*INT_SIZE 
 	ret 
-
 
 ;---------------------
 ; BASIC: BTEST(addr,bit)
@@ -2190,16 +2197,20 @@ cmd_bit_toggle:
 ; output:
 ;	A:X       bit value  
 ;--------------------------
+	MASK=1 
+	ADDR=MASK+INT_SIZE 
 func_bit_test:
 	call func_args 
 	cp a,#2
 	jreq 0$
 	jp syntax_error
 0$:	
-	_xpop 
+	_i24_fetch 1  
 	ld a,xl 
 	and a,#7
-	push a   
+	ld (1,sp),a   
+; create mask by shifting left 
+; until cnt=0 
 	ld a,#1 
 1$: tnz (1,sp)
 	jreq 2$
@@ -2207,7 +2218,7 @@ func_bit_test:
 	dec (1,sp)
 	jra 1$
 2$: ld (1,sp),a  
-	_xpop ; address  
+	_i24_fetch 4 ; address  
 	pop a 
 	and a,(x)
 	jreq 3$
@@ -2215,6 +2226,7 @@ func_bit_test:
 3$:	clrw x 
 	ld xl,a
 	clr a  
+	_drop 2*INT_SIZE 
 	ret
 
 ;--------------------
@@ -2227,12 +2239,10 @@ cmd_poke:
 	jreq 1$
 	jp syntax_error
 1$:	
-	_xpop ; byte   
-    ld a,xl 
-	push a 
-	_xpop ; address 
-	pop a 
+	_i24_fetch 4 ; address   
+	ld a,(3,sp) ; byte to poke  
 	ld (x),a 
+	_drop 2*INT_SIZE 
 	ret 
 
 ;-----------------------
@@ -2248,7 +2258,7 @@ func_peek:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error
-1$: _xpop ; address  
+1$: _i24_pop ; address  
 	_straz farptr 
 	ldw ptr16,x 
 	ldf a,[farptr]
@@ -2264,7 +2274,6 @@ func_peek:
 ;----------------------------
 kword_if: 
 	call condition  
-	_xpop 
 	tnz  a  
 	jrne 9$
 	tnzw x 
@@ -2512,7 +2521,6 @@ look_target_symbol:
 kword_on:
 	call runtime_only
 	call expression 
-    _xpop
 ;_tp '9 	
 ; the selector is the element indice 
 ; in the list of arguments. {1..#elements} 
@@ -2795,10 +2803,11 @@ cmd_get:
 ; 1 Khz beep 
 ;-----------------
 beep_1khz:: 
-	pushw y 
-	pushw x 
+	clr a 
+	ldw x,#1000 
+	_i24_push 
 	ldw x,#100
-	ldw y,#1000
+	_i24_push 
 	jra beep
 
 ;-----------------------
@@ -2809,21 +2818,17 @@ beep_1khz::
 ;    expr1   frequency 
 ;    expr2   duration msec.
 ;---------------------------
+	DURATION=1 
+	FREQ=DURATION+INT_SIZE 
 cmd_tone:
-	pushw y
-	pushw x  
 	call arg_list 
 	cp a,#2 
-	jreq 1$
+	jreq beep 
 	jp syntax_error 
-1$: 
-	_xpop 
-	pushw x ; duration 
-	_xpop ; frequency
+beep: 
+	_i24_fetch FREQ ; frequency
 	ldw y,x ; frequency 
-	popw x  ; duration 
-beep:  
-	pushw x 
+	_i24_fetch DURATION     
 	ldw x,#TIM2_CLK_FREQ
 	divw x,y ; cntr=Fclk/freq 
 ; round to nearest integer 
@@ -2845,12 +2850,11 @@ beep:
 	bset TIM2_CCER1,#TIM2_CCER1_CC1E
 	bset TIM2_CR1,#TIM2_CR1_CEN
 	bset TIM2_EGR,#TIM2_EGR_UG
-	popw x 
+	_i24_fetch DURATION  
 	call pause02
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
-	popw x 
-	popw y 
+	_drop 2*INT_SIZE 
 	ret 
 
 ;----------------------
@@ -2866,12 +2870,12 @@ cmd_servo_chan_enable:
 	jreq 1$
 	jp syntax_error 
 1$: ; pop enable|disable parameter 
-	_xpop ; A:X = 1|0
+	_i24_pop ; A:X = 1|0
 	tnzw x 
 	jrne 2$ ; enable channel 
 	jra  servo_chan_disable 
 2$: ; enable channel 
-	_xpop ; channel number 
+	_i24_pop ; channel number 
 	rrwa x ; ch# -> A 
 	ldw x,#TIM1_CCER1 
 	cp a,#3 
@@ -2897,7 +2901,7 @@ set_bit4:
 ; channel # on xstack 
 ; reset bit CCxE in TIM1_CCERx 	
 servo_chan_disable:
-	_xpop 
+	_i24_pop 
 	rrwa x ; ch# -> A 
 	ldw x,#TIM1_CCER1 
 	cp a,#3 
@@ -2978,21 +2982,21 @@ cmd_servo_position:
 	jreq 1$
 	jp syntax_error 
 1$: 
-	_at_next  ; ch# 
+	ld a,(4,sp)  ; ch# 
+	ldw x,(5,sp)
 	decw x ; 1..4 -> 0..3 
 	sllw x  
 	addw x,#TIM1_CCR1H 
 	rcf 
-	rlc (2,y)
-	rlc (1,y)
-	ld a,(1,y) ; pos middle byte 
+	rlc (3,sp)
+	rlc (2,sp)
+	ld a,(2,sp) ; pos middle byte 
 	ld (x),a  
 	incw x  
-	ld a,(2,y) ; pos low byte 
+	ld a,(3,sp) ; pos low byte 
 	ld (x),a
 ; drop command parameters
-	_xdrop 
-	_xdrop  
+	_drop 2*INT_SIZE 
 	ret 
 
 
@@ -3000,24 +3004,23 @@ cmd_servo_position:
 ; BASIC: ADCON 0|1 [,divisor]  
 ; disable/enanble ADC 
 ;-------------------------------
-	ONOFF=3 
-	DIVSOR=1
-	VSIZE=4 
+	DIVISOR=1
+	ONOFF=DIVISOR+INT_SIZE  
+	VSIZE=6  
 cmd_power_adc:
 	call arg_list 
 	cp a,#2	
 	jreq 1$
 	cp a,#1 
-	jreq 0$ 
-	jp syntax_error 
+	jreq 0$
+	jp syntax_error
 0$:	clr a 
 	clrw x
-	_xpush   ; divisor  
-1$: _at_next 
+	_i24_push   ; divisor  
+1$: _i24_fetch ONOFF  
 	tnzw x 
 	jreq 2$ 
-	_xpop
-	_xdrop  
+	_i24_fetch DIVISOR 
 	ld a,xl
 	and a,#7
 	swap a 
@@ -3026,9 +3029,10 @@ cmd_power_adc:
 	bset ADC_CR1,#ADC_CR1_ADON 
 	_usec_dly 7 
 	jra 3$
-2$: bres ADC_CR1,#ADC_CR1_ADON
+2$: ; turn off ADC 
+	bres ADC_CR1,#ADC_CR1_ADON
 	bres CLK_PCKENR2,#CLK_PCKENR2_ADC
-3$:	
+3$:	_drop VSIZE 
 	ret
 
 ;-----------------------------
@@ -3042,7 +3046,7 @@ func_analog_read:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error
-1$: _xpop 
+1$: _i24_pop 
 	cpw x,#6 
 	jrule 2$
 	ld a,#ERR_BAD_VALUE
@@ -3072,7 +3076,7 @@ func_digital_read:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: _xpop 
+1$: _i24_pop 
 .if NUCLEO_8S208RB
 	cpw x,#15 
 .endif 	
@@ -3107,19 +3111,17 @@ func_digital_read:
 ;    A 		LIT_IDX
 ;    X      0|1 
 ;-------------------------
-	PINNO=1
-	PINVAL=2
-	VSIZE=2
+	PINVAL=1
+	PINNO=PINVAL+INT_SIZE 
+	VSIZE=2*INT_SIZE 
 cmd_digital_write:
 	_vars VSIZE 
 	call arg_list  
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: _xpop 
-	ld a,xl 
-	ld (PINVAL,sp),a
-	_xpop 
+1$:
+	_i24_fetch PINNO 
 .if NUCLEO_8S208RB	
 	cpw x,#15 
 .endif 
@@ -3137,7 +3139,7 @@ cmd_digital_write:
 3$: sll a
 	dec (PINNO,sp)
 	jrne 3$
-4$: tnz (PINVAL,sp)
+4$: tnz (PINVAL+2,sp)
 	jrne 5$
 	cpl a 
 	and a,(GPIO_ODR,x)
@@ -3463,7 +3465,6 @@ rw_zone:
 ;---------------------
 cmd_write:
 	call expression
-    _xpop 
 	_straz farptr 
 	ldw ptr16,x
 	call check_forbidden 
@@ -3480,7 +3481,7 @@ cmd_write:
 	jreq 6$
 	_unget_token 
 	call expression
-3$:	_xpop 
+3$:
 	ld a,xl 
 	clrw x 
 	call write_byte
@@ -3530,7 +3531,7 @@ func_char:
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$:	_xpop
+1$:	_i24_pop
 	rrwa x 
 	and a,#0x7f 
 	rlwa x  
@@ -3567,11 +3568,11 @@ func_ascii:
 	_get_char 
 3$:	clrw x 
 	rlwa x   
-4$:	_xpush  
+4$:	_i24_push  
 5$:	ld a,#RPAREN_IDX 
 	call expect
 9$:	
-	_xpop  
+	_i24_pop  
 	ret 
 
 ;---------------------
@@ -3655,17 +3656,20 @@ func_uflash:
 ; output:
 ;   xstack 	value returned by cally  
 ;---------------------
+	F_ARG=1 
+	F_ADR=F_ARG+INT_SIZE 
+	VSIZE=2*INT_SIZE 
 func_usr:
 	call func_args 
 	cp a,#2
 	jreq 1$  
 	jp syntax_error 
 1$: 
-	_at_next ; A:X addr 
+	_i24_fetch F_ADR ; A:X addr 
 	ldw ptr16,X 
-	_xpop  ; arg 
-	_store_top ; overwrite addr 
-    call [ptr16]
+	_i24_pop  ; arg 
+    _drop INT_SIZE 
+	call [ptr16]
 	ret 
 
 
@@ -3723,7 +3727,7 @@ cmd_awu:
   call expression
 awu02:
   mov AWU_TBR,#1
-  _xpop 
+  _i24_pop 
   cpw x,#30720
   jrule 0$ 
   ld a,#ERR_BAD_VALUE
@@ -3786,7 +3790,7 @@ func_ticks:
 ; input:
 ;   none
 ; output:
-;   xstack    positive int24 
+;   A:X   positive int24 
 ;-------------------------------
 func_abs:
 	call func_args 
@@ -3794,7 +3798,7 @@ func_abs:
 	jreq 0$ 
 	jp syntax_error
 0$: 
-	_xpop 
+	_i24_pop 
 	tnz a 
 	call neg_ax
 1$:	ret 
@@ -3807,22 +3811,22 @@ func_abs:
 ; 	A:x 	result 
 ;------------------------------
 func_lshift:
+	pushw y 
 	call func_args
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: _xpop 
-	ld a,xl 
-	push a      
-	_xpop  ; T>A:X 
-	tnz (1,sp) 
+1$: _i24_pop ; SHIFT 
+	ldw y,x 
+	_i24_pop  ; T>A:X 
+	tnzw Y 
 	jreq 4$
 2$:	rcf 
 	rlcw x 
 	rlc a 
-	dec (1,sp) 
+	decw y 
 	jrne 2$
-4$: _drop 1 
+4$: popw y 
 	ret
 
 ;------------------------------
@@ -3830,26 +3834,25 @@ func_lshift:
 ; logical shift right expr1 by 
 ; expr2 bits.
 ; output:
-; 	A 		LIT_IDX
-;   X 		result 
+;   A:X 		result 
 ;------------------------------
 func_rshift:
+	pushw y
 	call func_args
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: _xpop ; T>A:X
-    ld a,xl 
-	push a    
-	_xpop  
-	tnz (1,sp)
+1$: _i24_pop ; shift 
+    ldw y,x 
+	_i24_pop  
+	tnzw y
 	jreq 4$
 2$:	rcf 
 	rrc a 
 	rrcw x 
-	dec (1,sp) 
+	decw y 
 	jrne 2$
-4$: _drop 1 
+4$: popw y
 	ret
 
 ;--------------------------
@@ -3872,17 +3875,16 @@ cmd_fcpu:
 ; pin#: {0..15}
 ; mode: INPUT|OUTPUT  
 ;------------------------------
-	PINNO=1
-	VSIZE=1
+	PMODE=1
+	PINNO=PMODE+INT_SIZE 
+	VSIZE=2*INT_SIZE 
 cmd_pin_mode:
-	_vars VSIZE 
 	call arg_list 
 	cp a,#2 
 	jreq 0$
 	jp syntax_error 
-0$: _xpop 
-	ldw acc16,x ; pin mode {PINP=0,POUT=1} 
-	_xpop ; Dx pin 
+0$: 
+	_i24_fetch PINNO ; Dx pin 
 .if NUCLEO_8S208RB	
 	cpw x,#15 
 .endif 
@@ -3901,10 +3903,9 @@ cmd_pin_mode:
 	dec (PINNO,sp)
 	jrne 2$ 
 4$:	ld (PINNO,sp),a ; bit mask 
-;	ld a,(PINNO,sp)
 	or a,(GPIO_CR1,x) ;if input->pull-up else push-pull 
 	ld (GPIO_CR1,x),a 
-	ld a,acc8 
+	ld a,(PMODE+2,SP) 
 	jrne 6$
 ; input mode
 ; disable external interrupt 
@@ -4006,24 +4007,23 @@ arduino_to_8s207:
 ; output:
 ;	xstack 	random positive integer 
 ;------------------------------
-	N1=1 
+	N1=1
 	N2=N1+INT_SIZE
-	VSIZE=6  
+	VSIZE=6
 func_random:
-	_vars VSIZE 
+	_vars INT_SIZE    
 	call func_args 
 	cp a,#1
 	jreq 1$
 	jp syntax_error
 1$:  
-	_xpop 
-	LD (N2,SP),A 
-	LDW (N2+1,SP),X 
-	TNZ A 
+	TNZ (N1,SP) 
 	JRPL 2$  
 	ld a,#ERR_BAD_VALUE
 	jp tb_error
-2$: 
+2$:  
+	_i24_fetch N1 
+	_i24_store N2  
 ; acc16=(x<<5)^x 
 	_ldxz seedx 
 	sllw x 
@@ -4179,7 +4179,7 @@ cmd_set_timer:
 	jreq 1$
 	jp syntax_error
 1$: 
-	_xpop  
+	_i24_pop  
 	ldw timer,x 
 	ret 
 
@@ -4214,7 +4214,7 @@ cmd_iwdg_enable:
 	cp a,#1 
 	jreq 1$
 	jp syntax_error 
-1$: _xpop  
+1$: _i24_pop  
 	push #0
 	mov IWDG_KR,#IWDG_KEY_ENABLE
 	ld a,xh 
@@ -4265,7 +4265,7 @@ func_log2:
 	jreq 1$
 	jp syntax_error 
 1$: 
-	_xpop    
+	_i24_pop    
 	tnz a
 	jrne 2$ 
 	tnzw x 
@@ -4297,7 +4297,7 @@ func_bitmask:
 	cp a,#1
 	jreq 1$
 	jp syntax_error 
-1$: _xpop 
+1$: _i24_pop 
 	ld a,xl 
 	ldw x,#1 
 	and a,#23
@@ -4616,6 +4616,9 @@ read01:
 ; if clkdiv==-1 disable SPI
 ; 0|1 -> disable|enable  
 ;--------------------------------- 
+	CLKDIV=1
+	ON_OFF=CLKDIV+INT_SIZE 
+	VSIZE=2*INT_SIZE 
 SPI_CS_BIT=5
 cmd_spi_enable:
 	call arg_list 
@@ -4624,10 +4627,10 @@ cmd_spi_enable:
 	jp syntax_error 
 1$: 
 	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
-	popw x  
-	tnzw x 
+	ld a,(ON_OFF+2,SP)
+	_drop  INT_SIZE ; ON_OFF    
 	jreq spi_disable 
-	popw x 
+	_i24_pop 
 	ld a,#(1<<SPI_CR1_BR)
 	mul x,a 
 	ld a,xl 
@@ -4642,9 +4645,9 @@ cmd_spi_enable:
     bset SPI_CR2,#SPI_CR2_SSI 
 ; enable SPI
 	bset SPI_CR1,#SPI_CR1_SPE 	
+	_drop INT_SIZE ; CLKDIV  
 	ret 
 spi_disable:
-	_drop #2; throw first argument.
 ; wait spi idle 
 1$:	ld a,#0x82 
 	and a,SPI_SR
@@ -4653,6 +4656,7 @@ spi_disable:
 	bres SPI_CR1,#SPI_CR1_SPE
 	bres CLK_PCKENR1,#CLK_PCKENR1_SPI 
 	bres PE_DDR,#SPI_CS_BIT 
+	_drop VSIZE 
 	ret 
 
 spi_clear_error:
@@ -4715,10 +4719,11 @@ func_spi_read:
 ;------------------------------
 cmd_spi_select:
 	call next_token 
-	cp a,#LIT_IDX 
+	cp a,#LITC_IDX 
 	jreq 1$
 	jp syntax_error 
-1$: tnzw x  
+1$: _get_char 
+	tnzw x  
 	jreq cs_high 
 	bres PE_ODR,#SPI_CS_BIT
 	ret 
@@ -4735,137 +4740,6 @@ const_pad_ref:
 	ldw x,#pad 
 	clr a
 	ret 
-
-;****************************
-; expression stack 
-; manipulation routines
-;****************************
-
-;-----------------------------
-; BASIC: PUSH expr|rel|cond 
-; push the result on xtack
-;-----------------------------
-cmd_xpush:
-	call condition 
-	ret 
-
-;------------------------------
-; BASIC: POP 
-; pop top of xstack 
-;------------------------------
-func_xpop:
-	_xpop 
-	ret 
-
-
-;------------------------------
-; BASIC: ALLOC expr 
-; allocate expr element on xtack 
-;-------------------------------
-cmd_xalloc: 
-	call expression 
-1$: _xpop 
-	tnz a 
-	jreq 3$ 
-2$:	ld a,#ERR_BAD_VALUE
-	jp tb_error 
-3$: cpw x,#XSTACK_SIZE 
-	jrugt 2$
-	ld a,#CELL_SIZE 
-	mul x,a 
-	ldw acc16,x 
-	subw y,acc16 
-	cpw y,#xstack_full
-	jrugt 9$
-	ld a,#ERR_MEM_FULL
-	jp tb_error 
-9$:	 
-	ret 
-
-
-;------------------------------
-;  BASIC: DROP expr 
-;  expr in range {0..XSTACK_SIZE}
-;  discard n elements from xtack
-;------------------------------
-cmd_xdrop:
-	call expression 
-1$:	_xpop 
-	ld a,xl 
-	and a,#0x1f 
-	clrw x 
-	ld xl,a 
-	ld a,#CELL_SIZE 
-	mul x,a 
-	ldw acc16,x  
-	addw y,acc16 
-	cpw y,#XSTACK_EMPTY 
-	jrule 9$
-	ldw y,#XSTACK_EMPTY 
-9$:	ret 
-
-;-----------------------
-; check if value in A:X 
-; is inside xstack bound
-; output:
-;    X     slot address  
-;-----------------------
-xstack_bound:
-	tnz a 
-	jrne 8$ 
-1$: cpw x,#XSTACK_SIZE 
-	jrugt 8$
-	ld a,#CELL_SIZE 
-	mul x,a
-	ldw acc16,x 
-	ldw x,y 
-	addw x,acc16 
-	cpw x,#XSTACK_EMPTY 
-	jruge 8$  
-	ret 
-8$: ld a,#ERR_BAD_VALUE
-	jp tb_error 
-
-;-------------------------
-; BASIC: PUT expr, cond 
-; expr -> slot 
-; cond -> valut to put 
-; on xstack 
-;-------------------------
-cmd_xput:
-	call arg_list 
-	cp a,#2 
-	jreq 1$ 
-0$:	jp syntax_error
-1$: _xpop   ; value to put 
-	pushw x 
-	push a 
-	_xpop    ; slot 
-	call xstack_bound
-    ldw ptr16,x 
-	pop a 
-	popw x 
-	ld [ptr16],a 
-	_incz ptr8 
-	ldw [ptr16],x 
-	ret 
-
-;------------------------
-; BASIC: PICK expr 
-; get nième element on 
-; xtack. 
-;-----------------------
-func_xpick:
-	call func_args 
-	cp a,#1 
-	jreq 1$
-	jp syntax_error 
-1$: _xpop 
-	call xstack_bound
-    ld a,(x)
-	ldw x,(1,x)				
-	ret 
-
 
 ;----------------------------
 ; BASIC: AUTORUN \C | label  
@@ -5070,7 +4944,7 @@ cmd_alloc_buffer:
 	ld a,#COMMA_IDX 
 	call expect 
 	call expression 
-1$: _xpop
+1$: 
 	ldw (BSIZE,sp),x 
 	call func_free
 	subw x,#REC_XTRA_BYTES
@@ -5173,8 +5047,10 @@ dict_end:
 	_dict_entry 3,"REM",REM_IDX
 	_dict_entry,6,"REBOOT",RBT_IDX 
 	_dict_entry,4,"READ",READ_IDX  
+.if 0
 	_dict_entry,3,"PUT",PUT_IDX
 	_dict_entry,4,"PUSH",PUSH_IDX 
+.endif 
 	_dict_entry,5,"PORTI",PORTI_IDX 
 	_dict_entry,5,"PORTG",PORTG_IDX 
 	_dict_entry,5,"PORTF",PORTF_IDX
@@ -5185,11 +5061,15 @@ dict_end:
 	_dict_entry,5,"PORTA",PORTA_IDX 
 	_dict_entry 5,"PRINT",PRINT_IDX 
 	_dict_entry,4,"POUT",POUT_IDX
+.if 0
 	_dict_entry,3,"POP",POP_IDX  
+.endif 
 	_dict_entry,4,"POKE",POKE_IDX 
 	_dict_entry,5,"PMODE",PIN_MODE_IDX 
 	_dict_entry,4,"PINP",PINP_IDX
+.if 0
 	_dict_entry,4,"PICK",PICK_IDX
+.endif 
 	_dict_entry,4,"PEEK",PEEK_IDX 
 	_dict_entry,5,"PAUSE",PAUSE_IDX 
 	_dict_entry,3,"PAD",PAD_IDX 
@@ -5229,7 +5109,9 @@ dict_end:
 	_dict_entry,6,"EEFREE",EEFREE_IDX 
 	_dict_entry,4,"EDIT",EDIT_IDX 
 	_dict_entry,6,"DWRITE",DWRITE_IDX
+.if 0
 	_dict_entry,4,"DROP",DROP_IDX ; drop n element from xtack 
+.endif 
 	_dict_entry,5,"DREAD",DREAD_IDX
 	_dict_entry,2,"DO",DO_IDX
 	_dict_entry,3,"DIR",DIR_IDX
@@ -5253,7 +5135,9 @@ dict_end:
 	_dict_entry,7,"AUTORUN",AUTORUN_IDX
 	_dict_entry,3,"ASC",ASC_IDX
 	_dict_entry,3,"AND",AND_IDX ; AND operator 
+.if 0
 	_dict_entry,5,"ALLOC",ALLOC_IDX ; allocate space on xtack 
+.endif 
 	_dict_entry,7,"ADCREAD",ADCREAD_IDX
 	_dict_entry,5,"ADCON",ADCON_IDX 
 kword_dict::

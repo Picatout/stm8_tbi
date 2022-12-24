@@ -44,6 +44,19 @@
     ldw x,(i+1,sp)
     .endm 
 
+    ; pop int24 from top of stack 
+    .macro _i24_pop 
+    pop a 
+    popw x 
+    .endm 
+
+    ; push int24 on stack 
+    .macro _i24_push 
+    pushw X
+    push a 
+    .endm 
+    
+
 ;------------------------------
 ; cp24  
 ;  N1-N2 
@@ -112,7 +125,6 @@ neg_ax:
     adc a,#0
     ret 
 
-
 ;------------------------------------
 ;  two's complement of acc24 
 ;-------------------------------------
@@ -126,7 +138,6 @@ neg_acc24: ;
     jrne 9$
     _incz acc24 
 9$: ret 
-
 
 ;--------------------------------------
 ; unsigned multiply uint24_t by uint8_t
@@ -163,17 +174,15 @@ mulu24_8:
     mul x,a 
     clr a 
     rrwa x 
-    addw x,(PROD,SP)
-    jrnc 1$ 
-0$: 
+    add a,(PROD,SP)
+    jrnc 8$
     ld a,#ERR_MATH_OVF
     jp tb_error 
-1$:
-    ldw (PROD,SP),X   
+8$:   
+    ld (PROD,SP),a   
     _i24_fetch PROD 
     _drop VSIZE 
     ret
-
 
 ;-------------------------------
 ; mul24 
@@ -429,5 +438,3 @@ udiv16_16:
     ldw y,(YSAVE,SP)
     _drop VSIZE 
     ret 
-
-

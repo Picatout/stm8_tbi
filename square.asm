@@ -6,10 +6,7 @@
 .include "tbi_macros.inc" 
 .list 
  square:
-   _at_top  
-   rrwa X
-   ld xl,a 
-   mul x,a 
-  clr a 
-  _xpush 
-   ret
+   ld a,xl ; 0x9f 
+   mul x,a ; 0x42  
+   clr a   ; 0x4F 
+   ret     ; 0x81

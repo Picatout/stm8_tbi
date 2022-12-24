@@ -844,7 +844,7 @@ compile::
 	jp tb_error
 1$:	 
 	ldw y,#pad+3 
-2$:	cpw y,#xstack_full 
+2$:	cpw y,#stack_full 
 	jrult 3$
 	ld a,#ERR_BUF_FULL 
 	jp tb_error 

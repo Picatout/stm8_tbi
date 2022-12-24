@@ -191,7 +191,7 @@ cmd_i2c_error:
 ;--------------------------------
 ; BASIC: I2C.open freq 
 ; enable I2C peripheral
-;
+; 
 ; freq:
 ;   SCL in Khz 
 ;--------------------------------
@@ -210,7 +210,7 @@ cmd_i2c_open:
     ld I2C_FREQR,a
 ; SCL fequency parameter 
     clr I2C_CCRH 
-    _xpop   ; A:X freq. 
+    _i24_pop   ; A:X freq. 
     pushw y 
     pushw x ; A is ignored  
     ldw y,x 
@@ -287,15 +287,15 @@ set_op_params:
     cp a,#4 
     jreq 1$
     jp syntax_error 
-1$: _xpop ; no_stop 
+1$: _i24_pop ; no_stop 
     jreq 2$
     bset i2c_status,#I2C_STATUS_NO_STOP
-2$: _xpop ; buf_addr 
+2$: _i24_pop ; buf_addr 
     ldw i2c_buf,x 
-    _xpop ; count 
+    _i24_pop ; count 
     ld a,xl ; no more than 255 
     _straz i2c_count 
-    _xpop ; devid 
+    _i24_pop ; devid 
     ld a,xl 
     _straz i2c_devid 
     ret 

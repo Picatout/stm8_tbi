@@ -1,5 +1,6 @@
  NEW 
    5  ? "testing ON expr GOTO line#,line#,..."
+   6  TRACE 0 
    7  INPUT "select 1-5"A 
   10  ON A GOTO 100,LBL1,300,400,EXIT   
   14  ? "Woops! selector out of range." : END  

@@ -1,3 +1,31 @@
+### 2022-12-24 
+
+* commit 16:35 hre 
+
+* Corrigé bogue dans commande **ADCON**. 
+
+* Suppresssion de la pile des arguments et des fonctions et commandes l'utilisant. 
+
+* Corrigé bogue dans **let_var** qui assumait erronément que la variable **prt16** n'était pas modifiée par l'appel à **condition**. 
+
+* Corrigé **kword_on**. 
+
+* Corrigé **and_cond** et **condition**. 
+
+* Corrigé commande **WRITE**.
+
+* Corrigé **beep_1khz** et commande **TONE** dans [TinyBasic.asm](TinyBasic.asm).
+
+* Corrigé bogue dans routine **mulu24_8** du fichier [arithm24.asm](arithm24.asm). 
+
+### 2022-12-23
+
+* Corrigé  **BSET**, **BRES**, **BTGL**, **BTEST**, **POKE**. 
+
+* Débogué routines **func_args** et **arg_list**. 
+
+* Modifié routine **arg_list**, n'utilise plus le **xstack** qui sera éventuellement supprimé. Les arguments sont retournés sur la pile régulière.
+
 ### 2022-12-22
 
 * commt 21:53

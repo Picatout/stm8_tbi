@@ -34,12 +34,12 @@
     .area SSEG (ABS)
 ;; working buffers and stack at end of RAM. 	
 ;;-----------------------------------
-    .org RAM_SIZE-STACK_SIZE-XSTACK_SIZE*CELL_SIZE-TIB_SIZE-PAD_SIZE 
+    .org RAM_SIZE-STACK_SIZE-TIB_SIZE-PAD_SIZE 
 tib:: .ds TIB_SIZE             ; terminal input buffer
 block_buffer::                 ; use to write FLASH block (alias for pad )
 pad:: .ds PAD_SIZE             ; working buffer
-xstack_full:: .ds XSTACK_SIZE*CELL_SIZE   ; expression stack 
-xstack_unf:: ; xstack underflow 
+;xstack_full:: .ds XSTACK_SIZE*CELL_SIZE   ; expression stack 
+;xstack_unf:: ; xstack underflow 
 stack_full:: .ds STACK_SIZE   ; control stack 
 stack_unf: ; stack underflow ; control_stack bottom 
 
@@ -429,7 +429,7 @@ run_app:
 	jp warm_start ; no autorun application.
 1$:	
 ; run application in FLASH|EEPROM 
-	ldw y,XSTACK_EMPTY
+;	ldw y,XSTACK_EMPTY
 	call warm_init
 	ldw x,EEPROM_BASE+2 
 	addw x,#FILE_HEADER_SIZE
