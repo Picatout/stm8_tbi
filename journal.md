@@ -1,5 +1,7 @@
 ### 2022-12-24 
 
+* commit après test sur **NUCLEO-8S208RB**.
+
 * commit 16:35 hre 
 
 * Corrigé bogue dans commande **ADCON**. 
