@@ -170,9 +170,9 @@ move_exit:
 ;  display system 
 ;  information 
 ;-----------------------
-	MAJOR=2
-	MINOR=6
-	REV=2
+	MAJOR=3
+	MINOR=0
+	REV=1 
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
 board:
@@ -4628,9 +4628,8 @@ cmd_spi_enable:
 1$: 
 	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
 	ld a,(ON_OFF+2,SP)
-	_drop  INT_SIZE ; ON_OFF    
 	jreq spi_disable 
-	_i24_pop 
+	_i24_fetch CLKDIV 
 	ld a,#(1<<SPI_CR1_BR)
 	mul x,a 
 	ld a,xl 
@@ -4645,7 +4644,7 @@ cmd_spi_enable:
     bset SPI_CR2,#SPI_CR2_SSI 
 ; enable SPI
 	bset SPI_CR1,#SPI_CR1_SPE 	
-	_drop INT_SIZE ; CLKDIV  
+	_drop VSIZE   
 	ret 
 spi_disable:
 ; wait spi idle 
