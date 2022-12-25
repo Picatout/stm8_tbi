@@ -31,7 +31,7 @@ Avec le temps de nombreuses fonctionnalités ont étées ajoutées au langage de
 * Format Markdown: [manuel de l'utilisateur](manuel_Utilsateur.md_)
 * Format PDF: [docs/manuel_utilisateur.pdf](docs/manuel_Utilisateur.pdf)
 * Format Markdown: [notes_de_révision.md](notes_de_révision.md)
-* Notes de version: [notes de version](notes_version.md)
+* Notes de révision: [notes de révision](notes_de_révision.md)
 
 ## cartes supportées 
 
