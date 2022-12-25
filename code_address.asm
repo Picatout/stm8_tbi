@@ -183,6 +183,10 @@ code_addr:
     _code_entry cmd_pin_mode, PIN_MODE_IDX  ; $75
     _code_entry cmd_poke, POKE_IDX          ; $76
    	_code_entry cmd_print, PRINT_IDX        ; $77
+    _code_entry cmd_save, SAVE_IDX          ; $7B
+    _code_entry cmd_pwm_chan_enable, PWM_CHAN_EN_IDX 
+    _code_entry cmd_pwm_enable, PWM_EN_IDX 
+    _code_entry cmd_pwm_out, PWM_OUT_IDX 
     _code_entry cmd_reboot, RBT_IDX         ; $78
     _code_entry cmd_restore, REST_IDX       ; $79
     _code_entry cmd_run, RUN_IDX            ; $7A

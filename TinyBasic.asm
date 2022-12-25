@@ -2857,6 +2857,9 @@ beep:
 	_drop 2*INT_SIZE 
 	ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;   servo motor control
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;----------------------
 ; BASIC: SERVO.CH.EN ch#,1|0
 ; enable 1 of 4 channel
@@ -2898,8 +2901,10 @@ set_bit4:
 8$:
 	ret 
 
-; channel # on xstack 
+;---------------------------------
+; channel # on stack 
 ; reset bit CCxE in TIM1_CCERx 	
+;---------------------------------
 servo_chan_disable:
 	_i24_pop 
 	rrwa x ; ch# -> A 
@@ -2999,6 +3004,70 @@ cmd_servo_position:
 	_drop 2*INT_SIZE 
 	ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  PWM control
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;----------------------------
+; BASIC: PWM.EN resolution, 0|1 
+; parameters 
+;   resolution   8,10,16 bits 
+;   0|1    0 disable, 1 enable 
+;-------------------------------
+	ONOFF=1 
+	RESOL=ONOFF+INT_SIZE 
+	VSIZE=2*INT_SIZE 
+cmd_pwm_enable:
+	call arg_list 
+	cp a,#2 
+	jreq 1$ 
+	jp syntax_error 
+1$:
+
+	_drop VSIZE 
+	ret 
+
+;----------------------------------
+; BASIC: PWM.CH.EN ch#, 0|1 
+; parameters:
+;   ch#     channel to enable {1..4}
+;   0|1     0 disable, 1 enable 
+;----------------------------------
+	ONOFF=1
+	CH_NBR=ONOFF+INT_SIZE 
+	VSIZE=2*INT_SIZE 
+cmd_pwm_chan_enable:
+	call arg_list 
+	cp a,#2 
+	jreq 1$ 
+	jp syntax_error 
+1$:
+
+	_drop VSIZE 
+	ret 
+
+;----------------------------------
+; BASIC: PWM.OUT ch#, buffer, count 
+; parameters:
+;   ch#     channel number 
+;   buffer   buffer that containt 
+;            values to output.
+;            16 bits integers  
+;   count    count of value to output  
+;----------------------------------
+	COUNT=1
+	BUFFER=COUNT+INT_SIZE  
+	CH_NBR=BUFFER+INT_SIZE 
+	VSIZE=3*INT_SIZE 
+cmd_pwm_out: 
+	call arg_list 
+	cp a,#3 
+	jreq 1$ 
+	jp syntax_error 
+1$:
+
+	_drop VSIZE 
+	ret 
 
 ;-------------------------------
 ; BASIC: ADCON 0|1 [,divisor]  
@@ -5046,10 +5115,9 @@ dict_end:
 	_dict_entry 3,"REM",REM_IDX
 	_dict_entry,6,"REBOOT",RBT_IDX 
 	_dict_entry,4,"READ",READ_IDX  
-.if 0
-	_dict_entry,3,"PUT",PUT_IDX
-	_dict_entry,4,"PUSH",PUSH_IDX 
-.endif 
+	_dict_entry,7,"PWM.OUT",PWM_OUT_IDX 
+	_dict_entry,6,"PWM.EN",PWM_EN_IDX
+	_dict_entry,9,"PWM.CH.EN",PWM_CHAN_EN_IDX 
 	_dict_entry,5,"PORTI",PORTI_IDX 
 	_dict_entry,5,"PORTG",PORTG_IDX 
 	_dict_entry,5,"PORTF",PORTF_IDX

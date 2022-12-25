@@ -26,8 +26,6 @@
 	STACK_EMPTY=RAM_SIZE-1  
     INT_SIZE=3 ; int24 size in bytes
     CELL_SIZE=INT_SIZE 
-;    XSTACK_SIZE=20 ; 20 * int24
-;    XSTACK_EMPTY=STACK_EMPTY-STACK_SIZE 
 	
     FRUN=0 ; flags run code in variable flags
 	FTRAP=1 ; inside trap handler 

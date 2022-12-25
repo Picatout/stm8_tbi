@@ -8,7 +8,7 @@
 
 * Removing parameter stack that was using **Y** register as stack pointer. Now BASIC commands and functions receive their arguments on regular stack. 
 
-* As the parameter stack was removed all related commands and functions have also been removed. They borrowed from Forth language philosophy and wasn't a good fit for a Tiny BASIC language.The removed commands and functions are:
+* As the parameter stack was removed all related commands and functions have also been removed. They borrowed from Forth language philosophy and were not a good fit for a Tiny BASIC language.The removed commands and functions are:
     * **ALLOC** 
     * **DROP**
     * **PICK**
