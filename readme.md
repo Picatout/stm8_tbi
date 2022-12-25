@@ -28,9 +28,8 @@ Avec le temps de nombreuses fonctionnalités ont étées ajoutées au langage de
 
 * Format Markdown: [référence du language](tbi_reference_fr.md) 
 * Format PDF: [docs/tbi_reference_fr.pdf](docs/tbi_reference_fr.pdf)
-* Format Markdown: [manuel de l'utilisateur](manuel_Utilsateur.md_)
+* Format Markdown: [manuel de l'utilisateur](manuel_utilisateur.md)
 * Format PDF: [docs/manuel_utilisateur.pdf](docs/manuel_Utilisateur.pdf)
-* Format Markdown: [notes_de_révision.md](notes_de_révision.md)
 * Notes de révision: [notes de révision](notes_de_révision.md)
 
 ## cartes supportées 

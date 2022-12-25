@@ -21,9 +21,10 @@ The system is completely installed on the NUCLEO board, it can be used with any 
 
 * Markdown format: [language reference](tbi_reference_en.md) 
 * PDF format: [docs/tbi_reference_en.pdf](docs/tbi_reference_en.pdf)
-* Markdown format: [user's manual](user_man.md_)
+* Markdown format: [user's manual](user_manual.md_)
 * PDF format: [docs/user_manual.pdf](docs/user_manual.pdf)
 * Release notes in markdown: [release_notes.md](release_notes.md)
+
 
 ## boards supported 
 
