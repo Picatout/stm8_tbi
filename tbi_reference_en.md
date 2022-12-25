@@ -219,7 +219,6 @@ name|description
 [ABS](#abs)|function that return absolute value.
 [ADCON](#adcon)|Power analog to digital converter.
 [ADCREAD](#adcread)|Read analog input pin.
-[ALLOC](#alloc)| Allocate space on data stack.
 [AND](#and)| Boolean operator.
 [ASC](#asc)|Return ASCII value of a character.
 [AUTORUN](#autorun)|Enable or disable program auto run.
@@ -243,7 +242,6 @@ name|description
 [DIR](#dir)|Lis programs saved in FLASH memory.
 [DO](#do)|Keyword to introduce a  DO..UNTIL control structure.
 [DREAD](#dread)|Read a digital pin.
-[DROP](#drop)| Drop top element of data stack.
 [DWRITE](#dwrite)|Write a digital pin.
 [EDIT](#edit)|Load in RAM a program saved in FLASH for edition.
 [EEFREE](#eefree)|Return EEPROM free address.
@@ -281,11 +279,9 @@ name|description
 [PAD](#pad)|Return address of 128 bytes working buffer.
 [PAUSE](#pause)|Suspend execution for some milliseconds.
 [PEEK](#peek)|Return byte value at some address.
-[PICK](#pick)|Return integer from data stack at selected position.
 [PINP](#pinp)|Read one of Arduino digital pin.
 [PMODE](#pmode)|Set OUT|INP mode of an Arduino Pin.
 [POKE](#poke)|Set byte value at some address.
-[POP](#pop)|Function that remove and return top of data stack .
 [POUT](#pout)|Change state of Arduino digital pin.
 [PRINT or ?](#print)| Print, string, charater or integer to terminal. 
 [PORTA](#portx)|Return base address GPIO A 
@@ -296,8 +292,6 @@ name|description
 [PORTF](#portx)|Return base address GPIO F
 [PORTG](#portx)|Return base address GPIO G
 [PORTI](#portx)|Return base address GPIO I
-[PUSH](#push)|Push integer on data stack.
-[PUT](#put)| Put an integer on data stack at selected position.
 [READ](#read)|Read in a variable data item from DATA line.
 [REBOOT](#reboot)|Reinitialize MCU.
 [REM ou '](#rem)| Start a comment.
@@ -392,11 +386,6 @@ MCU<br>channel|NUCLEO-8S208RB<br>CN4:pin|NUCLEO-8S207K8<br>CN4:pin|
  655
 
 ```
-
-[index](#index)
-<a id="alloc"></a>
-### ALLOC n {C,P}
-Reserve *n* slots on data stack. These slots can be used as temporary or local variables in subroutines. See also [PICK](#pick), [PUT](#put) and [DROP](#drop). 
 
 [index](#index)
 <a id="and"></a>
@@ -756,14 +745,6 @@ PC7|D12|CN3:15
 20 ? DREAD(5)
 ```
 [index](#index)
-<a id="drop"></a>
-### DROP *n* {C,P}
-This command free *n* top slots from data stack.
-
-See [ALLOC](#alloc),[PICK](#pick),[PUT](#put),[PUSH](#push),[POP](#pop).
-
-[index](#index)
-
 <a id="dwrite"></a>
 ### DWRITE *pin*,*level* 
 This command change the state of a digital output pin defined as output by command [PMODE](#pmode). 
@@ -1518,26 +1499,6 @@ $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 $82 
 ```
 
 [index](#index)
-<a id="pick"></a>
-## PICK(*n*) {C,P}
-This function return the value of nth slot from data stack. The value stay on stack.
-The top slot as indice zero. 
-
-See also 
-* [ALLOC n](#alloc) To reserve *n* slots on top of data stack.
-* [PUSH expr](#push)  Push value of *expr* on top of data stack. 
-* [POP](#pop) extract top value of data stack. 
-* [DROP n](#drop)  Discard *n* slots from top of data stack.
-* [PUT n,expr](#put) put at slot *n* value of *expr*.  
-
-```
->push 1:push 2: ? pick(0);pick(1)
-2 1 
-
->
-```
-
-[index](#index)
 <a id="pinp"></a>  {C,P}
 ### PINP pin 
 This is a constant used by command [PMODE](#pmode)  to set pin as digital input.
@@ -1608,19 +1569,6 @@ Put byte value of *expr2* at address of *expr1*
 See also [PEEK](#peek)
 
 [index](#index)
-<a id="pop"></a>
-## POP {C,P}
-This function remove the top integer from data stack and return its value.
- 
-```
->push 1: push 2 :? pop; pop ' now data stack is empty
-2 1 
-
->
-```
-See also [ALLOC](#alloc),[DROP](#drop),[PICK](#pick),[PUSH](#push),[PUT](#put)
-
-[index](#index)
 <a id="pout"></a>
 ### POUT  {C,P} 
 This constant is used by [PMODE](#pmode) to configure **Dx** pin as digital output. 
@@ -1687,45 +1635,6 @@ For each of these register there is a defined constant when added to **PORTx** a
 
 >bset portc+odr,bit(5) ' turn on user LED 
 ```
-
-[index](#index)
-<a id="push"></a>
-## PUSH *expr* {C,P}
-This command push the value of *expr* on top of data stack. Its inverse is [POP](#pop) remove the top value from data stack and return it. 
-
-
-```
->push 1 push 2 ? pop pop 
-   2    1 
-
->
-```
-See also [ALLOC](#alloc),[DROP](#drop),[PICK](#pick),[PUT](#put)
-
-[index](#index)
-<a id="put"></a>
-## PUT *n*,*expr* {C,P}
-This command place the value of *expr* at nth position on stack. It is the inverse of [PICK](#pick). Some slots must have been reserved with [ALLOC](#alloc) prior to using these 2. Or may a serie of [PUSH](#push). 
-
-```
->LIST
-    1 XSTACK 
-    2 ' tset xstack functions and commands
-   10 ALLOC 3 
-   20 PUT 0 , - 1 : PUT 1 , - 2 : PUT 2 , - 3 
-   30 ? PICK ( 0 ) PICK ( 1 ) PICK ( 2 ) 
-   40 PUT 2 , - 5 
-   50 ? PICK ( 2 ) 
-program address: $91, program size: 128 bytes in RAM memory
-
->run
--1 -2 -3 
--5 
-
->
-```
-See also [ALLOC](#alloc),[DROP](#drop),[PICK](#pick),[PUSH](#push),[POP](#pop)
-
 [index](#index)
 <a id="read"></a>
 ### READ {P}

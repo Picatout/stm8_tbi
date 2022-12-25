@@ -264,7 +264,6 @@ nom|description
 [ABS](#abs)|Fonction qui retourne la valeur absolue.
 [ADCON](#adcon)|active ou désactive le convertisseur analogue/numérique
 [ADCREAD](#adcread)|Lecture analogique d'une broche.
-[ALLOC](#alloc)| allocation d'espace sur la pile des expressions
 [AND](#and)| opérateur binaire ET
 [ASC](#asc)|Fonction qui retourne la valeur ASCII d'un caractère.
 [AUTORUN](#autorun)|Active l'exécution automatique d'un programme.
@@ -288,7 +287,6 @@ nom|description
 [DIR](#dir)|Commande pour afficher la liste des programmes sauvegardés en mémoire FLASH.
 [DO](#do)|Directive débutant une boucle DO..UNTIL.
 [DREAD](#dread)|Lecture d'une broche GPIO en mode numérique.
-[DROP](#drop)| libère n éléments du sommet de la pile des expressions.
 [DWRITE](#dwrite)|Écriture d'une broche en mode numérique.
 [EDIT](#edit)|Charge en mémoire RAM un programme sauvegardé pour édition.
 [EEFREE](#eefree)|Retourne la première adresse EEPROM libre.
@@ -326,11 +324,9 @@ nom|description
 [PAD](#pad)|Constante système qui retourne l'adresse d'un tampon de 128 octets.
 [PAUSE](#pause)|suspend l'excétion pour un certains nombre de millisecondes.
 [PEEK](#peek)|Retourne la valeur de l'octet à l'adresse passé en argument.
-[PICK](#pick)|Retourne la valeur de l'entier à la position n sur la pile des expressions.
 [PINP](#pinp)|Lecture d'une broche en mode numérique sur un des connecteurs D.
 [PMODE](#pmode)|Sélectionne le mode entrée|sortie d'une broche sur un des connecteurs D.
 [POKE](#poke)|Dépose une valeur octet à l'adresse passée en argument.
-[POP](#pop)|Retire et retourne le sommet de la pile des arguments.
 [POUT](#pout)|Modifie la sortie numérique d'une des broches sur un connecteur D.
 [PRINT ou ?](#print)| Imprime sur le terminal une liste de valeurs. 
 [PORTA](#portx)|Constante système qui retourne l'adresse du port GPIO A 
@@ -341,8 +337,6 @@ nom|description
 [PORTF](#portx)|Constante système qui retourne l'adresse du port GPIO F
 [PORTG](#portx)|Constante système qui retourne l'adresse du port GPIO G
 [PORTI](#portx)|Constante système qui retourne l'adresse du port GPIO I
-[PUSH](#push)|Empile la valeur de l'expression qui suit sur la pile des expressions.
-[PUT](#put)|Insère à la position n la valeur de l'expression sur la pile des expressions.
 [READ](#read)|Lecture d'une donnée sur une ligne DATA.
 [REBOOT](#reboot)|Redémarre la carte.
 [REM ou '](#rem)| Débute un commentaire.
@@ -434,11 +428,6 @@ Lecture d'une des 6 entrées analogiques reliées au connecteur CN4. L'argument 
  655
 
 ```
-
-[index](#index)
-<a id="alloc"></a>
-### ALLOC n {C,P}
-Réserve *n* éléments sur la pile des expressions. Ces éléments peuvent-être utilisées comme variables locales jeter après usage avec la commande [DROP n](#drop). 
 
 [index](#index)
 <a id="and"></a>
@@ -772,12 +761,6 @@ PC7|D12|CN3:15
 10 PMODE 5,PINP 
 20 ? DREAD(5)
 ```
-[index](#index)
-<a id="drop"></a>
-### DROP *n* {C,P}
-Cette commande jette *n* éléments préalablement réservés sur la pile des expressions avec la commande [ALLOC](#alloc). 
-
-
 [index](#index)
 
 <a id="dwrite"></a>
@@ -1494,26 +1477,6 @@ Retourne la valeur de l'octet situé à l'adresse représentée par *expr*. Mêm
 ```
 
 [index](#index)
-<a id="pick"></a>
-## PICK(*n*) {C,P}
-Cette fonction retourne le nième élément de la pile des expression sans le retirer de la pile. L'élément au sommet de la pile est d'indice **0**, le second d'indice **1**, etc.
-
-Les autres commandes et fonctions qui permettent d'utiliser directement la pile des expressions sont les suivantes:
-
-* [ALLOC n](#alloc) Réserve *n* éléments au sommet de la pile.
-* [PUSH expr](#push)  Empile la valeur de *expr*. 
-* [POP](#pop) Retire l'élément au sommet de la pile. 
-* [DROP n](#drop)  Jette les *n* éléments du sommet de la pile.
-* [PUT n,expr](#put) Dépose la valeur *expr* à la position *n* de la pile.  
-
-```
->push 1 push 2 ? pick(0) pick(1)
-   2    1 
-
->
-```
-
-[index](#index)
 <a id="pinp"></a>  {C,P}
 ### PINP pin 
 Constante système utilisée par la commande [PMODE](#pmode) pour définir une broche en mode entrée logique.
@@ -1535,16 +1498,6 @@ Dépose la valeur de *expr2* à l'adresse de *expr1*. Même si expr2 est un enti
 ```
 >poke $5231,asc("A") ' Envoie un caractère au terminal.
 A
->
-```
-[index](#index)
-<a id="pop"></a>
-## POP {C,P}
-Cette fonction dépile la valeur au sommet de la pile des expression et la retourne. 
-```
->push 1 push 2 ? pop pop 
-   2    1 
-
 >
 ```
 
@@ -1616,40 +1569,6 @@ sur le MCU STM8S208, **PORTA**...**PORTI**
  $500A
 
 >bset portc+odr,bit(5) ' allume LD2
-```
-
-[index](#index)
-<a id="push"></a>
-## PUSH expr {C,P}
-Cette commande sert à empiler sur la pile des expressions la valeur de *expr*. C'est l'inveerse de la commande [POP](#pop). 
-```
->push 1 push 2 ? pop pop 
-   2    1 
-
->
-```
-
-[index](#index)
-<a id="put"></a>
-## PUT n,expr {C,P}
-Cette commande sert à déposé sur la pile des expressions la valeur de *expr* à la position *n*. Cette commande est utilisée en conjonction avec la commande [ALLOC](#alloc). Ces commandes permettent l'utilisation de variables locales temporaires. 
-```
->li
-    1  XSTACK 
-    2 ' test xtack functions and commands 
-   10 ALLOC 3
-   20 PUT 0,-1 PUT 1,-2 PUT 2,-3
-   30 PRINT PICK(0) PICK(1) PICK(2)
-   40 PUT 2,-5
-   50 PRINT PICK(2)
-program address:  $90, program size:  169 bytes in RAM memory
-
->run
-  -1   -2   -3 
-  -5 
-
->
-
 ```
 
 [index](#index)
