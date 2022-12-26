@@ -66,7 +66,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 	int NonHandledInterrupt ;int9 beCAN TX/ER/SC interrupt
 	int NonHandledInterrupt ;int10 SPI End of transfer
 	int NonHandledInterrupt ;int11 TIM1 update/overflow/underflow/trigger/break
-	int NonHandledInterrupt ;int12 TIM1 capture/compare
+	int Timer1CCHandler ;int12 TIM1 capture/compare
 	int NonHandledInterrupt ;int13 TIM2 update /overflow
 	int NonHandledInterrupt ;int14 TIM2 capture/compare
 	int NonHandledInterrupt ;int15 TIM3 Update/overflow
@@ -138,6 +138,19 @@ i2c_count: .blkb 1 ; bytes to transmit
 i2c_idx: .blkb 1 ; index in buffer
 i2c_status: .blkb 1 ; error status 
 i2c_devid: .blkb 1 ; device identifier  
+pwm_ch1_buffer: .blkw 1
+pwm_ch1_idx: .blkb 1 
+pwm_ch1_count: .blkb 1 
+pwm_ch2_buffer: .blkw 1 
+pwm_ch2_idx: .blkb 1 
+pwm_ch2_count: .blkb 1 
+pwm_ch3_buffer: .blkw 1 
+pwm_ch3_idx: .blkb 1 
+pwm_ch3_count: .blkb 1 
+pwm_ch4_buffer: .blkw 1 
+pwm_ch4_idx: .blkb 1 
+pwm_ch4_count: .blkb 1 
+
 
 ; 24 bits integer variables 
 vars:: .blkb 3*26 ; BASIC variables A-Z,
@@ -178,6 +191,85 @@ TrapHandler:
 	;call cmd_itf  
 	.endif 
 	iret 
+
+;-----------------------------
+; manage TIMER1 update event 
+; for PWM buffered output 
+; output next sample 
+; in buffer 
+;----------------------------
+Timer1CCHandler:
+ch1_test:
+	ld a,TIM1_SR1
+	ld acc8,a 
+	btjf TIM1_IER,#1,ch2_test ; test for interrupt enabled 
+	btjf acc8,#1,ch2_test ; test interrupt flag 
+	ld a,#1
+	call channel_output
+ch2_test:
+	btjf TIM1_IER,#2,ch3_test 
+	btjf acc8,#2,ch3_test
+	ld a,#2 
+	call channel_output 
+ch3_test:
+	btjf TIM1_IER,#3,ch4_test 
+	btjf acc8,#3,ch4_test
+	ld a,#3 
+	call channel_output 
+ch4_test:
+	btjf TIM1_IER,#4,8$ 
+	btjf acc8,#4,8$
+	ld a,#4 
+	call channel_output 
+8$:	iret 
+
+;--------------------
+; channel output 
+; input:
+;    a   channel 
+;--------------------
+	CHAN_NBR=1 ; 1 bytes 
+	BUFFER_ADR=2 ; 2 bytes 
+	VSIZE=3 
+channel_output:
+	_vars VSIZE 
+	ld (CHAN_NBR,SP),a 
+	dec a 
+	clrw x 
+	ld xl,a 
+	sllw x 
+	sllw x 
+	addw x,#pwm_ch1_buffer 
+	ldw y,x 
+	ldw X,(X)
+	ldw (BUFFER_ADR,SP),X 
+	ld a,(2,Y) ; index in buffer 
+	clrw x 
+	ld xl,a  
+	sllw x  ; samples are 16 bits 
+	addw x,(BUFFER_ADR,SP)
+	ldw x,(x)
+	ld a,(CHAN_NBR,SP)
+	pushw y 
+	call pwm_set_duty_cycle
+	popw y 
+; increment index 
+	ld a,(2,Y) ; pwm_chx_idx 
+	inc a 
+	ld (2,y),a 
+; decrement count 
+; if 0 disable channel interrupt 
+	ld a,(3,y) ; pwm_chx_count 
+	dec a 
+	ld (3,y),a 
+	jrne 1$ 
+	ld a,(CHAN_NBR,SP)
+	clrw x 
+	call pwm_cc_ie
+1$:	_drop VSIZE 
+	ret 
+
+
 
 ;------------------------------
 ; TIMER 4 is used to maintain 

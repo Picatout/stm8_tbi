@@ -29,7 +29,6 @@
 	
     FRUN=0 ; flags run code in variable flags
 	FTRAP=1 ; inside trap handler 
-	FLOOP=2 ; FOR loop in preparation 
 	FSLEEP=3 ; halt produit par la commande SLEEP 
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 

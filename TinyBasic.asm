@@ -2857,6 +2857,129 @@ beep:
 	_drop 2*INT_SIZE 
 	ret 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;   TIMER1 low level routines  
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;---------------------------
+; TIMER setup 
+; input:
+;   X    period 
+;   Y    clock divisor
+;----------------------------
+timer1_setup:
+; enable TIMER1 peripheral clock 
+	bset CLK_PCKENR1,#CLK_PCKENR1_TIM1
+; set prescale value Ftmr=Fmaster/(psc+1)
+	ld a,yh 
+	ld TIM1_PSCRH,a 
+	ld a,yl 
+	ld TIM1_PSCRL,a 
+; set timer period 
+	ld a,xh 
+	ld TIM1_ARRH,a 
+	ld a,xl 
+	ld TIM1_ARRL,a 
+; set all 4 channels as PWM mode 1
+	ld a,#6<<4 
+	ldw x,#TIM1_CCMR1 
+	ld (x),a ; channel 1 
+	incw x 
+	ld (x),a ; channel 2
+	incw x 
+	ld (x),a ; channel 3
+	incw x 
+	ld (x),a ; channel 4 
+	ldw x,#TIM1_CCR1H 
+	ld a,#8 
+; clear all CCRx registers
+; no output pulses
+1$: clr (x)
+	incw x 
+	dec a 
+	jrne 1$ 
+; enable counter  
+	bset TIM1_EGR,#TIM1_EGR_UG 
+	bset TIM1_CR1,#TIM_CR1_CEN
+	bset TIM1_BKR,#7 ; master output enable   		
+	ret 
+
+;-------------------------
+; set timer pwm channel 
+; duty cycle value 
+; input:
+;   a    channel {1..4} 
+;   x     value 
+;------------------------ 
+pwm_set_duty_cycle:
+	dec a 
+	clrw y 
+	ld yl,a 
+	sllw y 	
+	addw y,#TIM1_CCR1H 
+	ld a,xh 
+	ld (y),a 
+	incw y 
+	ld a,xl 
+	ld (y),a 
+	ret 
+
+;-----------------------------
+; pwm_enable_channel 
+; enable or disable channel 
+; input:
+;   a    channel # {1..4}
+;   x    0 disable else enable 
+;-----------------------------
+pwm_enable_channel:
+	push #1 
+	ldw y,#TIM1_CCER1 
+	dec a 
+	cp a,#2
+	jrmi 1$ 
+	incw y 
+	sub a,#2
+1$: tnz a 
+	jreq 2$ 
+	swap (1,sp)
+2$: pop a 
+	tnzw x 
+	jrne 4$ 
+	cpl a
+	and a,(y)
+	jra 9$ 
+4$: 
+	or a,(y)
+9$:	
+	ld (y),a  
+	ret 
+
+;-----------------------------
+; TIMER1 pwm cc interrupt 
+; enable|disable
+; input:
+;    a   ch# {1..4}
+;    x   0 disable else enable 
+;-----------------------------
+pwm_cc_ie::
+	ldw y,#TIM1_IER
+	push a 
+	ld a,#1 
+1$: sll a 
+	dec (1,sp)
+	jrne 1$ 
+	_drop 1 
+	tnzw x 
+	jreq 2$ 
+;enable 
+	or a,(y)
+	jra 9$ 
+2$: ; disable 
+	cpl a 
+	and a,(y)
+9$:
+	ld (y),a 
+	ret 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;   servo motor control
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2864,70 +2987,22 @@ beep:
 ; BASIC: SERVO.CH.EN ch#,1|0
 ; enable 1 of 4 channel
 ; parameters:
-;    ch#    channel number
+;    ch#    channel number {1..4}
 ;    1|0    1 to enable | 0 to disable
 ;-----------------------
+	ONOFF=1
+	SERVO_CHAN=ONOFF+INT_SIZE 
+	VSIZE=2*INT_SIZE 
 cmd_servo_chan_enable:
 	call arg_list 
 	cp a,#2 
 	jreq 1$
 	jp syntax_error 
-1$: ; pop enable|disable parameter 
-	_i24_pop ; A:X = 1|0
-	tnzw x 
-	jrne 2$ ; enable channel 
-	jra  servo_chan_disable 
-2$: ; enable channel 
-	_i24_pop ; channel number 
-	rrwa x ; ch# -> A 
-	ldw x,#TIM1_CCER1 
-	cp a,#3 
-	jrmi 3$ ; channel 1,2 
-	incw x ; TIM1_CCER1 
-	cp a,#4 ; channel 3,4
-	jreq set_bit4 
-	jra set_bit0 
-3$: cp a,#2 
-	jreq set_bit4 
-set_bit0:
-	ld a,(x)
-	or a,#1
-	ld (x),a 
-	ret 
-set_bit4:
-	ld a,(x)
-	or a,#(1<<4)
-	ld (x),a 
-8$:
-	ret 
-
-;---------------------------------
-; channel # on stack 
-; reset bit CCxE in TIM1_CCERx 	
-;---------------------------------
-servo_chan_disable:
-	_i24_pop 
-	rrwa x ; ch# -> A 
-	ldw x,#TIM1_CCER1 
-	cp a,#3 
-	jrmi 1$ ; channel 1,2 
-	incw x ; ch# 3,4 -> TIM1_CCER2
-	cp a,#4 
-	jreq reset_bit4
-	jra reset_bit0 
-1$: cp a,#2 
-	jreq reset_bit4	
-reset_bit0:	
-	ld a,(x)
-	and a,#~1 
-	ld (x),a 
-	ret   
-reset_bit4: 
-	ld a,(x)
-	and a,#~(1<<4)
-	ld (x),a 
-8$:	 
-	ret 
+1$: ; enable|disable parameter 
+	_i24_fetch ONOFF ; A:X = 1|0
+	ld a,(SERVO_CHAN+2,SP) ;chan#
+	_drop VSIZE 
+	jra pwm_enable_channel
 
 ;------------------------
 ; BASIC: SERVO.EN 0|1 
@@ -2941,34 +3016,16 @@ cmd_servo_enable:
 	call expect 
 	_get_char 
 	tnz a 
-	jreq 8$
-; configure TIMER1 for servo control 	
-; enable TIMER1 peripheral clock 
-	bset CLK_PCKENR1,#CLK_PCKENR1_TIM1
+	jreq timer1_disable
 ; set TIMER1 pre-divisor to 8
 ; Ftimer=2Mhz 
-	clr TIM1_PSCRH 
-	mov TIM1_PSCRL,#7
-; 2Mhz/50hertz=40000 
-; set TIM1_ARRH=39999 for 20msec period 
-	mov TIM1_ARRH,#39999/256 
-	mov TIM1_ARRL,#39999 & 255
-; set all channels in PWM 1 mode 
-	ld a,#6<<4 
-	ldw x,#TIM1_CCMR1 
-	ld (x),a ; channel 1 
-	incw x 
-	ld (x),a ; channel 2
-	incw x 
-	ld (x),a ; channel 3
-	incw x 
-	ld (x),a ; channel 4 
-; enable counter  
-	bset TIM1_EGR,#TIM1_EGR_UG 
-	bset TIM1_CR1,#TIM_CR1_CEN
-	bset TIM1_BKR,#7 ; master output enable   		
+	ldw y,#7 
+; Period=(x+1)/2e6=20msec
+	ldw x,#39999 ; period 
+	call timer1_setup
 	ret 
-8$: ; disable TIMER1 
+timer1_disable:
+; disable TIMER1 
 	bres TIM1_CR1,#TIM_CR1_CEN 
 	bres CLK_PCKENR1,#CLK_PCKENR1_TIM1 
 	ret 
@@ -2981,27 +3038,20 @@ cmd_servo_enable:
 ;    ch#    channel number {1..4}
 ;    pos    pulse width in usec. 
 ;-------------------------
+	POS=1
+	SERVO_CHAN=POS+INT_SIZE 
+	VSIZE=2*INT_SIZE 
 cmd_servo_position:
 	call arg_list 
 	cp a,#2
 	jreq 1$
 	jp syntax_error 
 1$: 
-	ld a,(4,sp)  ; ch# 
-	ldw x,(5,sp)
-	decw x ; 1..4 -> 0..3 
-	sllw x  
-	addw x,#TIM1_CCR1H 
-	rcf 
-	rlc (3,sp)
-	rlc (2,sp)
-	ld a,(2,sp) ; pos middle byte 
-	ld (x),a  
-	incw x  
-	ld a,(3,sp) ; pos low byte 
-	ld (x),a
+	ld a,(SERVO_CHAN+2,sp)  ; ch# 
+	ldw x,(POS+1,sp)
+	call pwm_set_duty_cycle
 ; drop command parameters
-	_drop 2*INT_SIZE 
+	_drop VSIZE 
 	ret 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3009,64 +3059,147 @@ cmd_servo_position:
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;----------------------------
-; BASIC: PWM.EN resolution, 0|1 
+; BASIC: PWM.EN 0|[1,resolution] 
 ; parameters 
-;   resolution   8,10,16 bits 
+;   resolution   {8..16} bits 
 ;   0|1    0 disable, 1 enable 
 ;-------------------------------
-	ONOFF=1 
-	RESOL=ONOFF+INT_SIZE 
+	RESOL=1 
+	ONOFF=RESOL+INT_SIZE  
 	VSIZE=2*INT_SIZE 
 cmd_pwm_enable:
 	call arg_list 
+	cp a,#1
+	jrne 0$
+	_i24_push ; to compensate missing RESOL.
+	jra 3$ 
+0$: 	 
 	cp a,#2 
-	jreq 1$ 
-	jp syntax_error 
-1$:
-
+	jreq 2$ 
+	jp syntax_error
+1$: ld a,#ERR_BAD_VALUE
+	jp tb_error
+2$:
+	_i24_fetch ONOFF 
+	tnzw x 
+	jrne 4$
+3$:
 	_drop VSIZE 
+	jra timer1_disable 
+4$:
+	_i24_fetch RESOL 
+	rrwa x ; a= resolition in bits 
+	cp a,#8 
+	jrmi 1$ 
+	cp a,#17 
+	jrpl 1$ 
+	ldw x,#65535 ; longest period 
+	push a 
+	ld a,#16 
+	sub a,(1,sp)
+	_drop 1   
+5$: ; X>>=A
+	srlw x 
+	dec a	
+	jrne 5$ 
+	clrw y 
+	call timer1_setup 	
+9$:	_drop VSIZE 
 	ret 
 
 ;----------------------------------
-; BASIC: PWM.CH.EN ch#, 0|1 
+; BASIC: PWM.CH.EN 0|1, ch# 
 ; parameters:
-;   ch#     channel to enable {1..4}
 ;   0|1     0 disable, 1 enable 
+;   ch#     channel to enable {1..4}
 ;----------------------------------
-	ONOFF=1
-	CH_NBR=ONOFF+INT_SIZE 
+	CH_NBR=1 
+	ONOFF=CH_NBR+INT_SIZE
 	VSIZE=2*INT_SIZE 
 cmd_pwm_chan_enable:
 	call arg_list 
 	cp a,#2 
 	jreq 1$ 
 	jp syntax_error 
-1$:
-
-	_drop VSIZE 
-	ret 
+1$: ld a,(CH_NBR+2,SP)
+	ldw x,(ONOFF+1,SP)
+	_drop VSIZE
+	jp pwm_enable_channel 
 
 ;----------------------------------
-; BASIC: PWM.OUT ch#, buffer, count 
+; BASIC:  PWM.OUT ch#,value 
+;		  PWM.OUT ch#, buffer, count 
 ; parameters:
 ;   ch#     channel number 
 ;   buffer   buffer that containt 
 ;            values to output.
 ;            16 bits integers  
-;   count    count of value to output  
+;   count    count of value to output {1..255} 
 ;----------------------------------
+; buffered mode 
 	COUNT=1
 	BUFFER=COUNT+INT_SIZE  
-	CH_NBR=BUFFER+INT_SIZE 
-	VSIZE=3*INT_SIZE 
+	CH_NBR=BUFFER+INT_SIZE
+; single value mode 
+	VALUE=1
+	CHANNEL=VALUE+INT_SIZE 	 
 cmd_pwm_out: 
 	call arg_list 
 	cp a,#3 
-	jreq 1$ 
+	jreq pwm_buffered 
+	cp a,#2
+	jreq 1$  
 	jp syntax_error 
-1$:
+1$: ; single value output 
+	ld a,(CHANNEL+2,SP)
+	ldw x,(VALUE+1,SP)
+	call pwm_set_duty_cycle ; A=ch#, X=value 
+	_drop 2*INT_SIZE 
+	ret 
+pwm_buffered:
+	_i24_fetch CH_NBR 
+	ld a,#3
+	decw x 
+	mul x,a
+	addw x,#pwm_ch1_buffer 
+	ldw y,x 
+	_i24_fetch BUFFER 
+	ldw (y),x  
+	_i24_fetch COUNT  
+	addw y,#2
+	rrwa x 
+	ld (y),a
+	clrw x 
+	ld a,(CH_NBR+2,sp)
+	call pwm_set_duty_cycle 
+	ld a,(CH_NBR+2,sp)
+	ldw x,#1  
+	call pwm_cc_ie 
+	_drop 3*INT_SIZE 
+	ret 
 
-	_drop VSIZE 
+;---------------------------------
+; BASIC: PWW.DONE ch# 
+; check if PWM.OUT is completed 
+; for this channel.
+; parameter:
+;   ch#    channel to check 
+; return:
+;    0|-1   FALSE|TRUE 
+;--------------------------------
+func_pwm_done:
+	call expression  
+	decw x 
+	ld a,#3 
+	mul x,a 
+	addw x,#pwm_ch1_count
+	clr a  
+	clrw y 
+	tnz (x)
+	jreq 1$
+	cpl a 
+	cplw y 
+1$: ldw x,y   
 	ret 
 
 ;-------------------------------
@@ -5117,6 +5250,7 @@ dict_end:
 	_dict_entry,4,"READ",READ_IDX  
 	_dict_entry,7,"PWM.OUT",PWM_OUT_IDX 
 	_dict_entry,6,"PWM.EN",PWM_EN_IDX
+	_dict_entry,8,"PWM.DONE",PWM_DONE_IDX 
 	_dict_entry,9,"PWM.CH.EN",PWM_CHAN_EN_IDX 
 	_dict_entry,5,"PORTI",PORTI_IDX 
 	_dict_entry,5,"PORTG",PORTG_IDX 
@@ -5128,15 +5262,9 @@ dict_end:
 	_dict_entry,5,"PORTA",PORTA_IDX 
 	_dict_entry 5,"PRINT",PRINT_IDX 
 	_dict_entry,4,"POUT",POUT_IDX
-.if 0
-	_dict_entry,3,"POP",POP_IDX  
-.endif 
 	_dict_entry,4,"POKE",POKE_IDX 
 	_dict_entry,5,"PMODE",PIN_MODE_IDX 
 	_dict_entry,4,"PINP",PINP_IDX
-.if 0
-	_dict_entry,4,"PICK",PICK_IDX
-.endif 
 	_dict_entry,4,"PEEK",PEEK_IDX 
 	_dict_entry,5,"PAUSE",PAUSE_IDX 
 	_dict_entry,3,"PAD",PAD_IDX 
@@ -5176,9 +5304,6 @@ dict_end:
 	_dict_entry,6,"EEFREE",EEFREE_IDX 
 	_dict_entry,4,"EDIT",EDIT_IDX 
 	_dict_entry,6,"DWRITE",DWRITE_IDX
-.if 0
-	_dict_entry,4,"DROP",DROP_IDX ; drop n element from xtack 
-.endif 
 	_dict_entry,5,"DREAD",DREAD_IDX
 	_dict_entry,2,"DO",DO_IDX
 	_dict_entry,3,"DIR",DIR_IDX
@@ -5202,9 +5327,6 @@ dict_end:
 	_dict_entry,7,"AUTORUN",AUTORUN_IDX
 	_dict_entry,3,"ASC",ASC_IDX
 	_dict_entry,3,"AND",AND_IDX ; AND operator 
-.if 0
-	_dict_entry,5,"ALLOC",ALLOC_IDX ; allocate space on xtack 
-.endif 
 	_dict_entry,7,"ADCREAD",ADCREAD_IDX
 	_dict_entry,5,"ADCON",ADCON_IDX 
 kword_dict::
