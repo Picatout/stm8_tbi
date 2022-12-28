@@ -137,7 +137,7 @@ code_addr:
     _code_entry func_log2, LOG2_IDX         ; $4B
     _code_entry func_lshift, LSHIFT_IDX     ; $4C 
     _code_entry func_peek, PEEK_IDX         ; $4D 
-    _code_entry func_pwm_done,PWM_DONE_IDX 
+;    _code_entry func_pwm_done,PWM_DONE_IDX 
     _code_entry func_qkey, QKEY_IDX         ; $4E
     _code_entry func_read_data, READ_IDX    ; $4F
     _code_entry func_random, RND_IDX        ; $50 

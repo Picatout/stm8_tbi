@@ -2878,28 +2878,25 @@ timer1_setup:
 	ld a,xh 
 	ld TIM1_ARRH,a 
 	ld a,xl 
-	ld TIM1_ARRL,a 
+	ld TIM1_ARRL,a
 ; set all 4 channels as PWM mode 1
-	ld a,#6<<4 
+	ld a,#(6<<4)|(1<<3) ; OCxM=6|OCxPE=1   
 	ldw x,#TIM1_CCMR1 
 	ld (x),a ; channel 1 
-	incw x 
-	ld (x),a ; channel 2
-	incw x 
-	ld (x),a ; channel 3
-	incw x 
-	ld (x),a ; channel 4 
+	ld (1,x),a ; channel 2
+	ld (2,x),a ; channel 3
+	ld (3,x),a ; channel 4 
 	ldw x,#TIM1_CCR1H 
-	ld a,#8 
 ; clear all CCRx registers
 ; no output pulses
+	ld a,#8 
 1$: clr (x)
 	incw x 
 	dec a 
 	jrne 1$ 
 ; enable counter  
-	bset TIM1_EGR,#TIM1_EGR_UG 
 	bset TIM1_CR1,#TIM_CR1_CEN
+	bset TIM1_EGR,#0
 	bset TIM1_BKR,#7 ; master output enable   		
 	ret 
 
@@ -2915,12 +2912,11 @@ pwm_set_duty_cycle:
 	clrw y 
 	ld yl,a 
 	sllw y 	
-	addw y,#TIM1_CCR1H 
+	addw y,#TIM1_CCR1H
 	ld a,xh 
 	ld (y),a 
-	incw y 
 	ld a,xl 
-	ld (y),a 
+	ld (1,y),a 
 	ret 
 
 ;-----------------------------
@@ -3026,7 +3022,8 @@ cmd_servo_enable:
 	ret 
 timer1_disable:
 ; disable TIMER1 
-	bres TIM1_CR1,#TIM_CR1_CEN 
+	clr TIM1_CR1
+	clr TIM1_IER  
 	bres CLK_PCKENR1,#CLK_PCKENR1_TIM1 
 	ret 
 
@@ -3099,22 +3096,23 @@ cmd_pwm_enable:
 	sub a,(1,sp)
 	_drop 1   
 5$: ; X>>=A
+	jreq 8$
 	srlw x 
 	dec a	
-	jrne 5$ 
-	clrw y 
+	jra 5$ 
+8$:	clrw y 
 	call timer1_setup 	
 9$:	_drop VSIZE 
 	ret 
 
 ;----------------------------------
-; BASIC: PWM.CH.EN 0|1, ch# 
+; BASIC: PWM.CH.EN ch# , 1 | 0 
 ; parameters:
-;   0|1     0 disable, 1 enable 
 ;   ch#     channel to enable {1..4}
+;   0|1     0 disable, 1 enable 
 ;----------------------------------
-	CH_NBR=1 
-	ONOFF=CH_NBR+INT_SIZE
+	ONOFF=1 
+	CH_NBR=ONOFF+INT_SIZE 
 	VSIZE=2*INT_SIZE 
 cmd_pwm_chan_enable:
 	call arg_list 
@@ -3145,8 +3143,10 @@ cmd_pwm_chan_enable:
 	CHANNEL=VALUE+INT_SIZE 	 
 cmd_pwm_out: 
 	call arg_list 
+.if 0
 	cp a,#3 
 	jreq pwm_buffered 
+.endif 
 	cp a,#2
 	jreq 1$  
 	jp syntax_error 
@@ -3156,27 +3156,30 @@ cmd_pwm_out:
 	call pwm_set_duty_cycle ; A=ch#, X=value 
 	_drop 2*INT_SIZE 
 	ret 
+.if 0
 pwm_buffered:
 	_i24_fetch CH_NBR 
-	ld a,#3
+	ld a,#4
 	decw x 
 	mul x,a
 	addw x,#pwm_ch1_buffer 
 	ldw y,x 
 	_i24_fetch BUFFER 
-	ldw (y),x  
+	ldw (y),x  ; pwm_chx_buf_adr 
+	clr (2,y); pwm_chx_idx 
 	_i24_fetch COUNT  
-	addw y,#2
 	rrwa x 
-	ld (y),a
+	ld (3,y),a ; pwm_chx_count 
 	clrw x 
-	ld a,(CH_NBR+2,sp)
+	ld a,(CH_NBR+2,sp)	
 	call pwm_set_duty_cycle 
 	ld a,(CH_NBR+2,sp)
 	ldw x,#1  
 	call pwm_cc_ie 
 	_drop 3*INT_SIZE 
 	ret 
+.endif 
+
 
 ;---------------------------------
 ; BASIC: PWW.DONE ch# 
@@ -3187,6 +3190,7 @@ pwm_buffered:
 ; return:
 ;    0|-1   FALSE|TRUE 
 ;--------------------------------
+.if 0
 func_pwm_done:
 	call expression  
 	decw x 
@@ -3201,6 +3205,7 @@ func_pwm_done:
 	cplw y 
 1$: ldw x,y   
 	ret 
+.endif 
 
 ;-------------------------------
 ; BASIC: ADCON 0|1 [,divisor]  
@@ -5250,7 +5255,7 @@ dict_end:
 	_dict_entry,4,"READ",READ_IDX  
 	_dict_entry,7,"PWM.OUT",PWM_OUT_IDX 
 	_dict_entry,6,"PWM.EN",PWM_EN_IDX
-	_dict_entry,8,"PWM.DONE",PWM_DONE_IDX 
+;	_dict_entry,8,"PWM.DONE",PWM_DONE_IDX 
 	_dict_entry,9,"PWM.CH.EN",PWM_CHAN_EN_IDX 
 	_dict_entry,5,"PORTI",PORTI_IDX 
 	_dict_entry,5,"PORTG",PORTG_IDX 

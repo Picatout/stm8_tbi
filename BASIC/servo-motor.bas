@@ -9,7 +9,7 @@ NEW
 50 ADCON 1 
 60 ' read analog input channel and set TIM1.CCR1 register with value.
 70 DO 
-80 ? "\b\b\b\b\b";:LET N=ADCREAD(0)*2+500: ? n;
+80 ? "\b\b\b\b\b";:LET N=ADCREAD(0)*4+1000: ? n;
 90 SERVO.POS 1,N  
 100 UNTIL KEY? ' quit when a key is pressed 
 110 ' disable servo motor control 

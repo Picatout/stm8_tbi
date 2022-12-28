@@ -1,18 +1,27 @@
+### 2022-12-27
+
+* Abandon du mode **PWM.OUT ch#,buffer,count** de **PWM.DONE**. Sera éventuellement remplacé par AUDIO.LOOP sur la sortie audio **TONE**. 
+
+### 2022-12-26
+
+* test commandes PWM et SERVO. 
+	* Contrôle servo moteur OK. [BASIC/servo-motor.bas](BASIC/servo-motor.bas).
+	* Control LED par PWM canal 2 OK. [BASIC/pwm_ctrl.bas](BASIC/pwm_ctrl.bas).
+
 ### 2022-12-25
 
-* commit 20:21 
+* commit 20:22
 
 * __PWM.EN__ 0| [1 , resolution]
 	* **0** disable, **1** enable 
 	* **resolution**  bits resolution {8..16}. Lower resolution means higher PWM frequency. Fpwm=16Mhz/2^resolution, {8 bits=62500 hertz..16 bits=244 hertz}.
 
-* __PWM.CH.EN__ 0|1 chan#
-	* **0** disable chan#, **1** enable chan#.
+* __PWM.CH.EN__ chan# , 0|1
 	* **chan#** channel number {1..4}. 
-
+	* **0** disable chan#, **1** enable chan#.
 
 * La commande **PWM.OUT** va supporté 2 modes
-	* __PWM.OUT ch#, value__  pour envoyer 1 seule valeur.  
+	* __PWM.OUT ch#, value__  pour envoyer 1 valeur.  
 	* __PWM.OUT ch#, buffer, count__ pour envoyer le contenu d'un tampon, un échantillon à chaque cycle du PWM. Pour ce faire l'interruption **Timer1CCHandler** sera mise à contribution. Une fois la commande lancée le programme BASIC va continuer son exécution sans avoir à s'occupper de la transmission des données au PWM. Pour supporter cette fonctionnalité 12 octets supplémentaires sont réservés dans la mémoire RAM, 3 pour chacun des 4 canaux. 
 		* __pwm_chx_buffer__  .blkw 1 contient l'adresse du tampon. 
 		* __pwm_chx_count__ .blkb 1 contient le nombre de valeurs à transmettre.
