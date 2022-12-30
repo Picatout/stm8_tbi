@@ -1,5 +1,14 @@
 # Notes de révision
 
+## 2022-12-30 V3.1R1 
+
+Ajout des commandes PWM. Et mise à jour des manuels de références. Création d'une pré-release pour cette version.
+
+*  __PWM.CH.EN__
+* __PWM.EN__
+* __PWM.OUT__ 
+
+
 ## 2022-12-24, V3.0R4
 * Il s'agit de recodage majeur qui a commencé par le recodage du module [arithm24.asm](arithm24.asm) pour améliorer la performance de l'évaluation des expressions arithmétiques.
 

@@ -2,6 +2,15 @@
 
 # STM8 Tiny BASIC release notes
 
+## 2022-12-30 V3.1R1
+
+Added PWM commands and update reference manual. Pre release V3.1R1 created.
+
+*  __PWM.CH.EN__
+* __PWM.EN__
+* __PWM.OUT__ 
+
+
 ## 2022-12-24, V3.0R4
 
 * Rewriting of [arithm24.asm](arithm24.asm) to improve expression evaluation performance.
