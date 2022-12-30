@@ -171,7 +171,7 @@ move_exit:
 ;  information 
 ;-----------------------
 	MAJOR=3
-	MINOR=0
+	MINOR=1
 	REV=1 
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
@@ -2851,7 +2851,7 @@ beep:
 	bset TIM2_CR1,#TIM2_CR1_CEN
 	bset TIM2_EGR,#TIM2_EGR_UG
 	_i24_fetch DURATION  
-	call pause02
+	call pause02 
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
 	_drop 2*INT_SIZE 
@@ -3914,9 +3914,9 @@ cmd_sleep:
 cmd_pause:
 	call expression
 pause02:
-	ldw timer,x 
-1$: _ldxz timer 
-	jrne 1$ 
+	bres flags,#FTIMER 
+	ldw timer,x
+	btjf flags,#FTIMER,.
 	ret 
 
 ;------------------------------
@@ -4387,7 +4387,8 @@ cmd_set_timer:
 	jp syntax_error
 1$: 
 	_i24_pop  
-	ldw timer,x 
+	bres flags,#FTIMER  
+	ldw timer,x
 	ret 
 
 ;------------------------------
@@ -4399,13 +4400,11 @@ cmd_set_timer:
 ;------------------------------
 func_timeout:
 	clr a 
-	_ldxz timer 
-	jreq 1$
-	clrw x
-	ret  
-1$:	cpl a
+	clrw x 
+	btjf flags,#FTIMER,1$ 
+	cpl a 
 	cplw x 
-	ret 
+1$:	ret 
  	
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

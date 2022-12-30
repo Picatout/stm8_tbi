@@ -300,7 +300,9 @@ Timer4UpdateHandler:
 	_ldxz timer
 	jreq 1$
 	decw x 
-	ldw timer,x 
+	ldw timer,x
+	jrne 1$ 
+	bset flags,#FTIMER  
 1$:	
 	iret 
 

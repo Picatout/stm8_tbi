@@ -1,3 +1,13 @@
+### 2022-12-30
+
+* Mise à jour des manuels de références.
+
+### 2022-12-28
+
+* Fonction insertion dans **readln** boguée. 
+
+* Ajout de l'indicateur booléen **FTIMER** dans la variable système **flags**. Réécriture de __Pause__,__TIMER__ et __TIMEOUT__ pour prendre en charge ce nouvel indicateur. Modification de __Timer4UpdateHandler__ pour activer l'indicateur **FTIMER** lorsque la variable système **timer** arrive à zéro. 
+
 ### 2022-12-27
 
 * Abandon du mode **PWM.OUT ch#,buffer,count** de **PWM.DONE**. Sera éventuellement remplacé par AUDIO.LOOP sur la sortie audio **TONE**. 

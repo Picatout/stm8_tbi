@@ -337,6 +337,9 @@ nom|description
 [PORTF](#portx)|Constante système qui retourne l'adresse du port GPIO F
 [PORTG](#portx)|Constante système qui retourne l'adresse du port GPIO G
 [PORTI](#portx)|Constante système qui retourne l'adresse du port GPIO I
+[PWM.CH.EN](#pwm.ch.en) |Activation d'un canal PWM.
+[PWM.EN](#pwm.en) |Activation des commandes PWM.
+[PWM.OUT](#pwm.out)| Contrôle d'une sortie PWM.  
 [READ](#read)|Lecture d'une donnée sur une ligne DATA.
 [REBOOT](#reboot)|Redémarre la carte.
 [REM ou '](#rem)| Débute un commentaire.
@@ -1570,6 +1573,61 @@ sur le MCU STM8S208, **PORTA**...**PORTI**
 
 >bset portc+odr,bit(5) ' allume LD2
 ```
+[index](#index)
+<a id="pwm.ch.en"></a>
+### PWM.CH.EN ch#, 0|1 {C,P}
+Cette commande sert à activer ou  désactiver un canal PWM. Elle est utilisée après que la commande [PWM.EN](pwm.en) a étée invoquée pour activer le contrôle PWM. Celle-ci sert à activer un canal spécifique. 
+
+* **ch#** Est le numéro du canal {1..4}. 
+* **0** Pour désactiver. 
+* **1** Pour activer. 
+
+La fonction  PWM utilise la même minuterie et les même sorties que les commandes servo-moteur.
+Les 2 fonctions ne peuvent pas être utiliser en même temps.
+
+canal<br>PWM|sortie|conn.<br>NUCLEO-8S207K8|conn.<br>NUCLEO-8S208RB
+-|-|-|-
+1|D3|CN3:6|CN7:4
+2|D5|CN3:8|CN7:6
+3|D6|CN3:9|CN7:7
+4|D9|CN3:12|CN8:2 
+
+Voir aussi [PWM.EN](#pwm.ch.en), [PWM.OUT](#pwm.out)
+
+Exemple de programme: [BASIC/rgb-led.bas](/BASIC/rgb-led.bas)
+
+[index](#index)
+<a id="pwm.en"></a>
+### PWM.EN 0|1, bits {C,P}
+Active ou désactive le contrôle PWM. Ce contrôle utilise le même périphérique minuterie que le contrôle servo-moteur. Les deux ne peuvent-être utilisés simultanément. 
+
+* **0** Désactive le contrôle PWM. 
+* **1** Active le contrôle PWM. 
+* **bits** Résolution du contrôle PWM. les valeurs de sortie varies entre {0...2^bits-1}.
+Plus la résolution est faible plus la fréquence de la minuterie est élevée. Cette fréquence est:<br>__Fpwm=16Mhz/2^bits.__
+
+bits | Fréq.<br>PWM | PWM.OUT<br>
+-|-|-
+8|62500|0...255
+10|15625|0...1023
+16|244|0...65535
+
+Voir aussi [PWM.CH.EN](#pwm.ch.en), [PWM.OUT](#pwm.out)
+
+Exemple de programme: [BASIC/rgb-led.bas](/BASIC/rgb-led.bas)
+
+[index](#index)
+<a id="pwm.out"></a>
+### PWM.OUT ch#, valeur {C,P}
+Envoie une valeur de contrôle à un Canal PWM. Cette valeur détermine la largeur de l'impulsion. Le rapport cyclique en pourcentage correspond à:<br>
+__DC=valeur/(2^bits-1)*100.__ 
+
+* **ch#** est le numéro du canal à contrôler {1..4}.
+* **valeur** contrôle le rapport cyclique. 
+
+Voir aussi [PWM.CH.EN](#pwm.ch.en), [PWM.EN](#pwm.en)
+
+Exemple de programme: [BASIC/rgb-led.bas](/BASIC/rgb-led.bas)
 
 [index](#index)
 <a id="read"></a>

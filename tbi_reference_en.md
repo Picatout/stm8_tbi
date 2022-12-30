@@ -292,6 +292,9 @@ name|description
 [PORTF](#portx)|Return base address GPIO F
 [PORTG](#portx)|Return base address GPIO G
 [PORTI](#portx)|Return base address GPIO I
+[PWM.CH.EN](#pwm.ch.en)| Enable PWM channel.
+[PWM.EN](#pwm.en)| Enable PWM controls.
+[PWM.OUT](#pwm.out)| Outpout PWM control to channel.  
 [READ](#read)|Read in a variable data item from DATA line.
 [REBOOT](#reboot)|Reinitialize MCU.
 [REM ou '](#rem)| Start a comment.
@@ -1635,6 +1638,62 @@ For each of these register there is a defined constant when added to **PORTx** a
 
 >bset portc+odr,bit(5) ' turn on user LED 
 ```
+[index](#index)
+<a id="pwm.ch.en"></a>
+### PWM.CH.EN ch#, 0|1 {C,P}
+This command is used to enable or disable  PWM control channel.
+* **ch#** is channel number {1..4}. 
+* **0** To disable channel. 
+* **1** To enable channel. 
+
+PWM control use the same TIMER and outputs as servo motor control. They can't be used simultanously.
+
+This command is used after the PWM as been enabled by [PWM.EN](#pwm.en). This one is to enable a specific channel. 
+
+channel<br>PWM|output|conn.<br>NUCLEO-8S207K8|conn.<br>NUCLEO-8S208RB
+-|-|-|-
+1|D3|CN3:6|CN7:4
+2|D5|CN3:8|CN7:6
+3|D6|CN3:9|CN7:7
+4|D9|CN3:12|CN8:2 
+
+See also [PWM.EN](#pwm.ch.en), [PWM.OUT](#pwm.out)
+
+Example program: [BASIC/rgb-led.bas](/BASIC/rgb-led.bas)
+
+[index](#index)
+<a id="pwm.en"></a>
+### PWM.EN 0|1, bits {C,P}
+Enable or disable PWM control. The PWM control must be enabled before enabling a channel.
+* **0** Disable PWM control. 
+* **1** Enable PWM control. 
+* **bits** PWM resolution in bits. PMW.OUT value range is {0...2^bits-1}.
+Higher resolution means lower PWM frequency:<br>__Fpwm=16Mhz/2^bits.__
+
+bits | Freq.<br>PWM | PWM.OUT<br>
+-|-|-
+8|62500|0...255
+10|15625|0...1023
+16|244|0...65535
+
+See also [PWM.CH.EN](#pwm.ch.en), [PWM.OUT](#pwm.out)
+
+Example program: [BASIC/rgb-led.bas](/BASIC/rgb-led.bas)
+
+[index](#index)
+<a id="pwm.out"></a>
+### PWM.OUT ch#, value {C,P}
+Output a control value to PWM channel. This value set pulse width. Duty cycle, i.e. pulse width/PWM period*100 is:<br>
+__DC=value/(2^bits-1)*100.__ 
+
+* **ch#** Channel number {1..4}.
+* **value** Control Duty Cycle. 
+
+See alos [PWM.CH.EN](#pwm.ch.en), [PWM.EN](#pwm.en)
+
+Example program: [BASIC/rgb-led.bas](/BASIC/rgb-led.bas)
+
+
 [index](#index)
 <a id="read"></a>
 ### READ {P}
