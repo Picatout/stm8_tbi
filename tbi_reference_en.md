@@ -2096,9 +2096,9 @@ This command is used to generate a tone.
 * *expr1* value is tone frequency.
 * *expr2* value is tone duration in milliseconds.
 
-The audio output for NUCLEO-8S208RB is on **CN9:6**
+The audio output for NUCLEO-8S208RB is on **CN9:6** (**D4**).
 
-The audio outpout for NUCLEO-8S207K8 is on **CN3:3
+The audio outpout for NUCLEO-8S207K8 is on **CN3:13** (**D10**).
 
 This tone is generated using TIMER2 channel 1 configured in PWM mode with 50% duty cycle.
   

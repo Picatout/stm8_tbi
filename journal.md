@@ -1,3 +1,7 @@
+### 2023-02-26
+
+* Mise à jour des fichier de références  [tbi_reference_fr.md](tbi_reference_fr.md] et [tbi_reference_en.md](tbi_reference_en.md] ainsi que des versions PDF dans le dossier docs.
+ 
 ### 2023-02-25
 
 * Corrigé bogue dans commande __DWRITE__ qui plantait car la macro **_vars VSIZE** était appellée au début de la routine alors qu'elle ne devait pas l'être.

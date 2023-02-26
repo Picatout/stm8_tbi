@@ -1,4 +1,4 @@
-[english](tbi_reference_en.md)
+#[english](tbi_reference_en.md)
 
 # référence du langage Tiny BASIC pour STM8 V2.5
 
@@ -2007,7 +2007,11 @@ Ce mot réservé est utilisé lors de l'initialisation d'une boucle [FOR](#for).
 [index](#index)
 <a id="tone"></a>
 ### TONE *expr1*,*expr2* {C,P}
-Cette commande génère une tonalité de fréquence déterminée par *expr1* et de durée *expr2* en millisecondes. La sortie est sur **GPIO D:4** branché sur **CN9-6**. La minuterie **TIMER2** est utilisée sur le chanal sortie **1** configuré en mode PWM avec un rapport cyclique de 50%.
+Cette commande génère une tonalité de fréquence déterminée par *expr1* et de durée *expr2* en millisecondes.  La minuterie **TIMER2** est utilisée sur le chanal sortie **1** configuré en mode PWM avec un rapport cyclique de 50%.
+
+Sur la carte NUCLEO-8S208RB la sortie audio est sur **CN9:6** (**D4**).
+
+Sur la carte NUCLEO-7S207K8 la srotie audio est sur **CN3:13** (**D10**).
   
 ```
 >list
