@@ -1,3 +1,7 @@
+### 2023-02-25
+
+* Corrigé bogue dans commande __DWRITE__ qui plantait car la macro **_vars VSIZE** était appellée au début de la routine alors qu'elle ne devait pas l'être.
+
 ### 2022-12-30
 
 * Mise à jour des manuels de références.

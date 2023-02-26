@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=1
-	REV=1 
+	REV=2 
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022\nversion "
 board:
@@ -3314,15 +3314,11 @@ func_digital_read:
 ; Arduino pins 
 ; write to a digital pin 
 ; pin# {0..15}
-; output:
-;    A 		LIT_IDX
-;    X      0|1 
 ;-------------------------
 	PINVAL=1
 	PINNO=PINVAL+INT_SIZE 
 	VSIZE=2*INT_SIZE 
 cmd_digital_write:
-	_vars VSIZE 
 	call arg_list  
 	cp a,#2 
 	jreq 1$
