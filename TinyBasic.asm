@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=1
-	REV=4 
+	REV=5
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -1209,9 +1209,10 @@ and_factor:
 1$:	cp a,#NOT_IDX  
 	jrne 2$ 
 	cpl (NOT_OP,sp)
-	call next_token 
+	jra 3$ 
 2$:	
 	_unget_token 
+3$:
 	call relation 	
 5$:	
 	tnz (NOT_OP,sp)
