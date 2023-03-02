@@ -1,3 +1,47 @@
+### 2023-03-01
+
+* Découvert bogue dans l'évaluation des expressions
+```
+? (-1)/16 
+run time error, syntax error
+    0 ? ( - 1 ) / 
+
+```
+bogue résolue le problème était dans la routine _and_factor__
+```
+  and_factor:
+        push #0 
+ 0$:    call next_token  
+        cp a,#CMD_END 
+@@ -1214,31 +1210,22 @@ and_factor:
+        jrne 2$ 
+        cpl (NOT_OP,sp)
+        call next_token 
+-2$:    cp a,#LPAREN_IDX 
+-       jrne 3$
+-       call condition
+-       PUSH A
+-       PUSHW X   
+-       ld a,#RPAREN_IDX 
+-       call expect 
+-       POPW X 
+-       POP A 
+-       jra 5$
+-3$:    _unget_token 
++2$:    
+       _unget_token 
+        call relation   
+5$:    
+        tnz (NOT_OP,sp)
+        jreq 8$ 
+        CPL A 
+        CPLW X 
+ 8$:
+        _drop 1  
+     ret 
+  ```
+
+
 ### 2023-02-26
 
 * Mise à jour des fichier de références  [tbi_reference_fr.md](tbi_reference_fr.md] et [tbi_reference_en.md](tbi_reference_en.md] ainsi que des versions PDF dans le dossier docs.

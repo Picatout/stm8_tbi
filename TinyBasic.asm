@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=1
-	REV=3 
+	REV=4 
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -946,7 +946,6 @@ get_array_element:
 	NEG=1
 	VSIZE=1
 factor:
-;_tp 'M 
 	_vars VSIZE 
 	clr (NEG,sp)
 	call next_token
@@ -969,7 +968,11 @@ factor:
 	cp a,#LIT_IDX 
 	jrne 6$
 	call get_int24 ; >A:X
+.if DEBUG
+	jp  18$
+.else 
 	jra 18$
+.endif 
 6$:
 	cp a,#LITC_IDX 
 	jrne 64$
@@ -1011,6 +1014,7 @@ factor:
 	cp a,#LPAREN_IDX
 	jrne 10$
 	call expression
+	_i24_push 
 	ld a,#RPAREN_IDX 
 	call expect
 	_i24_pop 
@@ -1022,13 +1026,12 @@ factor:
 	jreq 20$
 	call neg_ax   
 20$:
-;_tp 'N 
 	_drop VSIZE
 	ret
 
 
 ;-----------------------------------
-; term ::= factor [['*'|'/'|'%'] factor]* 
+; term ::= factor ['*'|'/'|'%' factor]* 
 ; output:
 ;   A:X    	term  
 ;-----------------------------------
@@ -1037,7 +1040,6 @@ factor:
 	MULOP=N2+INT_SIZE ;1 bytes 
 	VSIZE=7   
 term:
-;_tp 'K 
 	_vars VSIZE
 ; first factor 	
 	call factor
@@ -1075,7 +1077,6 @@ term01:	 ; check for  operator '*'|'/'|'%'
 	jra term01 
 term_exit:
 	_i24_fetch N1 
-;_tp 'L 
 	_drop VSIZE 
 	ret 
 
@@ -1090,7 +1091,6 @@ term_exit:
 	OP=N2+INT_SIZE ; 1 byte
 	VSIZE=7 
 expression:
-;_tp 'I 
 	_vars VSIZE 
 ; first term 	
 	call term
@@ -1125,7 +1125,6 @@ expression:
 	jra 1$
 9$:
 	_i24_fetch N1 
-;_tp 'J 
 	_drop VSIZE 
 	ret 
 
@@ -1142,7 +1141,6 @@ expression:
 	REL_OP=N2+INT_SIZE  ; 1 byte  relational operator 
 	VSIZE=7 ; bytes  
 relation: 
-;_tp 'G 
 	_vars VSIZE
 	call expression
 	_i24_store N1 
@@ -1179,7 +1177,7 @@ relation:
 	cp a,#REL_GT_IDX 
 	jreq 6$ ; relation true 
 	cp a,#REL_GE_IDX 
-	jreq 6$ ; relation tue 
+	jreq 6$ ; relation true 
 54$:
 	cp a,#REL_NE_IDX 
 	jrne 7$ ; relation false 
@@ -1193,18 +1191,16 @@ relation:
 8$:
 	_i24_fetch N1 
 9$: 
-;_tp 'H 
 	_drop VSIZE
 	ret 
 
 ;-------------------------------------------
-;  AND factor:  [NOT] relation | (condition)
+;  AND factor:  [NOT] relation 
 ;  output:
 ;     A:X      boolean 
 ;-------------------------------------------
 	NOT_OP=1
 and_factor:
-;_tp 'E 
 	push #0 
 0$:	call next_token  
 	cp a,#CMD_END 
@@ -1214,31 +1210,22 @@ and_factor:
 	jrne 2$ 
 	cpl (NOT_OP,sp)
 	call next_token 
-2$:	cp a,#LPAREN_IDX 
-	jrne 3$
-	call condition
-	PUSH A
-	PUSHW X   
-	ld a,#RPAREN_IDX 
-	call expect 
-	POPW X 
-	POP A 
-	jra 5$
-3$:	_unget_token 
+2$:	
+	_unget_token 
 	call relation 	
-5$:	tnz (NOT_OP,sp)
+5$:	
+	tnz (NOT_OP,sp)
 	jreq 8$ 
 	CPL A 
 	CPLW X 
 8$:
 	_drop 1  
-;_tp 'F 
     ret 
 
 
 ;--------------------------------------------
 ;  AND operator as priority over OR||XOR 
-;  format: relation | (condition) [AND relation|(condition)]*
+;  format: relation|(condition) [AND relation|(condition)]*
 ;          
 ;  output:
 ;    A:X   result  
@@ -1247,7 +1234,6 @@ and_factor:
 	VSIZE=INT_SIZE 
 and_cond:
 	_vars VSIZE 
-;_tp 'C 
 	call and_factor
 	_i24_store B1 
 1$: call next_token 
@@ -1266,7 +1252,6 @@ and_cond:
 	jra 1$  
 9$:	
 	_i24_fetch B1 
-;_tp 'D
 	_drop VSIZE 
 	ret 	 
 
@@ -1285,7 +1270,6 @@ and_cond:
 condition:
 	_vars VSIZE 
 	call and_cond
-;_tp 'A 
 	_i24_store B1
 1$:	call next_token 
 	cp a,#OR_IDX  
@@ -1324,7 +1308,6 @@ condition:
 	jra 1$ 
 9$:	 
 	_i24_fetch B1 ; result in A:X 
-;_tp 'B 
 	_drop VSIZE
 	ret 
 
