@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=1
-	REV=5
+	REV=6
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -2189,7 +2189,7 @@ func_bit_test:
 	jreq 0$
 	jp syntax_error
 0$:	
-	_i24_fetch 1  
+	_i24_fetch 1 ; bit to test 
 	ld a,xl 
 	and a,#7
 	ld (1,sp),a   
@@ -2203,7 +2203,7 @@ func_bit_test:
 	jra 1$
 2$: ld (1,sp),a  
 	_i24_fetch 4 ; address  
-	pop a 
+	ld a,(1,sp) 
 	and a,(x)
 	jreq 3$
 	ld a,#1 

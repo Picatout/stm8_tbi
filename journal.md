@@ -1,3 +1,7 @@
+### 2023-03-03
+
+* Corrigé bogue dans fonction BASIC: **BTEST**
+
 ### 2023-03-01
 
 * Découvert bogue dans l'évaluation des expressions
