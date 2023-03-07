@@ -422,11 +422,25 @@ save_cursor_pos:
 ; ANSI: CSI u	
 ;---------------------------------
 restore_cursor_pos:
+	push a 
 	call send_csi 
 	ld a,#'u 
 	call putc 
+	pop a 
 	ret 
 
+;---------------------------------
+; move cursor to CPOS 
+; input:
+;   A     CPOS 
+;---------------------------------
+move_to_cpos:
+	call restore_cursor_pos
+	call send_csi 
+	call send_parameter
+	ld a,#'C 
+	call putc 
+	ret 
 
 ;----------------------------------
 ; change cursor shape according 
@@ -524,8 +538,10 @@ readln::
 	call cursor_style
 	jra skip_display 
 readln_loop:
+	call display_line
+update_cursor:
 	ld a,(CPOS,sp)
-	call display_line   
+	call move_to_cpos   
 skip_display: 
 	call getc
 	ld (RXCHAR,sp),a
@@ -613,30 +629,30 @@ skip_display:
 	ld a,(CPOS,sp)
     cp a,(LL,sp)
     jrmi 61$
-    jp readln_loop 
+    jp skip_display 
 61$:
 	inc (CPOS,sp)
-    jp readln_loop 
+    jp update_cursor  
 7$: cp a,#ARROW_LEFT  
 	jrne 8$
 ; left arrow 
 	tnz (CPOS,sp)
 	jrne 71$
-	jp readln_loop
+	jp skip_display
 71$:
 	dec (CPOS,sp)
-	jp readln_loop 
+	jp update_cursor 
 8$: cp a,#HOME  
 	jrne 9$
 ; HOME 
 	clr (CPOS,sp)
-	jp readln_loop  
+	jp update_cursor  
 9$: cp a,#KEY_END  
 	jrne 10$
 ; KEY_END 
 	ld a,(LL,sp)
 	ld (CPOS,sp),a 
-	jp readln_loop 
+	jp update_cursor
 10$: cp a,#CTRL_O
 	jrne 11$ 
 ; toggle between insert/overwrite
@@ -644,14 +660,14 @@ skip_display:
  	ld a,(OVRWR,sp)
 	call cursor_style
 	call beep_1khz
-	jp readln_loop 
+	jp skip_display
 11$: cp a,#SUP 
     jrne final_test 
 ; del character under cursor 
     ld a,(CPOS,sp)
 	cp a,(LL,sp)
 	jrne 12$ 
-	jp readln_loop 
+	jp skip_display
 12$:
 	call delete_under
 	dec (LL,sp)
@@ -659,12 +675,12 @@ skip_display:
 final_test:
 	cp a,#SPACE
 	jrpl accept_char
-	jp readln_loop
+	jp skip_display
 accept_char:
 	ld a,#TIB_SIZE-1
 	cp a, (LL,sp)
 	jrpl 1$
-	jp readln_loop ; max length reached 
+	jp skip_display ; max length reached 
 1$:	tnz (OVRWR,sp)
 	jrne overwrite
 ; insert mode 
@@ -687,6 +703,7 @@ overwrite:
 	addw x,#tib 
 	ld a,(RXCHAR,sp)
 	ld (x),a
+	call putc 
 	ld a,(CPOS,sp)
 	cp a,(LL,sp)
 	jrmi 1$
@@ -694,7 +711,7 @@ overwrite:
 	clr (1,x) 
 1$:	
 	inc (CPOS,sp)
-	jp readln_loop 
+	jp skip_display 
 readln_quit:
 	ldw x,#tib
     clr (LL_HB,sp) 
@@ -800,24 +817,12 @@ move_string_right:
 ;------------------------------
 ; display '>' on terminal 
 ; followed by edited line
-; input:
-;    A    cursor position  
 ;------------------------------
 display_line:
-	push a 
 	call erase_line  
 ; write edited line 	
 	ldw x,#tib 
 	call puts 
-; move cursor to insertion point 	
-	call restore_cursor_pos
-	ld a,(1,sp)
-	jreq 9$
-	call send_csi 
-	call send_parameter 
-	ld a,#'C 
-	call putc 
-9$: pop a 
 	ret 
 
 ;----------------------------------

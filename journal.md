@@ -1,5 +1,8 @@
 ###  2023-04-07 
 
+* J'ai du modifié encore une fois le fonctionnememnt de la routine *readln* dans [terminal.asm](terminal.asm). La réécriture de la ligne à chaque saisie d'un 
+  caractère ralentissait tellement l'éditeur de ligne que l'envoie de fichier avec l'outil SendFile ne fonctionnait plus. 
+
 * Déboguer routine *insert_char* dans [terminal.asm](terminal.asm). 
 
 * Réécriture de plusieurs routines dans [terminal.asm](terminal.asm). 
