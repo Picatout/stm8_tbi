@@ -301,10 +301,12 @@ puts::
 ; ref: https://en.wikipedia.org/wiki/ANSI_escape_code#CSIsection  
 ;----------------------------------------------------------------- 
 send_csi:
+	push a 
 	ld a,#ESC 
 	call putc 
 	ld a,#'[
-	call putc 
+	call putc
+	pop a  
 	ret 
 
 ;---------------------
@@ -350,9 +352,7 @@ send_parameter:
 ;    n    colon 
 ;---------------------------
 cursor_column:
-	push a 
 	call send_csi 
-	pop a 
 	call send_parameter 
 	ld a,#'G 
 	call putc 
@@ -427,6 +427,7 @@ restore_cursor_pos:
 	call putc 
 	ret 
 
+
 ;----------------------------------
 ; change cursor shape according 
 ; to editing mode 
@@ -442,9 +443,8 @@ cursor_style:
 	ld a,#'5 
 	jra 2$
 1$: ld a,#'1
-2$:	push a 
+2$:	
 	call send_csi
-	pop a 
 	call putc 
 	call space
 	ld a,#'q 
@@ -456,8 +456,8 @@ cursor_style:
 ; line 
 ; input:
 ;   A       character to insert 
-;   XH      insert position  
-;   XL      line length    
+;   XL      insert position  
+;   XH     line length    
 ; output:
 ;   tib     updated
 ;-------------------------
@@ -469,22 +469,15 @@ cursor_style:
 insert_char: 
 	_vars VSIZE 
     ld (ICHAR,sp),a 
-	ld a,xh 
-	ld (IPOS,sp),a 
+	ldw (LLEN,sp),x 
 	clr a 
-	rrwa x ; A=LLEN , XL=IPOS, XH=0 
-	ld (LLEN,sp),a 
+	rrwa x ; A=IPOS , XL=LLEN, XH=0 
+	ld a,xl  
 	sub a,(IPOS,sp) 
 	addw x,#tib 
 	call move_string_right 
 	ld a,(ICHAR,sp)
 	ld (x),a
-	clrw x 
-	ld a,(LLEN,sp)
-	inc a 
-	ld xl,a 
-	addw x,#tib 
-	clr (x)
 	_drop VSIZE  
 	ret 
 
@@ -679,9 +672,9 @@ accept_char:
 	cp a,(LL,sp)
 	jreq overwrite
 	clrw x 
-    ld xh,a ; xh=cpos 
+    ld xl,a ; xl=cpos 
 	ld a,(LL,sp)
-	ld xl,a  ; xl=ll 
+	ld xh,a  ; xh=ll 
     ld a,(RXCHAR,sp)
     call insert_char 
     inc (LL,sp)
@@ -698,11 +691,7 @@ overwrite:
 	cp a,(LL,sp)
 	jrmi 1$
 	inc (LL,sp)
-	clrw x 
-	ld a,(LL,sp)
-	ld xl,a 
-	addw x,#tib 
-	clr(x)
+	clr (1,x) 
 1$:	
 	inc (CPOS,sp)
 	jp readln_loop 
@@ -741,8 +730,6 @@ delete_under:
 	ld a,(x)
 	jreq 2$ ; at end of line  
 	call move_string_left
-	decw y
-	call display_line  
 2$: pop a
 	ret 
 
@@ -792,22 +779,22 @@ move_string_left:
 ; insertion 
 ; input:
 ;   A     string length 
-;   X     *str 
+;   X     *str_end 
 ; output:
 ;   X     *slot  
 ;------------------------------
 move_string_right: 
 	tnz a 
-	jreq 9$ 
+	jreq 9$
+	inc a  
 	push a
-	push 0 
-	addw x,(1,sp) 
 1$: ld a,(x)
 	ld (1,x),a
 	decw x  
-	dec (2,sp)
+	dec (1,sp)
 	jrne 1$
-	_drop 2 
+	_drop 1
+	incw x  
 9$: ret 
 
 ;------------------------------
@@ -823,11 +810,15 @@ display_line:
 	ldw x,#tib 
 	call puts 
 ; move cursor to insertion point 	
-	pop a 
-	add a,#2 
-	call cursor_column
+	call restore_cursor_pos
+	ld a,(1,sp)
+	jreq 9$
+	call send_csi 
+	call send_parameter 
+	ld a,#'C 
+	call putc 
+9$: pop a 
 	ret 
-
 
 ;----------------------------------
 ; convert to hexadecimal digit 
