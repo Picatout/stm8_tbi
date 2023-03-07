@@ -1,6 +1,6 @@
 ###  2023-04-07 
 
-* Déboguer routine *insert_char* dans [terminal.asm](terminal.asm).
+* Déboguer routine *insert_char* dans [terminal.asm](terminal.asm). 
 
 * Réécriture de plusieurs routines dans [terminal.asm](terminal.asm). 
 
