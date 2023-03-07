@@ -1,3 +1,18 @@
+###  2023-04-07 
+
+* Réécriture de plusieurs routines dans [terminal.asm](terminal.asm). 
+
+### 2023-03-05
+
+* Corrigé bogue dand routines *beep_1khz* et *cmd_tone* qui ne préservaient pas le registre **Y**. 
+
+* Modifié routines **readln** et **insert_char** du fichier [terminal.asm](terminal.asm) pour corrigé bogue dans le mode insertion de l'éditeur de ligne.
+
+### 2023-03-04
+
+* bogue dans procédure *readln* du fichier [terminal.asm](terminal.asm). N'affichait pas la fin de la ligne correctement lors d'insertion.
+
+
 ### 2023-03-03
 
 * Corrigé bogue dans fonction BASIC: **BTEST**

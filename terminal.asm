@@ -293,48 +293,14 @@ puts::
 	jra puts 
 1$:	ret 
 
-
-;---------------------------
-; delete character at left 
-; of cursor on terminal 
-; input:
-;   none 
-; output:
-;	none 
-;---------------------------
-bksp:
-	ld a,#BS 
-	call putc 
-	ld a,#SPACE 
-	call putc 
-	ld a,#BS 
-	call putc 
-	ret 
-;---------------------------
-; delete n character left of cursor 
-; at terminal.
-; input: 
-;   A   number of characters to delete.
-; output:
-;    none 
-;--------------------------	
-delete_nchar:
-	push a 
-0$:	tnz (1,sp)
-	jreq 1$
-	call bksp 
-	dec (1,sp)
-	jra 0$
-1$:	pop a 
-	ret
-
-;--------------------------
-; send ANSI escape sequence
-; ANSI: ESC[
+;---------------------------------------------------------------
+; send ANSI Control Sequence Introducer (CSI) 
+; ANSI: CSI 
 ; note: ESC is ASCII 27
-;       [   is ASCII 91  
-;-------------------------- 
-send_escape:
+;       [   is ASCII 91
+; ref: https://en.wikipedia.org/wiki/ANSI_escape_code#CSIsection  
+;----------------------------------------------------------------- 
+send_csi:
 	ld a,#ESC 
 	call putc 
 	ld a,#'[
@@ -377,43 +343,18 @@ send_parameter:
 	popw x 
 	ret 
 
-;--------------------------
-; move cursor left n character
-; ANSI: ESC[PnD 
-; 'Pn' est a numerical parameter
-; specifying number of characters 
-; displacement.
-; input:
-;   A     character count
-; output:
-;   none
-;--------------------------
-move_left:
-	tnz a 
-	jreq 9$
-	push a 
-	call send_escape
-    pop a
-	call send_parameter 
-	ld a,#'D 
-	call putc 
-9$:	ret	
 
-
-;--------------------------
-; move cursor right n character 
-; ANSI: ESC[PnC 
+;---------------------------
+; move cursor at column  
 ; input:
-;   A     character count
-; output:
-;   none
-;--------------------------
-move_right:
+;    n    colon 
+;---------------------------
+cursor_column:
 	push a 
-	call send_escape
-    pop a
+	call send_csi 
+	pop a 
 	call send_parameter 
-	ld a,#'C 
+	ld a,#'G 
 	call putc 
 	ret 
 
@@ -443,111 +384,48 @@ spaces::
 9$: 
 	ret 
 
-;--------------------------
-; insert character in text 
-; line 
-; input:
-;   A       character to insert 
-;   xl      line length
-;   xh      insert position 
-;   Y       line pointer 
-; output:
-;   tib     updated 
-;   Y       updated  
-;-------------------------
-	IPOS=1
-	KCHAR=2 
-    LLEN=3 
-	VSIZE=3 
-insert_char: 
-	_vars VSIZE 
-    ld (KCHAR,sp),a 
-    ld a,xh 
-	ld (IPOS,sp),a
-    ld a,xl 
-    ld (LLEN,sp),a  
-    ldw x,y
-    incw x 
-    ld a,(LLEN,sp)
-    sub a,(IPOS,sp)
-    inc a 
-    _straz acc8 
-    clr acc16
-    call move
-    ldw y,#tib 
-    ld a,(IPOS,sp)
-    _straz acc8 
-    addw y,acc16 
-    ld a,(KCHAR,sp)
-    ld (y),a
-    incw y  
-    ld a,(IPOS,sp)
-    call move_left
-    ldw x,#tib 
-    call puts 
-    ld a,(LLEN,sp)
-    sub a,(IPOS,sp) 
-    call move_left 
-	_drop VSIZE 
-	ret 
-
-
-;--------------------------
-; delete character under cursor
-; input:
-;   A       line length   
-;   xl      delete position
-;   Y       line pointer 
-;-------------------------
-	CPOS=1
-	LLEN=2
-	VSIZE=2
-delete_under:
-	_vars VSIZE 
-    ld (LLEN,sp),a 
-    ld a,xl 
-    ld (CPOS,sp),a 
-    ldw x,y ; move destination
-    incw y  ; move source 
-    ld a,(LLEN,sp)
-    sub a,(CPOS,sp)
-    inc a ; move including zero at end.
-    _straz acc8 
-    clr acc16 
-	call move 
-    ldw y,#tib 
-    ld a,(CPOS,sp)
-    _straz acc8 
-    addw y,acc16 
-    ldw x,y 
-    call puts 
-    ld a,#SPACE  
-    call putc
-    ld a,(LLEN,sp)
-    sub a,(CPOS,sp)
-    call move_left 
-    dec (LLEN,sp)
-	_drop VSIZE 
-	ret 
 
 ;-----------------------------
 ; send ANSI sequence to delete
-; whole line. Cursor position
-; is not updated.
-; ANSI: ESC[2K
+; whole display line. 
+; cursor set left screen.
+; ANSI: CSI K
 ; input:
 ;   none
 ; output:
 ;   none 
 ;-----------------------------
-delete_line:
-    call send_escape
-	ld a,#'2
-	call putc 
+erase_line:
+; move to screen left 
+	call restore_cursor_pos  
+; delete from cursor to end of line 
+    call send_csi
 	ld a,#'K 
 	call putc 
 	ret 
 
+;-------------------------------
+; save current cursor postion 
+; this value persist to next 
+; call to this procedure.
+; ANSI: CSI s
+;--------------------------------
+save_cursor_pos: 
+	call send_csi 
+	ld a,#'s 
+	call putc 
+	ret 
+
+;--------------------------------
+; restore cursor position from 
+; saved value 
+; ANSI: CSI u	
+;---------------------------------
+restore_cursor_pos:
+	call send_csi 
+	ld a,#'u 
+	call putc 
+	ret 
 
 ;----------------------------------
 ; change cursor shape according 
@@ -565,7 +443,7 @@ cursor_style:
 	jra 2$
 1$: ld a,#'1
 2$:	push a 
-	call send_escape
+	call send_csi
 	pop a 
 	call putc 
 	call space
@@ -573,12 +451,48 @@ cursor_style:
 	call putc 
 	ret 
 
+;--------------------------
+; insert character in text 
+; line 
+; input:
+;   A       character to insert 
+;   XH      insert position  
+;   XL      line length    
+; output:
+;   tib     updated
+;-------------------------
+ ; local variables 
+	ICHAR=1 ; character to insert 
+	LLEN=2  ; line length
+	IPOS=3  ; insert position 
+	VSIZE=3  ; local variables size 
+insert_char: 
+	_vars VSIZE 
+    ld (ICHAR,sp),a 
+	ld a,xh 
+	ld (IPOS,sp),a 
+	clr a 
+	rrwa x ; A=LLEN , XL=IPOS, XH=0 
+	ld (LLEN,sp),a 
+	sub a,(IPOS,sp) 
+	addw x,#tib 
+	call move_string_right 
+	ld a,(ICHAR,sp)
+	ld (x),a
+	clrw x 
+	ld a,(LLEN,sp)
+	inc a 
+	ld xl,a 
+	addw x,#tib 
+	clr (x)
+	_drop VSIZE  
+	ret 
 
 ;------------------------------------
 ; read a line of text from terminal
 ;  control keys: 
 ;    BS   efface caractère à gauche 
-;    ln+CTRL_E  edit ligne# 'ln' line # 
+;    ln+CTRL_E  edit line# 'ln'=line # 
 ;    CTRL_R  edit previous line.
 ;    CTRL_D  delete line  
 ;    HOME  go to start of line  
@@ -590,15 +504,17 @@ cursor_style:
 ;	none
 ; local variable on stack:
 ;	LL  line length
-;   RXCHAR last received character 
+;   RXCHAR last received character
+; use:
+;   Y point end of line  
 ; output:
 ;   text in tib  buffer
 ;   count  line length 
 ;------------------------------------
 	; local variables
-	LL_HB=1  ; line length high byte 
 	RXCHAR = 1 ; last char received
-	LL = 2  ; accepted line length
+	LL_HB=1  ; line length high byte 
+	LL = 2  ; actual line length
 	CPOS=3  ; cursor position 
 	OVRWR=4 ; overwrite flag 
 	YTEMP=5 ; 
@@ -606,14 +522,18 @@ cursor_style:
 readln::
 	pushw y 
 	_vars VSIZE 
+	call save_cursor_pos
 	clrw x 
 	ldw (LL,sp),x 
 	ldw (CPOS,sp),x 
 	cpl (OVRWR,sp) ; default to overwrite mode 
  	ld a,(OVRWR,sp)
 	call cursor_style
-	ldw y,#tib ; terminal input buffer
+	jra skip_display 
 readln_loop:
+	ld a,(CPOS,sp)
+	call display_line   
+skip_display: 
 	call getc
 	ld (RXCHAR,sp),a
     cp a,#ESC 
@@ -629,29 +549,23 @@ readln_loop:
 2$:
 	cp a,#BS
 	jrne 3$
-; delete left 
-    tnz (CPOS,sp)
-    jreq readln_loop 
-    ld a,#1 
-    call move_left
-    dec (CPOS,sp)
-    decw y 
-    ld a,(CPOS,sp) 
-    jp 12$
+	ld a,(CPOS,sp)
+	call delete_left
+	cp a,(CPOS,sp)
+	jreq 21$ 
+	ld (CPOS,SP),a 
+	dec (LL,sp)
+21$:
+    jp readln_loop 
 3$:
 	cp a,#CTRL_D
 	jrne 4$
 ;delete line 
-	call delete_line 
-    ld a,(CPOS,sp)
-    inc a 
-    call move_left 
-	ld a,#'> 
-	call putc 
-	ldw y,#tib
-	clr (y)
-	clr (LL,sp)
+	clr a 
+	ldw x,#tib 
+	clr(x)
 	clr (CPOS,sp)
+	clr (LL,sp)
 	jra readln_loop
 4$:
 	cp a,#CTRL_R 
@@ -659,33 +573,28 @@ readln_loop:
 ;repeat line 
 	tnz (LL,sp)
 	jrne readln_loop
-	ldw y,#tib 
-	ldw x,y
+	ldw x,#tib 
 	call strlen
 	tnz a  
 	jreq readln_loop
 	ld (LL,sp),a 
     ld (CPOS,sp),a
-	ldw x,y  
-	call puts
-	clr (LL_HB,sp)
-	addw y,(LL_HB,sp)
 	jra readln_loop 
 5$:
 	cp a,#CTRL_E 
 	jrne 6$
 ;edit line number 
 	ldw x,#tib 
-	ldw y,(VSIZE+1,sp) ; restore xstack pointer 
 	call atoi24
 	clr a
 	call search_lineno
 	tnzw x 
 	jrne 51$
 	clr (LL,sp)
-	ldw y,#tib
-    clr (y) 	
-	jp readln_quit  
+	clr (CPOS,sp)
+	ldw x,#tib
+    clr (x)
+	jp readln_loop  
 51$:
 	ldw line.addr,x
 	ld a,(2,x)
@@ -699,18 +608,10 @@ readln_loop:
 	call decompile
 	ld a,#STDOUT 
 	call set_output 
-	clr (LL_HB,sp)
-	ld a,#CR 
-	call putc 
-	ld a,#'>
-	call putc
     ldw x,#tib  
 	call strlen 
 	ld (LL,sp),a 
-	call puts 
-	ldw y,x
-    ld a,(LL,sp)
-    ld (CPOS,sp),a  
+	ld (CPOS,sp),a 
 	jp readln_loop
 6$:
 	cp a,#ARROW_RIGHT
@@ -721,10 +622,7 @@ readln_loop:
     jrmi 61$
     jp readln_loop 
 61$:
-    ld a,#1 
-	call move_right 
 	inc (CPOS,sp)
-    incw y 
     jp readln_loop 
 7$: cp a,#ARROW_LEFT  
 	jrne 8$
@@ -733,36 +631,18 @@ readln_loop:
 	jrne 71$
 	jp readln_loop
 71$:
-    ld a,#1 
-	call move_left 
 	dec (CPOS,sp)
-    decw y 
 	jp readln_loop 
 8$: cp a,#HOME  
 	jrne 9$
 ; HOME 
-    ld a,(CPOS,sp)
-    call move_left 
 	clr (CPOS,sp)
-    ldw y,#tib 
 	jp readln_loop  
 9$: cp a,#KEY_END  
 	jrne 10$
 ; KEY_END 
-	ld a,(CPOS,sp)
-	cp a,(LL,sp)
-	jrne 91$
-	jp readln_loop 
-91$:
 	ld a,(LL,sp)
-	sub a,(CPOS,sp)
-	call move_right 
-	ld a,(LL,sp)
-	ld (CPOS,sp),a
-    ldw y,#tib
-    clr acc16 
-    _straz acc8 
-    addw y,acc16  
+	ld (CPOS,sp),a 
 	jp readln_loop 
 10$: cp a,#CTRL_O
 	jrne 11$ 
@@ -776,14 +656,12 @@ readln_loop:
     jrne final_test 
 ; del character under cursor 
     ld a,(CPOS,sp)
-    cp a,(LL,sp)
-    jrpl 13$
+	cp a,(LL,sp)
+	jrne 12$ 
+	jp readln_loop 
 12$:
-    ld xl,a    ; cursor position 
-    ld a,(LL,sp)  ; line length
-    call delete_under
-    dec (LLEN,sp)
-13$:
+	call delete_under
+	dec (LL,sp)
     jp readln_loop 
 final_test:
 	cp a,#SPACE
@@ -798,37 +676,41 @@ accept_char:
 	jrne overwrite
 ; insert mode 
     ld a,(CPOS,sp)
-    cp a,(LL,sp)
-    jreq overwrite
-    ld a,(LL,sp)
-    ld xl,a 
-    ld a,(CPOS,sp)
-    ld xh,a
+	cp a,(LL,sp)
+	jreq overwrite
+	clrw x 
+    ld xh,a ; xh=cpos 
+	ld a,(LL,sp)
+	ld xl,a  ; xl=ll 
     ld a,(RXCHAR,sp)
-    call insert_char
-    inc (LLEN,sp)
+    call insert_char 
+    inc (LL,sp)
     inc (CPOS,sp)	
     jp readln_loop 
 overwrite:
+	clrw x 
+	ld a,(CPOS,sp)
+	ld xl,a 
+	addw x,#tib 
 	ld a,(RXCHAR,sp)
-	ld (y),a
-    incw y
-    call putc 
+	ld (x),a
 	ld a,(CPOS,sp)
 	cp a,(LL,sp)
 	jrmi 1$
-	clr (y)
 	inc (LL,sp)
-    inc (CPOS,sp)
-	jp readln_loop 
+	clrw x 
+	ld a,(LL,sp)
+	ld xl,a 
+	addw x,#tib 
+	clr(x)
 1$:	
 	inc (CPOS,sp)
 	jp readln_loop 
 readln_quit:
-	ldw y,#tib
+	ldw x,#tib
     clr (LL_HB,sp) 
-    addw y,(LL_HB,sp)
-    clr (y)
+    addw x,(LL_HB,sp)
+    clr (x)
 	ld a,(LL,sp)
 	_straz count 
 	ld a,#CR
@@ -838,6 +720,114 @@ readln_quit:
  	ld a,#-1 
 	call cursor_style
 	ret
+
+;--------------------------
+; delete character under cursor
+; and update display 
+; input:
+;   A      cursor position
+;   Y      end of line pointer 
+; output:
+;   A      not change 
+;   Y      updated 
+;-------------------------
+	CPOS=1
+	VSIZE=1
+delete_under:
+	push A ; CPOS 
+	clrw x 
+	ld xl,a 
+	addw x,#tib 
+	ld a,(x)
+	jreq 2$ ; at end of line  
+	call move_string_left
+	decw y
+	call display_line  
+2$: pop a
+	ret 
+
+
+;------------------------------
+; delete character left of cursor
+; and update display  
+; input:
+;    A    CPOS 
+;    Y    end of line pointer 
+; output:
+;    A    updated CPOS 
+;-------------------------------
+delete_left:
+	tnz a 
+	jreq 9$ 
+	push a 
+	clrw x 
+	ld xl,a  
+	addw x,#tib
+	decw x
+	call move_string_left   
+	pop a 
+	dec a  
+9$:	ret 
+
+;-----------------------------
+; move_string_left 
+; move .asciz 1 character left 
+; input: 
+;    X    destination 
+; output:
+;    x    end of moved string 
+;-----------------------------
+move_string_left: 
+1$:	ld a,(1,x)
+	ld (x),a
+	jreq 2$  
+	incw x 
+	jra 1$ 
+2$: ret 
+
+;-----------------------------
+; move_string_right 
+; move .asciz 1 character right 
+; to give space for character 
+; insertion 
+; input:
+;   A     string length 
+;   X     *str 
+; output:
+;   X     *slot  
+;------------------------------
+move_string_right: 
+	tnz a 
+	jreq 9$ 
+	push a
+	push 0 
+	addw x,(1,sp) 
+1$: ld a,(x)
+	ld (1,x),a
+	decw x  
+	dec (2,sp)
+	jrne 1$
+	_drop 2 
+9$: ret 
+
+;------------------------------
+; display '>' on terminal 
+; followed by edited line
+; input:
+;    A    cursor position  
+;------------------------------
+display_line:
+	push a 
+	call erase_line  
+; write edited line 	
+	ldw x,#tib 
+	call puts 
+; move cursor to insertion point 	
+	pop a 
+	add a,#2 
+	call cursor_column
+	ret 
+
 
 ;----------------------------------
 ; convert to hexadecimal digit 

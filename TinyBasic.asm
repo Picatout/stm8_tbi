@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=1
-	REV=6
+	REV=7
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -2786,7 +2786,8 @@ cmd_get:
 ;-----------------
 ; 1 Khz beep 
 ;-----------------
-beep_1khz:: 
+beep_1khz::
+	pushw y 
 	clr a 
 	ldw x,#1000 
 	_i24_push 
@@ -2805,6 +2806,7 @@ beep_1khz::
 	DURATION=1 
 	FREQ=DURATION+INT_SIZE 
 cmd_tone:
+	pushw y 
 	call arg_list 
 	cp a,#2 
 	jreq beep 
@@ -2839,6 +2841,7 @@ beep:
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
 	_drop 2*INT_SIZE 
+	popw y 
 	ret 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
