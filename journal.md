@@ -1,5 +1,7 @@
 ###  2023-04-07 
 
+* Corrigé bogue dans *readln* du fichier [terminal.asm](terminal.asm). La touche HOME de déplacait pas le curseur du terminal au début de la ligne.
+
 * Corrigé bogue dans routine *move_to_cpos* du fichier [terminal.asm](terminal.asm). Les séquence ANSI n'accepte pas la valeur **0** comme paramètre, lorsqu'on envoie un zéro la valeur par défaut de la commande est appliquée à la place. Dans ce cas ci la valeur appliquée était **1**. 
 ```
 move_to_cpos:

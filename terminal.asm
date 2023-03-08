@@ -648,7 +648,8 @@ skip_display:
 	jrne 9$
 ; HOME 
 	clr (CPOS,sp)
-	jp update_cursor  
+	call restore_cursor_pos
+	jp skip_display  
 9$: cp a,#KEY_END  
 	jrne 10$
 ; KEY_END 
