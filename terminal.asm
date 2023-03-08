@@ -435,12 +435,14 @@ restore_cursor_pos:
 ;   A     CPOS 
 ;---------------------------------
 move_to_cpos:
+	tnz A
+	jreq 9$
 	call restore_cursor_pos
 	call send_csi 
 	call send_parameter
 	ld a,#'C 
 	call putc 
-	ret 
+9$:	ret 
 
 ;----------------------------------
 ; change cursor shape according 

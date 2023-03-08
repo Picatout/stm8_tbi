@@ -1,5 +1,18 @@
 ###  2023-04-07 
 
+* Corrigé bogue dans routine *move_to_cpos* du fichier [terminal.asm](terminal.asm). Les séquence ANSI n'accepte pas la valeur **0** comme paramètre, lorsqu'on envoie un zéro la valeur par défaut de la commande est appliquée à la place. Dans ce cas ci la valeur appliquée était **1**. 
+```
+move_to_cpos:
+	tnz A
+	jreq 9$ ; ignore la valeur 0 
+	call restore_cursor_pos
+	call send_csi 
+	call send_parameter
+	ld a,#'C 
+	call putc 
+9$:	ret 
+```
+
 * J'ai du modifié encore une fois le fonctionnememnt de la routine *readln* dans [terminal.asm](terminal.asm). La réécriture de la ligne à chaque saisie d'un 
   caractère ralentissait tellement l'éditeur de ligne que l'envoie de fichier avec l'outil SendFile ne fonctionnait plus. 
 
