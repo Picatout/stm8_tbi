@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=1
-	REV=10
+	REV=11
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -4049,7 +4049,6 @@ func_rshift:
 ; BASIC: FCPU integer
 ; set CPU frequency 
 ;-------------------------- 
-
 cmd_fcpu:
 	ld a,#LITC_IDX 
 	call expect 
@@ -4057,6 +4056,32 @@ cmd_fcpu:
 	and a,#7 
 	ld CLK_CKDIVR,a 
 	ret 
+
+.if NUCLEO_8S208RB + SB5_SHORT
+;-------------------------
+; BASIC: CLK_HSE 
+; switch clock to external 
+; 8Mhz clock signal 
+; from ST-LINK 
+;--------------------------
+cmd_clock_hse:
+	ld a ,#CLK_SWR_HSE
+	jra clock_switch 
+
+;---------------------------
+; BASIC: CLK_HSI 
+; switch to internal 
+; oscillator 16 Mhz 
+;----------------------------
+cmd_clock_hsi: 
+	ld a ,#CLK_SWR_HSI
+clock_switch:	
+	clrw x 
+	call clock_init 
+	call uart_set_baud
+	call timer4_init
+	ret 
+.endif 
 
 ;------------------------------
 ; BASIC: PMODE pin#, mode 
@@ -5301,6 +5326,10 @@ dict_end:
 	_dict_entry,3,"CR2",CR2_IDX 
 	_dict_entry,3,"CR1",CR1_IDX  
 	_dict_entry,5,"CONST",CONST_IDX
+.if NUCLEO_8S208RB+SB5_SHORT 
+	_dict_entry,7,"CLK_HSI",CLK_HSI_IDX 
+	_dict_entry,7,"CLK_HSE",CLK_HSE_IDX 
+.endif 	
 	_dict_entry,4,"CHAR",CHAR_IDX
 	_dict_entry,5,"CHAIN",CHAIN_IDX 
 	_dict_entry,3,"BYE",BYE_IDX 

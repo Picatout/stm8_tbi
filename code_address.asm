@@ -208,4 +208,8 @@ code_addr:
     _code_entry cmd_wait, WAIT_IDX          ; $84
     _code_entry cmd_words, WORDS_IDX        ; $85
     _code_entry cmd_write, WRITE_IDX        ; $86
+.if NUCLEO_8S208RB+SB5_SHORT  
+    _code_entry cmd_clock_hsi, CLK_HSI_IDX 
+    _code_entry cmd_clock_hse, CLK_HSE_IDX 
+.endif 
     CMD_LAST=TOK_IDX-1

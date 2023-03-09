@@ -27,6 +27,7 @@ NUCLEO_8S207K8=1
 
 ; NUCLEO-8S207K8 config. 
 .if NUCLEO_8S207K8 
+    SB5_SHORT=1 ; when SB5 short on board STM8 OSCIN is connected to 8Mhz TMCO signal  
     .include "inc/stm8s207.inc" 
     .include "inc/nucleo_8s207.inc"
 .endif 

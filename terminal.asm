@@ -101,8 +101,9 @@ uart_init:
     bset UART_PORT_CR2,#UART_TX_PIN 
 ; enable UART clock
 	bset CLK_PCKENR1,#UART_PCKEN 	
-uart_set_baud: 
+uart_set_baud:: 
 	push a 
+	bres UART,#UART_CR1_PIEN
 ; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
 ; 1) check clock source, HSI at 16Mhz or HSE at 8Mhz  
 	ld a,#CLK_SWR_HSI
@@ -122,6 +123,7 @@ uart_set_baud:
     btjf UART_SR,#UART_SR_TC,.
     clr rx1_head 
 	clr rx1_tail
+	bset UART,#UART_CR1_PIEN
 	pop a  
 	ret
 
@@ -345,6 +347,22 @@ send_parameter:
 	popw x 
 	ret 
 
+;---------------------------
+; delete character at left 
+; of cursor on terminal 
+; input:
+;   none 
+; output:
+;	none 
+;---------------------------
+bksp:
+	ld a,#BS 
+	call putc 
+	ld a,#SPACE 
+	call putc 
+	ld a,#BS 
+	call putc 
+	ret 
 
 ;---------------------------
 ; move cursor at column  

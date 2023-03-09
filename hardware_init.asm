@@ -362,13 +362,13 @@ UBTN_Handler_exit:
 ;   none 
 ;----------------------------------------
 clock_init:	
+	bres CLK_SWCR,#CLK_SWCR_SWIF 
 	cp a,CLK_CMSR 
 	jreq 2$ ; no switching required 
 ; select clock source 
-	bset CLK_SWCR,#CLK_SWCR_SWEN
 	ld CLK_SWR,a
-1$:	cp a,CLK_CMSR
-	jrne 1$
+	btjf CLK_SWCR,#CLK_SWCR_SWIF,. 
+	bset CLK_SWCR,#CLK_SWCR_SWEN
 2$: 	
 ; HSI and cpu clock divisor 
 	ld a,xl 
@@ -393,9 +393,14 @@ timer2_init:
 ;----------------------------------
 timer4_init:
 	bset CLK_PCKENR1,#CLK_PCKENR1_TIM4
+	bres TIM4_CR1,#TIM4_CR1_CEN 
 	mov TIM4_PSCR,#7 ; prescale 128  
-	mov TIM4_ARR,#125 ; set for 1msec.
-	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
+	mov TIM4_ARR,#124 ; set for 1msec.
+	ld a,CLK_CMSR
+	cp a,#CLK_SWR_HSI 
+	jreq 1$ 
+	mov TIM4_ARR,#62 
+1$:	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
 	bset TIM4_IER,#TIM4_IER_UIE
 ; set int level to 1 
 	ld a,#ITC_SPR_LEVEL1 
