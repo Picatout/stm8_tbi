@@ -1,4 +1,9 @@
-###  2023-04-08
+###  2023-03-09 
+
+* Découvert autre bogue dans [terminal.asm](terminal.asm). La touche *flèche gauche* ne ramène pas le curseur jusqu'à la position 0. 
+	* Bogue corrigé par une modification dans la routine *move_to_cpos*. 
+
+###  2023-03-08
 
 * Ajout de 2 nouvelles commandes: 
 	* **CLK_HSE**  permet d'utiliser le signal externe de 8Mhz comme master clock.
@@ -7,7 +12,7 @@
 * La carte **NUCLEO-8S207K8** permet d'utilisé le signal TMCO en provenance du programmeur ST-LINK de la carte comme master clock. Ce signal a la stabilité du crystal de 8Mhz utilisé par le ST-LINK.
 Cependant pour l'Utiliser il faut fermer **SB5** sur la carte. J'ai donc ajouté l'option **SB5_SHORT** dans le fichier [config.inc](config.inc) pour la carte **NUCLEO_8S207K8**. 
 
-###  2023-04-07 
+###  2023-03-07 
 
 * Corrigé bogue dans *readln* du fichier [terminal.asm](terminal.asm). La touche HOME de déplacait pas le curseur du terminal au début de la ligne.
 

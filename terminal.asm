@@ -453,9 +453,9 @@ restore_cursor_pos:
 ;   A     CPOS 
 ;---------------------------------
 move_to_cpos:
-	tnz A
-	jreq 9$
 	call restore_cursor_pos
+	tnz a 
+	jreq 9$ 
 	call send_csi 
 	call send_parameter
 	ld a,#'C 

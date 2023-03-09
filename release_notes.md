@@ -2,6 +2,12 @@
 
 # STM8 Tiny BASIC release notes
 
+## 2023-03-09 V3.1R12 
+
+* Two new commands added:
+  * **CLK_HSE** to switch MCU master clock to external crystal or oscillator. 
+  * **CLK_HSI** to switch MCU master clock to internal 16Mhz oscillator.
+
 ## 2022-12-30 V3.1R1
 
 Added PWM commands and update reference manual. Pre release V3.1R1 created.
