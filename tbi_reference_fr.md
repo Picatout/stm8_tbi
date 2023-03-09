@@ -277,6 +277,8 @@ nom|description
 [BYE](#bye)|met la carte en sommeil.
 [CHAIN](#chain)|Chaîne l'exécution d'un programme. 
 [CHAR](#char)|Fonction qui retourne le caractère ASCII correspondant au code.
+[CLK_HSE](#clk_hse)| Commute l'horloge principale sur le signal externe.
+[CLK_HSI](#clk_hsi)| Commute l'horloge principale sur l'oscillateur interne de 16Mhz.
 [CONST](#const)|Directive pour définir des constantes.
 [CR1](#cr1)|Constante système qui retourne l'offset du registre CR1 d'un port GPIO
 [CR2](#cr2)|Constante système qui retourne l'offset du registre CR2 d'un port GPIO
@@ -580,6 +582,20 @@ La fonction *character* retourne le caractère ASCII correspondant aux 7 bits le
  !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
 >
 ```
+[index](#index)
+<a id="clk_hse"></a>
+### CLK_HSE {C,P}
+Cette commande commute l'horloge principale du MCU sur le signal externe. Sur la carte **NUCLEO_8S208RB** un cristal de 8Mhz  est connété sur les broches **OSCIN** et **OSCOUT** du MCU. 
+
+Pour la carte **NUCLEO_8S207K8** cette commande n'est disponible seulement si **SB5** sur la carte est court-circuité et que la variable **SB5_SHORT** est mise à  **1** dans le fichier **config.inc**.
+
+[index](#index)
+<a id="clk_hsi"></a>
+### CLK_HSI {C,P}
+Cette commande commute l'horloge principale du MCU sur l'oscillateur interne de 16Mhz. 
+
+Pour la carte **NUCLEO_8S207K8** cette commande n'est disponible seulement si **SB5** sur la carte est court-circuité et que la variable **SB5_SHORT** est mise à  **1** dans le fichier **config.inc**.
+
 
 [index](#index)
 <a id="const"></a>

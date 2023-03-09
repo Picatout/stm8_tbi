@@ -232,6 +232,8 @@ name|description
 [BYE](#bye)|But board in sleep mode.
 [CHAIN](#chain)|Chain program execution. 
 [CHAR](#char)|Return the character corresponding to ASCII code.
+[CLK_HSE](#clk_hse)| Switch master clock to external clock
+[CLK_HSI](#clk_hsi)| Switch master clock to internal oscillator 
 [CONST](#const)|Keyword to define symboli constants.
 [CR1](#cr1)|Return offset of GPIO CR1 register.
 [CR2](#cr2)|Return offset of GPIO CR2 register.
@@ -551,6 +553,19 @@ This function return the ASCII character corresponding code *expr* which must be
  !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\]^_`abcdefghijklmnopqrstuvwxyz{|}~
 >
 ```
+[index](#index)
+<a id="clk_hse"></a>
+### CLK_HSE {C,P}
+This command switch MCU master clock to external clock. On the **NUCLEO_8S208RB** there a 8Mhz crystal connected between **OSCIN** and **OSCOUT** pins of MCU. 
+
+On **NUCLEO_8S207K8** board this command is only available if **SB5** on the board is shorted and the variable **SB5_SHORT** is set to **1** in **config.inc** file.
+
+[index](#index)
+<a id="clk_hsi"></a>
+### CLK_HSI {C,P}
+This commande switch MCU master clock to internal 16Mhz oscillator. 
+
+On **NUCLEO_8S207K8** board this command is only available if **SB5** on the board is shorted and the variable **SB5_SHORT** is set to **1** in **config.inc** file.
 
 [index](#index)
 <a id="const"></a>
