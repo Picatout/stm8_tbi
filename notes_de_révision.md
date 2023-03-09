@@ -1,5 +1,11 @@
 # Notes de révision
 
+## 2023-03-09 
+
+* Version V3.1R12 ajoute 2 commandes 
+    * **CLK_HSE** pour commuter le master clock vers un cristal ou un oscillateur externe.
+    * **CLK_HSI** pour commuter le master clock vers l'oscillateur interne de 16Mhz.  
+
 ## 2022-12-30 V3.1R1 
 
 Ajout des commandes PWM. Et mise à jour des manuels de références. Création d'une pré-release pour cette version.

@@ -385,7 +385,11 @@ timer2_init:
 	bset CLK_PCKENR1,#CLK_PCKENR1_TIM2 ; enable TIMER2 clock 
  	mov TIM2_CCMR1,#(6<<TIM2_CCMR_OCM) ; PWM mode 1 
 	mov TIM2_PSCR,#8 ; 16Mhz/256=62500
-	ret 
+	ld a,CLK_CMSR
+	cp a,#CLK_SWR_HSI 
+	jreq 9$  
+	mov TIM2_PSCR,#7 ; 8Mhz/128=62500 
+9$:	ret 
 
 ;---------------------------------
 ; TIM4 is configured to generate an 

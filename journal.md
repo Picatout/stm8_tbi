@@ -1,5 +1,7 @@
 ###  2023-03-09 
 
+* Corrigé bogue dans la commande **TONE** qui ne tenait pas compte de la commutation entre CLK_HSE et CLK_HSI.
+
 * Découvert autre bogue dans [terminal.asm](terminal.asm). La touche *flèche gauche* ne ramène pas le curseur jusqu'à la position 0. 
 	* Bogue corrigé par une modification dans la routine *move_to_cpos*. 
 

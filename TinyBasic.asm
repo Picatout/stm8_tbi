@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=1
-	REV=12
+	REV=13
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -2782,7 +2782,6 @@ cmd_get:
 	ld [ptr16],a 
 	ret 
 
-
 ;-----------------
 ; 1 Khz beep 
 ;-----------------
@@ -2804,7 +2803,8 @@ beep_1khz::
 ;    expr2   duration msec.
 ;---------------------------
 	DURATION=1 
-	FREQ=DURATION+INT_SIZE 
+	FREQ=DURATION+INT_SIZE
+	VSIZE=2*INT_SIZE   
 cmd_tone:
 	pushw y 
 	call arg_list 
@@ -2814,15 +2814,13 @@ cmd_tone:
 beep: 
 	_i24_fetch FREQ ; frequency
 	ldw y,x ; frequency 
-	_i24_fetch DURATION     
 	ldw x,#TIM2_CLK_FREQ
 	divw x,y ; cntr=Fclk/freq 
 ; round to nearest integer 
 	cpw y,#TIM2_CLK_FREQ/2
 	jrmi 2$
 	incw x 
-2$:	 
-	ld a,xh 
+2$:	ld a,xh 
 	ld TIM2_ARRH,a 
 	ld a,xl 
 	ld TIM2_ARRL,a 
@@ -2840,7 +2838,7 @@ beep:
 	call pause02 
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
-	_drop 2*INT_SIZE 
+	_drop VSIZE 
 	popw y 
 	ret 
 
@@ -4080,6 +4078,7 @@ clock_switch:
 	call clock_init 
 	call uart_set_baud
 	call timer4_init
+    call timer2_init 	
 	ret 
 .endif 
 
