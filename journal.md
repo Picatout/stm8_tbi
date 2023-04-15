@@ -1,3 +1,9 @@
+### 2023-04-15 
+
+* Réécriture de la commande **WAIT** 
+
+* Modifié *arg_list* pour éviter les *pushw y* et *popw y* à chaque boucle. 
+
 ### 2023-04-14
 
 * Réécriture de la fonction **RND()**.

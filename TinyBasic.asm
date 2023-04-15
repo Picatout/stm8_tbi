@@ -171,7 +171,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=1
-	REV=14
+	REV=15
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -859,17 +859,18 @@ func_args:
 	ARGN=2 
 	ARG_SIZE=INT_SIZE 
 arg_list:
-	popw y   
+	popw y
+	ldw ptr16,y    
 	push #0
 1$: 
 	pop a 
 	sub sp, #ARG_SIZE
 	push a
-	pushw y 
+;	pushw y 
 	call condition
-	popw y 
+;	popw y 
 	_i24_store ARGN   
-	inc (1,sp)	
+	inc (1,sp)	; argument count
 	call next_token 
 	cp a,#COMMA_IDX 
 	jreq 1$ 
@@ -878,7 +879,7 @@ arg_list:
 	_unget_token 
 7$:	
 	pop a 
-	jp (y) 
+	jp [ptr16] 
 
 
 ;--------------------------------
@@ -2067,32 +2068,29 @@ kword_remark::
 ; invert the wait logic.
 ; i.e. loop while not 0.
 ;---------------------
-	XMASK=1 ; 1 byte 
-	MASK=2  ; 1 byte 
-	ADDR=3  ; 1 word 
-	VSIZE=4 
+	XMASK=1 ; INT_SIZE  
+	MASK=XMASK+INT_SIZE  
+	ADDR=MASK+INT_SIZE 
+	VSIZE= 3*INT_SIZE 
 cmd_wait: 
-	_vars VSIZE
-	clr (XMASK,sp) 
 	call arg_list 
 	cp a,#2
 	jruge 0$
 	jp syntax_error 
 0$:	cp a,#3
-	jrult 1$
-	_i24_pop  ; xor mask 
-	ld a,xl 
-	ld (XMASK,sp),a 
-1$: _i24_pop ; mask
-    ld a,xl  
-	ld (MASK,sp),a 
-	_i24_pop ; address
+	jreq 1$
+	push #0 ; XMASK=0 
+	push #0 
+	push #0 
+1$: 
+	ldw x,(ADDR+1,sp) ; 16 bits address
 2$:	ld a,(x)
-	and a,(MASK,sp)
-	xor a,(XMASK,sp)
+	and a,(MASK+2,sp)
+	xor a,(XMASK+2,sp)
 	jreq 2$ 
 	_drop VSIZE 
 	ret 
+
 
 ;---------------------
 ; BASIC: BSET addr,mask
