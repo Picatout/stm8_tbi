@@ -21,6 +21,8 @@
 ;;;  FLASH, EEPROM and OPTION memory 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+SEPARATE=0 
+
 .if SEPARATE 
     .module FLASH_PROG 
     .include "config.inc"

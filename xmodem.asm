@@ -51,9 +51,9 @@ wait_soh:
 	ldw y,timer 
 	jrne 2$
 	ret 
-2$:	call uart3_qgetc 
+2$:	call uart_qgetc 
 	jreq 1$ 
-	call uart3_getc 
+	call uart_getc 
 	cp a,#SOH 
 	jreq 4$ 
 	cp a,#EOT 
@@ -82,9 +82,9 @@ getc_to::
 1$: ldw y,timer 
 	jrne 2$
 	ret 
-2$:	call uart3_qgetc 
+2$:	call uart_qgetc 
 	jreq 1$ 
-	call uart3_getc 
+	call uart_getc 
 	clrw y 
 	ldw timer,y 
 	ret 
@@ -117,7 +117,7 @@ try_again:
 	cp a,#EOT 
 	jrne 2$
 	ld a,#ACK  
-	call uart3_putc 
+	call uart_putc 
 	ld a,#EOT 
 	jra 7$ 		
 1$:	;start of header received
@@ -132,7 +132,7 @@ try_again:
 	jreq 4$
 2$:	
 	ld a,#NAK 
-	call uart3_putc 
+	call uart_putc 
 	dec (TRIES,sp) 
 	jrne try_again 
 	jra 5$
@@ -154,7 +154,7 @@ try_again:
 	jra 6$ 
 5$: ; all tries failed 
 	ld a,#CAN 
-6$:	call uart3_putc
+6$:	call uart_putc
 7$:	_drop VAR_SIZE 
 	ret 
 
@@ -179,25 +179,25 @@ xtrmt_block::
 	ld (TRIES,sp),a 
 tx_retries:
 	ld a,#SOH 
-	call uart3_putc 
+	call uart_putc 
 	ld a,(SERIAL,sp)
-	call uart3_putc 
+	call uart_putc 
 	ld a,(SERIAL,sp)
 	cpl a 
-	call uart3_putc 
+	call uart_putc 
 	clr (CHKSUM,sp)
 	ld a,#PACKET_SIZE 
 	ld (PLEN,sp),a 
 	ldw x,(BUFF,sp)
 1$: ld a,(x)
 	incw x 
-	call uart3_putc 
+	call uart_putc 
 	add a,(CHKSUM,sp)
 	ld (CHKSUM,sp),a 
 	dec (PLEN,sp)
 	jrne 1$ 
 	ld a,(CHKSUM,sp)
-	call uart3_putc
+	call uart_putc
 	call get_next
 	cp a,#ACK 
 	jreq 2$ 

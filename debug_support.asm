@@ -22,6 +22,8 @@
 ;;  to enable it.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+SEPARATE=0 
+
 .if SEPARATE 
     .module DBG_SUPPORT  
     .include "config.inc"

@@ -41,7 +41,6 @@
 ; 
 ;  * variables return their value in A:X 
 ;
-;  * relation, expression return value on xstack 
 ;--------------------------------------------------- 
 
 
@@ -172,7 +171,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=1
-	REV=13
+	REV=14
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -4210,17 +4209,57 @@ arduino_to_8s207:
 .endif 
 
 
-;------------------------------
-; BASIC: RND(expr)
-; return random number 
-; between 1 and expr inclusive
-; xorshift16 
-; ref: http://b2d-f9r.blogspot.com/2010/08/16-bit-xorshift-rng-now-with-more.html
-; input:
-; 	none 
-; output:
-;	xstack 	random positive integer 
-;------------------------------
+;---------------------------------
+;  seedx:seedy= x:y ^ seedx:seedy
+;  X:Y = seedx:seedy  
+;---------------------------------
+xor_seed32:
+    ld a,xh 
+    _xorz seedx 
+    _straz seedx
+    ld a,xl 
+    _xorz seedx+1 
+    _straz seedx+1 
+    ld a,yh 
+    _xorz seedy
+    _straz seedy 
+    ld a,yl 
+    _xorz seedy+1 
+    _straz seedy+1 
+    _ldxz seedx  
+    _ldyz seedy 
+    ret 
+
+;-----------------------------------
+;   x:y= x:y << a 
+;-----------------------------------
+sll_xy_32: 
+    sllw y 
+    rlcw x
+    dec a 
+    jrne sll_xy_32 
+    ret 
+
+;-----------------------------------
+;   x:y= x:y >> a 
+;-----------------------------------
+srl_xy_32: 
+    srlw x 
+    rrcw y 
+    dec a 
+    jrne srl_xy_32 
+    ret 
+
+;---------------------------------
+; BASIC: RND(n)
+; return integer [0..n-1] 
+; ref: https://en.wikipedia.org/wiki/Xorshift
+;
+; 	x ^= x << 13;
+;	x ^= x >> 17;
+;	x ^= x << 5;
+;
+;---------------------------------
 	N1=1
 	N2=N1+INT_SIZE
 	VSIZE=6
@@ -4238,55 +4277,22 @@ func_random:
 2$:  
 	_i24_fetch N1 
 	_i24_store N2  
-; acc16=(x<<5)^x 
+    _ldxz seedx 
+	ld a,#13
+    call sll_xy_32 
+    call xor_seed32
+    ld a,#17 
+    call srl_xy_32
+    call xor_seed32 
+    ld a,#5 
+    call sll_xy_32
+    call xor_seed32
+; return seedy_lo&0x7f:seedx modulo expr + 1 
+	_ldaz seedy+1   
+    and a,#0x7f 
+	ld (N1,sp),a 
 	_ldxz seedx 
-	sllw x 
-	sllw x 
-	sllw x 
-	sllw x 
-	sllw x 
-	ld a,xh 
-	xor a,seedx 
-	_straz acc16 
-	ld a,xl 
-	xor a,seedx+1 
-	_straz acc8 
-; seedx=seedy 
-	_ldxz seedy 
-	ldw seedx,x  
-; seedy=seedy^(seedy>>1)
-	_ldxz seedy 
-	srlw x 
-	ld a,xh 
-	xor a,seedy 
-	_straz seedy  
-	ld a,xl 
-	xor a,seedy+1 
-	_straz seedy+1 
-; acc16>>3 
-	_ldxz acc16 
-	srlw x 
-	srlw x 
-	srlw x 
-; x=acc16^x 
-	ld a,xh 
-	xor a,acc16 
-	_straz acc16 
-	ld a,xl 
-	xor a,acc8 
-	_straz acc8 
-; seedy=acc16^seedy 
-	xor a,seedy+1
-	ld xl,a 
-	_ldaz acc16 
-	xor a,seedy
-	ld xh,a 
-	ldw seedy,x 
-; return seedx_lo&0x7f:seedy modulo expr + 1 
-	_ldaz seedx+1
-	and a,#127
-	ld (N1,SP),A 
-	ldw (N1+1,SP),X 
+	ldw (N1+1,sp),x 
 	call div24 
 	LD A,(N2,SP)
 	LDW X,(N2+1,SP) ; remainder 

@@ -1,3 +1,7 @@
+### 2023-04-14
+
+* Réécriture de la fonction **RND()**.
+
 ###  2023-03-09 
 
 * Corrigé bogue dans la commande **TONE** qui ne tenait pas compte de la commutation entre CLK_HSE et CLK_HSI.

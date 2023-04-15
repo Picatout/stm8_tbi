@@ -4,8 +4,6 @@
 
 DEBUG=0 ; set to 1 to include debugging code 
 
-SEPARATE=0 ; set to 1 for separate assembly
-
 WANT_IWDG=0 ; set to 1 to add words IWDGEN and IWDGREF 
 
 ; boards list
@@ -15,6 +13,7 @@ NUCLEO_8S208RB=0
 ; only one is selected 
 .if NUCLEO_8S208RB 
 NUCLEO_8S207K8=0
+SB5_SHORT=0
 .else 
 NUCLEO_8S207K8=1
 .endif 

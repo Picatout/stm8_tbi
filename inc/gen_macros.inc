@@ -84,9 +84,19 @@
     .byte 0xbe,v 
     .endm 
 
+    ; load y from variable in zero page 
+    .macro _ldyz v 
+    .byte 0x90,0xbe,v 
+    .endm 
+
     ; store x in zero page variable 
     .macro _strxz v 
     .byte 0xbf,v 
+    .endm 
+
+    ; store y in zero page variable 
+    .macro _stryz v 
+    .byte 0x90,0xbf,v 
     .endm 
 
     ;  increment 16 bits variable
@@ -97,3 +107,8 @@
         _incz v     ; 1 cy, 2 bytes  
     .endm ; 3 cy 
 
+    ; xor op with zero page variable 
+    .macro _xorz v 
+    .byte 0xb8,v 
+    .endm 
+    

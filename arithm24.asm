@@ -24,6 +24,8 @@
 ;;      X  bits 15..0 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+SEPARATE=0 
+
 .if SEPARATE 
     .module ARITHM24  
     .include "config.inc"

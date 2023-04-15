@@ -29,6 +29,8 @@
 ;   print_hex  print hex value from A 
 ;------------------------------
 
+SEPARATE=0 
+
 .if SEPARATE 
     .module TERMINAL  
     .include "config.inc"

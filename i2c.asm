@@ -16,6 +16,8 @@
 ;     along with stm8_tbi.  If not, see <http://www.gnu.org/licenses/>.
 ;;
 
+SEPARATE=0 
+
 .if SEPARATE 
     .module I2C   
     .include "config.inc"
