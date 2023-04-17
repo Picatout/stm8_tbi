@@ -817,7 +817,6 @@ token_exit:
 	XSAVE=1
 	VSIZE=2
 compile::
-	pushw y 
 	_vars VSIZE 
 	mov basicptr,txtbgn
 	bset flags,#FCOMP 
@@ -859,7 +858,7 @@ compile::
 	subw y,#pad ; compiled line length 
     ld a,yl
 	ldw x,#pad 
-	ldw ptr16,x 
+	_strxz ptr16 
 	ld (2,x),a 
 	ldw x,(x)  ; line# 
 	jreq 10$
@@ -872,11 +871,11 @@ compile::
 	_ldxz ptr16  
 	ld a,(2,x)
 	_straz count
-	ldw line.addr,x
-	addw x,#3
-	ldw basicptr,x 	
+	_strxz line.addr
+	addw x,#LINE_HEADER_SIZE
+	_strxz basicptr
+	ldw y,x  	
 11$:
 	_drop VSIZE 
 	bres flags,#FCOMP 
-	popw y
 	ret 

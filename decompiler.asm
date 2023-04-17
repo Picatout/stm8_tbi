@@ -70,12 +70,13 @@ right_align::
 prt_quote:
 	ld a,#'"
 	call putc 
-	pushw x 
+	pushw y 
 	call skip_string 
-	popw x 
+	popw x  
 1$:	ld a,(x)
-	jreq 9$
 	incw x 
+	tnz a 
+	jreq 9$ 
 	cp a,#SPACE 
 	jrult 3$
 	call putc 
@@ -127,18 +128,17 @@ var_name::
 ;   A      0 don't align line number 
 ;          !0 align it. 
 ;   line.addr start of line 
-;   basicptr  at first token 
+;   Y,basicptr  at first token 
 ;   count     stop position.
 ;------------------------------------
-	BASE_SAV=1 ; 1 byte 
-	PSTR=2     ;  1 word 
+	PSTR=1     ;  1 word 
 	ALIGN=3 
-	VSIZE=4
+	VSIZE=3
 decompile::
+	push base 
 	_vars VSIZE
 	ld (ALIGN,sp),a 
 	ld a,base
-	ld (BASE_SAV,sp),a  
 	_ldxz line.addr
 	ldw x,(x)
 	mov base,#10
@@ -158,7 +158,7 @@ decomp_loop:
 	jrne 0$
 	jp decomp_exit 
 0$:	dec count 
-	call next_token
+	_next_token
 	tnz a 
 	jrne 1$ 
 	jp decomp_exit   
@@ -223,19 +223,14 @@ lit_char: ; LITC_IDX
 comment: ; REM_IDX 
 	ld a,#''
 	call putc
-	_ldxz basicptr
+	ldw x,y
 	call puts 
 	jp decomp_exit 
 ; print label   	
 label: ; LABEL_IDX 
-	_ldxz basicptr 
-	subw x,line.addr 
-1$:
-	_ldxz basicptr 
-	pushw x 
-	call skip_string
-	popw x 
-	call puts 
+	ldw x,y 
+	call puts
+	ldw y,x  
 	jra prt_space  
 ; print quoted string 	
 quoted_string:	
@@ -250,9 +245,8 @@ letter:
 	call putc  
 	jp prt_space 
 decomp_exit: 
-	ld a,(BASE_SAV,sp)
-	_straz base 
 	_drop VSIZE 
+	pop base 
 	ret 
 
 ;----------------------------------

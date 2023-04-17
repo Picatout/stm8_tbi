@@ -77,11 +77,12 @@
 ;-------------------------------------
 ;    MATH_OVF=0 ; if 1 the stop on math overflow 
 
+    ; assume 16 Mhz Fcpu 
      .macro _usec_dly n 
-    ldw x,#(16*n-2)/4
-    decw x
-    nop 
-    jrne .-2
+    ldw x,#(16*n-2)/4 ; 2 cy 
+    decw x  ; 1 cy 
+    nop     ; 1 cy 
+    jrne .-2 ; 2 cy 
     .endm 
     
     ; load X register with 
@@ -95,100 +96,45 @@
     ; to beginning of last token
     ; extracted except if it was end of line 
     .macro _unget_token
-        decw x 
-        _strxz basicptr 
+        decw y
     .endm
 
     ; extract 16 bits address from BASIC code  
     .macro _get_addr
-        addw x,#2
-        _strxz basicptr ; ldw basicptr,x 
-        subw x,#2 
-        ldw x,(x)
-    .endm 
+        ldw x,y     ; 1 cy 
+        ldw x,(x)   ; 2 cy 
+        addw y,#2   ; 2 cy 
+    .endm           ; 5 cy 
 
     ; extract character from BASIC code 
     .macro _get_char 
-        ld a,(x)        ; 1 cy 
-        incw x          ; 1 cy 
-        _strxz basicptr ;ldw basicptr,x  ; 2 cy 
-    .endm  ; 4 cy 
+        ld a,(y)    ; 1 cy 
+        incw y      ; 1 cy 
+    .endm           ; 2 cy 
     
+    ; extract next token 
+    .macro _next_token 
+        _get_char 
+    .endm  ; 2 cy 
+
     ; extract next command token id 
     .macro _next_cmd     
-        _ldxz basicptr ;ldw x,basicptr  ; 2 cy
-        _get_char       ; 4 cy 
-    .endm   ; 6 cy 
+        _get_char       ; 2 cy 
+    .endm               ; 2 cy 
 
     ; get code address in x
     .macro _code_addr 
-        clrw x 
-        ld xl,a 
-        sllw x 
-        ldw x,(code_addr,x)
-    .endm 
+        clrw x   ; 1 cy 
+        ld xl,a  ; 1 cy 
+        sllw x   ; 2 cy 
+        ldw x,(code_addr,x) ; 2 cy 
+    .endm        ; 6 cy 
 
     ; call subroutine from index in a 
     .macro _call_code
-        clrw x      ; 1 cy 
-        ld xl,a     ; 1 cy 
-        sllw x      ; 2 cy 
-        ldw x, (code_addr,x) ; 2 cy 
+        _code_addr  ; 6 cy  
         call (x)    ; 4 cy 
     .endm  ; 10 cy 
-
-;---------------------------------------
-;    xtack manipulation macros 
-;    Y is used as xstack pointer  
-;----------------------------------------
-    ; pop in A:X from XSTACK 
-    .macro _xpop 
-        ld a,(y)
-        ldw x,y 
-        addw y,#CELL_SIZE 
-; last op in macro 
-; so no need to do a tnzw x 
-; after macro invocation
-        ldw x,(1,x) 
-    .endm 
-
-    ; push A:X  to XSTACK 
-    .macro _xpush 
-        subw y,#CELL_SIZE
-        ld (y),a 
-        ldw (1,y),x 
-    .endm 
-
-    ; drop from XSTACK 
-    .macro _xdrop 
-        addw y,#CELL_SIZE 
-    .endm 
-
-    ; @T fetch top xstack 
-    .macro _at_top
-        ld a,(y)
-        ldw x,y 
-        ldw x,(1,x)
-    .endm 
-
-    ; !T put on top of xtack 
-    .macro _store_top 
-        ld (y),a 
-        ldw (1,y),x     
-    .endm 
-
-    ; @N  fetch next on xstack 
-    .macro _at_next 
-        ld a,(3,y)
-        ldw x,y 
-        ldw x,(4,x)
-    .endm 
-
-    ; !N put next on xstack 
-    .macro _store_next 
-        ld (3,y),a 
-        ldw (4,y),x 
-    .endm 
 
 ;---------------------------------
 ;  files.asm macros 

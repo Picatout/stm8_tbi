@@ -2,7 +2,7 @@
 ;;  configuration parameters 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-DEBUG=0 ; set to 1 to include debugging code 
+DEBUG=1 ; set to 1 to include debugging code 
 
 WANT_IWDG=0 ; set to 1 to add words IWDGEN and IWDGREF 
 

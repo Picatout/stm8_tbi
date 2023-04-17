@@ -76,3 +76,10 @@ erase:
 	$(FLASH) -c $(PROGRAMMER) -p$(BOARD) -s flash -b 32768 -w zero.bin 
 	rm -f zero.bin 
 
+.PHONY: ee_clear 
+# erase eeprom 
+ee_clear: 
+	dd if=/dev/zero bs=1 count=16 of=zero.bin
+	$(FLASH) -c $(PROGRAMMER) -p$(BOARD) -s eeprom 16 -w zero.bin 
+	rm -f zero.bin 
+ 

@@ -295,7 +295,8 @@ puts::
 	call putc 
 	incw x 
 	jra puts 
-1$:	ret 
+1$:	incw x 
+	ret 
 
 ;---------------------------------------------------------------
 ; send ANSI Control Sequence Introducer (CSI) 

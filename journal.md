@@ -1,4 +1,35 @@
+### 2023-04-16
+
+* Continuation du travail d'optimisation de la performance.
+
+* Corrigé bogue dans *arg_list* qui sauvegardait l'adresse de retour dans *ptr16*. Cette méthode était invalide car *arg_list* peut-être invokée de façon récursive.
+
 ### 2023-04-15 
+
+* Modification de la VM pour utiliser le register **Y** comme basicptr. Test performance avant modification:
+```
+>LIST
+   10 ' for next speed test 
+   12 LET T = TICKS 
+   14 FOR I = 1 TO 10000 
+   16 NEXT I 
+   18 ? TICKS - T ; " MSEC" 
+   20 ' DO UNTIL TEST 
+   22 LET I = 1 , T = TICKS 
+   24 DO LET I = I + 1 : UNTIL I > 10000 
+   26 ? TICKS - T ; " MSEC" 
+   28 ' GOTO LOOP 
+   30 LET I = 1 , T = TICKS 
+   32 LET I = I + 1 : IF I <= 10000 GOTO 32 
+   34 ? TICKS - T ; " MSEC" 
+program address: $91, program size: 241 bytes in RAM memory
+
+>RUN
+115  MSEC
+771  MSEC
+846  MSEC
+
+```
 
 * Réécriture de la commande **WAIT** 
 
