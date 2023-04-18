@@ -1,3 +1,12 @@
+### 2023-04-17
+
+* Corrigé bogue dans la routine *and_factor*. 
+
+* Modification à la routine *next_line*. 
+
+* Modifié  *interp_loop* pour remplacer la macro *_call_code* par la macro *_jp_code_* plus rapide. Maintenant les routine de ByteCode doivent faire un *jp interp_loop* au lieu d'un *ret*.
+
+
 ### 2023-04-16
 
 * Continuation du travail d'optimisation de la performance.

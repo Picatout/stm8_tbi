@@ -518,8 +518,8 @@ cold_start:
 	ldw seedy,x  
 	ldw x,0x6006 
 	ldw seedx,x  
-	call func_eefree ; eeprom free address 
-	call func_ubound ; @() size 
+	call eefree ; eeprom free address 
+	call ubound ; @() size 
 	call clear_basic
 2$:	
 ; check for autorun application
@@ -536,7 +536,7 @@ run_app:
 	jreq 1$
 	jp warm_start ; no autorun application.
 1$:	
-; run application in FLASH|EEPROM 
+; run application in FLASH
 ;	ldw y,XSTACK_EMPTY
 	call warm_init
 	ldw x,EEPROM_BASE+2 
@@ -553,7 +553,7 @@ run_app:
 	call puts 
 	ldw x,#AUTO_RUN
 	call puts  
-	jp run_it_02  
+	jp run_it
     jra .  
 
 AUTO_RUN: .asciz " running\n"

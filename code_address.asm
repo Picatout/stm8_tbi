@@ -26,7 +26,7 @@
 
 
 do_nothing:
-    ret 
+    _next 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  table of code routines 

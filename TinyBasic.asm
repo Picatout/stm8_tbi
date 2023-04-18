@@ -420,17 +420,18 @@ cmd_line: ; user interface
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; This is the interpreter loop
-;; for each BASIC code line. 
+;; for each BASIC code line.
+;; 12 cycles  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
 interp_loop:   
-    _next_cmd ; 2 cy 
+    _next_cmd ; command bytecode, 2 cy  
 .if 0;  DEBUG 
 	_tp 'I 
-	_call_code 
+	_jp_code 
 .else 
-	_call_code ; 10 cy + 4 cy for sbr return 
+	_jp_code ; 8 cy + 2 cy for jump back to interp_loop  
 .endif 	 
-	jra interp_loop ; 2 cy , total 22 cy
+;	jra interp_loop ; 2 cy , total 22 cy
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; move basicptr to first token 
@@ -452,7 +453,7 @@ next_line:
 	call prt_i16
 	ld a,#CR 
 	call putc 
-2$:	ret 
+2$:	_next 
 
 ;-------------------------
 ;  skip .asciz in BASIC line 
@@ -1168,10 +1169,18 @@ and_factor:
 1$:	cp a,#NOT_IDX  
 	jrne 2$ 
 	cpl (NOT_OP,sp)
-	jra 3$ 
-2$:	
-	_unget_token 
+	jra 4$ 
+2$:	cp a,#LPAREN_IDX 
+	jrne 3$
+	call condition 
+	push a 
+	ld a,#RPAREN_IDX
+	call expect 
+	pop a
+	jra 8$ 
 3$:
+	_unget_token 
+4$:
 	call relation 	
 5$:	
 	tnz (NOT_OP,sp)
@@ -1221,7 +1230,7 @@ and_cond:
 ; operators: OR,XOR 
 ; format:  and_cond [ OP and_cond ]* 
 ; output:
-;    xstack   value 
+;    stack   value 
 ;--------------------------------------------
 	B1=1 ; 3 bytes 
 	B2=B1+INT_SIZE ; 3 bytes 
@@ -1278,7 +1287,7 @@ condition:
 ;---------------------------------------------
 cmd_hex_base:
 	mov base,#16 
-	ret 
+	_next  
 
 ;--------------------------------------------
 ; BASIC: DEC 
@@ -1286,7 +1295,8 @@ cmd_hex_base:
 ;---------------------------------------------
 cmd_dec_base:
 	mov base,#10
-	ret 
+	_next 
+
 
 ;------------------------
 ; BASIC: FREE 
@@ -1294,6 +1304,7 @@ cmd_dec_base:
 ; output:
 ;   A:x		size 
 ;--------------------------
+free: 
 func_free:
 	clr a 
 	_ldxz end_free_ram
@@ -1321,7 +1332,9 @@ cmd_size:
 	ldw x,#STR_BYTES 
 	call puts  
 	pop base 
-	ret 
+	_next 
+
+
 
 
 ;------------------------
@@ -1331,8 +1344,9 @@ cmd_size:
 ; output:
 ;   A:X 	array_size
 ;--------------------------
+ubound: 
 func_ubound:
-	call func_free 
+	call free 
 	ld a,#INT_SIZE 
 	div x,a 
 	ldw array_size,x
@@ -1398,18 +1412,25 @@ kword_let::
 	cp a,#ARRAY_IDX 
 	jreq  let_array
 	cp a,#LABEL_IDX 
-	jreq let_dvar
+	jreq do_dvar
 	jp syntax_error
+do_dvar:
+	call let_dvar 
+	_next 	
 let_array:
 	call get_array_element
-	jra let_eval 
+	jra do_eval 
 let_var:
-	_get_addr
+	_get_addr	
+do_eval:
+	call let_eval 
+	_next 
+
 let_eval:
 	_strxz ptr16    
 	ld a,#REL_EQU_IDX
 	call expect 
-	call condition   
+	call expression
 3$: 
 	ld [ptr16],a
 	inc ptr16+1 
@@ -1445,6 +1466,7 @@ get_value: ; -- i
 	ret 
 
 
+
 ;--------------------------
 ; BASIC: EEFREE 
 ; eeprom_free 
@@ -1456,6 +1478,7 @@ get_value: ; -- i
 ;    A:X     address free
 ;-------------------------
 func_eefree:
+eefree:
 	ldw x,#EEPROM_BASE 
 1$:	mov acc8,#8 ; count 8 consecutive zeros
     cpw x,#EEPROM_BASE+EEPROM_SIZE-8
@@ -1590,7 +1613,7 @@ kword_dim2:
 	jp tb_error  
 2$:	
 ;check if enough space 
-	call func_free 
+	call free 
 	cpw x,(REC_LEN,sp)
 	jruge 3$
 	ld a,#ERR_MEM_FULL
@@ -1631,8 +1654,8 @@ kword_dim2:
 8$:	
 	_unget_token 	
 	_drop VSIZE 
-	call func_ubound 
-	ret 
+	call ubound 
+	_next 
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1695,7 +1718,7 @@ cmd_list:
 	call cmd_line_only
 	call prog_size 
 	jrugt 3$
-	ret 
+	_next  
 3$:
 	 _vars VSIZE
 	_ldxz txtbgn 
@@ -1792,8 +1815,7 @@ list_exit:
 	btjf flags,#FLN_REJECTED,9$
 	ldw x,#LINES_REJECTED
 	call puts
-9$: _drop 2  
-	jp cmd_line 
+9$: _next  
 
 LINES_REJECTED: .asciz "WARNING: lines missing in this program.\n"
 
@@ -1825,7 +1847,7 @@ cmd_edit:
 	addw x,rsize  
 	ldw txtend,x
 	popw y  
-	ret 
+	_next 
 
 ;---------------------------------
 ; decompile line from token list
@@ -1914,7 +1936,7 @@ trap
     call putc 
 9$:	
 	_drop VSIZE 
-	ret 
+	_next
 
 ;----------------------
 ; 'save_context' and
@@ -1922,7 +1944,7 @@ trap
 ; called at the same 
 ; call stack depth 
 ; i.e. SP must have the 
-; save value at  
+; same value at  
 ; entry point of both 
 ; routine. 
 ;---------------------
@@ -2016,7 +2038,7 @@ input_loop:
 	_drop VSIZE 
 	popw y 
 ;_tp 'X 
-	ret 
+	_next  
 
 ;---------------------
 ; BASIC: REM | ' 
@@ -2059,7 +2081,7 @@ cmd_wait:
 	xor a,(XMASK+2,sp)
 	jreq 2$ 
 	_drop VSIZE 
-	ret 
+	_next 
 
 
 ;---------------------
@@ -2085,7 +2107,7 @@ cmd_bit_set:
 	or a,(x)
 	ld (x),a
 	_drop 2*INT_SIZE 
-	ret 
+	_next 
 
 ;---------------------
 ; BASIC: BRES addr,mask
@@ -2111,7 +2133,7 @@ cmd_bit_reset:
 	and a,(x)
 	ld (x),a 
 	_drop 2*INT_SIZE 
-	ret 
+	_next 
 
 ;---------------------
 ; BASIC: BTOGL addr,mask
@@ -2136,7 +2158,7 @@ cmd_bit_toggle:
 	xor a,(x)
 	ld (x),a 
 	_drop 2*INT_SIZE 
-	ret 
+	_next 
 
 ;---------------------
 ; BASIC: BTEST(addr,bit)
@@ -2178,7 +2200,7 @@ func_bit_test:
 	ld xl,a
 	clr a  
 	_drop 2*INT_SIZE 
-	ret
+	ret 
 
 ;--------------------
 ; BASIC: POKE addr,byte
@@ -2194,7 +2216,7 @@ cmd_poke:
 	ld a,(3,sp) ; byte to poke  
 	ld (x),a 
 	_drop 2*INT_SIZE 
-	ret 
+	_next 
 
 ;-----------------------
 ; BASIC: PEEK(addr)
@@ -2228,9 +2250,9 @@ kword_if:
 	tnz  a  
 	jrne 9$
 	tnzw x 
-	jrne 9$  
-	jp next_line
-9$:	ret 
+	jrne 9$
+	jp kword_remark
+9$:	_next 
 
 ;------------------------
 ; BASIC: FOR var=expr 
@@ -2239,17 +2261,17 @@ kword_if:
 ; on stack and set
 ; FLOOP bit in 'flags'
 ;-----------------
-	RETL1=1 ; return address  
-	FSTEP=3  ; variable increment int24
-	LIMIT=6 ; loop limit, int24  
-	CVAR=9   ; control variable 
-	LN_ADDR=11   ;  line.addr saved
-	BPTR=13 ; basicptr saved
-	VSIZE=13  
+	FSTEP=1  ; variable increment int24
+	LIMIT=FSTEP+INT_SIZE ; loop limit, int24  
+	CVAR=LIMIT+INT_SIZE   ; control variable 
+	LN_ADDR=CVAR+2   ;  line.addr saved
+	BPTR=LN_ADDR+2 ; basicptr saved
+	VSIZE=BPTR+1  
 kword_for: ; { -- var_addr }
-	popw x ; call return address 
-	_vars VSIZE 
-	pushw x  ; RETL1 
+	_vars VSIZE
+	clr (FSTEP,sp)
+	ldw x,#1 
+	ldw (FSTEP+1,sp),x  
 	ld a,#VAR_IDX 
 	call expect
 	_get_addr
@@ -2272,9 +2294,6 @@ kword_to: ; { var_addr -- var_addr limit step }
 	cp a,#STEP_IDX 
 	jreq kword_step
 	_unget_token
-	clr (FSTEP,sp) 
-	ldw x,#1   ; default step  
-	ldw (FSTEP+1,sp),x 
 	jra store_loop_addr 
 
 ;----------------------------------
@@ -2288,7 +2307,7 @@ kword_step: ; {var limit -- var limit step}
 	ld (FSTEP,sp),a 
 	ldw (FSTEP+1,sp),x ; step
 ; if step < 0 decrement LIMIT 
-	tnz a
+	tnz a 
 	jrpl store_loop_addr 
 	ld a,(LIMIT,sp)
 	ldw x,(LIMIT+1,sp)
@@ -2297,13 +2316,12 @@ kword_step: ; {var limit -- var limit step}
 	ld (LIMIT,sp),a 
 	ldw (LIMIT+1,sp),x 
 ; leave loop back entry point on stack 
-; stack is 1 call deep from interpreter
 store_loop_addr:
 	ldw (BPTR,sp),y 
 	_ldxz line.addr 
 	ldw (LN_ADDR,sp),x   
 	_incz loop_depth   
-	ret 
+	_next 
 
 ;--------------------------------
 ; BASIC: NEXT var 
@@ -2325,6 +2343,7 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 ; check for good variable after NEXT 	  
 	cpw x,(CVAR,sp)
 	jreq 2$  
+	ldw x,(CVAR,sp)
 	jp syntax_error ; not the good one 
 2$:  
 	ldw ptr16,x 
@@ -2334,7 +2353,7 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 	addw x,(FSTEP+1,sp) ; var+step 
 	adc a,(FSTEP,sp)
 	ld [ptr16],a
- ; because all variables in page 0
+ ; because all variables are in page 0
  ; inc ptr8 never overflow   	
 	_incz ptr8
 	ldw [ptr16],x 
@@ -2362,16 +2381,14 @@ loop_back:
 	ldw basicptr,y 
 	ldw x,(LN_ADDR,sp)
 	ldw line.addr,x 
-	btjf flags,#FRUN,1$ 
 	ld a,(2,x)
 	_straz count
-1$:	ret 
+1$:	_next 
 loop_done:
 	; remove loop data from stack  
-	popw x
 	_drop VSIZE 
 	dec loop_depth 
-	jp (x)
+	_next 
 
 ;----------------------------
 ; called by goto/gosub
@@ -2386,7 +2403,7 @@ get_target_line:
 	cp a,#LITC_IDX 
 	jreq get_int8 
 	cp a,#LABEL_IDX 
-	jreq look_target_symbol
+	jreq search_target_symbol
 	jp syntax_error
 get_int8:
 	_get_char
@@ -2423,40 +2440,44 @@ target01:
 ;    X    line address|0 
 ;------------------------------------
 	; local variables 
-	YSAVE=5 
 	LBL_PTR=3
-	LN_ADDR=1 
-look_target_symbol:
-	pushw y   ; YSAVE  
-	pushw x   ; LBL_PTR  
+	LN_ADDR=1
+	VSIZE=4  
+search_target_symbol:
+	_vars VSIZE  
+	ldw x,y 
+	ldw (LBL_PTR,sp), y
 	call skip_string 
+	ldw basicptr,y 
 	_clrz acc16 
-	ldw y,txtbgn 
-1$:	ld a,(3,y) ; first token on line 
+	ldw x,txtbgn
+1$:
+	ldw (LN_ADDR,sp),x 
+	ld a,(LINE_HEADER_SIZE,x) ; first token on line 
 	cp a,#SUB_IDX 
 	jreq 3$ 
 	cp a,#LABEL_IDX 
 	jreq 3$ 
-2$:	ld a,(2,y); line length 
+2$:	
+	ld a,(2,x); line length 
 	_straz acc8 
-	addw y,acc16 ;point to next line 
-	cpw y,txtend 
+	addw x,acc16 ;point to next line 
+	cpw x,txtend 
 	jrult 1$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
 3$: ; found a SUB_IDX|LABEL_IDX  
 	; compare with LBL_PTR  
-	pushw y ; LN_ADDR  
-	addw y,#4 ; label string 
-	ldw x,(LBL_PTR,sp) ; target string 
+	addw x,#4 ; label string 
+	ldw y,(LBL_PTR,sp) ; target string 
 	call strcmp
 	jreq 4$
-	popw y 
+	ldw x,(LN_ADDR,sp)
 	jra 2$ 
 4$: ; target found 
-	popw x ;  address line target  
-	_drop 2 ; target string 
-	popw y 
+	ldw x,(LN_ADDR,sp)
+	ldw y,basicptr 
+	_drop VSIZE  ; target string 
 	ret
 
 
@@ -2541,11 +2562,12 @@ kword_on:
 	_straz acc8 
 	addw x,acc16 
 	decw x ; point at EOL_IDX 
-	ldw basicptr,x   
+	ldw basicptr,x
+	ldw y,x    
 ;_tp 'H 
 	jra kword_gosub_2 ; target in ptr16 
 9$: ; expr out of range skip to next line
-	jp next_line 
+	jp kword_remark 
 
 ;------------------------
 ; BASIC: GOTO line# 
@@ -2567,19 +2589,17 @@ jp_to_target:
 	subw x,#LINE_HEADER_SIZE 
 	ldw x,(x)
 	call prt_i16 
-9$:	ret 
+9$:	_next
 
 
 ;--------------------
 ; BASIC: GOSUB line#
 ; basic subroutine call
 ; actual line# and basicptr 
-; are saved on cstack
-; here cstack is 2 call deep from interpreter 
+; are saved on stack
 ;--------------------
-	RET_ADDR=1 ; subroutine return address 
-	RET_BPTR=3 ; basicptr return point 
-	RET_LN_ADDR=5  ; line.addr return point 
+	RET_BPTR=1 ; basicptr return point 
+	RET_LN_ADDR=3  ; line.addr return point 
 	VSIZE=4 
 kword_gosub:
 	call runtime_only
@@ -2587,9 +2607,7 @@ kword_gosub_1:
 	call get_target_line 
 	ldw ptr16,x ; target line address 
 kword_gosub_2: 
-	popw x 
 	_vars VSIZE  
-	pushw x ; RET_ADDR 
 ; save BASIC subroutine return point.   
 	ldw (RET_BPTR,sp),y 
 	_ldxz line.addr 
@@ -2609,9 +2627,8 @@ kword_return:
 	ldw line.addr,x 
 	ld a,(2,x)
 	_straz count  
-	popw x 
 	_drop VSIZE 
-	jp (x)
+	_next 
 
 ;----------------------------------
 ; BASIC: RUN [label]
@@ -2623,15 +2640,14 @@ call dump_prog
 .endif 
 	btjf flags,#FRUN,0$  
 	clr a 
-	ret
+	_next 
 0$: ; check for STOP condition 
 	btjf flags,#FBREAK,1$
-	_drop 2 
 	call rest_context
 	_drop CTXT_SIZE 
 	bres flags,#FBREAK 
 	bset flags,#FRUN 
-	jp interp_loop 
+	_next  
 1$:	; check for label option 
 	_next_token 
 	cp a,#LABEL_IDX 
@@ -2656,10 +2672,8 @@ call dump_prog
 	jrmi run_it 
 	ldw x,#err_no_prog
 	call puts 
-	ret 
+	_next 
 run_it:	 
-	_drop 2 ; drop return address 
-run_it_02: 
 ; initialize DIM variables pointers 
 	_ldxz txtend 
 	cpw x,#app_space
@@ -2672,7 +2686,7 @@ run_it_02:
 1$: ; program in RAM 
 	ldw dvar_bgn,x 	
 	ldw dvar_end,x 	 
-2$: call func_ubound 
+2$: call ubound 
 	call clear_vars
 ; clear data pointer 
 	clrw x 
@@ -2686,7 +2700,7 @@ run_it_02:
 	addw y,#LINE_HEADER_SIZE
 	_stryz basicptr 
 	bset flags,#FRUN 
-	jp interp_loop 
+	_next  
 
 
 ;----------------------
@@ -2699,7 +2713,6 @@ run_it_02:
 	CHAIN_TXTEND=7
 	CHAIN_CNTX_SIZE=8  
 kword_end: 
-	_drop 2 ; no need for return address 
 ; check for chained program 
 	tnz chain_level
 	jreq 8$
@@ -2742,7 +2755,7 @@ cmd_get:
 	clr [ptr16]
 	_incz ptr8 
 	ld [ptr16],a 
-	ret 
+	_next 
 
 ;-----------------
 ; 1 Khz beep 
@@ -2750,11 +2763,11 @@ cmd_get:
 beep_1khz::
 	pushw y 
 	clr a 
-	ldw x,#1000 
-	_i24_push 
 	ldw x,#100
-	_i24_push 
-	jra beep
+	ldw y,#1000
+	call beep
+	popw y
+	ret 
 
 ;-----------------------
 ; BASIC: TONE expr1,expr2
@@ -2771,11 +2784,23 @@ cmd_tone:
 	pushw y 
 	call arg_list 
 	cp a,#2 
-	jreq beep 
-	jp syntax_error 
+	jreq 0$ 
+	jp syntax_error
+0$: 
+	_i24_pop  ; FREQ 
+	ldw y,x 
+	_i24_pop  ; duration 
+	call beep 
+	popw y 
+	_next 
+
+;---------------------
+; input:
+;   Y   frequency 
+;   x   duration 
+;---------------------
 beep: 
-	_i24_fetch FREQ ; frequency
-	ldw y,x ; frequency 
+	pushw x 
 	ldw x,#TIM2_CLK_FREQ
 	divw x,y ; cntr=Fclk/freq 
 ; round to nearest integer 
@@ -2796,13 +2821,15 @@ beep:
 	bset TIM2_CCER1,#TIM2_CCER1_CC1E
 	bset TIM2_CR1,#TIM2_CR1_CEN
 	bset TIM2_EGR,#TIM2_EGR_UG
-	_i24_fetch DURATION  
-	call pause02 
+	popw x ; DURATION  
+	ldw timer,x 
+1$: wfi 
+	ldw x,timer 
+	jrne 1$ 
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
-	_drop VSIZE 
-	popw y 
 	ret 
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;   TIMER1 low level routines  
@@ -2966,13 +2993,13 @@ cmd_servo_enable:
 ; Period=(x+1)/2e6=20msec
 	ldw x,#39999 ; period 
 	call timer1_setup
-	ret 
+	_next 
 timer1_disable:
 ; disable TIMER1 
 	clr TIM1_CR1
 	clr TIM1_IER  
 	bres CLK_PCKENR1,#CLK_PCKENR1_TIM1 
-	ret 
+	_next 
 
 
 ;------------------------
@@ -2996,7 +3023,7 @@ cmd_servo_position:
 	call pwm_set_duty_cycle
 ; drop command parameters
 	_drop VSIZE 
-	ret 
+	_next 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  PWM control
@@ -3050,7 +3077,7 @@ cmd_pwm_enable:
 8$:	clrw y 
 	call timer1_setup 	
 9$:	_drop VSIZE 
-	ret 
+	_next 
 
 ;----------------------------------
 ; BASIC: PWM.CH.EN ch# , 1 | 0 
@@ -3102,7 +3129,7 @@ cmd_pwm_out:
 	ldw x,(VALUE+1,SP)
 	call pwm_set_duty_cycle ; A=ch#, X=value 
 	_drop 2*INT_SIZE 
-	ret 
+	_next 
 .if 0
 pwm_buffered:
 	_i24_fetch CH_NBR 
@@ -3124,7 +3151,7 @@ pwm_buffered:
 	ldw x,#1  
 	call pwm_cc_ie 
 	_drop 3*INT_SIZE 
-	ret 
+	_next 
 .endif 
 
 
@@ -3187,7 +3214,7 @@ cmd_power_adc:
 	bres ADC_CR1,#ADC_CR1_ADON
 	bres CLK_PCKENR2,#CLK_PCKENR2_ADC
 3$:	_drop VSIZE 
-	ret
+	_next 
 
 ;-----------------------------
 ; BASIC: ADCREAD (channel)
@@ -3253,7 +3280,7 @@ func_digital_read:
 	clrw x 
 	rlwa x 
 	_drop VSIZE
-	ret
+	ret 
 
 
 ;-----------------------
@@ -3297,7 +3324,7 @@ cmd_digital_write:
 5$: or a,(GPIO_ODR,x)
 8$: ld (GPIO_ODR,x),a 
 	_drop VSIZE 
-	ret
+	_next 
 
 
 ;-----------------------
@@ -3309,12 +3336,11 @@ cmd_digital_write:
 ;-------------------------
 kword_stop:
 	btjt flags,#FRUN,2$
-	ret 
+	_next 
 2$:	 
 ; create space on cstack to save context 
 	ldw x,#break_point 
 	call puts 
-	_drop 2 ;drop return address 
 	_vars CTXT_SIZE ; context size 
 	call save_context 
 	ldw x,#tib 
@@ -3325,7 +3351,7 @@ kword_stop:
 	ldw in.w,x
 	bres flags,#FRUN 
 	bset flags,#FBREAK
-	jp interp_loop
+	_next 
 break_point: .asciz "\nbreak point, RUN to resume.\n"
 
 ;-----------------------
@@ -3338,7 +3364,7 @@ cmd_new:
 	call cmd_line_only
 0$:	_clrz flags 
 	call clear_basic 
-	ret 
+	_next 
 
 ;-----------------------------------
 ; BASIC: ERASE \E | \F | name 
@@ -3364,7 +3390,7 @@ erase_program:
 	tnzw x 
 	jreq 9$  ; not found 
 	call erase_file  
-9$:	ret 
+9$:	_next 
 not_file: 
 	_vars VSIZE 
 	cp a,#BSLASH_IDX 
@@ -3417,10 +3443,10 @@ not_file:
 	ldw x,(LIMIT+1,sp)
 	cpw x,#EEPROM_END
 	jrne 10$
-	call func_eefree 
+	call eefree 
 10$:
 	_drop VSIZE 
-	ret 
+	_next 
 	
 ;---------------------------------------
 ; BASIC: SAVE
@@ -3531,7 +3557,7 @@ cmd_save:
 	_drop VSIZE 
     popw y 
 	popw x 
-	ret 
+	_next 
 
 NO_PROG: .asciz "No program in RAM."
 
@@ -3577,7 +3603,7 @@ cmd_dir:
 8$: ; done 
 	_drop 2 
 	pop base 
-	ret 
+	_next 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ; check if farptr address 
@@ -3659,7 +3685,7 @@ cmd_write:
 	popw y 
 	jra 1$ 	
 9$:
-	ret 
+	_next 
 
 ;---------------------
 ; BASIC: \letter 
@@ -3668,7 +3694,7 @@ func_back_slash:
 	_get_char 
 	clrw x 
 	rlwa x 
-	ret 
+	ret   
 
 ;----------------------------
 ;BASIC: CHAR(expr)
@@ -3687,7 +3713,7 @@ func_char:
 	rrwa x 
 	and a,#0x7f 
 	rlwa x  
-	ret
+	ret 
 
 ;---------------------
 ; BASIC: ASC(string|char|char function)
@@ -3740,7 +3766,7 @@ func_key:
 	call getc 
 	clrw x 
 	rlwa x  
-	ret
+	ret 
 
 ;----------------------
 ; BASIC: QKEY
@@ -3846,7 +3872,7 @@ cmd_sleep:
 	btjf UART_SR,#UART_SR_TC,.
 	bset flags,#FSLEEP
 	halt 
-	ret 
+	_next  
 
 ;-------------------------------
 ; BASIC: PAUSE expr 
@@ -3858,11 +3884,12 @@ cmd_sleep:
 ;------------------------------
 cmd_pause:
 	call expression
-pause02:
 	bres flags,#FTIMER 
 	ldw timer,x
-	btjf flags,#FTIMER,.
-	ret 
+1$:	wfi 
+	ldw x,timer 
+	jrne 1$
+	_next 
 
 ;------------------------------
 ; BASIC: AWU expr
@@ -3921,7 +3948,7 @@ awu02:
   ld AWU_APR,a 
   bset AWU_CSR,#AWU_CSR_AWUEN
   halt ; HSI stopped 
-  ret 
+  _next  
 
 ;------------------------------
 ; BASIC: TICKS
@@ -3979,7 +4006,7 @@ func_lshift:
 	decw y 
 	jrne 2$
 4$: popw y 
-	ret
+	ret  
 
 ;------------------------------
 ; BASIC: RSHIFT(expr1,expr2)
@@ -4005,7 +4032,7 @@ func_rshift:
 	decw y 
 	jrne 2$
 4$: popw y
-	ret
+	ret 
 
 ;--------------------------
 ; BASIC: FCPU integer
@@ -4017,7 +4044,7 @@ cmd_fcpu:
     _get_char 
 	and a,#7 
 	ld CLK_CKDIVR,a 
-	ret 
+	_next  
 
 .if NUCLEO_8S208RB + SB5_SHORT
 ;-------------------------
@@ -4043,7 +4070,7 @@ clock_switch:
 	call uart_set_baud
 	call timer4_init
     call timer2_init 	
-	ret 
+	_next 
 .endif 
 
 ;------------------------------
@@ -4106,7 +4133,7 @@ cmd_pin_mode:
 	ld (GPIO_CR2,x),a 
 9$:	
 	_drop VSIZE 
-	ret
+	_next 
 
 ;------------------------
 ; select Arduino pin 
@@ -4332,7 +4359,7 @@ cmd_words:
 	call puts 
 	_drop VSIZE 
 	popw y 
-	ret 
+	_next 
 words_count_msg: .asciz " words in dictionary\n"
 
 ;------------------------------
@@ -4367,7 +4394,7 @@ cmd_set_timer:
 	_i24_pop  
 	bres flags,#FTIMER  
 	ldw timer,x
-	ret 
+	_next 
 
 ;------------------------------
 ; BASIC: TIMEOUT 
@@ -4418,7 +4445,7 @@ cmd_iwdg_enable:
 	mov IWDG_KR,#IWDG_KEY_ACCESS 
 	ld IWDG_RLR,a 
 	mov IWDG_KR,#IWDG_KEY_REFRESH
-	ret 
+	_next 
 
 
 ;-----------------------------------
@@ -4428,7 +4455,7 @@ cmd_iwdg_enable:
 ;-----------------------------------
 cmd_iwdg_refresh:
 	mov IWDG_KR,#IWDG_KEY_REFRESH 
-	ret 
+	_next 
 
 .endif ; WANT_IWDG 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -4495,24 +4522,22 @@ func_bitmask:
 	jrne 2$ 
 4$:
     _drop 1 
-9$:	ret 
+9$:	ret  
 
 ;------------------------------
 ; BASIC: DO 
 ; initiate a DO ... UNTIL loop 
 ;------------------------------
-	DOLP_ADR=3 
-	DOLP_LN_ADDR=5
+	DOLP_ADR=1 
+	DOLP_LN_ADDR=3
 	VSIZE=4 
 kword_do:
-	popw x 
 	_vars VSIZE 
-	pushw x 
 	ldw (DOLP_ADR,sp),y
 	_ldxz line.addr  
 	ldw (DOLP_LN_ADDR,sp),x
 	_incz loop_depth 
-	ret 
+	_next 
 
 ;--------------------------------
 ; BASIC: UNTIL expr 
@@ -4536,12 +4561,11 @@ kword_until:
 	btjf flags,#FRUN,8$ 
 	ld a,(2,x)
 	_straz count  
-8$:	ret 
+8$:	_next 
 9$:	; remove loop data from stack  
-	popw x
 	_drop VSIZE
 	dec loop_depth 
-	jp (x)
+	_next 
 
 ;--------------------------
 ; BASIC: PORTA...PORTI  
@@ -4641,7 +4665,7 @@ const_eeprom_base:
 ; a DATA line it skip it.
 ;---------------------------
 kword_data:
-	jp next_line 
+	jp kword_remark
 
 	.macro _is_data_line
 	ld a,(3,x)
@@ -4696,7 +4720,7 @@ cmd_restore:
 	jreq set_data_pointer
 7$:	call try_next_line 
 	jrne 7$ 
-	ret 
+	_next 
 
 ;---------------------
 ; set data pointer 
@@ -4828,7 +4852,7 @@ cmd_spi_enable:
 ; enable SPI
 	bset SPI_CR1,#SPI_CR1_SPE 	
 	_drop VSIZE   
-	ret 
+	_next 
 spi_disable:
 ; wait spi idle 
 1$:	ld a,#0x82 
@@ -4839,7 +4863,7 @@ spi_disable:
 	bres CLK_PCKENR1,#CLK_PCKENR1_SPI 
 	bres PE_DDR,#SPI_CS_BIT 
 	_drop VSIZE 
-	ret 
+	_next 
 
 spi_clear_error:
 	ld a,#0x78 
@@ -4880,7 +4904,7 @@ cmd_spi_write:
 2$:	tnz a 
 	jreq 3$
 	_unget_token  
-3$:	ret 
+3$:	_next 
 
 
 ;-------------------------------
@@ -4892,7 +4916,7 @@ func_spi_read:
 	clrw x 
 	ld xl,a 
 	clr a
-	ret 
+	ret   
 
 ;------------------------------
 ; BASIC: SPI.SEL 0|1 
@@ -4908,10 +4932,10 @@ cmd_spi_select:
 	tnzw x  
 	jreq cs_high 
 	bres PE_ODR,#SPI_CS_BIT
-	ret 
+	_next  
 cs_high: 
 	bset PE_ODR,#SPI_CS_BIT
-	ret 
+	_next 
 .endif 
 
 ;-------------------------------
@@ -4948,7 +4972,7 @@ cmd_auto_run:
 clear_autorun:	
 	ldw x,#EEPROM_BASE 
 	call erase_header
-	ret 
+	_next 
 set_autorun: 	
 1$:	pushw x 
 	call skip_string
@@ -4971,7 +4995,7 @@ set_autorun:
 	ld a,(2,sp)
 	call write_byte 
 	_drop 2 
-	ret 
+	_next 
 
 AR_SIGN: .ascii "AR" ; autorun signature 
 
@@ -4986,18 +5010,16 @@ AR_SIGN: .ascii "AR" ; autorun signature
 ; chained program start execution 
 ; at this line#.
 ;---------------------------------
-	CHAIN_LN=3 
-	CHAIN_ADDR=5 
-	CHAIN_LNADR=7
-	CHAIN_BP=9
-	CHAIN_TXTBGN=11 
-	CHAIN_TXTEND=13 
+	CHAIN_LN=1 
+	CHAIN_ADDR=3 
+	CHAIN_LNADR=5
+	CHAIN_BP=7
+	CHAIN_TXTBGN=9 
+	CHAIN_TXTEND=11 
 	VSIZE=12 
 	DISCARD=4 
 cmd_chain:
-	popw x 
 	_vars VSIZE 
-	pushw x
 	clr (CHAIN_LN,sp) 
 	clr (CHAIN_LN+1,sp)  
 	ld a,#LABEL_IDX 
@@ -5069,9 +5091,8 @@ cmd_chain:
 	ldw basicptr,x  
 8$: _incz chain_level
 ;_tp 'C
-	popw x 
 	_drop DISCARD
-	jp (x)
+	_next 
 
 
 ;-----------------------------
@@ -5088,9 +5109,9 @@ cmd_trace:
     tnz a 
 	jrne 2$ 
 	bres flags,#FTRACE 
-	ret 
+	_next 
 2$: bset flags,#FTRACE 
-	ret 
+	_next 
 
 ;------------------------------
 ; BASIC: REBOOT 
@@ -5128,7 +5149,7 @@ cmd_alloc_buffer:
 	call expression 
 1$: 
 	ldw (BSIZE,sp),x 
-	call func_free
+	call free
 	subw x,#REC_XTRA_BYTES
 	subw x,(NLEN,sp)  
 	cpw x,(BSIZE,sp)
@@ -5170,7 +5191,7 @@ cmd_alloc_buffer:
 	addw x,#2 
 	ldw dvar_end,x 
 	_drop VSIZE
-	ret 
+	_next 
 
 
 ;------------------------------

@@ -874,7 +874,7 @@ compile::
 	_strxz line.addr
 	addw x,#LINE_HEADER_SIZE
 	_strxz basicptr
-	ldw y,x  	
+	ldw y,x
 11$:
 	_drop VSIZE 
 	bres flags,#FCOMP 

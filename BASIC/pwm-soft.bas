@@ -11,7 +11,7 @@ NEW
 40 FOR A =0 TO R : NEXT A 
 50 BRES PORTC ,BIT(5) 
 60 FOR A =A TO 1023 : NEXT A 
-70 IF KEY?  : LET K=KEY : GOSUB UPPER 
+70 GET K : GOSUB UPPER 
 72 IF (K=ASC(\D) OR K=ASC(\U)) AND K=P : LET N=N+1, S=N/10+1
 74 IF K=0 OR K<>P : LET S=1, N=0
 78 IF K=0 : GOTO 30 
@@ -51,6 +51,6 @@ NEW
 3024 ? ,"'Q' quit."
 3026 ? ,"'?' help"
 3028 ? "Press any key to leave this help screen."
-3030 DO UNTIL KEY? : ? KEY 
+3030 DO UNTIL KEY? : KEY 
 3032 GOSUB CLS 
 3034 RETURN 

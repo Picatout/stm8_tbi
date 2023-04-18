@@ -136,6 +136,19 @@
         call (x)    ; 4 cy 
     .endm  ; 10 cy 
 
+    ; jump to bytecode routine 
+    ; routine must jump back to 
+    ; interp_loop 
+    .macro _jp_code 
+        _code_addr 
+        jp (x)
+    .endm  ; 8 cycle 
+
+    ; jump back to interp_loop 
+    .macro _next 
+        jp interp_loop 
+    .endm 
+    
 ;---------------------------------
 ;  files.asm macros 
 ;---------------------------------
