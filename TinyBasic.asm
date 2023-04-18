@@ -171,8 +171,8 @@ move_exit:
 ;  information 
 ;-----------------------
 	MAJOR=3
-	MINOR=1
-	REV=15
+	MINOR=2
+	REV=0
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
