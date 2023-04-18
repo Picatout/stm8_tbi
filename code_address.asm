@@ -59,7 +59,7 @@ code_addr:
 ; variable identifiers  
 	_code_entry syntax_error,VAR_IDX    ; $9 
 	_code_entry syntax_error,ARRAY_IDX  ; $A 
-	_code_entry skip_label,LABEL_IDX  ; $B 
+	_code_entry jump_label,LABEL_IDX  ; $B 
     SYMB_LAST=TOK_IDX-1 
 ; arithmetic operators      
 	_code_entry syntax_error, ADD_IDX   ; $C 

@@ -451,9 +451,11 @@ next_line:
 	btjf flags,#FTRACE,2$
 	ldw x,[line.addr]
 	call prt_i16
+	call space 
 	ld a,#CR 
 	call putc 
-2$:	_next 
+2$:	
+  _next 
 
 ;-------------------------
 ;  skip .asciz in BASIC line 
@@ -473,6 +475,7 @@ skip_string:
 	dec count 
 	ret 
 
+
 ;--------------------
 ; skip label name 
 ;--------------------
@@ -484,7 +487,16 @@ skip_label:
 8$: incw y 
 	ret 
 
-	
+;-------------------
+; needed for new 
+; model using 
+; _jp_code instead 
+; of _call_code 
+;--------------------
+jump_label:
+	call skip_label 
+	_next 
+
 ;--------------------
 ; extract int24_t  
 ; value from BASIC 
@@ -1424,6 +1436,10 @@ let_var:
 	_get_addr	
 do_eval:
 	call let_eval 
+	_next_token 
+	cp a,#COMMA_IDX 
+	jreq kword_let
+	_unget_token 
 	_next 
 
 let_eval:
@@ -1438,10 +1454,6 @@ let_eval:
 	inc ptr16 
 4$:
 	ldw [ptr16],x
-	_next_token 
-	cp a,#COMMA_IDX 
-	jreq kword_let
-	_unget_token 
 	ret 
 
 
@@ -2652,9 +2664,9 @@ call dump_prog
 	_next_token 
 	cp a,#LABEL_IDX 
 	jrne 3$
-	pushw x 
+	pushw y
 	call skip_string 
-	popw x  
+	popw x
 	call search_program
 	jrne 2$
 	ld a,#ERR_NOT_FILE 
@@ -2722,14 +2734,14 @@ kword_end:
 	ldw line.addr,x 
 	ld a,(2,x)
 	_straz count 
-	ldw x,(CHAIN_BP,sp) ; chain saved basicptr 
-	ldw basicptr,x 
+	ldw Y,(CHAIN_BP,sp) ; chain saved basicptr 
+	ldw basicptr,Y 
 	ldw x,(CHAIN_TXTBGN,sp)
 	ldw txtbgn,x 
 	ldw x,(CHAIN_TXTEND,sp)
 	ldw txtend,x 
 	_drop CHAIN_CNTX_SIZE ; CHAIN saved data size  
-	jp interp_loop  
+	_next   
 8$: ; clean stack 
 	ldw x,#STACK_EMPTY
 	ldw sp,x 
@@ -3383,7 +3395,7 @@ cmd_erase:
 	cp a,#LABEL_IDX 
 	jrne not_file
 erase_program: 
-	pushw x 
+	pushw y
 	call skip_string 
 	popw x 
 	call search_program
@@ -3460,7 +3472,6 @@ not_file:
 	VSIZE=6 
 cmd_save:
 	call cmd_line_only
-	pushw x 
 	pushw y 
 	_vars VSIZE
 	clr (COUNT,sp)
@@ -3473,7 +3484,7 @@ cmd_save:
 	ldw (TOWRITE,sp),x ; program size
 ; to save it first line must be a label 
 	_ldxz txtbgn
-	ld a,(3,x)
+	ld a,(3,x) ; first bytecode on line 
 	cp a,#LABEL_IDX 
 	jreq 1$
 	jp 8$ ; can't be saved, not labeled 	
@@ -3552,11 +3563,9 @@ cmd_save:
 	ldw x,#NO_LABEL 
 	call puts 	
 9$:	
-	_ldxz basicptr 
-	clr (x)
 	_drop VSIZE 
     popw y 
-	popw x 
+	clr(y)
 	_next 
 
 NO_PROG: .asciz "No program in RAM."
@@ -4962,9 +4971,9 @@ cmd_auto_run:
 	jreq set_autorun  
 	cp a,#BSLASH_IDX 
 	jrne 0$ 
-	ld a,(x)
-	incw x 
-	ldw basicptr,x 
+	ld a,(y)
+	incw y 
+	ldw basicptr,y 
 	and a,#0xDF 
 	cp a,#'C 
 	jreq clear_autorun 
@@ -4974,7 +4983,7 @@ clear_autorun:
 	call erase_header
 	_next 
 set_autorun: 	
-1$:	pushw x 
+1$:	pushw y 
 	call skip_string
 	popw x 
 	call search_program
@@ -5024,7 +5033,7 @@ cmd_chain:
 	clr (CHAIN_LN+1,sp)  
 	ld a,#LABEL_IDX 
 	call expect 
-	pushw x 
+	pushw y 
 	call skip_string
 	popw x 
 	call search_program 
@@ -5056,8 +5065,7 @@ cmd_chain:
 6$: ; save chain context 
 	_ldxz line.addr 
 	ldw (CHAIN_LNADR,sp),x 
-	_ldxz basicptr  
-	ldw (CHAIN_BP,sp),x
+	ldw (CHAIN_BP,sp),y
 	_ldxz txtbgn 
 	ldw (CHAIN_TXTBGN,sp),x
 	_ldxz txtend 
@@ -5073,8 +5081,9 @@ cmd_chain:
 	ldw x,(CHAIN_ADDR,sp)
 	ld a,(2,x)
 	_straz count 
-	addw x,#3 
+	addw x,#LINE_HEADER_SIZE 
 	ldw basicptr,x 
+	ldw y,x 
 	ldw x,(CHAIN_LN,sp)
 	tnzw x 
 	jreq 8$ 
@@ -5087,10 +5096,10 @@ cmd_chain:
 	ldw line.addr,x 
 	ld a,(2,x)
 	_straz count
-	addw x,#3
-	ldw basicptr,x  
+	addw x,#LINE_HEADER_SIZE
+	ldw basicptr,x
+	ldw y,x   
 8$: _incz chain_level
-;_tp 'C
 	_drop DISCARD
 	_next 
 

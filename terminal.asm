@@ -633,6 +633,7 @@ skip_display:
 	_straz count 
 	addw x,#LINE_HEADER_SIZE
 	ldw basicptr,x 
+	ldw y,x 
 	ldw x,#tib 
 	ld a,#BUFOUT 
 	call set_output

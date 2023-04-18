@@ -227,7 +227,7 @@ print_registers::
 ; print SP 
 	ldw x,#REG_SP
 	ldw y,sp 
-	addw y,#(VSIZE+12)
+	addw y,#(VSIZE+11)
 	pushw y 
 	call prt_reg16  
 ; print return address 

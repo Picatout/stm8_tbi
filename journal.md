@@ -1,11 +1,81 @@
+### 2023-04-18
+
+* La fonction **CTRL+E** ne fonctionne plus. **CORRIGÉ**. 
+
+* Corrigé bogue dans **LET** qui cause le crash du programme pwm-soft.bas.
+
+* Corrigé bogue dans *print_registers* de debug_support.asm. l'affichage de **SP** était +1 au dessus de sa valeur réelle.
+
 ### 2023-04-17
+
+* Autre bogue manifesté dans pwm-soft.bas, reboot!!:  **CORRIGÉ**. 
+```
+
+To control LD2 use:
+	'D' decrease intensity
+	'U' increase intensity
+	'F' full intensity
+	'O' turn off LD2
+	'Q' quit.
+	'?' help
+Press any key to leave this help screen.
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022,2023
+version 3.1R15
+NUCLEO-8S207K8
+>
+```
+
+* Bogue:  **Corrigé**  
+```
+>list
+   10 GOSUB TEST 
+   20 ? "ok" 
+   30 END 
+  100 TEST ? "hello\n" 
+  110 RETURN 
+program address: $91, program size: 49 bytes in RAM memory
+
+>run
+
+
+Tiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022,2023
+version 3.1R15
+NUCLEO-8S207K8
+>
+```
 
 * Corrigé bogue dans la routine *and_factor*. 
 
 * Modification à la routine *next_line*. 
 
 * Modifié  *interp_loop* pour remplacer la macro *_call_code* par la macro *_jp_code_* plus rapide. Maintenant les routine de ByteCode doivent faire un *jp interp_loop* au lieu d'un *ret*.
+test de performance nouvelle version: gain de rapididé de 27% à 41% 
+```
+>list
+   10 ' for next speed test 
+   12 LET T = TICKS 
+   14 FOR I = 1 TO 10000 
+   16 NEXT I 
+   18 ? TICKS - T ; " MSEC" 
+   20 ' DO UNTIL TEST 
+   22 LET I = 1 , T = TICKS 
+   24 DO LET I = I + 1 : UNTIL I > 10000 
+   26 ? TICKS - T ; " MSEC" 
+   28 ' GOTO LOOP 
+   30 LET I = 1 , T = TICKS 
+   32 LET I = I + 1 : IF I <= 10000 GOTO 32 
+   34 ? TICKS - T ; " MSEC" 
+program address: $91, program size: 241 bytes in RAM memory
 
+>run
+84  MSEC
+451  MSEC
+513  MSEC
+```
 
 ### 2023-04-16
 
