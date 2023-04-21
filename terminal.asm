@@ -747,9 +747,9 @@ readln_quit:
 	ld a,#CR
 	call putc
 	_drop VSIZE 
-	popw y 
  	ld a,#-1 
 	call cursor_style
+	popw y 
 	ret
 
 ;--------------------------

@@ -445,8 +445,6 @@ next_line:
 	jp kword_end 
 1$:	
 	_stryz line.addr 
-	ld a,(2,y)
-	ld count,a 
 	addw y,#LINE_HEADER_SIZE
 	btjf flags,#FTRACE,2$
 	ldw x,[line.addr]
@@ -469,7 +467,7 @@ skip_string:
 	ld a,(y)
 	jreq 1$
 	incw y
-	dec count  
+	dec count  ; needed for decompile 
 	jra skip_string 
 1$: incw y
 	dec count 
@@ -992,7 +990,7 @@ factor:
 	_i24_pop 
 	jra 18$ 
 10$: ; must be a function 
-	_call_code 
+	_call_code
 18$: 
 	tnz (NEG,sp)
 	jreq 20$
@@ -1969,14 +1967,10 @@ trap
 	_argofs 0 
 	_arg LNADR 1 
 	_arg BPTR 3
-	_arg CNT 5
 save_context:
+	ldw (BPTR,sp),y 
 	_ldxz line.addr
 	ldw (LNADR,sp),x 
-	_ldxz basicptr 
-	ldw (BPTR,sp),x
-	_ldaz count 
-	ld (CNT,sp),a  
 	ret
 
 ;-----------------------
@@ -1987,10 +1981,7 @@ save_context:
 rest_context:
 	ldw x,(LNADR,sp)
 	ldw line.addr,x 
-	ldw x,(BPTR,sp)
-	ldw basicptr,x 
-	ld a,(CNT,sp)
-	_straz count  
+	ldw y,(BPTR,sp)
 	ret
 
 
@@ -2002,20 +1993,18 @@ rest_context:
 ;-----------------------------------------
 	CX_LNADR=1
 	CX_BPTR=3
-	CX_CNT=5
-	SKIP=6
-	VSIZE=6
+	SKIP=5
+	VSIZE=5
 cmd_input_var:
 ;_tp 'I 
-	pushw y 
 	_vars VSIZE 
 input_loop:
 	clr (SKIP,sp)
 	_next_token 
 	cp a,#QUOTE_IDX 
-	jrne 1$ 
+	jrne 1$
+	ldw x,y  
 	call puts 
-	ldw basicptr,x 
 	ldw y,x 
 	cpl (SKIP,sp)
 	_next_token 
@@ -2032,7 +2021,7 @@ input_loop:
 	ld a,#':
 	call putc 
 	call save_context 
-	_clrz count  
+;	_clrz count  
 	call readln 
 	ldw y,#tib 
 	ld a,#SPACE 
@@ -2048,7 +2037,6 @@ input_loop:
 	jreq input_loop 
 	_unget_token
 	_drop VSIZE 
-	popw y 
 ;_tp 'X 
 	_next  
 
@@ -2058,8 +2046,9 @@ input_loop:
 ;---------------------- 
 kword_remark::
 	clr acc16 
-	mov acc8,count 
 	ldw y,line.addr 
+	ld a,(2,y) ; line length 
+	ld acc8,a 
 	addw y,acc16 
 	jp next_line 
 
@@ -2390,11 +2379,11 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 	btjt acc8,#7,loop_done 
 loop_back:
 	ldw y,(BPTR,sp)
-	ldw basicptr,y 
+;	ldw basicptr,y 
 	ldw x,(LN_ADDR,sp)
 	ldw line.addr,x 
-	ld a,(2,x)
-	_straz count
+;	ld a,(2,x)
+;	_straz count
 1$:	_next 
 loop_done:
 	; remove loop data from stack  
@@ -2592,10 +2581,10 @@ kword_goto_1:
 	call get_target_line
 jp_to_target:
 	ldw line.addr,x 
-	ld a,(2,x)
-	_straz count 
+;	ld a,(2,x)
+;	_straz count 
 	addw x,#LINE_HEADER_SIZE
-	ldw basicptr,x
+;	ldw basicptr,x
 	ldw y,x   
 	btjf flags,#FTRACE,9$ 
 	subw x,#LINE_HEADER_SIZE 
@@ -2634,11 +2623,11 @@ kword_gosub_2:
 kword_return:
 	call runtime_only
 	ldw y,(RET_BPTR,sp) 
-	ldw basicptr,y
+;	ldw basicptr,y
 	ldw x,(RET_LN_ADDR,sp)
 	ldw line.addr,x 
-	ld a,(2,x)
-	_straz count  
+;	ld a,(2,x)
+;	_straz count  
 	_drop VSIZE 
 	_next 
 
@@ -2707,10 +2696,10 @@ run_it:
 ; initialize BASIC pointer 
 	_ldyz txtbgn 
 	_stryz line.addr 
-	ld a,(2,y)
-	_straz count
+;	ld a,(2,y)
+;	_straz count
 	addw y,#LINE_HEADER_SIZE
-	_stryz basicptr 
+;	_stryz basicptr 
 	bset flags,#FRUN 
 	_next  
 
@@ -2732,10 +2721,10 @@ kword_end:
 	dec chain_level 
 	ldw x,(CHAIN_LN,sp) ; chain saved in and count  
 	ldw line.addr,x 
-	ld a,(2,x)
-	_straz count 
+;	ld a,(2,x)
+;	_straz count 
 	ldw Y,(CHAIN_BP,sp) ; chain saved basicptr 
-	ldw basicptr,Y 
+;	ldw basicptr,Y 
 	ldw x,(CHAIN_TXTBGN,sp)
 	ldw txtbgn,x 
 	ldw x,(CHAIN_TXTEND,sp)
@@ -2791,17 +2780,20 @@ beep_1khz::
 ;---------------------------
 	DURATION=1 
 	FREQ=DURATION+INT_SIZE
-	VSIZE=2*INT_SIZE   
+	YSAVE=FREQ+INT_SIZE 
+;	VSIZE=2*INT_SIZE+2   
 cmd_tone:
 	pushw y 
 	call arg_list 
 	cp a,#2 
 	jreq 0$ 
 	jp syntax_error
-0$: 
-	_i24_pop  ; FREQ 
+0$:  
+	ldw (YSAVE,sp),y 
+	_i24_pop  ; DURATION 
 	ldw y,x 
-	_i24_pop  ; duration 
+	_i24_pop  ; FREQ 
+	exgw x,y 
 	call beep 
 	popw y 
 	_next 
@@ -4564,12 +4556,12 @@ kword_until:
 	tnzw x 
 	jrne 9$ 
 	ldw y,(DOLP_ADR,sp)
-	ldw basicptr,y 
+;	ldw basicptr,y 
 	ldw x,(DOLP_LN_ADDR,sp)
 	ldw line.addr,x
 	btjf flags,#FRUN,8$ 
-	ld a,(2,x)
-	_straz count  
+;	ld a,(2,x)
+;	_straz count  
 8$:	_next 
 9$:	; remove loop data from stack  
 	_drop VSIZE
@@ -4671,15 +4663,40 @@ const_eeprom_base:
 ;---------------------------
 ; BASIC: DATA 
 ; when the interpreter find 
-; a DATA line it skip it.
+; a DATA line it skip over 
 ;---------------------------
 kword_data:
 	jp kword_remark
 
-	.macro _is_data_line
-	ld a,(3,x)
+;------------------------------
+; check fi line is data line 
+; if so set data_pointers 
+; and return true 
+; else move X to next line 
+; and return false 
+; input:
+;    X     line addr 
+; outpu:
+;    A     0 not data 
+;          1 data pointers set 
+;    X     updated to next line addr 
+;          if not data line 
+;--------------------------------
+is_data_line:
+	ld a,(LINE_HEADER_SIZE,x)
 	cp a,#DATA_IDX 
-	.endm 
+	jrne 1$
+	_strxz data_line 
+	addw x,#FIRST_DATA_ITEM
+	_strxz data_ptr  
+	ld a,#1 
+	ret 
+1$: clr acc16 
+	ld a,(2,x)
+	ld acc8,a 
+	addw x,acc16
+	clr a 
+	ret  
 
 ;---------------------------------
 ; BASIC: RESTORE [line#]
@@ -4696,7 +4713,7 @@ kword_data:
 cmd_restore:
 	call runtime_only
 	clrw x 
-	ldw data_ptr,x 
+	ldw data_line,x 
 	ldw data_ptr,x 
 	_next_token 
 	cp a,#CMD_END 
@@ -4714,60 +4731,27 @@ cmd_restore:
 	jra 3$
 1$: jp syntax_error 	 
 2$:	call get_int24
-3$:	pushw y 
+3$:	 
+	pushw y 
+	clr a 
 	call search_lineno  
 	popw y 
 	tnzw x 
-	jrne set_data_pointer 
-	jra data_error 
+	jreq data_error 
+	call is_data_line
+	tnz a 
+	jrne 9$ 
+	jreq data_error
 4$:
 ; search first DATA line 	
-5$:	cpw x,txtend
+5$:	
+	cpw x,txtend
 	jruge data_error 
-6$:	
-	_is_data_line 
-	jreq set_data_pointer
-7$:	call try_next_line 
-	jrne 7$ 
-	_next 
+	call is_data_line 
+	tnz a 
+	jreq 5$ 
+9$:	_next  
 
-;---------------------
-; set data pointer 
-; variables at new line 
-; input:
-;    X    line address 
-;----------------------
-set_data_pointer:
-	ldw data_line,x
-	addw x,#FIRST_DATA_ITEM
-	ldw data_ptr,x 
-	ret 
-
-
-;--------------------
-; at end of data line 
-; check if next line 
-; is a data line 
-; input:
-;    X   actual line address 
-;  
-;-------------------
-try_next_line: 
-	ld a,(2,x)
-	_straz acc8 
-	_clrz acc16 
-	addw x,acc16 
-	cpw x,txtend 
-	jrult 1$
-	jra data_error 
-1$:	
-	_is_data_line 
-	jreq 2$
-	ld a,#1  
-	jra 9$
-2$:	call set_data_pointer
-	clr a  
-9$:	ret 
 data_error:	
     ld a,#ERR_NO_DATA 
 	jp tb_error 
@@ -4775,55 +4759,56 @@ data_error:
 
 ;---------------------------------
 ; BASIC: READ 
-; return next data item | 0 
+; return next data item | data error
+; output:
+;    A:X int24  
 ;---------------------------------
-	CTX_LNADR=1
-	CTX_BPTR=3 
-	CTX_COUNT=5
-	INT24=6
-	VSIZE=8 
 func_read_data:
 	call runtime_only
-	_vars  VSIZE 
-	call save_context
 read01:	
-	ld a,[data_ptr]
-	jreq 3$ ; end of line
-0$:
-	_ldxz data_line 
-	ldw line.addr,x 
-	_ldxz data_ptr 
-	ldw basicptr,x
+	ldw x,data_ptr
 	ld a,(x)
-	jreq 3$  
-	call expression
-	_i24_store INT24  
-1$:
-	_next_token ; skip comma 
+	incw x 
+	tnz a 
+	jreq 4$ ; end of line 
 	cp a,#COMMA_IDX 
+	jrne 1$ 
+	ld a,(x)
+	incw x 
+1$:
+	cp a,#LIT_IDX 
 	jreq 2$
-; if not comma skip
-; to end of line.	
-	_ldxz line.addr 
-	ld a,(2,x)
-	_clrz acc16 
-	_straz acc8 
-	addw x,acc16
-	decw x 
-	ldw basicptr,x  
-2$:
-	_ldxz basicptr 
-	ldw data_ptr,x 
-	call rest_context
-	_i24_fetch INT24 
-	_drop VSIZE 
+	cp a,#LITC_IDX 
+	jrne data_error 
+	ld a,(x)
+	incw x
+	_strxz data_ptr  
+	clrw x 
+	rlwa x
+	jra 3$  
+2$:	 
+	ld a,(x)
+	incw x 
+	_strxz data_ptr 
+	ldw x,(x)
+	pushw x 
+	_ldxz data_ptr 
+	addw x,#2 
+	_strxz data_ptr
+	popw x 
+3$:
 	ret 
-3$: ; end of line reached 
-	; try next line  	
-	_ldxz data_line   
-	call try_next_line
-	jreq 0$ 
+4$: ; check if next line is DATA  
+	_ldxz data_line
+	ld a,(2,x)
+	ld acc8,a
+	clr acc16  
+	addw x,acc16 
+	call is_data_line 
+	tnz a 
+	jrne read01  
 	jra data_error 
+
 
 .if NUCLEO_8S208RB
 ;---------------------------------
@@ -5079,10 +5064,10 @@ cmd_chain:
 	addw x,(CHAIN_ADDR,sp)
 	ldw txtend,x  
 	ldw x,(CHAIN_ADDR,sp)
-	ld a,(2,x)
-	_straz count 
+;	ld a,(2,x)
+;	_straz count 
 	addw x,#LINE_HEADER_SIZE 
-	ldw basicptr,x 
+;	ldw basicptr,x 
 	ldw y,x 
 	ldw x,(CHAIN_LN,sp)
 	tnzw x 
@@ -5094,10 +5079,10 @@ cmd_chain:
 	tnzw x 
 	jreq 8$ 
 	ldw line.addr,x 
-	ld a,(2,x)
-	_straz count
+;	ld a,(2,x)
+;	_straz count
 	addw x,#LINE_HEADER_SIZE
-	ldw basicptr,x
+;	ldw basicptr,x
 	ldw y,x   
 8$: _incz chain_level
 	_drop DISCARD

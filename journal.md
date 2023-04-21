@@ -1,3 +1,35 @@
+### 2023-04-20
+
+* test performance: 
+```
+>list
+   10 ' for next speed test 
+   12 LET T = TICKS 
+   14 FOR I = 1 TO 10000 
+   16 NEXT I 
+   18 ? TICKS - T ; " MSEC" 
+   20 ' DO UNTIL TEST 
+   22 LET I = 1 , T = TICKS 
+   24 DO LET I = I + 1 : UNTIL I > 10000 
+   26 ? TICKS - T ; " MSEC" 
+   28 ' GOTO LOOP 
+   30 LET I = 1 , T = TICKS 
+   32 LET I = I + 1 : IF I <= 10000 GOTO 32 
+   34 ? TICKS - T ; " MSEC" 
+program address: $91, program size: 241 bytes in RAM memory
+
+>run
+78  MSEC
+448  MSEC
+508  MSEC
+```
+
+* Recodé **RESTORE** et **READ**. 
+
+* Corrigé bogue dans **TONE** les paramètres passé à *beep* dans X,Y etaient inversés. 
+
+* Modifié *next_line*   ne sauvegarde plus *count* et *basicptr*.
+
 ### 2023-04-18
 
 * La fonction **CTRL+E** ne fonctionne plus. **CORRIGÉ**. 
