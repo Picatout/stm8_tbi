@@ -1,4 +1,29 @@
+### 2023-04-21
+
+* bogue dans *kword_on*  corrigé.
+
+* Corrigé bogue  mentionné ci-bas.  *let_eval* appellait *expression* plutôt que *condition*. 
+
+* Corrigé bogue dans *kword_dim2*.
+
+* Corrigé bogue dans *cmd_list*.
+
+* Corrigé bogue dans **LET**.
+
+* Corrigé bogue dans la commande **BUFFER**. 
+
+* Corrigé bogue dans la fonction **RND(x)** qui ne préservait pas **Y**.
+
 ### 2023-04-20
+
+* Bogue:
+```
+>let K=KEY AND $DF
+
+run time error, syntax error
+    0 LET K = KEY AND 
+
+```
 
 * test performance: 
 ```

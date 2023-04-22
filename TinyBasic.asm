@@ -511,8 +511,26 @@ get_int24:
 	ld xh,a      ; 1 cy 
 	ld a,(y)     ; 1 cy 
 	addw y,#INT_SIZE  ; 2 cy 
-	_stryz basicptr  ; 2 cy 
-	ret ; 4cy = 13cy   
+	ret ; 4cy = 11cy   
+
+;-------------------------------
+; called when an intger token 
+; is expected. can be LIT_IDX 
+; or LITC_IDX 
+; program fail if not integer 
+;------------------------------
+expect_integer:
+	_next_token 
+	cp a,#LIT_IDX 
+	jreq get_int24 
+	cp a,#LITC_IDX 
+	jreq 1$ 
+	jp syntax_error 
+1$: clrw x 
+	_get_char 
+	rlwa x 
+	ret 
+
 
 ;-----------------------------------
 ; print a 16 bit integer 
@@ -1368,23 +1386,18 @@ func_ubound:
 ;----------------------
 	VAR_NAME=1  ; 2 bytes 
 	REC_LEN=VAR_NAME+2 ; 2 bytes 
-	VALUE=REC_LEN+2 
-	VSIZE=VALUE+INT_SIZE  
+	VALUE=REC_LEN+2 ;3 bytes 
+	YSAVE=VALUE+INT_SIZE ; 2 bytes 
+	VSIZE=YSAVE+1 
 let_dvar:
-	call runtime_only
 	_vars VSIZE 
-	ldw (VAR_NAME,sp),x
+	ldw (VAR_NAME,sp),y
 	clr (REC_LEN,sp) 
 	call skip_string 
-	_ldxz basicptr 
-	ld a,(x)
-	cp a,#REL_EQU_IDX  
-	jreq dvar_assign
-	jp syntax_error
+	ld a,#REL_EQU_IDX 
+	call expect 
 dvar_assign: 	 
 ; dvar assignment 
-	incw x 
-	ldw basicptr,x 
 	call condition
 	_i24_store VALUE 
 	ldw x,(VAR_NAME,sp) ; pointer to var name 
@@ -1401,12 +1414,14 @@ dvar_assign:
 	jp tb_error 
 4$:
 	addw x,(REC_LEN,sp)
-	subw x,#CELL_SIZE 
-	ldw ptr16,x
-	_i24_fetch VALUE 
-	ld [ptr16],a 
-	_incz ptr8 
-	ldw [ptr16],x 
+	subw x,#INT_SIZE 
+	ldw (YSAVE,sp),y 
+	ldw y,x
+	_i24_fetch VALUE
+	ld (y),a 
+	incw y 
+	ldw (y),x
+	ldw y,(YSAVE,sp)
 9$: _drop VSIZE 	
 	ret 
 
@@ -1441,17 +1456,15 @@ do_eval:
 	_next 
 
 let_eval:
-	_strxz ptr16    
+	pushw x 
 	ld a,#REL_EQU_IDX
 	call expect 
-	call expression
-3$: 
-	ld [ptr16],a
-	inc ptr16+1 
-	jrpl 4$
-	inc ptr16 
-4$:
-	ldw [ptr16],x
+	call condition 
+	pop ptr16 
+	pop ptr8 
+	ld [ptr16],a 
+	inc ptr8 ; never overflow 
+	ldw [ptr16],x 
 	ret 
 
 
@@ -1514,7 +1527,13 @@ eefree:
  
 ;--------------------------
 ; search constant/dim_var name 
-; format of record  
+; format of record 
+;  field | size 
+;-------------------
+;  rec_len | 1 
+;  name | {2..15} string length 
+;  zero | 1 end of name marker  
+;  value | INT_SIZE  
 ;   .byte record length 
 ;         = strlen(name)+5 
 ;   .asciz name (variable length)
@@ -1580,7 +1599,8 @@ search_name:
 	REC_LEN=VAR_NAME+2
 	RONLY=REC_LEN+1
 	VALUE=RONLY+1
-	VSIZE=VALUE+2 
+	YTEMP=VALUE+INT_SIZE 
+	VSIZE=YTEMP+1 
 kword_const:
 	call runtime_only
 	_vars VSIZE 
@@ -1609,7 +1629,9 @@ kword_dim2:
 	cp a,#LABEL_IDX  
 	jreq 1$ 
 	jp syntax_error 
-1$: ldw (VAR_NAME,sp),x ; name pointer 
+1$: 
+	ldw (VAR_NAME,sp),y ; name pointer 
+	ldw x,y
 	call strlen
 	add a,#REC_XTRA_BYTES
 	ld (REC_LEN+1,sp),a
@@ -1634,10 +1656,9 @@ kword_dim2:
 	or a,(RONLY,sp)
 	ld (x),a 
 	incw x 
-	pushw y 
-	ldw y,(VAR_NAME+2,sp)
+	ldw (YTEMP,sp),y 
+	ldw y,(VAR_NAME,sp)
 	call strcpy
-	popw y 
 	decw x
 	addw x,(REC_LEN,sp)
 	ldw dvar_end,x 
@@ -1645,7 +1666,8 @@ kword_dim2:
 	clr (x)
 	clr (1,x)  
 	clr (2,x)
-4$: _next_token 
+4$: ldw y,(YTEMP,sp)
+	_next_token 
 	cp a,#COMMA_IDX 
 	jreq 0$ 
 	cp a,#REL_EQU_IDX 
@@ -1654,13 +1676,18 @@ kword_dim2:
 	call condition
 	_i24_store VALUE  
 5$: _ldxz dvar_end 
-	subw x,#CELL_SIZE 
-	ldw ptr16,x 
+	subw x,#INT_SIZE 
+	ldw (YTEMP,sp),y   
+	ldw y,x 
 	_i24_fetch VALUE 
-	ld [ptr16],a 
-	_incz ptr8 
-	ldw [ptr16],x 
-	jra 4$ 
+	ld (y),a 
+	incw y  
+	ldw (y),x
+	ldw y,(YTEMP,sp)   
+	_next_token 
+	cp a,#COMMA_IDX 
+	jrne 8$ 
+	jp kword_dim2 
 8$:	
 	_unget_token 	
 	_drop VSIZE 
@@ -1722,14 +1749,13 @@ RAM_MEM:   .asciz " in RAM memory"
 	FIRST=1
 	LAST=3 
 	LN_PTR=5
-	YSAVE=7
-	VSIZE=8
+	VSIZE=6
 cmd_list:
 	call cmd_line_only
 	call prog_size 
-	jrugt 3$
-	_next  
-3$:
+	jrugt 1$
+	jp cmd_line 
+1$:
 	 _vars VSIZE
 	_ldxz txtbgn 
 	ldw (LN_PTR,sp),x 
@@ -1737,69 +1763,46 @@ cmd_list:
 	ldw (FIRST,sp),x ; list from first line 
 	ldw x,#MAX_LINENO ; biggest line number 
 	ldw (LAST,sp),x 
-	_next_token 
-	cp a,#LIT_IDX
-	jreq start_from
-	cp a,#LITC_IDX 
-	jrne is_minus 
-	_get_char 
-	clrw x 
-	rlwa x 
-	jra start_from1 
-is_minus: 	
+	_next_token
+	tnz a 
+	jreq print_listing 
 	cp a,#SUB_IDX 
-	jreq end_at_line
-	cp a,#EOL_IDX 
-	jreq list_loop
-	cp a,#COLON_IDX 
-	jreq list_loop
-	jp syntax_error
-start_from:	 
-	call get_int24
-start_from1: 	
+	jreq list_to
+	decw y    
+	call expect_integer 
 	ldw (FIRST,sp),x	
-lines_skip:
-	ldw (YSAVE,sp),y 
-	clr a 
-	call search_lineno 
-	tnzw x 
-	jrne 1$
-	ldw x,y
-1$:	 
-	ldw (LN_PTR,sp),x
-	ldw y,(YSAVE,sp)  
-	_next_token 
-	cp a,#CMD_END 
-	jrule 2$ 
-	cp a,#SUB_IDX 
-	jreq end_at_line 
-	jp syntax_error 
-2$:
-	ldw x,(FIRST,sp)
-	ldw (LAST,sp),x 
-	jra list_loop 
-end_at_line:
-; expect ending line# 
-    _next_token
-	cp a,#CMD_END 
-	jrule list_loop  
-	cp a,#LIT_IDX
-	jreq 1$
-	cp a,#LITC_IDX 
-	jreq 2$  
-	jp syntax_error 
-1$:
-	call get_int24 
+	_next_token
+	tnz a 
+	jrne 2$ 
+	ldw (LAST,sp),x  
+	jra  print_listing 
+2$: 
+	cp a,#SUB_IDX  
+	jreq 3$ 
+	jp syntax_error
+3$: _next_token 
+	tnz a 
+	jreq print_listing
+	decw y	 
+list_to: ; listing will stop at this line
+    call expect_integer 
 	ldw (LAST,sp),x
-	jra list_loop 
-2$: _get_char 
-	clrw x 
-	rlwa x  
-	ldw (LAST,sp),x 
-; print loop
+print_listing:
+; skip lines smaller than FIRST 
+	ldw y,(LN_PTR,sp)
+	 _clrz acc16 
+1$:	ldw x,y 
+	ldw x,(x)
+	cpw x,(FIRST,sp)
+	jrpl 2$
+	ld a,(2,y)
+	_straz acc8
+	addw y,acc16
+	cpw y,txtend 
+	jrpl list_exit 
+	jra 1$
+2$: ldw (LN_PTR,sp),y 	
 list_loop:
-	ldw (YSAVE,sp),y 
-1$:
 	ldw x,(LN_PTR,sp)
 	ldw line.addr,x 
 	ld a,(2,x) 
@@ -1815,17 +1818,12 @@ list_loop:
 	ldw (LN_PTR,sp),x
 	ldw x,(x)
 	cpw x,(LAST,sp)  
-	jrsle 1$
+	jrsle list_loop
 list_exit:
-	mov in,count 
-	ldw x,#pad 
-	_strxz basicptr 
 	_drop VSIZE 
 	call program_info
-	btjf flags,#FLN_REJECTED,9$
-	ldw x,#LINES_REJECTED
-	call puts
-9$: _next  
+	jp cmd_line 
+
 
 LINES_REJECTED: .asciz "WARNING: lines missing in this program.\n"
 
@@ -2521,12 +2519,10 @@ kword_on:
 	jreq 5$
 	jp syntax_error 
 3$: ; got a line number 
-	_ldxz basicptr 
-	addw x,#3 ; skip int24 
-	ldw basicptr,x 
+	addw y,#INT_SIZE  ; skip int24 
 	jra 6$
 4$: ; got a small line number 
-	_incwz basicptr  
+	incw y   
 	jra 6$ 
 5$: call skip_string ; skip over label 	
 6$: ; if another element comma present 
@@ -2886,6 +2882,7 @@ timer1_setup:
 ;   x     value 
 ;------------------------ 
 pwm_set_duty_cycle:
+	pushw y 
 	dec a 
 	clrw y 
 	ld yl,a 
@@ -2895,6 +2892,7 @@ pwm_set_duty_cycle:
 	ld (y),a 
 	ld a,xl 
 	ld (1,y),a 
+	popw y 
 	ret 
 
 ;-----------------------------
@@ -2905,6 +2903,7 @@ pwm_set_duty_cycle:
 ;   x    0 disable else enable 
 ;-----------------------------
 pwm_enable_channel:
+	pushw y 
 	push #1 
 	ldw y,#TIM1_CCER1 
 	dec a 
@@ -2924,7 +2923,8 @@ pwm_enable_channel:
 4$: 
 	or a,(y)
 9$:	
-	ld (y),a  
+	ld (y),a
+	popw y   
 	ret 
 
 ;-----------------------------
@@ -2935,6 +2935,7 @@ pwm_enable_channel:
 ;    x   0 disable else enable 
 ;-----------------------------
 pwm_cc_ie::
+	pushw y
 	ldw y,#TIM1_IER
 	push a 
 	ld a,#1 
@@ -2952,6 +2953,7 @@ pwm_cc_ie::
 	and a,(y)
 9$:
 	ld (y),a 
+	popw y 
 	ret 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -2976,7 +2978,8 @@ cmd_servo_chan_enable:
 	_i24_fetch ONOFF ; A:X = 1|0
 	ld a,(SERVO_CHAN+2,SP) ;chan#
 	_drop VSIZE 
-	jra pwm_enable_channel
+	call pwm_enable_channel
+	_next 
 
 ;------------------------
 ; BASIC: SERVO.EN 0|1 
@@ -3078,8 +3081,10 @@ cmd_pwm_enable:
 	srlw x 
 	dec a	
 	jra 5$ 
-8$:	clrw y 
-	call timer1_setup 	
+8$:	pushw y 
+	clrw y 
+	call timer1_setup
+	popw y  	
 9$:	_drop VSIZE 
 	_next 
 
@@ -3100,31 +3105,19 @@ cmd_pwm_chan_enable:
 1$: ld a,(CH_NBR+2,SP)
 	ldw x,(ONOFF+1,SP)
 	_drop VSIZE
-	jp pwm_enable_channel 
+	call pwm_enable_channel 
+	_next 
 
 ;----------------------------------
 ; BASIC:  PWM.OUT ch#,value 
-;		  PWM.OUT ch#, buffer, count 
 ; parameters:
 ;   ch#     channel number 
-;   buffer   buffer that containt 
-;            values to output.
-;            16 bits integers  
 ;   count    count of value to output {1..255} 
 ;----------------------------------
-; buffered mode 
-	COUNT=1
-	BUFFER=COUNT+INT_SIZE  
-	CH_NBR=BUFFER+INT_SIZE
-; single value mode 
 	VALUE=1
 	CHANNEL=VALUE+INT_SIZE 	 
 cmd_pwm_out: 
 	call arg_list 
-.if 0
-	cp a,#3 
-	jreq pwm_buffered 
-.endif 
 	cp a,#2
 	jreq 1$  
 	jp syntax_error 
@@ -3134,29 +3127,6 @@ cmd_pwm_out:
 	call pwm_set_duty_cycle ; A=ch#, X=value 
 	_drop 2*INT_SIZE 
 	_next 
-.if 0
-pwm_buffered:
-	_i24_fetch CH_NBR 
-	ld a,#4
-	decw x 
-	mul x,a
-	addw x,#pwm_ch1_buffer 
-	ldw y,x 
-	_i24_fetch BUFFER 
-	ldw (y),x  ; pwm_chx_buf_adr 
-	clr (2,y); pwm_chx_idx 
-	_i24_fetch COUNT  
-	rrwa x 
-	ld (3,y),a ; pwm_chx_count 
-	clrw x 
-	ld a,(CH_NBR+2,sp)	
-	call pwm_set_duty_cycle 
-	ld a,(CH_NBR+2,sp)
-	ldw x,#1  
-	call pwm_cc_ie 
-	_drop 3*INT_SIZE 
-	_next 
-.endif 
 
 
 ;---------------------------------
@@ -3170,7 +3140,8 @@ pwm_buffered:
 ;--------------------------------
 .if 0
 func_pwm_done:
-	call expression  
+	call expect_int 
+	pushw y 
 	decw x 
 	ld a,#3 
 	mul x,a 
@@ -3181,8 +3152,9 @@ func_pwm_done:
 	jreq 1$
 	cpl a 
 	cplw y 
-1$: ldw x,y   
-	ret 
+1$: ldw x,y
+	popw y 
+	_next 
 .endif 
 
 ;-------------------------------
@@ -3615,6 +3587,7 @@ check_forbidden:
 	jrne rw_zone 
 ; memory 0x8000..0xffff	
 	_ldxz ptr16 
+_tp 'A 
 	cpw x,#app_space
 	jruge rw_zone 
 	cpw x,#OPTION_END  
@@ -3644,8 +3617,9 @@ rw_zone:
 ;---------------------
 cmd_write:
 	call expression
+_tp 'B 
 	_straz farptr 
-	ldw ptr16,x
+	_strxz ptr16
 	call check_forbidden 
 1$:	
 	_next_token 
@@ -3804,7 +3778,7 @@ func_qkey::
 ;---------------------------
 func_uflash:
 	_clrz farptr 
-	ldw x,#app_space 
+	ldw x,#app_space  
 	pushw x 
 1$:	ldw ptr16,x 
 	call scan_block
@@ -3812,12 +3786,8 @@ func_uflash:
 	jreq 8$
 	ldw x,(1,sp)
 	addw x,#BLOCK_SIZE 
-	jreq 7$ 
 	ldw (1,sp),x 
-	jra 1$ 
-7$: ; no free block 
-	clr (1,sp) 
-	clr (2,sp)
+	jrne 1$  
 8$: popw x 
 	clr a
 	ret 
@@ -3990,15 +3960,20 @@ func_abs:
 ; output:
 ; 	A:x 	result 
 ;------------------------------
+	SHIFT=1
+	VALUE=SHIFT+INT_SIZE 
+	YSAVE=VALUE+INT_SIZE
+	VSIZE=YSAVE+1 
 func_lshift:
 	pushw y 
 	call func_args
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: _i24_pop ; SHIFT 
+1$: ldw (YSAVE,sp),y
+	_i24_fetch SHIFT 
 	ldw y,x 
-	_i24_pop  ; T>A:X 
+	_i24_fetch VALUE  
 	tnzw Y 
 	jreq 4$
 2$:	rcf 
@@ -4006,7 +3981,8 @@ func_lshift:
 	rlc a 
 	decw y 
 	jrne 2$
-4$: popw y 
+4$: ldw y,(YSAVE,sp)
+	_drop VSIZE 
 	ret  
 
 ;------------------------------
@@ -4022,9 +3998,10 @@ func_rshift:
 	cp a,#2 
 	jreq 1$
 	jp syntax_error
-1$: _i24_pop ; shift 
+1$: ldw (YSAVE,sp),y 
+	_i24_fetch SHIFT  
     ldw y,x 
-	_i24_pop  
+	_i24_fetch VALUE
 	tnzw y
 	jreq 4$
 2$:	rcf 
@@ -4032,7 +4009,8 @@ func_rshift:
 	rrcw x 
 	decw y 
 	jrne 2$
-4$: popw y
+4$: ldw y,(YSAVE,sp)
+	_drop VSIZE 
 	ret 
 
 ;--------------------------
@@ -4269,8 +4247,10 @@ func_random:
 	jp tb_error
 2$:  
 	_i24_fetch N1 
-	_i24_store N2  
-    _ldxz seedx 
+	_i24_store N2
+	pushw y   
+    _ldxz seedx
+	_ldyz seedy  
 	ld a,#13
     call sll_xy_32 
     call xor_seed32
@@ -4280,6 +4260,7 @@ func_random:
     ld a,#5 
     call sll_xy_32
     call xor_seed32
+	popw y 
 ; return seedy_lo&0x7f:seedx modulo expr + 1 
 	_ldaz seedy+1   
     and a,#0x7f 
@@ -4770,7 +4751,9 @@ read01:
 	ld a,(x)
 	incw x 
 	tnz a 
-	jreq 4$ ; end of line 
+	jreq 4$ ; end of line
+	cp a,#REM_IDX
+	jreq 4$  
 	cp a,#COMMA_IDX 
 	jrne 1$ 
 	ld a,(x)
@@ -5133,7 +5116,8 @@ cmd_alloc_buffer:
 	clr (NLEN,sp)
 	ld a,#LABEL_IDX 
 	call expect  
-	ldw (BNAME,sp),x 
+	ldw (BNAME,sp),y
+	ldw x,y  
 	call strlen 
 	and a,#NAME_MAX_LEN
 	ld (NLEN+1,sp),a 

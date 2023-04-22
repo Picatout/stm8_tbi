@@ -8,7 +8,7 @@ NEW
 32 DIM EADR ' eeprom address 
 34 DIM BUFF  ' buffer address 
 38 ' open I2C 
-40 I2C.OPEN 1,0,100 ' send ack, adrmode=7 bits ,SCL -> 100 Khz 
+40 I2C.OPEN 100 ' SCL -> 100 Khz 
 48 ' select eeprom address to read from  
 50  EADR=0  BUFF=PAD+4 
 58  ' read 10 bytes 
