@@ -5,7 +5,7 @@
 <a id="main-index"></a>
 ## main index 
 
-* [Data types](#data)
+* [Data types](#data_type)
 
 * [Variables](#variables)
 
@@ -31,7 +31,7 @@
 <hr>
 
 [main index](#main-index)
-<a id="data"></a>
+<a id="data_type"></a>
 ### Data types 
 
 The only data type supported is 24 bits signed integers in range **-8388608...8388607**.

@@ -1,5 +1,29 @@
 ### 2023-04-22
 
+* Dernier test de performance:
+```
+>list
+   10 LET T = TICKS 
+   12 FOR I = 1 TO 10000 
+   14 NEXT I 
+   16 ? TICKS - T ; " msec" 
+   20 LET I = 1 , T = TICKS 
+   22 DO LET I = I + 1 
+   24 UNTIL I > 10000 
+   26 ? TICKS - T ; " msec" 
+   30 LET I = 1 , T = TICKS 
+   32 LET I = I + 1 
+   34 IF I <= 10000 GOTO 32 
+   36 ? TICKS - T ; " msec" 
+program address: $91, program size: 182 bytes in RAM memory
+
+>run
+76  msec
+527  msec
+672  msec
+```
+C'est plus lent que le test précédent mais c'est du à la correction d'un bogue dans **LET**.
+
 * Corrigé bogue dans commande **I2C.OPEN**. 
 
 * Corrigé bogue dans **LET** ou dans le cas de variables dynamique il n'y avait pas de vérification pour d'éventuels éléments suivant le premier.
@@ -11,6 +35,8 @@
 * programme [i2c_oled.bas](BASIC/i2c_oled.bas) fonctionne. 
 
 * programme [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) **ne fonctionne pas**. 
+
+* Corrigé erreur dans les documents *tbi_reference_xx.md* et regénérer les pdf. 
 
 ### 2023-04-21
 

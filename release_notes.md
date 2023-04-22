@@ -2,6 +2,20 @@
 
 # STM8 Tiny BASIC release notes
 
+## 2023-04-22 
+
+* Version V3.2R1 
+  * This is a performance revision. The virtual machine that execute BASIC bytecode has been change. As register **Y** was no more used since the abandon of a second stack for parameters
+  it was freed. Then is now repurposed as VM program counter. In previous model register **X** was used for this purpose and it was required to save it continually to *basicptr* system variable. With this new model **Y** rarely require to be saved and when it is required it is pushed on stack. Also the calling model for BASIC commands as changed from a **CALL-RET** model to a **JP code - JP interp_loop**. This save 4 clocks cycles per call. This result in 
+  an improved VM performance between 25% to 50% depending on code executed. the **LET** keyword is still slow because evaluating expression is comples. Neverthess a 25% gain is observed.
+
+  * Aside of this optimisation some new bugs have been discovered and corrected.
+
+  * Also a correction in reference manual have been done where 2 paragraphs where using the same link name.
+
+  * All programs in BASIC directory run without issue. 
+
+
 ## 2023-03-09 V3.1R12 
 
 * Two new commands added:

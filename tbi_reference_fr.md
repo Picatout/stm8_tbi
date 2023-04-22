@@ -5,7 +5,7 @@
 <a id="index-princ"></a>
 ## index principal 
 
-* [Types de données](#data)
+* [Types de données](#data_type)
 
 * [Variables](#variables)
 
@@ -29,7 +29,7 @@
 
 * [Code source](#sources)
 
-<a id="data"></a>
+<a id="data_type"></a>
 ### Type de données 
 Le seul type de donné numérique est l'entier 24 bits donc dans l'intervalle **-8388608...8388607**.  
 

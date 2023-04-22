@@ -1,5 +1,17 @@
 # Notes de révision
 
+## 2023-04-22
+
+* Version V3.2R1 
+    * Il s'agit d'une optimisation de performance de la machine virtuelle. Ce nouveau modèle de la machine virtuelle utilise le registre **Y** comme compteur ordinal au lieu du registre **X** qui devait-être continuellement sauvegardé dans la variable système **basicptr**.  De plus les appels au routines de commandes sont faites par une instruction **JP** au lieu d'une instruciton **CALL** et la sortie des routines utilise la macro **_next**  qui est un saut vers **interp_loop**. D'autres optimisations ont étées effectuées pour améliorer la rapidité de la machine virtuelle.
+    Le gain de performance est appréciable. Le gain varie de 25% à 50% dépendant du type d'opération.
+
+    * Des bogues ont étés découverts et corrigés. 
+
+    * Correction d'une erreur sur un lien interne dans les manuels de références.
+
+    * Tout les programmes dans le répertoire **BASIC** fonctionnent correctement.
+
 ## 2023-03-09 
 
 * Version V3.1R12 ajoute 2 commandes 
