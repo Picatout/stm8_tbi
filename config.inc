@@ -6,6 +6,8 @@ DEBUG=0 ; set to 1 to include debugging code
 
 WANT_IWDG=0 ; set to 1 to add words IWDGEN and IWDGREF 
 
+FMSTR=16 ; master clock frequency in Mhz 
+
 ; boards list
 ; set selected board to 1  
 NUCLEO_8S208RB=0

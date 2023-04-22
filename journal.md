@@ -1,3 +1,17 @@
+### 2023-04-22
+
+* Corrigé bogue dans commande **I2C.OPEN**. 
+
+* Corrigé bogue dans **LET** ou dans le cas de variables dynamique il n'y avait pas de vérification pour d'éventuels éléments suivant le premier.
+
+* Créé routine *prt_line_no*  utilisé par *next_line*, **GOTO** et **GOSUB** quand **TRACE** est actif.
+
+* Corrigé [i2c.asm](i2c.asm) pour la nouvelle structure de la VM qui utilise maintenant le registre **Y** comme *program counter* et exécute un *jp sous-routine** plutôt qu'un *call sous-routine*.
+
+* programme [i2c_oled.bas](BASIC/i2c_oled.bas) fonctionne. 
+
+* programme [i2c_eeprom.bas](BASIC/i2c_eeprom.bas) **ne fonctionne pas**. 
+
 ### 2023-04-21
 
 * bogue dans *kword_on*  corrigé.

@@ -3,6 +3,7 @@ NEW
   2 ' Test I2C EEPROM 24LC512
     5 CONST STP=0, NO_STP=1, DEV.ID=$A0 
    10  DIM  EE.ADR : BUFFER TBUF , 16
+   15  TRACE 0
    20  I2C.OPEN 400
    22  INPUT "1 -> READ, 2 WRITE, 3 WRITE+READ" N 
    30  GOSUB SET.ADDR 
@@ -30,10 +31,8 @@ NEW
    230  RETURN  
    398 ' print buffer content 
    400  PRT.BUF 
-   420  PRINT  
-   430  PRINT "buffer={";
+   430  PRINT "\nbuffer={";
    450  FOR I= TBUF  TO TBUF + 15: PRINT PEEK( I);
-   460  IF I<15 ";"; 
    470  NEXT I 
    480  PRINT "}"
    490 RETURN 

@@ -200,23 +200,18 @@ cmd_i2c_error:
 cmd_i2c_open:
 ; program i2c alternate function on PB4 and PB5
 ; get argument on xstack 
-    call arg_list 
-    cp a,#1 
-    jreq 1$
-    jp syntax_error 
-1$:
+    call expect_integer 
+    pushw y 
 ; enable peripheral clock
 	bset CLK_PCKENR1,#CLK_PCKENR1_I2C 	
-    ld a,#16 ; peripheral clock frequency 
+    ld a,#FMSTR ; peripheral clock frequency 
     clr I2C_CR2 
     ld I2C_FREQR,a
 ; SCL fequency parameter 
     clr I2C_CCRH 
-    _i24_pop   ; A:X freq. 
-    pushw y 
     pushw x ; A is ignored  
     ldw y,x 
-    ldw x,#16000 ; Fmaster = 16000 Khz 
+    ldw x,#FMSTR*1000 ; Fmaster in Khz 
     divw x,y
 ; SLOW x=2*CCR
 ; FAST X=3*CCR | DUTY=1 -> 25*CCR     
@@ -245,10 +240,10 @@ cmd_i2c_open:
     ld a,#5
 3$:     
     ld I2C_TRISER,a     
-    popw y  
 ; enable periphal 
     bset I2C_CR1,#I2C_CR1_PE  
-    ret
+    popw y  
+    _next 
 
 
 ;------------------------------------
@@ -264,7 +259,7 @@ cmd_i2c_close:
     nop 
 ; disable peripheral clock 
 	bres CLK_PCKENR1,#CLK_PCKENR1_I2C 	
-    ret
+    _next 
 
 ;----------------------------
 ; set operation parameters  
@@ -312,6 +307,7 @@ set_op_params:
 ;---------------------------------
 cmd_i2c_write:
     call set_op_params
+; same procedure for I2C.READ and I2C.WRITE     
 start_op:  
     _clrz i2c_idx 
     ldw x,#500 
@@ -325,7 +321,7 @@ start_op:
     jrne 1$ 
     call cmd_i2c_error; operation timeout 
 9$: 
-    ret 
+    _next 
 
 ;-----------------------------------
 ; BASIC: I2C.READ devid,count, buf_addr, no_stop 

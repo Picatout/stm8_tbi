@@ -447,13 +447,22 @@ next_line:
 	_stryz line.addr 
 	addw y,#LINE_HEADER_SIZE
 	btjf flags,#FTRACE,2$
-	ldw x,[line.addr]
-	call prt_i16
-	call space 
-	ld a,#CR 
-	call putc 
+	call prt_line_no 
 2$:	
   _next 
+
+;------------------------
+; when TRACE is active 
+; print line number to 
+; be executed by VM
+;------------------------
+prt_line_no:
+	ldw x,[line.addr] 
+	call prt_i16 
+	ld a,#CR 
+	call putc 
+	ret 
+
 
 ;-------------------------
 ;  skip .asciz in BASIC line 
@@ -1441,7 +1450,7 @@ kword_let::
 	jp syntax_error
 do_dvar:
 	call let_dvar 
-	_next 	
+	jra let_next_item
 let_array:
 	call get_array_element
 	jra do_eval 
@@ -1449,6 +1458,7 @@ let_var:
 	_get_addr	
 do_eval:
 	call let_eval 
+let_next_item:	
 	_next_token 
 	cp a,#COMMA_IDX 
 	jreq kword_let
@@ -2577,15 +2587,10 @@ kword_goto_1:
 	call get_target_line
 jp_to_target:
 	ldw line.addr,x 
-;	ld a,(2,x)
-;	_straz count 
 	addw x,#LINE_HEADER_SIZE
-;	ldw basicptr,x
 	ldw y,x   
 	btjf flags,#FTRACE,9$ 
-	subw x,#LINE_HEADER_SIZE 
-	ldw x,(x)
-	call prt_i16 
+	call prt_line_no 
 9$:	_next
 
 
