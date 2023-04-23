@@ -1,6 +1,6 @@
 NEW 
     1 AN.READ
-    5 'demo lecture analogique
+    5 'demo lecture analogique et impression en décimal.
    10 LET K = 0 :PRINT K;: ADCON  1 
    20 LET R =ADCREAD ( 0 )
    30 IF R :BSET PORTC,BIT(5) 
