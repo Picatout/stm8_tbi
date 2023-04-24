@@ -142,12 +142,12 @@
     .macro _jp_code 
         _code_addr 
         jp (x)
-    .endm  ; 8 cycle 
+    .endm  ; 8 cycles 
 
     ; jump back to interp_loop 
     .macro _next 
         jp interp_loop 
-    .endm 
+    .endm ; 2 cycles 
     
 ;---------------------------------
 ;  files.asm macros 

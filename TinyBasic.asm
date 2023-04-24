@@ -961,34 +961,30 @@ factor:
 2$:	
 	_next_token
 4$:
-	cp a,#CMD_END
-	jrugt 5$ 
-	jp syntax_error  	
-5$:
 	cp a,#LIT_IDX 
-	jrne 6$
+	jrne 5$
 	call get_int24 ; >A:X
 .if DEBUG
 	jp  18$
 .else 
 	jra 18$
 .endif 
-6$:
+5$:
 	cp a,#LITC_IDX 
-	jrne 64$
+	jrne 6$
 	_get_char ; >A 
 	clrw x
 	rlwa x    ; >A:X 
 	jra 18$
-64$:
-	cp a,#ARRAY_IDX 
+6$:
+	cp a,#VAR_IDX 
 	jrne 7$
-	call get_array_element
+	_get_addr 
     jra 71$
 7$:
-	cp a,#VAR_IDX 
+	cp a,#ARRAY_IDX 
 	jrne 8$
-	_get_addr 
+	call get_array_element
 71$: ; put value in A:X
 	ld a,(x)
 	ldw x,(1,x)

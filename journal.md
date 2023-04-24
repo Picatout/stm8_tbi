@@ -3,10 +3,12 @@
 * dernier test avec [BASIC/loop_test1.bas](BASIC/loop_test1.bas) 
 ```
 >run
-75  MSEC
-518  MSEC
-552  MSEC
+78  MSEC
+515  MSEC
+549  MSEC
 ```
+
+* Travail dans routine *factor* , suppression du test en 4$ et changer ordre des test **VAR_IDX** et **ARRAY_IDX** .
 
 * Modifié routine *search_lineno* dans [compiler.asm](compiler.asm) pour améliorer la performance.
 
