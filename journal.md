@@ -1,3 +1,16 @@
+### 2023-04-23
+
+* dernier test avec [BASIC/loop_test1.bas](BASIC/loop_test1.bas) 
+```
+>run
+75  MSEC
+518  MSEC
+552  MSEC
+```
+
+* Modifié routine *search_lineno* dans [compiler.asm](compiler.asm) pour améliorer la performance.
+
+
 ### 2023-04-22
 
 * Dernier test de performance:

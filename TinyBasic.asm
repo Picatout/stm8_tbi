@@ -2408,7 +2408,7 @@ loop_done:
 get_target_line:
 	_next_token  
 	cp a,#LIT_IDX
-	jreq get_target_line_addr 
+	jreq get_target_lineno
 	cp a,#LITC_IDX 
 	jreq get_int8 
 	cp a,#LABEL_IDX 
@@ -2421,22 +2421,19 @@ get_int8:
 	jra target01 
 ; the target is a line number 
 ; search it. 
-get_target_line_addr:
+get_target_lineno:
 	call get_int24 ; line # 
 target01: 
-	pushw y 
-	clr a ; search from txtbgn 
-	ldw y,line.addr 
-	ldw y,(y)
-	pushw y ; line# 
-	cpw x,(1,sp) ; x==line#? 
-	_drop 2  
-	jrult 11$
-	inc a  ; search from actual line 
-11$: ; scan program for this line# 	
+	clr a 
+	cpw x,[line.addr] 
+	jrult 1$ 
+	jrugt 0$
+	ldw x,line.addr
+	ret   
+0$:	cpl a  ; search from txtbgn 
+1$: ; scan program for this line# 	
 	call search_lineno 
-	popw y  
-	tnzw x ; 0| line# address 
+	tnz a ; 0 if not found  
 	jrne 2$ 
 	ld a,#ERR_NO_LINE 
 	jp tb_error 
@@ -2563,18 +2560,17 @@ kword_on:
 8$: 
 ; move to end of line, then gosub 
 ;_tp 'G 
-	_ldxz line.addr 
+	_ldyz line.addr 
 	_clrz acc16 
-	ld a,(2,x)
+	ld a,(2,y)
 	_straz acc8 
-	addw x,acc16 
-	decw x ; point at EOL_IDX 
-	ldw basicptr,x
-	ldw y,x    
+	addw y,acc16 
+	decw y ; point at EOL_IDX 
 ;_tp 'H 
 	jra kword_gosub_2 ; target in ptr16 
 9$: ; expr out of range skip to next line
 	jp kword_remark 
+
 
 ;------------------------
 ; BASIC: GOTO line# 
@@ -2624,11 +2620,8 @@ kword_gosub_2:
 kword_return:
 	call runtime_only
 	ldw y,(RET_BPTR,sp) 
-;	ldw basicptr,y
 	ldw x,(RET_LN_ADDR,sp)
 	ldw line.addr,x 
-;	ld a,(2,x)
-;	_straz count  
 	_drop VSIZE 
 	_next 
 
@@ -4718,11 +4711,9 @@ cmd_restore:
 1$: jp syntax_error 	 
 2$:	call get_int24
 3$:	 
-	pushw y 
 	clr a 
 	call search_lineno  
-	popw y 
-	tnzw x 
+	tnz a  
 	jreq data_error 
 	call is_data_line
 	tnz a 
@@ -5052,25 +5043,17 @@ cmd_chain:
 	addw x,(CHAIN_ADDR,sp)
 	ldw txtend,x  
 	ldw x,(CHAIN_ADDR,sp)
-;	ld a,(2,x)
-;	_straz count 
 	addw x,#LINE_HEADER_SIZE 
-;	ldw basicptr,x 
 	ldw y,x 
 	ldw x,(CHAIN_LN,sp)
 	tnzw x 
 	jreq 8$ 
-	pushw y
 	clr a  
 	call search_lineno
-	popw y 
-	tnzw x 
+	tnz a 
 	jreq 8$ 
 	ldw line.addr,x 
-;	ld a,(2,x)
-;	_straz count
 	addw x,#LINE_HEADER_SIZE
-;	ldw basicptr,x
 	ldw y,x   
 8$: _incz chain_level
 	_drop DISCARD

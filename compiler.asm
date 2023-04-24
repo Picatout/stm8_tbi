@@ -28,43 +28,51 @@
     .area CODE 
 .endif 
 
-
 ;-------------------------------------
 ; search text area for a line#
 ; input:
 ;   A           0 search from txbgn 
-;			    1 search from basicptr 
-;	X 			line# 
+;			    1 search from line.addr 
+;	X 			line# to search 
 ; output:
-;   X 			addr of line | 0 
-;   Y           line#|insert address if not found  
+;   A           0 not found | other found 
+;   X 			addr of line | 
+;				inssert address if not found  
+; use: 
+;   Y  
 ;-------------------------------------
 	LL=1 ; line length 
 	LB=2 ; line length low byte 
 	VSIZE=2 
 search_lineno::
+	pushw y 
 	_vars VSIZE
 	clr (LL,sp)
 	ldw y,txtbgn
 	tnz a 
-	jreq search_ln_loop
+	jreq 3$
 	ldw y,line.addr  
-search_ln_loop:
-	cpw y,txtend 
-	jrpl 8$
+2$:
 	cpw x,(y)
 	jreq 9$
 	jrmi 8$ 
 	ld a,(2,y)
 	ld (LB,sp),a 
 	addw y,(LL,sp)
-	jra search_ln_loop 
-8$: 
-	clrw x 	
-	exgw x,y 
-9$: _drop VSIZE
-	exgw x,y   
+3$:
+	cpw y,txtend 
+	jrmi 2$	
+8$: ; not found 
+	clr a 
+	jra 10$
+9$: ; found 
+	cpl a 
+10$:
+	ldw x,y   
+	_drop VSIZE
+	popw y 
 	ret 
+
 
 ;-------------------------------------
 ; delete line at addr
@@ -158,12 +166,12 @@ insert_line:
 	clr a 
 	ldw x,(LINENO,sp)
 	call search_lineno
-	tnzw x 
+	tnz a 
 	jreq 0$ 
 	ldw (DEST,sp),x 
 	call del_line 
 	jra 1$
-0$: ldw (DEST,sp),y
+0$: ldw (DEST,sp),x
 1$: ld a,#4 
 	cp a,(LLEN+1,sp)
 	jreq 9$
