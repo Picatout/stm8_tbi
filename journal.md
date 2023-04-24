@@ -1,3 +1,9 @@
+### 2023-04-24
+
+* test tous les programmes dans dossier BASIC.
+	* Corrigé bogue dans commande **SERVO.EN**  la routine utilise **Y** mais ne préservait pas la valeur.
+
+
 ### 2023-04-23
 
 * dernier test avec [BASIC/loop_test1.bas](BASIC/loop_test1.bas) 

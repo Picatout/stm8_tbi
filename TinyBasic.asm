@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=2
-	REV=1
+	REV=2
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -2990,10 +2990,12 @@ cmd_servo_enable:
 	jreq timer1_disable
 ; set TIMER1 pre-divisor to 8
 ; Ftimer=2Mhz 
+	pushw y 
 	ldw y,#7 
 ; Period=(x+1)/2e6=20msec
 	ldw x,#39999 ; period 
 	call timer1_setup
+	popw y 
 	_next 
 timer1_disable:
 ; disable TIMER1 
