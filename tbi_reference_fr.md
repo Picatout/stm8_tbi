@@ -356,9 +356,9 @@ nom|description
 [SERVO.POS](#servo-pos)| Commande de positionnement d'un servo-moteur.
 [SIZE](#size)| Commande qui affiche  l'information sur le programme actif.
 [SLEEP](#sleep)|Met le MCU en sommeil. Il peut-être réactivé par une interruption externe.
-[SPIEN](#spien)|Active un périphérique SPI
-[SPIRD](#spird)|Lecture du périphérique SPI
-[SPISEL](#spisel)|Sélectionne le périphérique SPI
+[SPI.EN](#spien)|Active un périphérique SPI
+[SPI.RD](#spird)|Lecture du périphérique SPI
+[SPI.SEL](#spisel)|Sélectionne le périphérique SPI
 [SPIWR](#spiwr)|Écriture sur un périphérique SPI.
 [STEP](#step)|Détermine l'incrément dans une boucle FOR..NEXT.
 [STOP](#stop)|Arrête l'exécution d'un programme et renvoie à la ligne de commande.
@@ -1888,15 +1888,31 @@ Si le bouton **RESET** avait été utilisé le MCU aurait été réinitialisé.
 
 [index](#index)
 <a id="spien"></a>
-### SPIEN *div*,*0|1*
-Commande pour activer le périphérique SPI l'interface matérielle du SPI est sur les broches **D10**, **D11**, **D12** et **D13** du connecteur **CN8**. L'argument *div* détermine la fréquence d'horloge du SPI. C'est une nombre entre **0** et **7**. La fréquence Fspi=Fsys/2^(div+1). Donc pour zéro Fspi=Fsys/2 et pour 7 Fspi=Fsys/256. Le deuxième argument détermine s'il s'agit d'une activation **1** ou d'une désactivation **0** du périphérique.   
+### SPI.EN *0|1* [,*div*]  {C,P}    
+
+Non disponible sur NUCLEO-S207K8
+
+Cette commande sert à activer le périphérique SPI. 
+
+* *0|1*   *0* désactive le périphérique,  *1* l'active 
+
+* *div*   valeurs {0..7} indique le diviseur de fréquence. La fréquence d'horlogue du SPI est
+<br>Fspi=Fmstr/(2^(div+1)). Ce paramètre est optionnel et la valeur par défaut est **0** pour la fréquence maximale de Fmstr/2.  **ATTENTION** ce paramètre ne doit pas être fourni lorsque le premier paramètre est **0**. 
+
+### brochage carte NUCLEO-8S208RB 
+signal<br>SPI|CONN.|nom<BR>broche 
+-|-|-
+~CS|CN8:3|D10
+SCLK|CN8:6|D13
+MISO|CN8:5|D12
+MOSI|CN8:4|D11
 
 [index](#index)
 <a id="spisel"></a>
-### SPISEL *1|0* 
-Comme il peut y avoir plusieurs dispositifs branchés sur un bus SPI il faut un mécanisme pour sélectionné celui avec lequel la communication doit s'établir. Les dispositifs SPI possèdent à cet effet une proche appellée **~CS** *chip select* Le **~** signifit que le dispositif est sélectionné lorsque le niveau est à zéro. Cependant Pour la commande **SPISEL** l'argument **1** signfit que la broche est mise à **0** i.e. dispositif sélectionné et **0** signifit l'inverse. 
+### SPI.SEL *1|0* 
+Comme il peut y avoir plusieurs dispositifs branchés sur un bus SPI il faut un mécanisme pour sélectionner celui avec lequel la communication doit s'établir. Les dispositifs SPI possèdent à cet effet une proche appellée **~CS** *chip select* Le **~** signifit que le dispositif est sélectionné lorsque le niveau est à zéro. Cependant Pour la commande **SPISEL** l'argument **1** signifit que la broche est mise à **0** i.e. dispositif sélectionné et **0** signifit l'inverse. 
 ```
-10 SPIEN 0,1 'activation du périphérique SPI. 
+10 SPIEN 1 'activation du périphérique SPI. 
 20 SPISEL 1  ' sélection du dispositif externe.  
 30 SPIWR 5   ' écriture de nombre 5.
 40 ? SPIRD   ' Lecture d'un octet de réponse.
@@ -1905,41 +1921,51 @@ Comme il peut y avoir plusieurs dispositifs branchés sur un bus SPI il faut un 
 
 [index](#index)
 <a id="spird"></a>
-### SPIRD 
+### SPI.RD 
 Cette fonction lit un octet à partir du périphérique SPI. Cet octet est retourné comme entier.
 
 [index](#index)
 <a id="spiwr"></a>
-### SPIWR *byte* [, byte] 
-Cette commande permet d'envoyer un ou plusieurs octets vers le périphérique SPI. Le programme suivant illustre l'utilisation de l'interface SPI avec une mémoire externe EEPROM 25LC640. Le programme active l'interface SPI à la fréquence de 2Mhz (16Mhz/2^(2+1)). Ensuite doit activé le bit **WEL** du **25LC640** pour authorizer l'écriture dans l'EEPROM. Cette EEPROM est configurée en page de 32 octets. On écris donc 32 octets au hazard à partir de l'adresse zéro. pour ensuite refaire la lecture de ces 32 octets et les affichés à l'écran. 
+### SPI.WR *byte* [, byte] 
+Cette commande permet d'envoyer un ou plusieurs octets vers le périphérique SPI. Le programme suivant illustre l'utilisation de l'interface SPI avec une mémoire externe EEPROM 25LC640. Le programme active l'interface SPI à la fréquence de Fmstr/8. Ensuite le bit **WEL** du **25LC640** est activé pour authoriser l'écriture dans l'EEPROM. On écris 16 octets au hazard à partir de l'adresse zéro. pour ensuite refaire la lecture de ces 16 octets et les affichés à l'écran. Les 2 listes doivent-être identiques.
 ```
->li 
-   10 SPIEN 2,1' spi clock 2Mhz
-   20 SPISEL 1:SPIWR 6:SPISEL 0 'active bit WEL dans l'EEPROM 
-   22 SPISEL 1:SPIWR 5:IF NOT (AND (SPIRD ,2)):GOTO 200
-   24 SPISEL 0
-   30 SPISEL 1:SPIWR 2,0,0
-   40 FOR I =0TO 31:SPIWR RND (256):NEXT I 
-   42 SPISEL 0
-   43 GOSUB 100' wait for write completed 
-   44 SPISEL 1:SPIWR 3,0,0
-   46 HEX :FOR I =0TO 31:PRINT SPIRD ,:NEXT I 
-   50 SPISEL 0
-   60 SPIEN 0,0
-   70 END  
-   90 ' wait for write completed 
-  100 SPISEL 1:SPIWR 5:S =SPIRD :SPISEL 0
-  110 IF AND (S ,1):GOTO 100
+>LIST
+    1 SPI.EEPROM 
+    4 ' test SPI with 25LC640 EEPROM 
+   10 SPI.EN 1 , 2 ' Fspi=Fmstr/8
+   14 SPI.SEL 1 : SPI.WR 6 : SPI.SEL 0 'enable WEL bit in EEPROM 
+   18 SPI.SEL 1 : SPI.WR 5 : IF ( SPI.RD AND 2 ) : GOTO 26 
+   22 GOTO 200 
+   26 SPI.SEL 0 
+   30 ? "writing 16 random values to EEPROM\n{" 
+   34 SPI.SEL 1 : SPI.WR 2 , 0 , 0 
+   38 FOR I = 0 TO 15 
+   42 LET D = RND ( 256 ) : ? D ; : SPI.WR D : NEXT I : ? "}" 
+   46 SPI.SEL 0 
+   50 GOSUB 100 ' wait for write completed 
+   54 SPI.SEL 1 : SPI.WR 3 , 0 , 0 
+   58 ? "\nreading back EEPROM\n{" 
+   62 FOR I = 0 TO 15 : ? SPI.RD ; : NEXT I : ? "}" 
+   66 SPI.SEL 0 : 
+   70 SPI.EN 0 
+   74 END 
+   98 ' wait for write completed 
+  100 SPI.SEL 1 : SPI.WR 5 : LET S = SPI.RD : SPI.SEL 0 
+  110 IF S AND 1 : GOTO 100 
   120 RETURN 
-  200 PRINT "Echec activation bit WEL dans l'EEPROM"
-  210 SPISEL 0
-  220 SPIEN 0,0
+  200 ? "failed to enable WEL bit in EEPROM " ; A 
+  210 SPI.SEL 0 ' deselect EEPROM 
+  220 SPI.EN 0 ' disable SPI 
+program address: $91, program size: 571 bytes in RAM memory
 
->run
- $3F $99 $19 $73 $4C $FE $B1 $66 $88 $7F $31 $FD $AD $BA $78 $1B $78 $2F $23 $59 $7D $C6 $2E $D0 $80 $7A $19 $E8 $53 $BC  $5 $AC
->run
- $A0 $AE $DD $32 $C5 $D6 $DB $43 $90 $CA $CF $60 $37 $B9 $D8 $C0  $7 $3B $AE $B2 $58 $5F $B5 $33 $8D $1D $7D $3F $94 $7D $FF $F3
->
+>RUN
+writing 16 random values to EEPROM
+{
+79 92 210 100 85 145 17 15 67 227 238 252 1 111 145 37 }
+reading back EEPROM
+{
+79 92 210 100 85 145 17 15 67 227 238 252 1 111 145 37 }
+
 ```
 
 [index](#index)

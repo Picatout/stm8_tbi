@@ -1,3 +1,17 @@
+### 2023-04-25
+
+* Débogué et tester les commandes de l'interface SPI.  
+
+* Modifié l'interface de la commande **SPI.EN** pour **SPI.EN 0|1 [, clkdiv].
+	*  **0**  désactive l'interface,  **1** active l'interface
+	*  **clkdiv** {0..7} est maintenant optionnel mais sa signification n'a pas changée. La valeur par défaut est **0** pour la fréquence maximale qui est Fspi = Fmstr/2.
+
+* Modfifié  commande **BIT** and factorisant *power2*   utile dans d'autres functions ou commandes.
+
+* Modififié  la fonction **BTEST()** qui appelle maintenant *power2*. 
+
+* Mise à jour des manuels de références.
+
 ### 2023-04-24
 
 * COMMANDES SPI à vérifier.

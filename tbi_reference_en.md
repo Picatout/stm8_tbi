@@ -311,10 +311,10 @@ name|description
 [SERVO.POS](#servo-pos)| Send a position command to servo-motor.
 [SIZE](#size)| Display address and size of active program.
 [SLEEP](#sleep)|Put MCU in low energy mode.
-[SPIEN](#spien)|Enable SPI peripheral.
-[SPIRD](#spird)|Read data from SPI peripheral.
-[SPISEL](#spisel)|Select SPI channel.
-[SPIWR](#spiwr)|Write data to SPI peripheral.
+[SPI.EN](#spien)|Enable SPI peripheral.
+[SPI.RD](#spird)|Read data from SPI peripheral.
+[SPI.SEL](#spisel)|Select SPI channel.
+[SPI.WR](#spiwr)|Write data to SPI peripheral.
 [STEP](#step)|Keyword used in FOR..NEXT loop to set increment.
 [STOP](#stop)|Stop program execution without resetting it.
 [TICKS](#ticks)|Return milliseconds coutn since power up.
@@ -1947,24 +1947,24 @@ If the **SLEEP** command is called inside a program and the MCU is woke up by an
 
 [index](#index)
 <a id="spien"></a>
-### SPIEN *div*,*0|1*  (NUCLEO-8S208RB only)
-This command enable the SPI peripheral.
+### SPI.EN *0|1* [,*div*]  (NUCLEO-8S208RB only)
+This command enable or disable the SPI peripheral.
 
-* *div*  clock frequency divisor {0..7}, Fspi=16Mhz/(2^div)+1 {2..256}.
-* *0|1*  **0** disable, **1** enable.
+* **0|1**  **0** disable, **1** enable.
+* **div**  clock frequency divisor {0..7}, Fspi=Fmstr/(2^(div+1)) {2..256}. This parameter is optionnal and default to **0** for maximum clock frequency. **WARNING:** when first parameter is **0** this must be omitted.
 
 ### NUCLEO-8S208RB pinout 
-SPI<BR>SIGNAL|CONN.
--|-
-~CS|CN8:3
-SCLK|CN8:6
-MISO|CN8:5
-MOSI|CN8:4
+SPI<BR>SIGNAL|CONN.|PIN<BR>NAME 
+-|-|-
+~CS|CN8:3|D10
+SCLK|CN8:6|D13
+MISO|CN8:5|D12
+MOSI|CN8:4|D11
 
 
 [index](#index)
 <a id="spisel"></a>
-### SPISEL *1|0*  (NUCLEO-8S208RB only)
+### SPI.SEL *1|0*  (NUCLEO-8S208RB only)
 This command is used to select or deselect SPI device.
 
 * *1|0*  The **~CS** pin follow the inverse of this value. 
@@ -1974,51 +1974,62 @@ This command is used to select or deselect SPI device.
 **1** enable peripheral.
 
 ```
-10 SPIEN 0,1 'enable SPI at 8Mhz. 
-20 SPISEL 1  ' Select the device.  
-30 SPIWR 5   ' write **5** to device.
-40 ? SPIRD   ' read value from device.
-50 SPISEL 0  ' deselect device. 
+10 SPI.EN 0,1 'enable SPI at Fspi=Fmstr/4. 
+20 SPI.SEL 1  ' Select the device.  
+30 SPI.WR 5   ' write **5** to device.
+40 ? SPI.RD   ' read value from device.
+50 SPI.SEL 0  ' deselect device. 
+60 SPI.EN 0   ' disable SPI interface.
 ```
 
 [index](#index)
 <a id="spird"></a>
-### SPIRD  (NUCLEO-8S208RB only)
+### SPI.RD  (NUCLEO-8S208RB only)
 This function return a byte read from an SPI device. 
 
 [index](#index)
 <a id="spiwr"></a>
-### SPIWR *byte* [, byte]  (NUCLEO-8S208RB only)
-This command write one or more bytes to SPI device.  The following program show the use of an 25LC640 SPI EEPROM. 
-Cette commande permet d'envoyer un ou plusieurs octets vers le périphérique SPI. Le programme suivant illustre l'utilisation de l'interface SPI avec une mémoire externe EEPROM 25LC640. Le programme active l'interface SPI à la fréquence de 2Mhz (16Mhz/2^(2+1)). Ensuite doit activé le bit **WEL** du **25LC640** pour authorizer l'écriture dans l'EEPROM. Cette EEPROM est configurée en page de 32 octets. On écris donc 32 octets au hazard à partir de l'adresse zéro. pour ensuite refaire la lecture de ces 32 octets et les affichés à l'écran. 
-```
->li 
-   10 SPIEN 2,1' spi clock 2Mhz
-   20 SPISEL 1:SPIWR 6:SPISEL 0 'enable WEL bit in EEPROM 
-   22 SPISEL 1:SPIWR 5:IF NOT (AND (SPIRD ,2)):GOTO 200
-   24 SPISEL 0
-   30 SPISEL 1:SPIWR 2,0,0
-   40 FOR I =0TO 31:SPIWR RND (256):NEXT I ' write 32 random values 
-   42 SPISEL 0
-   43 GOSUB 100' wait for write completed 
-   44 SPISEL 1:SPIWR 3,0,0
-   46 HEX :FOR I =0TO 31:PRINT SPIRD ,:NEXT I ' read back the written values
-   50 SPISEL 0
-   60 SPIEN 0,0
-   70 END  
-   90 ' wait for write completed 
-  100 SPISEL 1:SPIWR 5:S =SPIRD :SPISEL 0
-  110 IF AND (S ,1):GOTO 100
-  120 RETURN 
-  200 PRINT "failed to enable WEL bit in EEPROM"
-  210 SPISEL 0  ' deselect EEPROM 
-  220 SPIEN 0,0 ' disable SPI 
+### SPI.WR *byte* [, byte]  (NUCLEO-8S208RB only)
+This command write one or more bytes to SPI device.  The following program demonstrate the use of an 25LC640 SPI EEPROM. Writing 16 random values and reading them back.
 
->run
- $3F $99 $19 $73 $4C $FE $B1 $66 $88 $7F $31 $FD $AD $BA $78 $1B $78 $2F $23 $59 $7D $C6 $2E $D0 $80 $7A $19 $E8 $53 $BC  $5 $AC
->run
- $A0 $AE $DD $32 $C5 $D6 $DB $43 $90 $CA $CF $60 $37 $B9 $D8 $C0  $7 $3B $AE $B2 $58 $5F $B5 $33 $8D $1D $7D $3F $94 $7D $FF $F3
->
+```
+>>LIST
+    1 SPI.EEPROM 
+    4 ' test SPI with 25LC640 EEPROM 
+   10 SPI.EN 1 , 2 ' Fspi=Fmstr/8
+   14 SPI.SEL 1 : SPI.WR 6 : SPI.SEL 0 'enable WEL bit in EEPROM 
+   18 SPI.SEL 1 : SPI.WR 5 : IF ( SPI.RD AND 2 ) : GOTO 26 
+   22 GOTO 200 
+   26 SPI.SEL 0 
+   30 ? "writing 16 random values to EEPROM\n{" 
+   34 SPI.SEL 1 : SPI.WR 2 , 0 , 0 
+   38 FOR I = 0 TO 15 
+   42 LET D = RND ( 256 ) : ? D ; : SPI.WR D : NEXT I : ? "}" 
+   46 SPI.SEL 0 
+   50 GOSUB 100 ' wait for write completed 
+   54 SPI.SEL 1 : SPI.WR 3 , 0 , 0 
+   58 ? "\nreading back EEPROM\n{" 
+   62 FOR I = 0 TO 15 : ? SPI.RD ; : NEXT I : ? "}" 
+   66 SPI.SEL 0 : 
+   70 SPI.EN 0 
+   74 END 
+   98 ' wait for write completed 
+  100 SPI.SEL 1 : SPI.WR 5 : LET S = SPI.RD : SPI.SEL 0 
+  110 IF S AND 1 : GOTO 100 
+  120 RETURN 
+  200 ? "failed to enable WEL bit in EEPROM " ; A 
+  210 SPI.SEL 0 ' deselect EEPROM 
+  220 SPI.EN 0 ' disable SPI 
+program address: $91, program size: 571 bytes in RAM memory
+
+>RUN
+writing 16 random values to EEPROM
+{
+79 92 210 100 85 145 17 15 67 227 238 252 1 111 145 37 }
+reading back EEPROM
+{
+79 92 210 100 85 145 17 15 67 227 238 252 1 111 145 37 }
+
 ```
 
 [index](#index)

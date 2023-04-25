@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=2
-	REV=3
+	REV=4
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -1202,7 +1202,7 @@ and_factor:
 1$:	cp a,#NOT_IDX  
 	jrne 2$ 
 	cpl (NOT_OP,sp)
-	jra 4$ 
+	_next_token
 2$:	cp a,#LPAREN_IDX 
 	jrne 3$
 	call condition 
@@ -1210,7 +1210,7 @@ and_factor:
 	ld a,#RPAREN_IDX
 	call expect 
 	pop a
-	jra 8$ 
+	jra 5$
 3$:
 	_unget_token 
 4$:
@@ -2174,30 +2174,23 @@ cmd_bit_toggle:
 ; 	addr 		memory address RAM|PERIPHERAL 
 ;   bit 	    bit position {0..7}  
 ; output:
-;	A:X       bit value  
+;	A:X       0|1 bit value  
 ;--------------------------
-	MASK=1 
-	ADDR=MASK+INT_SIZE 
+	P2=1 
+	ADDR=P2+INT_SIZE 
 func_bit_test:
 	call func_args 
 	cp a,#2
 	jreq 0$
 	jp syntax_error
 0$:	
-	_i24_fetch 1 ; bit to test 
+	_i24_fetch P2 ; bit to test 
 	ld a,xl 
-	and a,#7
-	ld (1,sp),a   
-; create mask by shifting left 
-; until cnt=0 
-	ld a,#1 
-1$: tnz (1,sp)
-	jreq 2$
-	sll a 
-	dec (1,sp)
-	jra 1$
+	and a,#7 
+	call power2 
+	ld a,xl 
 2$: ld (1,sp),a  
-	_i24_fetch 4 ; address  
+	_i24_fetch ADDR ; address  
 	ld a,(1,sp) 
 	and a,(x)
 	jreq 3$
@@ -4467,6 +4460,30 @@ func_log2:
 9$:	
 	ret 
 
+;---------------------------
+; return power of 2
+; input:
+;    A    exponent {0..23}
+; output:
+;    A:X    2^exp 
+;---------------------------
+power2:
+	cp a,#24 
+	jrmi 1$
+	ld a,#23 
+1$: push a 
+	clr a 
+	ldw x,#1 
+2$: tnz (1,sp)
+	jreq 9$
+3$:
+	slaw x 
+	rlc a 
+	dec (1,sp)
+	jrne 3$ 
+9$: _drop 1 
+	ret
+
 ;-----------------------------------
 ; BASIC: BIT(expr) 
 ; expr ->{0..23}
@@ -4481,22 +4498,8 @@ func_bitmask:
 	jp syntax_error 
 1$: _i24_pop 
 	ld a,xl 
-	ldw x,#1
-	tnz a 
-	jreq 9$ 
-	cp a,#24 
-	jrmi 2$ 
-	ld a,#23
-2$:	push a 
-	clr a 
-3$: 
-	slaw x 
-	rlc a 	
-	dec (1,sp)
-	jrne 3$ 
-4$:
-    _drop 1 
-9$:	ret  
+	call power2 
+	ret  
 
 ;------------------------------
 ; BASIC: DO 
@@ -4785,28 +4788,30 @@ read01:
 
 .if NUCLEO_8S208RB
 ;---------------------------------
-; BASIC: SPI.EN clkdiv, 0|1  
+; BASIC: SPI.EN 0|1 [,clkdiv]  
 ; clkdiv -> {0..7} Fspi=Fclk/2^(n+1)
 ; if clkdiv==-1 disable SPI
 ; 0|1 -> disable|enable  
 ;--------------------------------- 
-	CLKDIV=1
-	ON_OFF=CLKDIV+INT_SIZE 
-	VSIZE=2*INT_SIZE 
 SPI_CS_BIT=5
 cmd_spi_enable:
-	call arg_list 
-	cp a,#2
-	jreq 1$
-	jp syntax_error 
-1$: 
-	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
-	ld a,(ON_OFF+2,SP)
+	call expect_integer
+	tnzw x 
 	jreq spi_disable 
-	_i24_fetch CLKDIV 
+	_next_token
+	cp a,#COMMA_IDX 
+	jreq 1$ 
+	_unget_token
+	clrw x 
+	jra 2$  
+1$: 
+	call expect_integer 
+2$:
+	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
 	ld a,#(1<<SPI_CR1_BR)
 	mul x,a 
 	ld a,xl 
+	and a,#7 
 	ld SPI_CR1,a 
 ; configure ~CS on PE5 (D10 on CN8) as output. 
 	bset PE_ODR,#SPI_CS_BIT	; set ~CS high  
@@ -4818,18 +4823,14 @@ cmd_spi_enable:
     bset SPI_CR2,#SPI_CR2_SSI 
 ; enable SPI
 	bset SPI_CR1,#SPI_CR1_SPE 	
-	_drop VSIZE   
 	_next 
+
 spi_disable:
 ; wait spi idle 
-1$:	ld a,#0x82 
-	and a,SPI_SR
-	cp a,#2 
-	jrne 1$
+	btjt SPI_SR,#SPI_SR_BSY,.
 	bres SPI_CR1,#SPI_CR1_SPE
 	bres CLK_PCKENR1,#CLK_PCKENR1_SPI 
 	bres PE_DDR,#SPI_CS_BIT 
-	_drop VSIZE 
 	_next 
 
 spi_clear_error:
@@ -4860,7 +4861,7 @@ spi_rcv_byte:
 ; write 1 or more byte
 ;------------------------------
 cmd_spi_write:
-	call expression
+	call condition
 1$:	
 	ld a,xl 
 	call spi_send_byte 
@@ -4868,10 +4869,8 @@ cmd_spi_write:
 	cp a,#COMMA_IDX 
 	jrne 2$ 
 	jra cmd_spi_write 
-2$:	tnz a 
-	jreq 3$
-	_unget_token  
-3$:	_next 
+2$:	_unget_token  
+	_next 
 
 
 ;-------------------------------
@@ -4883,7 +4882,7 @@ func_spi_read:
 	clrw x 
 	ld xl,a 
 	clr a
-	ret   
+	ret  
 
 ;------------------------------
 ; BASIC: SPI.SEL 0|1 
@@ -4891,16 +4890,13 @@ func_spi_read:
 ; 0|1 deselect|select  
 ;------------------------------
 cmd_spi_select:
-	_next_token 
-	cp a,#LITC_IDX 
-	jreq 1$
-	jp syntax_error 
-1$: _get_char 
+	call expect_integer 
 	tnzw x  
 	jreq cs_high 
+; select 	
 	bres PE_ODR,#SPI_CS_BIT
 	_next  
-cs_high: 
+cs_high: ; deselect 
 	bset PE_ODR,#SPI_CS_BIT
 	_next 
 .endif 
