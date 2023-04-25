@@ -180,9 +180,10 @@ NonHandledInterrupt:
 ; after halt instruction
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 AWUHandler:
+	ld a,AWU_CSR 
 	bres AWU_CSR,#AWU_CSR_AWUEN
-	mov AWU_APR,#0x3F
-	clr AWU_TBR 
+	clr AWU_APR  
+	clr AWU_TBR
 	iret
 
 ;------------------------------------

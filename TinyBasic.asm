@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=3
 	MINOR=2
-	REV=2
+	REV=3
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -1842,14 +1842,15 @@ cmd_edit:
 	call cmd_line_only
 	ld a,#LABEL_IDX 
 	call expect  
-	pushw x 
+	pushw y
 	call skip_string
 	popw x 
+	pushw y 
 	call search_program 
     jrne 1$ 
 	ldw x,#ERR_NOT_FILE 
 	jp tb_error 
-1$: pushw y 
+1$: 
 	ldw y,x ; file address 
 	ldw x,(2,x) ; program size 
 	addw x,#FILE_HEADER_SIZE  
@@ -1962,7 +1963,7 @@ trap
 ; entry point of both 
 ; routine. 
 ;---------------------
-	CTXT_SIZE=5 ; size of saved data 
+	CTXT_SIZE=4 ; size of saved data 
 ;--------------------
 ; save current BASIC
 ; interpreter context 
@@ -2513,7 +2514,6 @@ kword_on:
 	jreq 7$ 
 ; can be a line# or a label 
 	_next_token 
-; _tp 'A 
 	cp a,#LIT_IDX 
 	jreq 3$
 	cp a,#LITC_IDX 
@@ -3315,15 +3315,9 @@ kword_stop:
 	call puts 
 	_vars CTXT_SIZE ; context size 
 	call save_context 
-	ldw x,#tib 
-	ldw basicptr,x
-	clr (x)
-	_clrz count  
-	clrw x 
-	ldw in.w,x
 	bres flags,#FRUN 
 	bset flags,#FBREAK
-	_next 
+	jp cmd_line  
 break_point: .asciz "\nbreak point, RUN to resume.\n"
 
 ;-----------------------
@@ -3583,7 +3577,6 @@ check_forbidden:
 	jrne rw_zone 
 ; memory 0x8000..0xffff	
 	_ldxz ptr16 
-_tp 'A 
 	cpw x,#app_space
 	jruge rw_zone 
 	cpw x,#OPTION_END  
@@ -3613,7 +3606,6 @@ rw_zone:
 ;---------------------
 cmd_write:
 	call expression
-_tp 'B 
 	_straz farptr 
 	_strxz ptr16
 	call check_forbidden 
@@ -3636,24 +3628,18 @@ _tp 'B
 	call write_byte
 	jra 1$ 
 4$: ; write character 
-	ld a,(x)
-	incw x 
-	_strxz basicptr 
+	_get_char 
 	clrw x 
 	call write_byte 
 	jra 1$ 
 6$: ; write string 
-	pushw y 
-	ldw y,x
-7$:	ld a,(y)
-	incw y 
 	clrw x 
-	call write_byte 
-	ld a,(y)
-	jrne 7$
+7$:	ld a,(y)
+	jreq 8$ 
 	incw y 
-	ldw basicptr,y 
-	popw y 
+	call write_byte 
+	jra 7$ 
+8$:	incw y 
 	jra 1$ 	
 9$:
 	_next 
@@ -3708,7 +3694,7 @@ func_ascii:
 	_call_code 
 	jra 4$
 1$: ; quoted string 
-	ld a,(x)
+	ld a,(y)
 	push a  
 	call skip_string
 	pop a  	
@@ -3870,10 +3856,11 @@ cmd_pause:
 ;  none:
 ;------------------------------
 cmd_awu:
-  call expression
+  btjf UART_SR,#UART_SR_TC,.
+  btjt UART_SR,#UART_SR_RXNE,.
+  call expression 
 awu02:
-  mov AWU_TBR,#1
-  _i24_pop 
+  mov acc8,#1 
   cpw x,#30720
   jrule 0$ 
   ld a,#ERR_BAD_VALUE
@@ -3881,7 +3868,7 @@ awu02:
 0$:
   cpw x,#5120
   jrmi 1$ 
-  mov AWU_TBR,#15 
+  mov acc8,#15 
 ; divisor is x/480
   ld a,#30
   div x,a
@@ -3891,18 +3878,18 @@ awu02:
 1$: 
   cpw x,#2048
   jrmi 2$ 
-  mov AWU_TBR,#14
+  mov acc8,#14
 ; divisor is x/80 
   ld a,#80
   div x,a 
   jra 4$   
 2$:
-  mov AWU_TBR,#7
+  mov acc8,#7
 3$:  
 ; while X > 64  divide by 2 and increment AWU_TBR 
   cpw x,#64 
   jrule 4$ 
-  inc AWU_TBR 
+  inc acc8  
   srlw x 
   jra 3$ 
 4$:
@@ -3912,9 +3899,15 @@ awu02:
   dec a 	
 5$: 
   and a,#0x3e 
-  ld AWU_APR,a 
+  ld AWU_APR,a
+  mov AWU_TBR,acc8 
   bset AWU_CSR,#AWU_CSR_AWUEN
-  halt ; HSI stopped 
+  halt ; oscillator stopped 
+.if HSI 
+	btjf CLK_ICKR,#CLK_ICKR_HSIRDY,. 
+.else 
+	btjf CLK_ECKR,#CLK_ECKR_HSERDY,. 
+.endif  
   _next  
 
 ;------------------------------
@@ -4488,16 +4481,19 @@ func_bitmask:
 	jp syntax_error 
 1$: _i24_pop 
 	ld a,xl 
-	ldw x,#1 
-	and a,#23
-	jreq 9$
-	push a 
+	ldw x,#1
+	tnz a 
+	jreq 9$ 
+	cp a,#24 
+	jrmi 2$ 
+	ld a,#23
+2$:	push a 
 	clr a 
-2$: 
+3$: 
 	slaw x 
 	rlc a 	
 	dec (1,sp)
-	jrne 2$ 
+	jrne 3$ 
 4$:
     _drop 1 
 9$:	ret  
@@ -4933,9 +4929,7 @@ cmd_auto_run:
 	jreq set_autorun  
 	cp a,#BSLASH_IDX 
 	jrne 0$ 
-	ld a,(y)
-	incw y 
-	ldw basicptr,y 
+	_get_char
 	and a,#0xDF 
 	cp a,#'C 
 	jreq clear_autorun 
@@ -5005,7 +4999,6 @@ cmd_chain:
 	jp tb_error 
 1$: addw x,#FILE_HEADER_SIZE 
 	ldw (CHAIN_ADDR,sp), x ; program addr 
-;_tp 'A 
     _next_token 
 	cp a,#COMMA_IDX 
 	jrne 5$

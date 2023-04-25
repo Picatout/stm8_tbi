@@ -1,7 +1,22 @@
 ### 2023-04-24
 
+* COMMANDES SPI à vérifier.
+
 * test tous les programmes dans dossier BASIC.
 	* Corrigé bogue dans commande **SERVO.EN**  la routine utilise **Y** mais ne préservait pas la valeur.
+
+* Corrigé bogue dans function **ASC()**, n'avait pas été mis à jour pour le nouveau modèle de VM.
+
+* Corrigé bogue dans commande **AWU**. 
+
+* Corrigé bogue dans fucntion **BIT(expr)**
+
+* Corrigé bogue dans commande **EDIT**. 
+
+* Corrigé bogue dans commande **STOP**. 
+
+* Corrigé bogue dand commande **WRITE**.
+
 
 
 ### 2023-04-23

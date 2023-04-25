@@ -2,9 +2,16 @@
 ;;  configuration parameters 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-DEBUG=0 ; set to 1 to include debugging code 
+DEBUG=1 ; set to 1 to include debugging code 
 
 WANT_IWDG=0 ; set to 1 to add words IWDGEN and IWDGREF 
+
+HSI=1 ; set this to 1 if using internal high speed oscillator  
+.if HSI 
+HSE=0
+.else
+HSE=1  
+.endif 
 
 FMSTR=16 ; master clock frequency in Mhz 
 
