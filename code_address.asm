@@ -126,7 +126,6 @@ code_addr:
 	_code_entry func_abs, ABS_IDX         ; $40 
     _code_entry func_analog_read, ADCREAD_IDX ; $41
     _code_entry func_ascii, ASC_IDX         ; $42
-    _code_entry func_bitmask, BIT_IDX       ; $43
     _code_entry func_bit_test, BTEST_IDX    ; $44
     _code_entry func_char, CHAR_IDX         ; $45 
     _code_entry func_digital_read, DREAD_IDX ; $46 

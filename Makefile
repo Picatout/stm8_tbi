@@ -11,7 +11,8 @@ INC=../inc/
 INCLUDES=$(BOARD_INC) $(INC)ascii.inc $(INC)gen_macros.inc cmd_idx.inc tbi_macros.inc dbg_macros.inc 
 BUILD=build/
 I2C=i2c.asm
-SRC=hardware_init.asm  debug_support.asm arithm24.asm flash_prog.asm files.asm terminal.asm code_address.asm compiler.asm $(I2C) decompiler.asm $(NAME).asm app.asm
+SRC=hardware_init.asm  debug_support.asm arithm24.asm flash_prog.asm files.asm\
+    terminal.asm code_address.asm compiler.asm $(I2C) decompiler.asm $(NAME).asm app.asm
 OBJECT=$(BUILD)$(BOARD)/$(NAME).rel
 OBJECTS=$(BUILD)$(BOARD)/$(SRC:.asm=.rel)
 LIST=$(BUILD)$(BOARD)/$(NAME).lst
@@ -21,24 +22,24 @@ FLASH=stm8flash
 .PHONY: all
 
 all: clean 
-	@echo
-	@echo "*************************************"
-	@echo "compiling $(NAME)  for $(BOARD)      "
-	@echo "*************************************"
+	#
+	# "*************************************"
+	# "compiling $(NAME)  for $(BOARD)      "
+	# "*************************************"
 	$(SDAS) -g -l -o $(BUILD)$(BOARD)/$(NAME).rel $(SRC) 
 	$(SDCC) $(CFLAGS) -Wl-u -o $(BUILD)$(BOARD)/$(NAME).ihx $(OBJECT) 
 	objcopy -Iihex -Obinary  $(BUILD)$(BOARD)/$(NAME).ihx $(BUILD)$(BOARD)/$(NAME).bin 
-	@echo 
+	# 
 	@ls -l  $(BUILD)$(BOARD)/$(NAME).bin 
-	@echo 
+	# 
 
 
 .PHONY: clean 
 clean:
-	@echo
-	@echo "***************"
-	@echo "cleaning files"
-	@echo "***************"
+	#
+	# "***************"
+	# "cleaning files"
+	# "***************"
 	rm -f $(BUILD)$(BOARD)/*
 
 test: 
@@ -60,10 +61,10 @@ usr_test:
 	$(SDAS) -g -l -o $(BUILD)$(BOARD)/square.rel square.asm  
 
 flash: $(LIB)
-	@echo
-	@echo "******************"
-	@echo "flashing $(BOARD) "
-	@echo "******************"
+	#
+	# "******************"
+	# "flashing $(BOARD) "
+	# "******************"
 	$(FLASH) -c $(PROGRAMMER) -p $(BOARD) -s flash -w $(BUILD)$(BOARD)/$(NAME).ihx 
 
 # read flash memory 

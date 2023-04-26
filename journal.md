@@ -1,3 +1,77 @@
+### 2023-04-26 
+
+* Modifié la sémantique des mots suivants: 
+	* **BSET addr, mask**  pour **BSET addr,bit** maintenant n'affect que le bit mentionné comme second paramètre.
+    * **BRES addr, mask**  pour **BSET addr,bit** maintenant n'affect que le bit mentionné comme second paramètre.
+	* **BTOGL addr, mask**  pour **BSET addr,bit** maintenant n'affect que le bit mentionné comme second paramètre.
+
+* Supprimé la fonction **BIT(n)** qui créait la valeur 2^n. Peut-être réalisé avec la fonction **LSHIFT(1,n)**. 
+
+* test de performance après modifictions et optimisation.
+```
+>list
+    1 ' test BSET,BRES,BTOGL speed 
+   10 ' FOR..NEXT overhead 
+   20 LET T = TICKS : FOR I = 1 TO 10000 : NEXT I : LET O = TICKS - T 
+   30 LET T = TICKS : FOR I = 1 TO 10000 : BSET 20490 , 5 : NEXT I : LET S = TICKS - T - O 
+   34 ? "10000 loops each." 
+   40 ? "BSET $500A,5: " ; S ; " msec" 
+   50 LET T = TICKS : FOR I = 1 TO 10000 : BRES 20490 , 5 : NEXT I : LET S = TICKS - T - O 
+   60 ? "BRES $500A,5: " ; S ; " msec" 
+   70 LET T = TICKS : FOR I = 1 TO 10000 : BTOGL 20490 , 7 : NEXT I : LET S = TICKS - T - O 
+   80 ? "BTOGL $500A,5: " ; S ; " msec" 
+   90 LET T = TICKS : FOR I = 1 TO 10000 : DWRITE 5 , 1 : NEXT I : LET S = TICKS - T - O 
+  100 ? "DWRITE 13,1: " ; S ; " msec" 
+  110 LET T = TICKS : FOR I = 1 TO 10000 : LET A = BTEST ( 20490 , 5 ) : NEXT I : LET S = TICKS - T - O 
+  120 ? "LET A=BTEST($500A,5):  " ; S ; " msec" 
+  130 LET T = TICKS : FOR I = 1 TO 10000 : LET A = DREAD ( 5 ) : NEXT I : LET S = TICKS - T - O 
+  140 ? "LET A=DREAD(13): " ; S ; " msec" 
+program address: $91, program size: 652 bytes in RAM memory
+
+>run
+10000 loops each.
+BSET $500A,5: 336  msec
+BRES $500A,5: 336  msec
+BTOGL $500A,5: 336  msec
+DWRITE 13,1: 348  msec
+LET A=BTEST($500A,5):  527  msec
+LET A=DREAD(13): 394  msec
+
+```
+
+
+* Test de performance sur commandes **BSET**, **BRES** et **BTOGL**
+```
+>list
+    1 ' test BSET,BRES,BTOGL speed 
+   10 ' FOR..NEXT overhead 
+   20 LET T = TICKS : FOR I = 1 TO 10000 : NEXT I : LET O = TICKS - T 
+   30 LET T = TICKS : FOR I = 1 TO 10000 : BSET 20490 , 32 : NEXT I : LET S = TICKS - T - O 
+   34 ? "10000 loops each." 
+   40 ? "BSET $500A,32: " ; S ; " msec" 
+   50 LET T = TICKS : FOR I = 1 TO 10000 : BRES 20490 , 5 : NEXT I : LET S = TICKS - T - O 
+   60 ? "BRES $500A,5: " ; S ; " msec" 
+   70 LET T = TICKS : FOR I = 1 TO 10000 : BTOGL 20490 , 32 : NEXT I : LET S = TICKS - T - O 
+   80 ? "BTOGL $500A,32: " ; S ; " msec" 
+   90 LET T = TICKS : FOR I = 1 TO 10000 : DWRITE 5 , 1 : NEXT I : LET S = TICKS - T - O 
+  100 ? "DWRITE 5,1: " ; S ; " msec" 
+  110 LET T = TICKS : FOR I = 1 TO 10000 : LET A = BTEST ( 20490 , 5 ) : NEXT I : LET S = TICKS - T - O 
+  120 ? "LET A=BTEST($500A,5):  " ; S ; " msec" 
+  130 LET T = TICKS : FOR I = 1 TO 10000 : LET A = DREAD ( 5 ) : NEXT I : LET S = TICKS - T - O 
+  140 ? "LET A=DREAD(5): " ; S ; " msec" 
+program address: $91, program size: 652 bytes in RAM memory
+
+>run
+10000 loops each.
+BSET $500A,32: 330  msec
+BRES $500A,5: 349  msec
+BTOGL $500A,32: 330  msec
+DWRITE 5,1: 351  msec
+LET A=BTEST($500A,5):  542  msec
+LET A=DREAD(5): 406  msec
+
+```
+
 ### 2023-04-25
 
 * Débogué et tester les commandes de l'interface SPI.  

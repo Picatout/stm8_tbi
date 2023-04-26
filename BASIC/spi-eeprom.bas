@@ -3,8 +3,7 @@ NEW
    4 ' test SPI with 25LC640 EEPROM 
    10 SPI.EN 1,2 ' Fspi=Fmstr/8
    14 SPI.SEL 1:SPI.WR 6:SPI.SEL 0 'enable WEL bit in EEPROM 
-   18 SPI.SEL 1:SPI.WR 5: IF (SPI.RD AND 2) :GOTO 26
-   22 GOTO 200 
+   18 SPI.SEL 1:SPI.WR 5: IF NOT SPI.RD AND 2 :GOTO 200
    26 SPI.SEL 0
    30 ? "writing 16 random values to EEPROM\n{"
    34 SPI.SEL 1:SPI.WR 2,0,0

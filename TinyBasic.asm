@@ -839,9 +839,10 @@ expect:
 ; between ()
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 func_args:
-	ld a,#LPAREN_IDX 
-	call expect 
-	jp arg_list 
+	_next_token 
+	cp a,#LPAREN_IDX 
+	jreq arg_list 
+	jp syntax_error 
 
 ; expected to continue in arg_list 
 ; caller must check for RPAREN_IDX 
@@ -1184,6 +1185,7 @@ relation:
 8$:
 	_i24_fetch N1 
 9$: 
+
 	_drop VSIZE
 	ret 
 
@@ -2089,78 +2091,88 @@ cmd_wait:
 	_drop VSIZE 
 	_next 
 
+; table of power of 2 for {0..7}
+power2: .byte 1,2,4,8,16,32,64,128
 
 ;---------------------
-; BASIC: BSET addr,mask
-; set bits at 'addr' corresponding 
-; to those of 'mask' that are at 1.
+; BASIC: BSET addr,#bit
+; set bit at 'addr' corresponding 
+; correspond to macchine with same name 
+; 2^^bit or [addr]
 ; arguments:
-; 	addr 		memory address RAM|PERIPHERAL 
-;   mask        mask|addr
+; 	addr 	memory address RAM|PERIPHERAL 
+;   bit		{0..7}
 ; output:
 ;	none 
 ;--------------------------
-	MASK=1 
-	ADDR=MASK+INT_SIZE 
+	BIT=1 
+	ADDR=BIT+INT_SIZE 
 cmd_bit_set:
 	call arg_list 
 	cp a,#2	 
 	jreq 1$ 
 	jp syntax_error
 1$: 
-	_i24_fetch ADDR 
-	ld a,(MASK+2,SP)
-	or a,(x)
-	ld (x),a
+	ldw x,#power2
+	addw x,(BIT+1,sp) 
+	ld a,(x)
+	ldw x,(ADDR+1,sp)
+    or a,(x)
+	ld (x),a 
 	_drop 2*INT_SIZE 
 	_next 
 
 ;---------------------
-; BASIC: BRES addr,mask
-; reset bits at 'addr' corresponding 
-; to those of 'mask' that are at 1.
+; BASIC: BRES addr,#bit 
+; reset a bit at 'addr'  
+; correspond to macchine with same name 
+; ~2^^bit and [addr]
 ; arguments:
-; 	addr 		memory address RAM|PERIPHERAL 
-;   mask	    ~mask&*addr  
+; 	addr 	memory address RAM|PERIPHERAL 
+;   bit 	{0..7}  
 ; output:
 ;	none 
 ;--------------------------
-	MASK=1 
-	ADDR=MASK+INT_SIZE 
+	BIT=1 
+	ADDR=BIT+INT_SIZE 
 cmd_bit_reset:
 	call arg_list 
 	cp a,#2  
 	jreq 1$ 
 	jp syntax_error
-1$: 
-	_i24_fetch ADDR 
-	ld a,(MASK+2,sp)
-	cpl a
+1$:  
+	ldw x,#power2
+	addw x,(BIT+1,sp) 
+	ld a,(x)
+	cpl a 
+	ldw x,(ADDR+1,sp)
 	and a,(x)
 	ld (x),a 
 	_drop 2*INT_SIZE 
 	_next 
 
 ;---------------------
-; BASIC: BTOGL addr,mask
-; toggle bits at 'addr' corresponding 
-; to those of 'mask' that are at 1.
+; BASIC: BTOGL addr,bit 
+; toggle bit at 'addr' corresponding 
+; 2^^bit xor [addr]
 ; arguments:
-; 	addr 		memory address RAM|PERIPHERAL 
-;   mask	    mask^*addr  
+; 	addr 	memory address RAM|PERIPHERAL 
+;   bit	    bit to invert      
 ; output:
 ;	none 
 ;--------------------------
-	MASK=1 
-	ADDR=MASK+INT_SIZE 
+	BIT=1 
+	ADDR=BIT+INT_SIZE 
 cmd_bit_toggle:
 	call arg_list 
 	cp a,#2 
 	jreq 1$ 
 	jp syntax_error
 1$: 
-	_i24_fetch ADDR 
-	ld a,(MASK+2,SP)
+	ldw x,#power2
+	addw x,(BIT+1,sp) 
+	ld a,(x)
+	ldw x,(ADDR+1,sp) 
 	xor a,(x)
 	ld (x),a 
 	_drop 2*INT_SIZE 
@@ -2176,28 +2188,24 @@ cmd_bit_toggle:
 ; output:
 ;	A:X       0|1 bit value  
 ;--------------------------
-	P2=1 
-	ADDR=P2+INT_SIZE 
+	BIT=1 
+	ADDR=BIT+INT_SIZE 
 func_bit_test:
 	call func_args 
 	cp a,#2
 	jreq 0$
 	jp syntax_error
 0$:	
-	_i24_fetch P2 ; bit to test 
-	ld a,xl 
-	and a,#7 
-	call power2 
-	ld a,xl 
-2$: ld (1,sp),a  
-	_i24_fetch ADDR ; address  
-	ld a,(1,sp) 
-	and a,(x)
-	jreq 3$
-	ld a,#1 
-3$:	clrw x 
-	ld xl,a
-	clr a  
+	ldw x,#power2 
+	addw x,(BIT+1,sp)
+	ld a,(x)
+	ldw x,(ADDR+1,sp)   
+    and a,(x) 
+	jreq 1$
+	ld a,#1
+1$:	 
+	clrw x 
+	rlwa x 
 	_drop 2*INT_SIZE 
 	ret 
 
@@ -3214,15 +3222,13 @@ func_analog_read:
 ; output:
 ;    A:X      0|1 
 ;-------------------------
-	PINNO=1
-	VSIZE=1
+	PINNO=2
 func_digital_read:
-	_vars VSIZE 
 	call func_args
 	cp a,#1
 	jreq 1$
 	jp syntax_error
-1$: _i24_pop 
+1$: ldw x,(PINNO,sp) 
 .if NUCLEO_8S208RB
 	cpw x,#15 
 .endif 	
@@ -3236,15 +3242,13 @@ func_digital_read:
 	call select_pin 
 	ld (PINNO,sp),a
 	ld a,(GPIO_IDR,x)
-	tnz (PINNO,sp)
-	jreq 8$
-3$: srl a 
-	dec (PINNO,sp)
-	jrne 3$ 
-8$: and a,#1 
 	clrw x 
+	and a,(PINNO,sp)
+	jreq 9$ 
+	ld a,#1
 	rlwa x 
-	_drop VSIZE
+9$:
+	_drop INT_SIZE 
 	ret 
 
 
@@ -3263,7 +3267,7 @@ cmd_digital_write:
 	jreq 1$
 	jp syntax_error
 1$:
-	_i24_fetch PINNO 
+	ldw x,(PINNO+1,sp) 
 .if NUCLEO_8S208RB	
 	cpw x,#15 
 .endif 
@@ -3274,14 +3278,7 @@ cmd_digital_write:
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
 2$:	call select_pin 
-	ld (PINNO,sp),a 
-	ld a,#1
-	tnz (PINNO,sp)
-	jreq 4$
-3$: sll a
-	dec (PINNO,sp)
-	jrne 3$
-4$: tnz (PINVAL+2,sp)
+    tnz (PINVAL+2,sp)
 	jrne 5$
 	cpl a 
 	and a,(GPIO_ODR,x)
@@ -4124,41 +4121,41 @@ addw x,#arduino_to_8s207
 .if NUCLEO_8S208RB	
 ; translation from Arduino D0..D15 to NUCLEO_8S208RB 
 arduino_to_8s208:
-.byte 3,6 ; D0 
-.byte 3,5 ; D1 
-.byte 4,0 ; D2 
-.byte 2,1 ; D3
-.byte 6,0 ; D4
-.byte 2,2 ; D5
-.byte 2,3 ; D6
-.byte 3,1 ; D7
-.byte 3,3 ; D8
-.byte 2,4 ; D9
-.byte 4,5 ; D10
-.byte 2,6 ; D11
-.byte 2,7 ; D12
-.byte 2,5 ; D13
-.byte 4,2 ; D14
-.byte 4,1 ; D15
+.byte 3,1<<6 ; D0 
+.byte 3,1<<5 ; D1 
+.byte 4,1<<0 ; D2 
+.byte 2,1<<1 ; D3
+.byte 6,1<<0 ; D4
+.byte 2,1<<2 ; D5
+.byte 2,1<<3 ; D6
+.byte 3,1<<1 ; D7
+.byte 3,1<<3 ; D8
+.byte 2,1<<4 ; D9
+.byte 4,1<<5 ; D10
+.byte 2,1<<6 ; D11
+.byte 2,1<<7 ; D12
+.byte 2,1<<5 ; D13
+.byte 4,1<<2 ; D14
+.byte 4,1<<1 ; D15
 .endif 
 
 .if NUCLEO_8S207K8	
 ; translation from Arduino D0..D12 to NUCLEO_8S207K8
 arduino_to_8s207:
-.byte 3,5 ; D0 
-.byte 3,6 ; D1 
-.byte 3,0 ; D2 
-.byte 2,1 ; D3
-.byte 3,2 ; D4
-.byte 2,2 ; D5
-.byte 2,3 ; D6
-.byte 0,1 ; D7
-.byte 0,2 ; D8
-.byte 2,4 ; D9
-.byte 3,4 ; D10
-.byte 3,3 ; D11
-.byte 2,7 ; D12
-.byte 2,5 ; D13 
+.byte 3,1<<5 ; D0 
+.byte 3,1<<6 ; D1 
+.byte 3,1<<0 ; D2 
+.byte 2,1<<1 ; D3
+.byte 3,1<<2 ; D4
+.byte 2,1<<2 ; D5
+.byte 2,1<<3 ; D6
+.byte 0,1<<1 ; D7
+.byte 0,1<<2 ; D8
+.byte 2,1<<4 ; D9
+.byte 3,1<<4 ; D10
+.byte 3,1<<3 ; D11
+.byte 2,1<<7 ; D12
+.byte 2,1<<5 ; D13 
 .endif 
 
 
@@ -4460,46 +4457,6 @@ func_log2:
 9$:	
 	ret 
 
-;---------------------------
-; return power of 2
-; input:
-;    A    exponent {0..23}
-; output:
-;    A:X    2^exp 
-;---------------------------
-power2:
-	cp a,#24 
-	jrmi 1$
-	ld a,#23 
-1$: push a 
-	clr a 
-	ldw x,#1 
-2$: tnz (1,sp)
-	jreq 9$
-3$:
-	slaw x 
-	rlc a 
-	dec (1,sp)
-	jrne 3$ 
-9$: _drop 1 
-	ret
-
-;-----------------------------------
-; BASIC: BIT(expr) 
-; expr ->{0..23}
-; return 2^expr 
-; output:
-;    A:X    2^expr 
-;-----------------------------------
-func_bitmask:
-    call func_args 
-	cp a,#1
-	jreq 1$
-	jp syntax_error 
-1$: _i24_pop 
-	ld a,xl 
-	call power2 
-	ret  
 
 ;------------------------------
 ; BASIC: DO 
@@ -5281,7 +5238,6 @@ dict_end:
 	_dict_entry,5,"BTEST",BTEST_IDX 
 	_dict_entry,4,"BSET",BSET_IDX
 	_dict_entry,4,"BRES",BRES_IDX
-	_dict_entry,3,"BIT",BIT_IDX
 	_dict_entry,3,"AWU",AWU_IDX 
 	_dict_entry,7,"AUTORUN",AUTORUN_IDX
 	_dict_entry,3,"ASC",ASC_IDX
