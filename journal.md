@@ -1,5 +1,10 @@
 ### 2023-04-26 
 
+* Mise à jour des manuels de référence.
+
+* Ajout de la commande **RANDOMIZE expr**  
+	* si expr=0  le seed est initialisé avec la valeur de la variables *ticks*
+
 * En remplacant **call condition** par **call expression** dans la routine *arg_list*  la performance s'améliore grandement:
 ```
 >run

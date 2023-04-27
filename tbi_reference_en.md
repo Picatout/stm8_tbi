@@ -223,7 +223,6 @@ name|description
 [ASC](#asc)|Return ASCII value of a character.
 [AUTORUN](#autorun)|Enable or disable program auto run.
 [AWU](#awu)| Put board in sleep mode for some msec.
-[BIT](#bit)| Compute 2^bit. 
 [BRES](#bres)|Reset a bit in a peripheral register.
 [BSET](#bset)|Set a bit in a peripheral register.
 [BTEST](#btest)|Return the state of a bit in a peripheral register.
@@ -296,7 +295,8 @@ name|description
 [PORTI](#portx)|Return base address GPIO I
 [PWM.CH.EN](#pwm.ch.en)| Enable PWM channel.
 [PWM.EN](#pwm.en)| Enable PWM controls.
-[PWM.OUT](#pwm.out)| Outpout PWM control to channel.  
+[PWM.OUT](#pwm.out)| Output PWM control to channel.  
+[RANDMOMIZE](#randomize)| initilize PRNG seed.
 [READ](#read)|Read in a variable data item from DATA line.
 [REBOOT](#reboot)|Reinitialize MCU.
 [REM ou '](#rem)| Start a comment.
@@ -455,32 +455,28 @@ After wakeup the program continue execution after this command. The command name
 >
 ```
 
-[index](#index)
-<a id="bit"></a>
-### BIT(*expr*) {C,P}
-This function return 2^*expr*, i.e. 2 power of *expr* which must bit in the range {0..23}.
-
-```
->for i=0 to 23: ? bit(i);:next i
-1 2 4 8 16 32 64 128 1 2 4 8 16 32 64 128 65536 131072 262144 524288 1048576 2097152 4194304 -8388608 
-
-> bset PORTC,bit(5) ' Turn on user LED on board.
-
-```
 index](#index)
 <a id="bres"></a>
-### BRES addr,mask {C,P}
-This command reset one or more bits at **addr**. Each bit of *mask* that are at **1** are reset at target address. The address can be RAM or register. 
+### BRES addr,bit {C,P}
+This command reset a bit at **addr**. The address can be RAM or register. 
+
+* **addr** address of registre or RAM.
+* **bit**  {0..7} which bit is to be reset.
+
 ```
->bres PORTC,bit(5) ' turn off user LED on board. 
+>bres PORTC,5 ' turn off user LED on board. 
 ```
 
 [index](#index)
 <a id="bset"></a>
-### BSET addr,mask  {C,P}
-This command set one or more bits at *addr*. Each bit of *mask* that is at **1** is set at target address. The address can be RAM or register.
+### BSET addr,bit  {C,P}
+This command set a bit at *addr*. The address can be RAM or register.
+
+* **addr** address of registre or RAM.
+* **bit**  {0..7} which bit is to be set.
+
 ```
->bset $500a,&100000 ' turn on user LED on board.
+>bset $500a,5 ' turn on user LED on board.
 ```
 
 [index](#index)
@@ -494,10 +490,14 @@ This function return the state of a single bit at *addr*. *bit* is the position 
 
 [index](#index)
 <a id="btogl"></a>
-### BTOGL addr,mask  {C,P}
-This command toggle one or more bits at *addr*. bits of *mask* that are at **1** are inverted in target address. The address can be RAM or register.
+### BTOGL addr,bit  {C,P}
+This command invert a bit at *addr*. The address can be RAM or register.
+
+* **addr** address of register or RAM.
+* **bit**  {0..7} which bit is to be inverted.
+
 ```
->btogl PORTC,32 ' toggle user LED state.
+>btogl PORTC,5 ' toggle user LED state.
 ```
 
 [index](#index)
@@ -1708,6 +1708,24 @@ See alos [PWM.CH.EN](#pwm.ch.en), [PWM.EN](#pwm.en)
 
 Example program: [BASIC/rgb-led.bas](/BASIC/rgb-led.bas)
 
+[index](#index)
+<a id="randomize"></a>
+### RANDOMIZE *expr* {C,P}
+This command is used to initialize the seed for **RND()** function.
+   * **expr**  is used to initialize the seed variable unless it as a zero value. In that case the systeme variables **ticks** is used insttead. Initializing with a constant value will result 
+   in always the same sequence of pseudo-random numbers. But if expr==0 the sequence depend on the value of **ticks** variable.
+```
+>randomize 27: for i=1 to 16: ? rnd(256);:next i
+126 87 111 9 246 169 8 242 9 224 96 250 116 41 256 20 
+>randomize 27: for i=1 to 16: ? rnd(256);:next i
+126 87 111 9 246 169 8 242 9 224 96 250 116 41 256 20 
+
+>randomize 0: for i=1 to 16: ? rnd(256);:next i
+237 131 206 33 161 116 256 31 39 205 248 36 252 73 125 112 
+>randomize 0: for i=1 to 16: ? rnd(256);:next i
+109 196 97 167 114 26 175 33 193 163 207 186 35 76 169 37 
+>
+```   
 
 [index](#index)
 <a id="read"></a>

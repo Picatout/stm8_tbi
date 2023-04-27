@@ -268,7 +268,6 @@ nom|description
 [ASC](#asc)|Fonction qui retourne la valeur ASCII d'un caractère.
 [AUTORUN](#autorun)|Active l'exécution automatique d'un programme.
 [AWU](#awu)| met la carte en sommeil pour un temps déterminé.
-[BIT](#bit)| calcule le masque d'un bit. 
 [BRES](#bres)|met un bit à zéro.
 [BSET](#bset)|met un bit à 1.
 [BTEST](#btest)|Vérifie l'état d'un bit.
@@ -342,6 +341,7 @@ nom|description
 [PWM.CH.EN](#pwm.ch.en) |Activation d'un canal PWM.
 [PWM.EN](#pwm.en) |Activation des commandes PWM.
 [PWM.OUT](#pwm.out)| Contrôle d'une sortie PWM.  
+[RANDOMIZE](#randomize)| Initialise le générateur pseudo aléatoire.
 [READ](#read)|Lecture d'une donnée sur une ligne DATA.
 [REBOOT](#reboot)|Redémarre la carte.
 [REM ou '](#rem)| Débute un commentaire.
@@ -491,39 +491,33 @@ Cette commande arrête le MCU pour une durée déterminée. Son nom vient du pé
 L'Oscillateur **LSI** possède une précision de +/-12.5% sur l'étendu de l'échelle de température d'opération du MCU.  Il ne faut donc pas attendre une grande précision de cette commande. La commande **PAUSE**  est plus précise mais consomme plus de courant. **AWU** est surtout utile pour les applications fonctionnant sur piles pour prolonger la durée de celles-ci.
 
 [index](#index)
-<a id="bit"></a>
-### BIT(*expr*) {C,P}
-Cette fonction retourne 2^*expr*  (2 à la puissance n). *expr* doit-être entre {0..23} 
-```
->for i=0 to 23: ? bit(i);:next i
-1 2 4 8 16 32 64 128 1 2 4 8 16 32 64 128 65536 131072 262144 524288 1048576 2097152 4194304 -8388608 
-  
-> bset portc,bit(5) ' allume la DEL utilisateur sur la carte.
-
-```
-[index](#index)
 <a id="bres"></a>
-### BRES addr,mask {C,P}
-La commande **bit reset** met à **0** les bits de l'octet situé à *addr*. Seul les bits à **1** dans l'argument *mask* sont affectés. 
-
-    >bres $500a,32 
-
-Éteint la LED2 sur la carte en mettant le bit 5 à 0. **Notez** que les bits sont numérotés de **0..7**, **0** étant le bit le moins significatif. 
+### BRES *addr*,*bit* {C,P}
+Cette commande met à **0** le bit de l'octet situé à *addr*. Il peut s'agir d'une addresse de registre ou en mémoire RAM. 
+* **addr** est l'adresse d'un registre ou d'un octet en mémoire RAM.
+* **bit** {0..7}  sélectionne le bit à mettre à zéro. Les autres bits ne sont pas modifiés.
+```
+>bres $500a,5
+```
+Éteint LD2 sur la carte en mettant le bit 5 à 0. **Notez** que les bits sont numérotés de **0..7**, **0** étant le bit le moins significatif. 
 
 [index](#index)
 <a id="bset"></a>
-### BSET addr,mask  {C,P}
-La commande **bit set** met à **1** les bits de l'octet situé à *addr*. Seul les bits à **1** dans l'argument *mask* sont affectés. 
-
-    >bset $500a,&100000
-
-Allume la LED2 sur la carte en mettant le bit 5 à 1.
+### BSET *addr*,*bit*  {C,P}
+Cette commande met à **1** le bit de l'octet situé à *addr*. Il peut s'agir d'un registre de périphérique ou d'un adresse en mémoire RAM. 
+* **addr** est l'adresse d'un registre ou d'un octet en mémoire RAM.
+* **bit** {0..7}  sélectionne le bità mettre à *1*. Les autres bits ne sont pas modifiés.
+```
+>bset $500a,5
+```
+Allume LD2 sur la carte en mettant le bit 5 à 1.
 
 [index](#index)
 <a id="btest"></a>
-### BTEST(addr,bit) {C,P}
+### BTEST(*addr*,*bit*) {C,P}
 Cette fonction retourne l'état du *bit* à *addr*.  Permet entre autre de lire l'état d'une broche GPIO configurée en entrée.
-*bit* doit-être dans l'intervalle {0..7}. 
+* **addr** est l'adresse d'un registre ou d'un octet en mémoire FLASH,EEPROM ou RAM.
+* **bit** doit-être dans l'intervalle {0..7}. 
 ```
 >? btest($50f3,0)
    1
@@ -531,16 +525,16 @@ Cette fonction retourne l'état du *bit* à *addr*.  Permet entre autre de lire 
 >? btest($50f3,5)
    0
 ```
-
 [index](#index)
 <a id="btogl"></a>
-### BTOGL addr,mask  {C,P}
-La commande **bit toggle** inverse les bits de l'octet situé à *addr*. Seul les bits à **1** dans l'argument *mask* sont affectés. 
+### BTOGL addr,bit  {C,P}
+Cette commande inverse le bit de l'octet situé à *addr*. Seul le bit identifié est modifié. 
+* **addr** est l'adresse d'un registre ou d'un octet en mémoire RAM.
+* **bit** doit-être dans l'intervalle {0..7}. 
 ```
-    >btogl $500a,32
+    >btogl $500a,5
 ```
-
-Inverse l'état de la LED2 sur la carte. 
+Inverse l'état de la LD2 sur la carte. 
 
 [index](#index)
 <a id="buffer"></a>
@@ -1644,6 +1638,24 @@ __DC=valeur/(2^bits-1)*100.__
 Voir aussi [PWM.CH.EN](#pwm.ch.en), [PWM.EN](#pwm.en)
 
 Exemple de programme: [BASIC/rgb-led.bas](/BASIC/rgb-led.bas)
+
+[index](#index)
+<a id="randomize"></a>
+### RANDOMIZE *expr* {C,P}
+Cette commande sert  à initialiser le générateur pseudo-aléatoire.
+* **expr** est une expression arithmétique dont la valeur est utilisée pour initialiser la variable système **seed**. Cependant si **expr** a une valeur nulle c'est la variable système **ticks** qui est utilisée à la place. Si une constante est utilisée comme valeur la séquence de nombre sera toujours la même. Par contre si **ticks** est utilisée elle sera différence à chaque fois.
+```
+>randomize 27: for i=1 to 16: ? rnd(256);:next i
+126 87 111 9 246 169 8 242 9 224 96 250 116 41 256 20 
+>randomize 27: for i=1 to 16: ? rnd(256);:next i
+126 87 111 9 246 169 8 242 9 224 96 250 116 41 256 20 
+
+>randomize 0: for i=1 to 16: ? rnd(256);:next i
+237 131 206 33 161 116 256 31 39 205 248 36 252 73 125 112 
+>randomize 0: for i=1 to 16: ? rnd(256);:next i
+109 196 97 167 114 26 175 33 193 163 207 186 35 76 169 37 
+>
+```  
 
 [index](#index)
 <a id="read"></a>
