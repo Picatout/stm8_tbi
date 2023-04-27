@@ -170,9 +170,9 @@ move_exit:
 ;  display system 
 ;  information 
 ;-----------------------
-	MAJOR=3
-	MINOR=2
-	REV=4
+	MAJOR=4
+	MINOR=0
+	REV=0
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -862,16 +862,16 @@ func_args:
 	ARGN=4 
 	ARG_SIZE=INT_SIZE 
 arg_list:
-	push #0
+	push #0 ; arguments counter
 1$:	 
 	pop a 
 	popw x 
 	sub sp, #ARG_SIZE
 	pushw x 
+	inc a 
 	push a
 	call expression 
 	_i24_store ARGN   
-	inc (1,sp)	; argument count
 	_next_token 
 	cp a,#COMMA_IDX 
 	jreq 1$ 
@@ -4255,6 +4255,29 @@ func_random:
 	ret 
 
 ;---------------------------------
+; BASIC: RANDOMIZE expr 
+; intialize PRGN seed with expr 
+; or with ticks variable value 
+; if expr==0
+;---------------------------------
+cmd_randomize:
+	call expression 
+	pushw x 
+	push a 
+	or a,(2,sp)
+	or a,(3,sp) 
+	pop a 
+	_drop 2 
+	jrne 2$
+	ld a,ticks 
+	ldw x,ticks+1
+2$:
+	clr seedy 
+	ld seedy+1,a 
+	ldw seedx,x 
+	_next 
+
+;---------------------------------
 ; BASIC: WORDS 
 ; affiche la listes des mots du
 ; dictionnaire ainsi que le nombre
@@ -5160,6 +5183,7 @@ dict_end:
 	_dict_entry 3,"REM",REM_IDX
 	_dict_entry,6,"REBOOT",RBT_IDX 
 	_dict_entry,4,"READ",READ_IDX  
+	_dict_entry,9,"RANDOMIZE",RNDMZ_IDX
 	_dict_entry,7,"PWM.OUT",PWM_OUT_IDX 
 	_dict_entry,6,"PWM.EN",PWM_EN_IDX
 ;	_dict_entry,8,"PWM.DONE",PWM_DONE_IDX 

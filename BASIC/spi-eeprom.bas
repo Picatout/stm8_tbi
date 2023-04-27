@@ -1,6 +1,7 @@
 NEW 
    1 SPI.EEPROM 
    4 ' test SPI with 25LC640 EEPROM 
+   6 RANDOMIZE 0
    10 SPI.EN 1,2 ' Fspi=Fmstr/8
    14 SPI.SEL 1:SPI.WR 6:SPI.SEL 0 'enable WEL bit in EEPROM 
    18 SPI.SEL 1:SPI.WR 5: IF NOT SPI.RD AND 2 :GOTO 200
