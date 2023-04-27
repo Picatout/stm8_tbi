@@ -2,6 +2,18 @@
 
 # STM8 Tiny BASIC release notes
 
+## 2023-04-27
+
+### version V4.0R0 
+
+* This version is incompatible with previous version hence the change in major version number.
+  * Function **BIT()** is no more available, same result can be obtained with function **LSHIFT()**
+  * Commands **BRES**,**BSET** and **BTOGL** have a different semantic making them incompatible with previous versions.
+
+* Command **RANDOMAIZE** have been added.
+
+* Major change have been made to virtual machine to improve performance.
+
 ## 2023-04-22 
 
 * Version V3.2R1 

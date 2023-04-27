@@ -1,5 +1,18 @@
 # Notes de révision
 
+## 2023-04-27 
+
+### version V4.0R0 
+
+* Cette version étant incompatible avec les versions antérieures elle possède un numéro de version majeur supérieur. 
+
+    *  La fonction **BIT()**  a étée suprimée. Le même résutlat peut-être obtenu avec la fonction **LSHFIT()**.
+    *  Les commandes **BRES**,**BSET** et **BTOGL** ont une sémantique différente  incompatible avec l'usage des versions antérieures.
+
+* La commande **RANDOMIZE** a été ajoutée. 
+
+* Des modifications importantes à la machine virtuelle ont été effectuées pour la rendre plus performante.
+
 ## 2023-04-22
 
 * Version V3.2R1 
