@@ -869,7 +869,7 @@ arg_list:
 	sub sp, #ARG_SIZE
 	pushw x 
 	push a
-	call condition
+	call expression 
 	_i24_store ARGN   
 	inc (1,sp)	; argument count
 	_next_token 
@@ -940,7 +940,7 @@ get_array_element:
 ;-----------------------------------
 ; factor ::= ['+'|'-'|e]  var | @ |
 ;			 integer | function |
-;			 '('relation')' 
+;			 '('expression')' 
 ; output:
 ;   A:X     factr  
 ; ---------------------------------
@@ -1190,7 +1190,7 @@ relation:
 	ret 
 
 ;-------------------------------------------
-;  AND factor:  [NOT] relation 
+;  AND factor:  [NOT] relation | (condition)
 ;  output:
 ;     A:X      boolean 
 ;-------------------------------------------
@@ -1229,7 +1229,7 @@ and_factor:
 
 ;--------------------------------------------
 ;  AND operator as priority over OR||XOR 
-;  format: relation|(condition) [AND relation|(condition)]*
+;  format: and_factor [AND and_factor]*
 ;          
 ;  output:
 ;    A:X   result  

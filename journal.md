@@ -1,5 +1,17 @@
 ### 2023-04-26 
 
+* En remplacant **call condition** par **call expression** dans la routine *arg_list*  la performance s'améliore grandement:
+```
+>run
+10000 loops each.
+BSET $500A,5: 194  msec
+BRES $500A,5: 194  msec
+BTOGL $500A,5: 194  msec
+DWRITE 13,1: 205  msec
+LET A=BTEST($500A,5):  385  msec
+LET A=DREAD(13): 323  msec
+```
+
 * Modifié la sémantique des mots suivants: 
 	* **BSET addr, mask**  pour **BSET addr,bit** maintenant n'affect que le bit mentionné comme second paramètre.
     * **BRES addr, mask**  pour **BSET addr,bit** maintenant n'affect que le bit mentionné comme second paramètre.
@@ -7,7 +19,7 @@
 
 * Supprimé la fonction **BIT(n)** qui créait la valeur 2^n. Peut-être réalisé avec la fonction **LSHIFT(1,n)**. 
 
-* test de performance après modifictions et optimisation.
+* test de performance après modifications et optimisation.
 ```
 >list
     1 ' test BSET,BRES,BTOGL speed 
