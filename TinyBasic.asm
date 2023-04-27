@@ -525,19 +525,17 @@ get_int24:
 ;-------------------------------
 ; called when an intger token 
 ; is expected. can be LIT_IDX 
-; or LITC_IDX 
+; or LITW_IDX 
 ; program fail if not integer 
 ;------------------------------
 expect_integer:
 	_next_token 
 	cp a,#LIT_IDX 
-	jreq get_int24 
-	cp a,#LITC_IDX 
-	jreq 1$ 
-	jp syntax_error 
-1$: clrw x 
-	_get_char 
-	rlwa x 
+	jreq get_int24
+	cp a,#LITW_IDX 
+	jreq 0$
+	jp syntax_error
+0$:	_get_word 
 	ret 
 
 
@@ -962,20 +960,18 @@ factor:
 2$:	
 	_next_token
 4$:
-	cp a,#LIT_IDX 
+	cp a,#LITW_IDX 
 	jrne 5$
-	call get_int24 ; >A:X
+	_get_word 
 .if DEBUG
 	jp  18$
 .else 
 	jra 18$
 .endif 
 5$:
-	cp a,#LITC_IDX 
+	cp a,#LIT_IDX 
 	jrne 6$
-	_get_char ; >A 
-	clrw x
-	rlwa x    ; >A:X 
+	call get_int24 
 	jra 18$
 6$:
 	cp a,#VAR_IDX 
@@ -2405,24 +2401,17 @@ loop_done:
 ;---------------------------
 get_target_line:
 	_next_token  
-	cp a,#LIT_IDX
-	jreq get_target_lineno
-	cp a,#LITC_IDX 
-	jreq get_int8 
+	cp a,#LITW_IDX
+	jrne 1$
+	_get_word 
+	jra target01
+1$:
 	cp a,#LABEL_IDX 
 	jreq search_target_symbol
 	jp syntax_error
-get_int8:
-	_get_char
-	clrw x 
-	rlwa x 
-	jra target01 
 ; the target is a line number 
 ; search it. 
-get_target_lineno:
-	call get_int24 ; line # 
 target01: 
-	clr a 
 	cpw x,[line.addr] 
 	jrult 1$ 
 	jrugt 0$
@@ -2490,7 +2479,7 @@ search_target_symbol:
 ; selective goto or gosub 
 ;--------------------------------
 kword_on:
-	call runtime_only
+;	call runtime_only
 	call expression 
 ;_tp '9 	
 ; the selector is the element indice 
@@ -2515,19 +2504,14 @@ kword_on:
 	jreq 7$ 
 ; can be a line# or a label 
 	_next_token 
-	cp a,#LIT_IDX 
+	cp a,#LITW_IDX 
 	jreq 3$
-	cp a,#LITC_IDX 
-	jreq 4$ 
 	cp a,#LABEL_IDX 
 	jreq 5$
 	jp syntax_error 
 3$: ; got a line number 
-	addw y,#INT_SIZE  ; skip int24 
+	addw y,#2  ; skip word  
 	jra 6$
-4$: ; got a small line number 
-	incw y   
-	jra 6$ 
 5$: call skip_string ; skip over label 	
 6$: ; if another element comma present 
 	_next_token
@@ -2575,7 +2559,7 @@ kword_on:
 ; here cstack is 2 call deep from interpreter 
 ;------------------------
 kword_goto:
-	call runtime_only
+;	call runtime_only
 kword_goto_1:
 	call get_target_line
 jp_to_target:
@@ -2597,7 +2581,7 @@ jp_to_target:
 	RET_LN_ADDR=3  ; line.addr return point 
 	VSIZE=4 
 kword_gosub:
-	call runtime_only
+;	call runtime_only
 kword_gosub_1:
 	call get_target_line 
 	ldw ptr16,x ; target line address 
@@ -2615,7 +2599,7 @@ kword_gosub_2:
 ; exit from BASIC subroutine 
 ;------------------------
 kword_return:
-	call runtime_only
+;	call runtime_only
 	ldw y,(RET_BPTR,sp) 
 	ldw x,(RET_LN_ADDR,sp)
 	ldw line.addr,x 
@@ -2984,10 +2968,10 @@ cmd_servo_chan_enable:
 ;    0|1    0 disable | 1 enable 
 ;------------------------
 cmd_servo_enable:
-	ld a,#LITC_IDX 
+	ld a,#LITW_IDX 
 	call expect 
-	_get_char 
-	tnz a 
+	_get_word 
+	tnzw x 
 	jreq timer1_disable
 ; set TIMER1 pre-divisor to 8
 ; Ftimer=2Mhz 
@@ -3906,7 +3890,7 @@ awu02:
 ; input:
 ; 	none 
 ; output:
-;	X 		LIT_IDX
+;	A:X 	msec since reset 
 ;-------------------------------
 func_ticks:
 	_ldaz ticks 
@@ -3997,9 +3981,10 @@ func_rshift:
 ; set CPU frequency 
 ;-------------------------- 
 cmd_fcpu:
-	ld a,#LITC_IDX 
+	ld a,#LITW_IDX 
 	call expect 
-    _get_char 
+    _get_word
+	ld a,xl 
 	and a,#7 
 	ld CLK_CKDIVR,a 
 	_next  
@@ -4451,8 +4436,7 @@ cmd_iwdg_refresh:
 ; bit set. 
 ; input: 
 ; output:
-;   A     LIT_IDX 
-;   xstack log2 
+;   A:X     int24 
 ;*********************************
 func_log2:
 	call func_args 
@@ -4625,7 +4609,7 @@ kword_data:
 	jp kword_remark
 
 ;------------------------------
-; check fi line is data line 
+; check if line is data line 
 ; if so set data_pointers 
 ; and return true 
 ; else move X to next line 
@@ -4677,18 +4661,10 @@ cmd_restore:
 	_unget_token 
 	_ldxz txtbgn 
 	jra 4$ 
-0$:	cp a,#LIT_IDX
+0$:	cp a,#LITW_IDX
 	jreq 2$
-	cp a,#LITC_IDX 
-	jrne 1$
-	_get_char 
-	clrw x 
-	rlwa x 
-	jra 3$
 1$: jp syntax_error 	 
-2$:	call get_int24
-3$:	 
-	clr a 
+2$:	_get_word 
 	call search_lineno  
 	tnz a  
 	jreq data_error 
@@ -4734,19 +4710,20 @@ read01:
 1$:
 	cp a,#LIT_IDX 
 	jreq 2$
-	cp a,#LITC_IDX 
-	jrne data_error 
-	ld a,(x)
-	incw x
-	_strxz data_ptr  
-	clrw x 
-	rlwa x
-	jra 3$  
-2$:	 
+	cp a,#LITW_IDX 
+	jreq 14$
+	jra data_error 
+14$: ; word 
+	clr a 
+	_strxz data_ptr 	
+	ldw x,(x)
+	jra 24$
+2$:	; int24  
 	ld a,(x)
 	incw x 
 	_strxz data_ptr 
 	ldw x,(x)
+24$:
 	pushw x 
 	_ldxz data_ptr 
 	addw x,#2 
@@ -4977,22 +4954,17 @@ cmd_chain:
 	ldw (CHAIN_ADDR,sp), x ; program addr 
     _next_token 
 	cp a,#COMMA_IDX 
-	jrne 5$
-	_next_token 
-;_tp 'B
-	cp a,#LIT_IDX
+	jreq 2$
+	_unget_token 
+	jra 6$
+; expect a line number 
+2$:	_next_token 
+	cp a,#LITW_IDX 
 	jreq 3$
-	cp a,#LITC_IDX 
-	jrne 5$
-	_get_char 
-	clrw x 
-	rlwa x
-	jra 4$
-3$:	
-	call get_int24 
-4$:	ldw (CHAIN_LN,sp),x
-	jra 6$ 
-5$:  _unget_token 
+	jp syntax_error
+3$:
+	_get_word 
+	ldw (CHAIN_LN,sp),x
 6$: ; save chain context 
 	_ldxz line.addr 
 	ldw (CHAIN_LNADR,sp),x 
@@ -5034,11 +5006,11 @@ cmd_chain:
 cmd_trace:
 	call runtime_only
 	_next_token
-	cp a,#LITC_IDX
+	cp a,#LITW_IDX
 	jreq 1$ 
 	jp syntax_error 
-1$: _get_char  
-    tnz a 
+1$: _get_word 
+    tnzw x 
 	jrne 2$ 
 	bres flags,#FTRACE 
 	_next 

@@ -54,78 +54,79 @@ code_addr:
     DELIM_LAST=TOK_IDX-1 
 ; literal values 
 	_code_entry syntax_error,LIT_IDX   ; $7  24 bits integers literal 
-	_code_entry syntax_error,LITC_IDX  ; $8 byte literal 
+    _code_entry syntax_error,LITW_IDX  ; $8 16 bits literal 
+    _code_entry syntax_error,LNADR_IDX ; $9 line address literal 
     LIT_LAST=TOK_IDX-1 
 ; variable identifiers  
-	_code_entry syntax_error,VAR_IDX    ; $9 
-	_code_entry syntax_error,ARRAY_IDX  ; $A 
-	_code_entry jump_label,LABEL_IDX  ; $B 
+	_code_entry syntax_error,VAR_IDX    ; $B 
+	_code_entry syntax_error,ARRAY_IDX  ; $C
+	_code_entry jump_label,LABEL_IDX  ; $D  
     SYMB_LAST=TOK_IDX-1 
 ; arithmetic operators      
-	_code_entry syntax_error, ADD_IDX   ; $C 
-	_code_entry syntax_error, SUB_IDX   ; $D
-	_code_entry syntax_error, DIV_IDX   ; $E 
-	_code_entry syntax_error, MOD_IDX   ; $F 
-	_code_entry syntax_error, MULT_IDX  ; $10 
+	_code_entry syntax_error, ADD_IDX   ; $E 
+	_code_entry syntax_error, SUB_IDX   ; $F
+	_code_entry syntax_error, DIV_IDX   ; $10 
+	_code_entry syntax_error, MOD_IDX   ; $11
+	_code_entry syntax_error, MULT_IDX  ; $12 
     OP_ARITHM_LAST=TOK_IDX-1 
 ; relational operators
-	_code_entry syntax_error,REL_LE_IDX  ; $11 
-	_code_entry syntax_error,REL_EQU_IDX ; $12  
-	_code_entry syntax_error,REL_GE_IDX  ; $13 
-	_code_entry syntax_error,REL_LT_IDX  ; $14 
-	_code_entry syntax_error,REL_GT_IDX  ; $15 
-	_code_entry syntax_error,REL_NE_IDX  ; $16 
+	_code_entry syntax_error,REL_LE_IDX  ; $13 
+	_code_entry syntax_error,REL_EQU_IDX ; $14  
+	_code_entry syntax_error,REL_GE_IDX  ; $15 
+	_code_entry syntax_error,REL_LT_IDX  ; $16 
+	_code_entry syntax_error,REL_GT_IDX  ; $17 
+	_code_entry syntax_error,REL_NE_IDX  ; $18 
     OP_REL_LAST=TOK_IDX-1 
 ; boolean operators 
-    _code_entry syntax_error, NOT_IDX    ; $17 
-    _code_entry syntax_error, AND_IDX    ; $18 
-    _code_entry syntax_error, OR_IDX     ; $19 
-    _code_entry syntax_error, XOR_IDX    ; $1A
+    _code_entry syntax_error, NOT_IDX    ; $19
+    _code_entry syntax_error, AND_IDX    ; $1A 
+    _code_entry syntax_error, OR_IDX     ; $1B 
+    _code_entry syntax_error, XOR_IDX    ; $1C
     BOOL_OP_LAST=TOK_IDX-1 
 ; keywords 
-    _code_entry kword_const, CONST_IDX   ; $1B 
-    _code_entry kword_data, DATA_IDX     ; $1C 
-    _code_entry kword_dim, DIM_IDX       ; $1D 
-    _code_entry kword_do, DO_IDX         ; $1E 
-    _code_entry kword_end, END_IDX       ; $1F 
-    _code_entry kword_for, FOR_IDX       ; $20
-    _code_entry kword_gosub, GOSUB_IDX   ; $21 
-    _code_entry kword_goto, GOTO_IDX     ; $22 
-    _code_entry kword_if, IF_IDX         ; $23 
-    _code_entry kword_let, LET_IDX       ; $24 
-    _code_entry kword_next, NEXT_IDX     ; $25 
-    _code_entry kword_on, ON_IDX         ; $26 
-	_code_entry kword_remark, REM_IDX    ; $27 
-    _code_entry kword_return, RET_IDX    ; $28
-    _code_entry syntax_error, STEP_IDX   ; $29 
-    _code_entry kword_stop, STOP_IDX     ; $2A
-    _code_entry syntax_error, TO_IDX     ; $2C
-    _code_entry kword_until, UNTIL_IDX   ; $2D
+    _code_entry kword_const, CONST_IDX   ; $1D
+    _code_entry kword_data, DATA_IDX     ; $1E 
+    _code_entry kword_dim, DIM_IDX       ; $1F 
+    _code_entry kword_do, DO_IDX         ; $20 
+    _code_entry kword_end, END_IDX       ; $21 
+    _code_entry kword_for, FOR_IDX       ; $22
+    _code_entry kword_gosub, GOSUB_IDX   ; $23 
+    _code_entry kword_goto, GOTO_IDX     ; $24 
+    _code_entry kword_if, IF_IDX         ; $25 
+    _code_entry kword_let, LET_IDX       ; $26 
+    _code_entry kword_next, NEXT_IDX     ; $27 
+    _code_entry kword_on, ON_IDX         ; $28 
+	_code_entry kword_remark, REM_IDX    ; $29 
+    _code_entry kword_return, RET_IDX    ; $2A
+    _code_entry syntax_error, STEP_IDX   ; $2B 
+    _code_entry kword_stop, STOP_IDX     ; $2C
+    _code_entry syntax_error, TO_IDX     ; $2D
+    _code_entry kword_until, UNTIL_IDX   ; $2E
     KWORD_LAST=TOK_IDX-1 
 ; constant functions 
-    _code_entry const_cr1, CR1_IDX      ; $2E 
-    _code_entry const_cr2, CR2_IDX      ; $2F
-    _code_entry const_ddr, DDR_IDX      ; $30 
-    _code_entry const_eeprom_base, EEPROM_IDX ; $31
-    _code_entry const_idr, IDR_IDX      ; $32
-    _code_entry const_odr, ODR_IDX      ; $33
-    _code_entry const_pad_ref, PAD_IDX  ; $34 
-    _code_entry const_pmode_input, PINP_IDX ; $35 
-    _code_entry const_pmode_output, POUT_IDX ; $36
-    _code_entry const_porta, PORTA_IDX   ; $37
-    _code_entry const_portb, PORTB_IDX   ; $38
-    _code_entry const_portc, PORTC_IDX   ; $39
-    _code_entry const_portd, PORTD_IDX   ; $3A
-    _code_entry const_porte, PORTE_IDX   ; $3B
-    _code_entry const_portf, PORTF_IDX   ; $3C 
-    _code_entry const_portg, PORTG_IDX   ; $3D
-    _code_entry const_porti, PORTI_IDX   ; $3E
+    _code_entry const_cr1, CR1_IDX      ; $2F 
+    _code_entry const_cr2, CR2_IDX      ; $30
+    _code_entry const_ddr, DDR_IDX      ; $31 
+    _code_entry const_eeprom_base, EEPROM_IDX ; $32
+    _code_entry const_idr, IDR_IDX      ; $33
+    _code_entry const_odr, ODR_IDX      ; $34
+    _code_entry const_pad_ref, PAD_IDX  ; $35 
+    _code_entry const_pmode_input, PINP_IDX ; $36 
+    _code_entry const_pmode_output, POUT_IDX ; $37
+    _code_entry const_porta, PORTA_IDX   ; $38
+    _code_entry const_portb, PORTB_IDX   ; $39
+    _code_entry const_portc, PORTC_IDX   ; $3A
+    _code_entry const_portd, PORTD_IDX   ; $3B
+    _code_entry const_porte, PORTE_IDX   ; $3C
+    _code_entry const_portf, PORTF_IDX   ; $3D 
+    _code_entry const_portg, PORTG_IDX   ; $3E
+    _code_entry const_porti, PORTI_IDX   ; $3F
     FUNC_CONST_LAST=TOK_IDX-1 
 ; functions 
-	_code_entry func_back_slash, BSLASH_IDX ; $3F caractère oblique gauche 
-	_code_entry func_abs, ABS_IDX         ; $40 
-    _code_entry func_analog_read, ADCREAD_IDX ; $41
-    _code_entry func_ascii, ASC_IDX         ; $42
+	_code_entry func_back_slash, BSLASH_IDX ; $40 caractère oblique gauche 
+	_code_entry func_abs, ABS_IDX         ; $41
+    _code_entry func_analog_read, ADCREAD_IDX ; $42
+    _code_entry func_ascii, ASC_IDX         ; $43
     _code_entry func_bit_test, BTEST_IDX    ; $44
     _code_entry func_char, CHAR_IDX         ; $45 
     _code_entry func_digital_read, DREAD_IDX ; $46 

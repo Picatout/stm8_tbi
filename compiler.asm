@@ -354,33 +354,27 @@ bin_exit:
 ;   A:X  24 bits integer 
 ;   Y    &pad[n]
 ; output:
-;    pad   LIT_IDX,int24|LITC_IDX,int8 
+;    pad   LIT_IDX,int24|LITW_IDX,word  
 ;    y   &pad[n+4]|&pad[n+2]
 ;------------------------------------
 compile_integer:
 ; 24 bits integer in A:X 
-	rrwa x ; X:A format 
-	tnzw x 
-	jrne 1$ 
-; integer <256 compile as 8 bits integer 
-; compiled as .byte LITC_IDX,int8 
-	ld (1,y),a 
-	ld  a,#LITC_IDX 
-	push a 
+	tnz a 
+	jrne 2$
+; 16 bit integer 
+	ld a,#LITW_IDX 
 	ld (y),a
-	addw y,#2 
+	incw y 
 	jra 9$ 
-1$: ; compile as 24 bits integer
+2$: ; compile as 24 bits integer
 	; compiled as .byte LIT_IDX,most,middle,least (big indian)
-	rlwa x ; restore to initial A:X format 
 	ld (1,y),a 
 	ld a,#LIT_IDX
-	push a 
 	ld (y),a 
 	addw y,#2 
+9$:
 	LDW (Y),x 
 	addw y,#2
-9$:	pop a 
 	ret
 
 ;-------------------------------------

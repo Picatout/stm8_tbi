@@ -177,9 +177,9 @@ decomp_loop:
 5$:	cp a,#LIT_IDX 
 	jrne 6$
 	jp literal 
-6$:	cp a,#LITC_IDX 
+6$:	cp a,#LITW_IDX 
 	jrne 7$
-	jra lit_char 
+	jra lit_word
 7$:	cp a,#BSLASH_IDX
 	jrne 8$
 	jp letter 
@@ -212,13 +212,10 @@ literal: ; LIT_IDX
 	call prt_acc24
 	jp prt_space 
 ; print int8 	
-lit_char: ; LITC_IDX 
-	_get_char 
-	dec count 
-	clrw x 
-	ld xl,a 
+lit_word: ; LITW_IDX 
+	_get_word 
 	call prt_i16 
-	jp prt_space  
+	jp prt_space 	
 ; print comment	
 comment: ; REM_IDX 
 	ld a,#''

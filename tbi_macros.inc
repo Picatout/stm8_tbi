@@ -28,9 +28,9 @@
     CELL_SIZE=INT_SIZE 
 	
     FRUN=0 ; flags run code in variable flags
-	FTRAP=1 ; inside trap handler 
+	FOPT=1 ; run time optimization flag  
     FTIMER=2 ; timer expiration flag  
-	FSLEEP=3 ; halt produit par la commande SLEEP 
+	FSLEEP=3 ; halt resulting from  SLEEP 
 	FBREAK=4 ; break point flag 
 	FCOMP=5  ; compiling flags 
     FLN_REJECTED=6 ; a memory full error occured while in *insert_line*. 
@@ -105,6 +105,12 @@
         ldw x,(x)   ; 2 cy 
         addw y,#2   ; 2 cy 
     .endm           ; 5 cy 
+
+    ; alias for _get_addr 
+    .macro _get_word 
+        _get_addr
+        clr a  
+    .endm ; 6 cy 
 
     ; extract character from BASIC code 
     .macro _get_char 

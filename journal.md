@@ -1,3 +1,23 @@
+### 2023-04-27
+
+* Complété tests pour la version V4.0R0
+
+* Ajout du token  **LITW_IDX** modification des fichiers sources en conséquence.
+
+* Suprresion du token **LITC_IDX** .
+
+* Dernier test run bxxx_loop.bas
+```
+>run
+10000 loops each.
+BSET $500A,5: 187  msec
+BRES $500A,5: 187  msec
+BTOGL $500A,5: 187  msec
+DWRITE 13,1: 204  msec
+LET A=BTEST($500A,5):  378  msec
+LET A=DREAD(13): 321  msec
+```
+
 ### 2023-04-26 
 
 * Mise à jour des manuels de référence.
