@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=4
 	MINOR=0
-	REV=0
+	REV=1
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -4042,14 +4042,7 @@ cmd_pin_mode:
 	jrule 1$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-1$:	call select_pin ; x=PORT base address, A=pin# 
-	ld (PINNO,sp),a  
-	ld a,#1 
-	tnz (PINNO,sp)
-	jreq 4$
-2$:	sll a 
-	dec (PINNO,sp)
-	jrne 2$ 
+1$:	call select_pin ; x=PORT base address, A=pin_mask 
 4$:	ld (PINNO,sp),a ; bit mask 
 	or a,(GPIO_CR1,x) ;if input->pull-up else push-pull 
 	ld (GPIO_CR1,x),a 

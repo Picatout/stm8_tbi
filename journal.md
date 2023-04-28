@@ -1,5 +1,7 @@
 ### 2023-04-27
 
+* Découvert un bogue dans la commnande **PMODE**. Bogue Corrigé.
+
 * Complété tests pour la version V4.0R0
 
 * Ajout du token  **LITW_IDX** modification des fichiers sources en conséquence.
