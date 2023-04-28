@@ -1,0 +1,20 @@
+1 ' test PMODE,DWRITE,DREAD 
+2 ?  "Connect LED on D6"
+10 PMODE 6,POUT 
+19 ? "blink LED on D6, any key to end" 
+20 DO 
+30 DWRITE 6,1: ? "DREAD(6)=";DREAD(6)
+40 PAUSE 100
+50 DWRITE 6,0: ? "DREAD(6)=";DREAD(6)
+60 PAUSE 100 
+70 GET K UNTIL K 
+80 ? "Now pin is set input mode"
+90 ? "LED should not blink" 
+100 PMODE 6,PINP
+110 DO 
+120 DWRITE 6,1: ?"DREAD(6)=";DREAD(6)
+130 PAUSE 100
+140 DWRITE 6,0: ?"DREAD(6)=";DREAD(6)
+150 PAUSE 100
+160 GET K UNTIL K 
+170 END 
