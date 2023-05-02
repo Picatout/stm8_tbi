@@ -1,3 +1,7 @@
+### 2023-05-01
+
+* Modification des commandes **GOTO** et **GOSUB** pour améliorer la performance.  En runtime lorsqu'une de ces commandes est rencontrée et que l'argument est un numéro de ligne ce numéro de ligne est remplacé par l'adresse de la ligne cible - txtbgn+ 0x8000. Les fois suivantes la recherche de ligne n'est plus nécessaire.
+
 ### 2023-04-27
 
 * Découvert un bogue dans la commnande **PMODE**. Bogue Corrigé.

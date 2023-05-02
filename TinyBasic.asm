@@ -2412,19 +2412,37 @@ get_target_line:
 ; the target is a line number 
 ; search it. 
 target01: 
-	cpw x,[line.addr] 
-	jrult 1$ 
-	jrugt 0$
+	btjf flags,#FRUN,0$ 
+	cpw x,#0x8000
+	jrmi 0$ 
+	subw x,#0x8000
+	addw x,txtbgn
+	ret 
+0$:	cpw x,[line.addr] 
+	jrult 2$ 
+	jrugt 1$
 	ldw x,line.addr
 	ret   
-0$:	cpl a  ; search from txtbgn 
-1$: ; scan program for this line# 	
+1$:	cpl a  ; search from txtbgn 
+2$: ; scan program for this line# 	
 	call search_lineno 
 	tnz a ; 0 if not found  
-	jrne 2$ 
+	jrne 3$ 
 	ld a,#ERR_NO_LINE 
 	jp tb_error 
-2$:	 
+3$:	; modify bytecode 
+    ; replace line# by line.addr-txtbgn+0x8000
+	pushw x 
+	ldw x,y 
+	subw x,#2 
+;	clr farptr 
+	_strxz ptr16 
+	ldw x,(1,sp)
+	subw x,txtbgn 
+	addw x,#0x8000
+	ldw [ptr16],x 
+	popw x 
+4$:	 
 	ret 
 
 ;-----------------------------------
@@ -2559,7 +2577,6 @@ kword_on:
 ; here cstack is 2 call deep from interpreter 
 ;------------------------
 kword_goto:
-;	call runtime_only
 kword_goto_1:
 	call get_target_line
 jp_to_target:
@@ -2581,7 +2598,6 @@ jp_to_target:
 	RET_LN_ADDR=3  ; line.addr return point 
 	VSIZE=4 
 kword_gosub:
-;	call runtime_only
 kword_gosub_1:
 	call get_target_line 
 	ldw ptr16,x ; target line address 
@@ -2599,7 +2615,6 @@ kword_gosub_2:
 ; exit from BASIC subroutine 
 ;------------------------
 kword_return:
-;	call runtime_only
 	ldw y,(RET_BPTR,sp) 
 	ldw x,(RET_LN_ADDR,sp)
 	ldw line.addr,x 
