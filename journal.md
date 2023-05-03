@@ -1,3 +1,13 @@
+### 2023-05-02
+
+* Création de la branche V5 pour tester de nouvelles idées.  
+
+* Défaire ce qui a été fait hier avec les commandes **GOTO** et **GOSUB** 
+
+* Supprimer commande **AUTORUN** tout programme sauvegardé à l'adresse app_space est automatiquement exécuté à la mise sous tension.
+
+* Modifié la commande **CHAIN** qui maintenant n'accepte plus qu'un seul argument, le nom du programme.
+
 ### 2023-05-01
 
 * Modification des commandes **GOTO** et **GOSUB** pour améliorer la performance.  En runtime lorsqu'une de ces commandes est rencontrée et que l'argument est un numéro de ligne ce numéro de ligne est remplacé par l'adresse de la ligne cible - txtbgn+ 0x8000. Les fois suivantes la recherche de ligne n'est plus nécessaire.

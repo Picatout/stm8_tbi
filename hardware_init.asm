@@ -516,46 +516,46 @@ cold_start:
 ; to value other than 0.
 ; take values from ROM space 
 	ldw x,0x6000
+	ldw x,(x)
 	ldw seedy,x  
 	ldw x,0x6006 
+	ldw x,(x)
 	ldw seedx,x  
 	call eefree ; eeprom free address 
 	call ubound ; @() size 
 	call clear_basic
 2$:	
-; check for autorun application
-	ldw x,EEPROM_BASE 
-	cpw x,AR_SIGN 
-	jreq run_app
+; check for MAIN application in app_space 
+; if found run it 
+	ldw x,#MAIN_PROG
+	call search_program 
+	tnzw x 
+	jrne run_main  
 	call beep_1khz  ; 
 	call system_information ; display system information
 	jp warm_start 
-run_app:
-	clr a 
-	ldw x,EEPROM_BASE+2
-	_qsign 
-	jreq 1$
-	jp warm_start ; no autorun application.
-1$:	
-; run application in FLASH
-;	ldw y,XSTACK_EMPTY
-	call warm_init
-	ldw x,EEPROM_BASE+2 
+run_main:
+; run MAIN in FLASH memory 
 	addw x,#FILE_HEADER_SIZE
+	pushw x 
+	call warm_init
+	popw x  
 	ldw txtbgn,x
-	subw x,#2 
+	subw x,#2
 	ldw x,(x)
 	addw x,txtbgn 
 	ldw txtend,x
 	ld a,#SPACE 
-	call putc 
-	ldw x,txtbgn 
-	addw x,#FILE_HEADER_SIZE 
-	call puts 
+	call putc
+	ldw x,txtbgn
+	mov base,#16  
+	call prt_i16 
+	mov base,#10 
 	ldw x,#AUTO_RUN
-	call puts  
+	call puts
 	jp run_it
     jra .  
 
-AUTO_RUN: .asciz " running\n"
+AUTO_RUN: .asciz " MAIN running\n"
+MAIN_PROG: .asciz "MAIN" 
 

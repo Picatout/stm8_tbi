@@ -236,6 +236,20 @@ warm_init:
 	ldw end_free_ram,x
 	ret 
 
+;-------------------------
+; erase app_sign 
+;-------------------------
+clear_autorun:
+	ld a,#'X 
+	clr farptr 
+	ldw x,#app_sign 
+	_strxz ptr16 
+	clrw x
+	call write_byte 
+	call write_byte 
+	ret 
+
+
 ;------------------------------------
 ;  set all variables to zero 
 ; input:
@@ -2412,12 +2426,6 @@ get_target_line:
 ; the target is a line number 
 ; search it. 
 target01: 
-	btjf flags,#FRUN,0$ 
-	cpw x,#0x8000
-	jrmi 0$ 
-	subw x,#0x8000
-	addw x,txtbgn
-	ret 
 0$:	cpw x,[line.addr] 
 	jrult 2$ 
 	jrugt 1$
@@ -2430,19 +2438,7 @@ target01:
 	jrne 3$ 
 	ld a,#ERR_NO_LINE 
 	jp tb_error 
-3$:	; modify bytecode 
-    ; replace line# by line.addr-txtbgn+0x8000
-	pushw x 
-	ldw x,y 
-	subw x,#2 
-;	clr farptr 
-	_strxz ptr16 
-	ldw x,(1,sp)
-	subw x,txtbgn 
-	addw x,#0x8000
-	ldw [ptr16],x 
-	popw x 
-4$:	 
+3$:	 
 	ret 
 
 ;-----------------------------------
@@ -2686,10 +2682,7 @@ run_it:
 ; initialize BASIC pointer 
 	_ldyz txtbgn 
 	_stryz line.addr 
-;	ld a,(2,y)
-;	_straz count
 	addw y,#LINE_HEADER_SIZE
-;	_stryz basicptr 
 	bset flags,#FRUN 
 	_next  
 
@@ -4875,58 +4868,8 @@ const_pad_ref:
 	clr a
 	ret 
 
-;----------------------------
-; BASIC: AUTORUN \C | label  
-;  \C -> cancel autorun 
-;  addr -> register an 
-;    autorun program 
-;    this program execute at 
-;     reset/boot 
-;----------------------------
-cmd_auto_run:
-	call cmd_line_only
-	_next_token 
-	cp a,#LABEL_IDX 
-	jreq set_autorun  
-	cp a,#BSLASH_IDX 
-	jrne 0$ 
-	_get_char
-	and a,#0xDF 
-	cp a,#'C 
-	jreq clear_autorun 
-0$:	jp syntax_error  
-clear_autorun:	
-	ldw x,#EEPROM_BASE 
-	call erase_header
-	_next 
-set_autorun: 	
-1$:	pushw y 
-	call skip_string
-	popw x 
-	call search_program
-	jrne 2$ 
-	ld a,#ERR_BAD_VALUE
-	jp tb_error 
-2$: pushw x 
-	_clrz farptr 
-	ldw x,#EEPROM_BASE
-	ldw ptr16,x 
-	ld a,AR_SIGN 
-	clrw x 	 
-	call write_byte
-	ld a,AR_SIGN+1
-	call write_byte 
-	ld a,(1,sp)
-	call write_byte 
-	ld a,(2,sp)
-	call write_byte 
-	_drop 2 
-	_next 
-
-AR_SIGN: .ascii "AR" ; autorun signature 
-
 ;-------------------------------
-; BASIC: CHAIN label [, line#]
+; BASIC: CHAIN label
 ; Execute another program like it 
 ; is a sub-routine. When the 
 ; called program terminate 
@@ -4936,14 +4879,13 @@ AR_SIGN: .ascii "AR" ; autorun signature
 ; chained program start execution 
 ; at this line#.
 ;---------------------------------
-	CHAIN_LN=1 
-	CHAIN_ADDR=3 
-	CHAIN_LNADR=5
-	CHAIN_BP=7
-	CHAIN_TXTBGN=9 
-	CHAIN_TXTEND=11 
-	VSIZE=12 
-	DISCARD=4 
+	CHAIN_ADDR=1 
+	CHAIN_LNADR=3
+	CHAIN_BP=5
+	CHAIN_TXTBGN=7 
+	CHAIN_TXTEND=9 
+	VSIZE=10
+	DISCARD=2
 cmd_chain:
 	_vars VSIZE 
 	clr (CHAIN_LN,sp) 
@@ -4960,20 +4902,7 @@ cmd_chain:
 	jp tb_error 
 1$: addw x,#FILE_HEADER_SIZE 
 	ldw (CHAIN_ADDR,sp), x ; program addr 
-    _next_token 
-	cp a,#COMMA_IDX 
-	jreq 2$
-	_unget_token 
-	jra 6$
-; expect a line number 
-2$:	_next_token 
-	cp a,#LITW_IDX 
-	jreq 3$
-	jp syntax_error
-3$:
-	_get_word 
-	ldw (CHAIN_LN,sp),x
-6$: ; save chain context 
+; save chain context 
 	_ldxz line.addr 
 	ldw (CHAIN_LNADR,sp),x 
 	ldw (CHAIN_BP,sp),y
@@ -4989,20 +4918,9 @@ cmd_chain:
 	ldw x,(x)
 	addw x,(CHAIN_ADDR,sp)
 	ldw txtend,x  
-	ldw x,(CHAIN_ADDR,sp)
-	addw x,#LINE_HEADER_SIZE 
-	ldw y,x 
-	ldw x,(CHAIN_LN,sp)
-	tnzw x 
-	jreq 8$ 
-	clr a  
-	call search_lineno
-	tnz a 
-	jreq 8$ 
-	ldw line.addr,x 
-	addw x,#LINE_HEADER_SIZE
-	ldw y,x   
-8$: _incz chain_level
+	ldw y,(CHAIN_ADDR,sp)
+	addw y,#LINE_HEADER_SIZE 
+    _incz chain_level
 	_drop DISCARD
 	_next 
 
@@ -5243,7 +5161,6 @@ dict_end:
 	_dict_entry,4,"BSET",BSET_IDX
 	_dict_entry,4,"BRES",BRES_IDX
 	_dict_entry,3,"AWU",AWU_IDX 
-	_dict_entry,7,"AUTORUN",AUTORUN_IDX
 	_dict_entry,3,"ASC",ASC_IDX
 	_dict_entry,3,"AND",AND_IDX ; AND operator 
 	_dict_entry,7,"ADCREAD",ADCREAD_IDX

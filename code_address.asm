@@ -153,7 +153,6 @@ code_addr:
     FUNC_LAST=TOK_IDX-1                     
 ; commands 
     _code_entry cmd_power_adc,ADCON_IDX     ; $5A adc on 
-    _code_entry cmd_auto_run, AUTORUN_IDX   ; $5B
     _code_entry cmd_awu, AWU_IDX            ; $5C
     _code_entry cmd_bit_reset, BRES_IDX     ; $5D
     _code_entry cmd_bit_set, BSET_IDX       ; $5E

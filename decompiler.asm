@@ -133,8 +133,7 @@ var_name::
 ;------------------------------------
 	PSTR=1     ;  1 word 
 	ALIGN=3
-	LAST_BC=4 
-	VSIZE=4
+	VSIZE=3
 decompile::
 	push base 
 	_vars VSIZE
@@ -186,7 +185,6 @@ decomp_loop:
 	jp letter 
 ; print command,funcion or operator 	 
 8$:	
-	ld (LAST_BC,sp),a 
 	call tok_to_name 
 	tnz a 
 	jrne 9$
@@ -216,17 +214,6 @@ literal: ; LIT_IDX
 ; print int8 	
 lit_word: ; LITW_IDX 
 	_get_word 
-	tnzw x 
-	jrpl 1$ 
-	ld a,(LAST_BC,sp)
-	cp a,#GOSUB_IDX
-	jrmi 1$
-	cp a,#GOTO_IDX 
-	jrugt 1$
-	subw x,#0x8000
-	addw x,txtbgn 
-	ldw x,(x)
-1$:	
 	call prt_i16 
 	jra prt_space 	
 ; print comment	
