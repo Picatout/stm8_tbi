@@ -4,7 +4,7 @@
 
 * Défaire ce qui a été fait hier avec les commandes **GOTO** et **GOSUB** 
 
-* Supprimer commande **AUTORUN** tout programme sauvegardé à l'adresse app_space est automatiquement exécuté à la mise sous tension.
+* Supprimer commande **AUTORUN** maintenant exécute au démarrage le programme sauvegardé sous le nom de **MAIN**.
 
 * Modifié la commande **CHAIN** qui maintenant n'accepte plus qu'un seul argument, le nom du programme.
 
