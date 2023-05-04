@@ -1,5 +1,5 @@
 ;;
-; Copyright Jacques Deschênes 2019,2022  
+; Copyright Jacques Deschênes 2019,2022,2023  
 ; This file is part of stm8_tbi 
 ;
 ;     stm8_tbi is free software: you can redistribute it and/or modify
@@ -170,9 +170,9 @@ move_exit:
 ;  display system 
 ;  information 
 ;-----------------------
-	MAJOR=4
+	MAJOR=5
 	MINOR=0
-	REV=1
+	REV=0
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -437,6 +437,7 @@ cmd_line: ; user interface
 ;; for each BASIC code line.
 ;; 12 cycles  
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;	
+do_nothing: 
 interp_loop:   
     _next_cmd ; command bytecode, 2 cy  
 .if 0;  DEBUG 
@@ -445,7 +446,16 @@ interp_loop:
 .else 
 	_jp_code ; 8 cy + 2 cy for jump back to interp_loop  
 .endif 	 
-;	jra interp_loop ; 2 cy , total 22 cy
+
+;---------------------
+; BASIC: REM | ' 
+; skip comment to end of line 
+;---------------------- 
+kword_remark::
+	ldw y,line.addr 
+	ld a,(2,y) ; line length 
+	_straz in  
+	addw y,in.w   
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ; move basicptr to first token 
@@ -488,12 +498,11 @@ prt_line_no:
 ;-------------------------
 skip_string:
 	ld a,(y)
-	jreq 1$
-	incw y
-	dec count  ; needed for decompile 
-	jra skip_string 
-1$: incw y
-	dec count 
+	jreq 8$
+1$:	incw y
+	ld a,(y)
+	jrne 1$  
+8$: incw y
 	ret 
 
 
@@ -501,10 +510,11 @@ skip_string:
 ; skip label name 
 ;--------------------
 skip_label:
-1$:	ld a,(y)
+	ld a,(y)
 	jreq 8$
-	incw y 
-	jra 1$ 
+1$:	incw y 
+	ld a,(y)
+	jrne 1$   
 8$: incw y 
 	ret 
 
@@ -977,11 +987,7 @@ factor:
 	cp a,#LITW_IDX 
 	jrne 5$
 	_get_word 
-.if DEBUG
-	jp  18$
-.else 
 	jra 18$
-.endif 
 5$:
 	cp a,#LIT_IDX 
 	jrne 6$
@@ -2058,18 +2064,6 @@ input_loop:
 	_next  
 
 ;---------------------
-; BASIC: REM | ' 
-; skip comment to end of line 
-;---------------------- 
-kword_remark::
-	clr acc16 
-	ldw y,line.addr 
-	ld a,(2,y) ; line length 
-	ld acc8,a 
-	addw y,acc16 
-	jp next_line 
-
-;---------------------
 ; BASIC: WAIT addr,mask[,xor_mask]
 ; read in loop 'addr'  
 ; apply & 'mask' to value 
@@ -2426,19 +2420,35 @@ get_target_line:
 ; the target is a line number 
 ; search it. 
 target01: 
+	tnzw x 
+	jrpl 0$ 
+	subw x,#0x8000
+	addw x,txtbgn 
+	ret
 0$:	cpw x,[line.addr] 
-	jrult 2$ 
+	jrult 2$ ; search from txtbgn 
 	jrugt 1$
 	ldw x,line.addr
 	ret   
-1$:	cpl a  ; search from txtbgn 
-2$: ; scan program for this line# 	
+1$:	cpl a  ; search from this line#
+2$: 	
 	call search_lineno 
 	tnz a ; 0 if not found  
 	jrne 3$ 
 	ld a,#ERR_NO_LINE 
 	jp tb_error 
-3$:	 
+3$:	; modify bytecode
+	; replace line# by line.addr-txtbgn+0x8000
+	pushw y
+	pushw x   
+	ldw x,y 
+	subw x,#2 
+	ldw y,(1,sp)
+	subw y,txtbgn
+	addw y,#0x8000
+	ldw (x),y 
+	popw x
+	popw y  	
 	ret 
 
 ;-----------------------------------
@@ -2483,7 +2493,7 @@ search_target_symbol:
 	jra 2$ 
 4$: ; target found 
 	ldw x,(LN_ADDR,sp)
-	ldw y,basicptr 
+	_ldyz basicptr  
 	_drop VSIZE  ; target string 
 	ret
 

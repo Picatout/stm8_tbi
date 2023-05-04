@@ -25,9 +25,6 @@
 
 
 
-do_nothing:
-    _next 
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;  table of code routines 
 ;; used by virtual machine 

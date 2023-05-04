@@ -75,6 +75,7 @@ prt_quote:
 	popw x  
 1$:	ld a,(x)
 	incw x 
+	dec count 
 	tnz a 
 	jreq 9$ 
 	cp a,#SPACE 
@@ -133,7 +134,8 @@ var_name::
 ;------------------------------------
 	PSTR=1     ;  1 word 
 	ALIGN=3
-	VSIZE=3
+	LAST_BC=4
+	VSIZE=4
 decompile::
 	push base 
 	_vars VSIZE
@@ -160,7 +162,7 @@ decomp_loop:
 0$:	dec count 
 	_next_token
 	tnz a 
-	jrne 1$ 
+	jrne 1$
 	jp decomp_exit   
 1$:	cp a,#QUOTE_IDX 
 	jrne 2$
@@ -185,6 +187,7 @@ decomp_loop:
 	jp letter 
 ; print command,funcion or operator 	 
 8$:	
+	ld (LAST_BC,sp),a
 	call tok_to_name 
 	tnz a 
 	jrne 9$
@@ -211,9 +214,27 @@ literal: ; LIT_IDX
 	ldw acc16,x
 	call prt_acc24
 	jp prt_space 
-; print int8 	
+; print int16 	
 lit_word: ; LITW_IDX 
-	_get_word 
+	_get_word
+	tnzw x 
+	jrpl 1$
+	ld a,(LAST_BC,sp)
+	cp a,#GOSUB_IDX 
+	jrmi 1$ 
+	cp a,#GOTO_IDX 
+	jrugt 1$ 
+	subw x,#0x8000
+	addw x,txtbgn
+	pushw y 
+	ldw x,(x)
+	ldw y,x ; line #
+	ldw x,(1,sp) ; basicptr
+	subw x,#2 ; 
+	ldw (x),y
+	ldw x,y   
+	popw y 
+1$:	 
 	call prt_i16 
 	jra prt_space 	
 ; print comment	
@@ -228,7 +249,7 @@ label: ; LABEL_IDX
 	ldw x,y 
 	call puts
 	ldw y,x  
-	jra prt_space  
+	jp prt_space  
 ; print quoted string 	
 quoted_string:	
 	call prt_quote  

@@ -1,4 +1,5 @@
 NEW
+   1 LOOP.TEST
    5 ' performance test 
    10 LET T = TICKS 
    12 FOR I = 1 TO 10000 

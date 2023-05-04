@@ -1,4 +1,5 @@
 new 
+  1 LOOP.TEST1 
   10 ' for next speed test 
    12 LET T = TICKS 
    14 FOR I = 1 TO 10000 

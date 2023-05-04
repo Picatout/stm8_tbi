@@ -1,3 +1,60 @@
+### 2023-05-03
+
+* **À faire** modifié compilateur pour indiqué la longueur des chaînes et symboles avant ceux-ci pour accéllérere les routines *skip_string* et *skip_label*.
+
+* Modifié *skip_label* pour optimiser vitesse. 
+
+* Modifié *skip_string* pour optimiser la vitesse
+
+* Première optimisation, remplacé numéro de ligne par line.addr-txbgn+0x8000.
+
+* Test d'exécution en mémoire RAM et en FLASH de programmes avant optimisation des programmes en mémoire FLASH
+   * [lopp_test1.bas](BASIC/loop_test1.bas) 
+   * en RAM 
+```
+>run
+76  MSEC
+499  MSEC
+525  MSEC
+```
+   * en FLASH
+```
+>run loop.test1
+78  MSEC
+508  MSEC
+539  MSEC
+```
+   * [bxxx_speed.bas](/BASIC/bxxx_speed.bas)
+   * en RAM
+```
+10000 loops each.
+BSET $500A,5: 184  msec
+BRES $500A,5: 185  msec
+BTOGL $500A,5: 184  msec
+DWRITE 13,1: 202  msec
+LET A=BTEST($500A,5):  375  msec
+LET A=DREAD(13): 320  msec
+
+>
+
+```
+   * en FLASH
+```
+>RUN BFUNC
+10000 loops each.
+BSET $500A,5: 188  msec
+BRES $500A,5: 189  msec
+BTOGL $500A,5: 188  msec
+DWRITE 13,1: 205  msec
+LET A=BTEST($500A,5):  383  msec
+LET A=DREAD(13): 326  msec
+
+>
+```
+
+
+
+
 ### 2023-05-02
 
 * Création de la branche V5 pour tester de nouvelles idées.  
