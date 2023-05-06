@@ -472,13 +472,17 @@ is_symbol_char:
 ; input:
 ;   A   first character of symbol 
 ;	X   point to output buffer 
-;   Y   point to input text 
+;   [in.w],Y   point to input text 
 ; output:
-;	X   after symbol 
-;   Y   point after lexical unit 
+;   A   string length 
+;   [in.w],Y   point after lexical unit 
 ;---------------------------
+	FIRST_CHAR=1
+	VSIZE=2 
 parse_symbol:
-	incw x ; keep space for token identifier
+	_vars VSIZE 
+	addw x,#2 ; keep space for token identifier and label length 
+	ldw (FIRST_CHAR,sp),x  
 symb_loop: 
 ; symbol are converted to upper case 
 	call to_upper  
@@ -488,8 +492,11 @@ symb_loop:
 	_incz in 
 	call is_symbol_char 
 	jrc symb_loop 
+	_decz in
 	clr (x)
-	_decz in  
+	subw x,(FIRST_CHAR,sp)
+	ld a,xl
+	_drop VSIZE 
 	ret 
 
 ;---------------------------
@@ -504,21 +511,33 @@ symb_loop:
 ;   A 		token identifier
 ;   pad 	keyword|var_name  
 ;--------------------------  
-	XFIRST=1
-	VSIZE=2
-parse_keyword: 
-	pushw x ; preserve *symbol 
+	TOK_POS=1
+	NLEN=TOK_POS+2
+	VSIZE=NLEN+1 
+parse_keyword:
+	_vars VSIZE 
+	clr (NLEN,sp)
+	ldw (TOK_POS,sp),x  ; where TOK_IDX should be put 
 	call parse_symbol
-	ldw x,(XFIRST,sp) 
-	ld a,(2,x)
+	cp a,#NAME_MAX_LEN+1
+	jrmi 1$  
+	ld a,#NAME_MAX_LEN 
+1$:	
+	ld (NLEN+1,sp),a 
+	ldw x,(TOK_POS,sp) 
+	addw x,(NLEN,sp)
+	addw x,#2
+	clr (x)
+	ldw x,(TOK_POS,sp)
+	cp a,#1
 	jrne 2$
 ; one letter symbol is variable name 
-	ld a,(1,x) 
+	ld a,(2,x) 
 	sub a,#'A 
 	ldw x,#3 
 	mul x,a 
 	addw x,#vars ; variable address 
-	ldw y,(XFIRST,sp)
+	ldw y,(TOK_POS,sp)
 	ldw (1,y),x 
 	ld a,#VAR_IDX 
 	ld (y),a
@@ -526,38 +545,25 @@ parse_keyword:
 	jra 6$ 
 2$: ; check in dictionary, if not found is label.
 	_ldx_dict kword_dict ; dictionary entry point
-	ldw y,(XFIRST,sp) ; name to search for
-	incw y 
+	ldw y,(TOK_POS,sp) ; name to search for
+	addw y,#2 ; name first character 
 	call search_dict
 	cp a,#NONE_IDX 
 	jrne 4$
 ; not in dictionary
 ; compile it as LABEL
 	ld a,#LABEL_IDX 
-	ldw y,(XFIRST,sp)
+	ldw y,(TOK_POS,sp)
 	ld (y),a 
-	incw y
-	ldw x,y 
-	call strlen
-	cp a,#NAME_MAX_LEN 
-	jrule 22$ 
-	ld a,#NAME_MAX_LEN 
-22$:	
-	push a 
-24$:
-    ld a,(y)
-	jreq 3$
-	incw y
-	dec (1,sp) 
-	jrne 24$
-	clr a 
+	incw y 
+	ld a,(NLEN+1,sp)
 	ld (y),a 
-3$: incw y 
-	_drop 1 
+	addw y,(NLEN,sp)
+	addw y,#2
 	ld a,#LABEL_IDX  
 	jra 6$ 
 4$:	; word in dictionary 
-	ldw y,(XFIRST,sp)
+	ldw y,(TOK_POS,sp)
 	ld (y),a ; compile token 
 	incw y 
 6$:	_drop VSIZE 

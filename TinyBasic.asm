@@ -225,15 +225,15 @@ warm_init:
 	_clrz loop_depth 
 	mov base,#10 
 	ldw x,#free_ram  
-	ldw basicptr,x 
-	ldw line.addr,x 
-	_clrz count
-; DIM @(10) minimum size 	
-	ldw x,#10 
-	ldw array_size,x 
+;	ldw basicptr,x 
+;	ldw line.addr,x 
+;	_clrz count
 	ldw x,#tib 
-	subw x,#10*CELL_SIZE 
 	ldw end_free_ram,x
+	subw x,dvar_end 
+	ld a,#INT_SIZE 
+	div x,a 
+	_strxz array_size 
 	ret 
 
 ;-------------------------
@@ -254,7 +254,7 @@ clear_autorun:
 ;  set all variables to zero 
 ; input:
 ;   none 
-; output:
+; output:free_ram
 ;	none
 ;------------------------------------
 clear_vars:
@@ -510,12 +510,12 @@ skip_string:
 ; skip label name 
 ;--------------------
 skip_label:
-	ld a,(y)
-	jreq 8$
-1$:	incw y 
-	ld a,(y)
-	jrne 1$   
-8$: incw y 
+	ld a,(y) ; label length 
+	add a,#2 ; skip count and 0 terminal 
+	push a 
+	push #0
+	addw y,(1,sp)
+	_drop 2
 	ret 
 
 ;-------------------
@@ -767,30 +767,22 @@ atoi24::
 ;  A		TOKEN_IDX  
 ;---------------------------------
 	NLEN=1 ; cmd length 
-	XSAVE=2
-	YSAVE=4
-	VSIZE=5 
+	XSAVE=NLEN+2
+	YSAVE=XSAVE+2
+	VSIZE=YSAVE+1
 search_dict::
 	_vars VSIZE 
+	clr (NLEN,sp)
 	ldw (YSAVE,sp),y 
 search_next:
 	ldw (XSAVE,sp),x 
 ; get name length in dictionary	
 	ld a,(x)
-	ld (NLEN,sp),a  
+	ld (NLEN+1,sp),a  
 	ldw y,(YSAVE,sp) ; name pointer 
 	incw x 
-cp_loop:
-	ld a,(y)
+	call strcmp 
 	jreq str_match 
-	tnz (NLEN,sp)
-	jreq no_match  
-	cp a,(x)
-	jrne no_match 
-	incw y 
-	incw x
-	dec (NLEN,sp)
-	jra cp_loop 
 no_match:
 	ldw x,(XSAVE,sp) 
 	subw x,#2 ; move X to link field
@@ -800,15 +792,10 @@ no_match:
 ;try next 
 	jra search_next
 str_match:
-	tnz (NLEN,sp)
-	jrne no_match
 	ldw x,(XSAVE,sp)
-	ld a,(X)
+	addw x,(NLEN,sp)
 ; move x to token field 	
-	add a,#2 ; to skip length byte and 0 at end  
-	_straz acc8 
-	_clrz acc16 
-	addw x,acc16 
+	addw x,#2 ; to skip length byte and 0 at end  
 	ld a,(x) ; token index
 search_exit: 
 	_drop VSIZE 
@@ -947,10 +934,10 @@ get_array_element:
 3$: 
 	tnzw  x
 	jreq 2$ 
-	ld a,#CELL_SIZE  
+	ld a,#INT_SIZE   
 	mul x,a 
 	ldw acc16,x   
-	ldw x,#tib ; array is below tib 
+	ldw x,end_free_ram ; array start at this point  
 	subw x,acc16
 	ret 
 
@@ -1010,9 +997,9 @@ factor:
 	cp a,#LABEL_IDX  
 	jrne 9$
 	ldw x,y 
-	call skip_string
-	call strlen 
-	add a,#REC_XTRA_BYTES
+	call skip_label
+	ld a,(x)
+	incw x  
 	call search_name
 	tnzw x 
 	jrne 82$ 
@@ -1408,15 +1395,19 @@ func_ubound:
 ; assign to a symbolic variable
 ;----------------------
 	VAR_NAME=1  ; 2 bytes 
-	REC_LEN=VAR_NAME+2 ; 2 bytes 
-	VALUE=REC_LEN+2 ;3 bytes 
+	NAME_LEN=VAR_NAME+2 ; 2 bytes 
+	VALUE=NAME_LEN+2 ;3 bytes 
 	YSAVE=VALUE+INT_SIZE ; 2 bytes 
 	VSIZE=YSAVE+1 
 let_dvar:
 	_vars VSIZE 
-	ldw (VAR_NAME,sp),y
-	clr (REC_LEN,sp) 
-	call skip_string 
+	clr (NAME_LEN,sp)
+	ldw x,y 
+	call skip_label 
+	ld a,(x)
+	ld (NAME_LEN+1,sp),a 
+	incw x 
+	ldw (VAR_NAME,sp),x
 	ld a,#REL_EQU_IDX 
 	call expect 
 dvar_assign: 	 
@@ -1424,9 +1415,7 @@ dvar_assign:
 	call condition
 	_i24_store VALUE 
 	ldw x,(VAR_NAME,sp) ; pointer to var name 
-	call strlen 
-	add a,#REC_XTRA_BYTES
-	ld (REC_LEN+1,sp),a 
+	ld a,(NAME_LEN+1,sp) ; name length 
 	call search_name 
 	tnzw x 
 	jrne 2$
@@ -1436,8 +1425,8 @@ dvar_assign:
 	ld a,#ERR_READ_ONLY 
 	jp tb_error 
 4$:
-	addw x,(REC_LEN,sp)
-	subw x,#INT_SIZE 
+	addw x,(NAME_LEN,sp)
+	addw x,#2 
 	ldw (YSAVE,sp),y 
 	ldw y,x
 	_i24_fetch VALUE
@@ -1502,8 +1491,8 @@ let_eval:
 ;--------------------------
 get_value: ; -- i 
 	ld a,(x) ; record size 
-	and a,#REC_LEN_MASK 
-	sub a,#CELL_SIZE ; * value 
+	and a,#NAME_MAX_LEN
+	add a,#2 
 	push a 
 	push #0 
 	addw x,(1,sp)
@@ -1565,7 +1554,7 @@ eefree:
 ; a constant record use 7+ bytes
 ; constants are saved in EEPROM  
 ; input:
-;    A     name_len+REC_XTRA_BYTES 
+;    A     label_length  
 ;    X     *name
 ; output:
 ;    X     address|0
@@ -1575,24 +1564,21 @@ eefree:
 	NAMEPTR=1 ; target name pointer 
 	WLKPTR=3   ; walking pointer in EEPROM||RAM 
 	NLEN=5  ;  length of target name 
-	LIMIT=7   ; search area limit 
-	VSIZE=8  
+	VSIZE=6 
 search_name:
 	pushw y 
-	_vars VSIZE
 	_clrz acc16 
-	ld (NLEN,sp),a    
+	_vars VSIZE
+	clr (NLEN,sp)
+	ld (NLEN+1,sp),a    
 	ldw (NAMEPTR,sp),x
-	_ldxz dvar_end 
-	ldw (LIMIT,sp),x 
 	ldw y,dvar_bgn
 1$:	ldw (WLKPTR,sp),y
-	ldw x,y 
-	cpw x, (LIMIT,sp) 
+	cpw y, dvar_end
 	jruge 7$ ; no match found 
 	ld a,(y)
-	and a,#REC_LEN_MASK
-	cp a,(NLEN,sp)
+	and a,#NAME_MAX_LEN 
+	cp a,(NLEN+1,sp)
 	jrne 2$ 
 	incw y 
 	ldw x,(NAMEPTR,sp)
@@ -1601,10 +1587,11 @@ search_name:
 2$: ; skip this one 	
 	ldW Y,(WLKPTR,sp)
 	ld a,(y)
-	and a,#REC_LEN_MASK  
+	and a,#NAME_MAX_LEN
 	_straz acc8 
 	addw y,acc16 
-	jra 1$  
+	addw y,#REC_XTRA_BYTES
+	jra 1$
 7$: ; no match found 
 	clr (WLKPTR,sp)
 	clr (WLKPTR+1,sp)
@@ -1612,7 +1599,7 @@ search_name:
 	ldw x,(WLKPTR,sp) ; record address 
 9$:	_DROP VSIZE
 	popw y 
-	 ret 
+	ret 
 
 ;--------------------------------------------
 ; BASIC: CONST name=value [, name=value]*
@@ -1620,8 +1607,8 @@ search_name:
 ; share most of his code with kword_dim 
 ;--------------------------------------------
 	VAR_NAME=1 
-	REC_LEN=VAR_NAME+2
-	RONLY=REC_LEN+1
+	LBL_LEN=VAR_NAME+2
+	RONLY=LBL_LEN+2
 	VALUE=RONLY+1
 	YTEMP=VALUE+INT_SIZE 
 	VSIZE=YTEMP+1 
@@ -1630,7 +1617,7 @@ kword_const:
 	_vars VSIZE 
 	ld a,#128 
 	ld (RONLY,sp),a 
-	clr (REC_LEN,sp)
+	clr (LBL_LEN,sp)
 	jra kword_dim2 ; shared code with kword_dim  
 
 ;---------------------------------
@@ -1646,7 +1633,7 @@ kword_dim:
 	call runtime_only
 kword_dim1:	
 	_vars VSIZE
-	clr (REC_LEN,sp )
+	clr (LBL_LEN,sp )
 	clr (RONLY,sp)
 kword_dim2: 
 0$:	_next_token 
@@ -1654,42 +1641,43 @@ kword_dim2:
 	jreq 1$ 
 	jp syntax_error 
 1$: 
-	ldw (VAR_NAME,sp),y ; name pointer 
-	ldw x,y
-	call strlen
-	add a,#REC_XTRA_BYTES
-	ld (REC_LEN+1,sp),a
-	call skip_string 
-	ld a,(REC_LEN+1,sp)
+	ldw x,y 
+	ld a,(x)
+	ld (LBL_LEN+1,sp),a 
+	incw x 
+	ldw (VAR_NAME,sp),x ; name pointer 
+	call skip_label  
+	ld a,(LBL_LEN+1,sp)
 	ldw x,(VAR_NAME,sp) 
 	call search_name  
 	tnzw x 
 	jreq 2$
 	ld a,#ERR_DUPLICATE
-	jp tb_error  
+	jp tb_error
 2$:	
 ;check if enough space 
 	call free 
-	cpw x,(REC_LEN,sp)
+	subw x,#REC_XTRA_BYTES
+	cpw x,(LBL_LEN,sp)
 	jruge 3$
 	ld a,#ERR_MEM_FULL
 	jp tb_error
 3$:
 	_ldxz dvar_end 
-	ld a,(REC_LEN+1,sp)
+	ld a,(LBL_LEN+1,sp)
 	or a,(RONLY,sp)
 	ld (x),a 
 	incw x 
 	ldw (YTEMP,sp),y 
 	ldw y,(VAR_NAME,sp)
 	call strcpy
-	decw x
-	addw x,(REC_LEN,sp)
-	ldw dvar_end,x 
-	subw x,#INT_SIZE  
+	addw x,(LBL_LEN,sp)
+	incw x 
 	clr (x)
-	clr (1,x)  
+	clr (1,x)
 	clr (2,x)
+	addw x,#INT_SIZE 
+	_strxz dvar_end 
 4$: ldw y,(YTEMP,sp)
 	_next_token 
 	cp a,#COMMA_IDX 
@@ -1861,7 +1849,7 @@ cmd_edit:
 	ld a,#LABEL_IDX 
 	call expect  
 	pushw y
-	call skip_string
+	call skip_label 
 	popw x 
 	pushw y 
 	call search_program 
@@ -2457,22 +2445,24 @@ target01:
 ;    X    line address|0 
 ;------------------------------------
 	; local variables 
+	LBL_LEN=5
 	LBL_PTR=3
 	LN_ADDR=1
-	VSIZE=4  
+	VSIZE=5  
 search_target_symbol:
 	_vars VSIZE  
 	ldw x,y 
-	ldw (LBL_PTR,sp), y
-	call skip_string 
+	ld a,(x)
+	ld (LBL_LEN,sp),a 
+	incw x 
+	ldw (LBL_PTR,sp), x
+	call skip_label  
 	ldw basicptr,y 
 	_clrz acc16 
 	ldw x,txtbgn
 1$:
 	ldw (LN_ADDR,sp),x 
 	ld a,(LINE_HEADER_SIZE,x) ; first token on line 
-	cp a,#SUB_IDX 
-	jreq 3$ 
 	cp a,#LABEL_IDX 
 	jreq 3$ 
 2$:	
@@ -2483,15 +2473,18 @@ search_target_symbol:
 	jrult 1$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-3$: ; found a SUB_IDX|LABEL_IDX  
-	; compare with LBL_PTR  
-	addw x,#4 ; label string 
+3$: ; found a LABEL_IDX  
+	ld a,(4,x) ; label length byte 
+	cp a,(LBL_LEN,sp)
+	jrne 2$ 
+4$: ; same length compare with LBL_PTR
+	addw x,#5 ; skip over label length byte 
 	ldw y,(LBL_PTR,sp) ; target string 
 	call strcmp
-	jreq 4$
+	jreq 5$
 	ldw x,(LN_ADDR,sp)
 	jra 2$ 
-4$: ; target found 
+5$: ; target found 
 	ldw x,(LN_ADDR,sp)
 	_ldyz basicptr  
 	_drop VSIZE  ; target string 
@@ -4970,21 +4963,22 @@ cmd_reboot:
 ; size: in bytes 
 ;---------------------------------
 	BNAME=1
-	NLEN=3 
-	BSIZE=5
-	VSIZE=6 
+	NLEN=BNAME+2
+	BSIZE=NLEN+2 
+	YSAVE=BSIZE+2
+	VSIZE=YSAVE+1
 cmd_alloc_buffer:
 	call runtime_only
 	_vars VSIZE
 	clr (NLEN,sp)
 	ld a,#LABEL_IDX 
 	call expect  
-	ldw (BNAME,sp),y
-	ldw x,y  
-	call strlen 
-	and a,#NAME_MAX_LEN
+	ldw x,y 
+	call skip_label 
+	ld a,(x)
 	ld (NLEN+1,sp),a 
-	call skip_string 
+	incw x 
+	ldw (BNAME,sp),x
 	ld a,#COMMA_IDX 
 	call expect 
 	call expression 
@@ -4998,27 +4992,29 @@ cmd_alloc_buffer:
 	ld a,#ERR_MEM_FULL
 	jp tb_error 
 3$: ldw x,(NLEN,sp)
-	addw x,#REC_XTRA_BYTES  
 	ld a,xl
 	or a,#128 ; this is a CONST that content buffer address  
 	_ldxz dvar_end 
 	ld (x),a 
 	incw x 
-	pushw y 
-	ldw y,(BNAME+2,sp) ; +2 because we have pushed Y 
+	ldw (YSAVE,sp),y 
+	ldw y,(BNAME,sp) ; +2 because we have pushed Y 
 	call strcpy
-	popw y 
 	addw x,(NLEN,sp)
 	incw x 
-	ldw ptr16,x
+	_strxz ptr16 
+	ldw y,(YSAVE,sp) 
 ; allocate buffer space at end of 
 ; free RAM  
 	_ldxz end_free_ram 
 	subw x,(BSIZE,sp)
+	_strxz end_free_ram 
 	clr [ptr16]
-	_incz ptr8 
-	jrnc 4$
-	_incz ptr16
+	_ldaz ptr8 
+	add a,#1 
+	_straz ptr8 
+	jrnc 4$ 
+	_incz ptr16 
 4$:  
 	ldw [ptr16],x 
 5$: ; zero buffer 
@@ -5026,8 +5022,6 @@ cmd_alloc_buffer:
 	incw x 
 	dec (BSIZE,sp)
 	jrne 5$
-	ldw x,[ptr16] 
-	ldw end_free_ram,x
 	_ldxz ptr16
 	addw x,#2 
 	ldw dvar_end,x 

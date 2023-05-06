@@ -1,3 +1,25 @@
+### 2023-05-06
+
+* Modifié *cmd_alloc_buffer* pour tenir compte de la modification du format des *label*.
+* Déplacé **@** à la position *end_free_ram*. Donc le tableau change de position lorsqu'on alloue un buffer avec la commande **BUFFER**. 
+* Corrigé bogue dans *parse_keyword*  du compilateur. Lorsqu'une chaîne dépassait *NAME_MAX_LEN* ne corrigeait pas correctement la limite.
+
+### 2023-05-05
+
+* Travail de la journée d'hier perdu. Ce travail consistait à la modification des étiquettes.
+
+* Modifié *search_dict* pour utiliser *strcmp* à la place de la boucle interne *cp_loop*. N'implique aucune pénalité en runtime.
+
+* Modifié le compilateur et tout ce qui s'en suit pour compiler la longueur de l'étiquette avant celle-ci pour permettre un saut rapide par dessus 
+les étiquettes, mai surtout pour réduire le nombre de comparaison de chaînes. 
+   * modifié *parse_symbol*, saute 2 espaces plutôt qu'une. 
+   * modifié *parse_keyword*, octet longueur d'étiquette compilé après **LABEL_IDX**, suivit de l'étiquette .asciz.
+   * modifié *skip_label*, pour tenir compte de l'octet longueur ajouté.
+   * modifié *decompile*, tient compte de la modification du format des **LABEL_IDX** 
+   * modifié *search_target_symbol* à compléter.
+   * modifié *search_name*.
+   * modifié *let_dvar*.
+
 ### 2023-05-03
 
 * **À faire** modifié compilateur pour indiqué la longueur des chaînes et symboles avant ceux-ci pour accéllérere les routines *skip_string* et *skip_label*.

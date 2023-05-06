@@ -247,8 +247,9 @@ comment: ; REM_IDX
 ; print label   	
 label: ; LABEL_IDX 
 	ldw x,y 
+	call skip_label 
+	incw x 
 	call puts
-	ldw y,x  
 	jp prt_space  
 ; print quoted string 	
 quoted_string:	

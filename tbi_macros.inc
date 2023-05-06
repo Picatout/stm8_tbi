@@ -48,7 +48,7 @@
 	TIB_SIZE=80
     PAD_SIZE=BLOCK_SIZE 
 
-    NAME_MAX_LEN=15  ; CONST and DIM variables maximum length 
+    NAME_MAX_LEN=15  ; LABLE,CONST and DIM variables maximum length 
     REC_XTRA_BYTES=5 
     REC_LEN_MASK=31
 
