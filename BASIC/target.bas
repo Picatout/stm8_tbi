@@ -1,4 +1,5 @@
 NEW
+   1 TARGET
    5 ' target test comparing line# vs symbolic target 
    6 ? "1000 loop each test"
    7 ? "GOTO using symbolic target "

@@ -890,7 +890,6 @@ arg_list:
 7$:	
 	pop a
 	ret  
-	
 
 ;--------------------------------
 ;   BASIC commnands 
@@ -1852,6 +1851,7 @@ cmd_edit:
 	call skip_label 
 	popw x 
 	pushw y 
+	incw x 
 	call search_program 
     jrne 1$ 
 	ldw x,#ERR_NOT_FILE 
@@ -2529,7 +2529,7 @@ kword_on:
 3$: ; got a line number 
 	addw y,#2  ; skip word  
 	jra 6$
-5$: call skip_string ; skip over label 	
+5$: call skip_label ; skip over label 	
 6$: ; if another element comma present 
 	_next_token
 ; _tp 'B
@@ -2643,8 +2643,9 @@ call dump_prog
 	cp a,#LABEL_IDX 
 	jrne 3$
 	pushw y
-	call skip_string 
+	call skip_label  
 	popw x
+	incw x 
 	call search_program
 	jrne 2$
 	ld a,#ERR_NOT_FILE 
@@ -3335,8 +3336,9 @@ cmd_erase:
 	jrne not_file
 erase_program: 
 	pushw y
-	call skip_string 
+	call skip_label 
 	popw x 
+	incw x 
 	call search_program
 	tnzw x 
 	jreq 9$  ; not found 
@@ -4896,8 +4898,9 @@ cmd_chain:
 	ld a,#LABEL_IDX 
 	call expect 
 	pushw y 
-	call skip_string
+	call skip_label
 	popw x 
+	incw x
 	call search_program 
 	tnzw x  
 	jrne 1$ 

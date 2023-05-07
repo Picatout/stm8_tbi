@@ -71,7 +71,7 @@ search_program:
 	ld a,(FILE_DATA+LINE_HEADER_SIZE,x)
 	cp a,#LABEL_IDX 
 	jrne 4$ 
-	addw x,#FILE_DATA+LINE_HEADER_SIZE+1 ; label string  
+	addw x,#FILE_DATA+LINE_HEADER_SIZE+2 ; label string  
 	ldw y,(PNAME,sp)
 	call strcmp
 	jreq 6$

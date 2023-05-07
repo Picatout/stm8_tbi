@@ -3,6 +3,7 @@
 * Modifié *cmd_alloc_buffer* pour tenir compte de la modification du format des *label*.
 * Déplacé **@** à la position *end_free_ram*. Donc le tableau change de position lorsqu'on alloue un buffer avec la commande **BUFFER**. 
 * Corrigé bogue dans *parse_keyword*  du compilateur. Lorsqu'une chaîne dépassait *NAME_MAX_LEN* ne corrigeait pas correctement la limite.
+* Modifié [files.asm](files.asm) pour le nouveau format d'étiquettes.
 
 ### 2023-05-05
 
