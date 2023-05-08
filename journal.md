@@ -1,5 +1,9 @@
 ### 2023-05-08
 
+* Complété version **V5.0R1**
+
+* Mise à jour des manuels de références.
+
 * Testé tous les programmes dans BASIC et ils fonctionnent tous.
 
 * Dernier résultats programme [speed-test.bas](BASIC/speed-test.bas)

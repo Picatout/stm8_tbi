@@ -1,6 +1,6 @@
 #[english](tbi_reference_en.md)
 
-# référence du langage Tiny BASIC pour STM8 V2.5
+# référence du langage Tiny BASIC pour STM8 V5.0R1 
 
 <a id="index-princ"></a>
 ## index principal 
@@ -266,7 +266,6 @@ nom|description
 [ADCREAD](#adcread)|Lecture analogique d'une broche.
 [AND](#and)| opérateur binaire ET
 [ASC](#asc)|Fonction qui retourne la valeur ASCII d'un caractère.
-[AUTORUN](#autorun)|Active l'exécution automatique d'un programme.
 [AWU](#awu)| met la carte en sommeil pour un temps déterminé.
 [BRES](#bres)|met un bit à zéro.
 [BSET](#bset)|met un bit à 1.
@@ -276,8 +275,7 @@ nom|description
 [BYE](#bye)|met la carte en sommeil.
 [CHAIN](#chain)|Chaîne l'exécution d'un programme. 
 [CHAR](#char)|Fonction qui retourne le caractère ASCII correspondant au code.
-[CLK_HSE](#clk_hse)| Commute l'horloge principale sur le signal externe.
-[CLK_HSI](#clk_hsi)| Commute l'horloge principale sur l'oscillateur interne de 16Mhz.
+[CLOCK](#clock)| Commute l'horloge principale sur le signal externe.
 [CONST](#const)|Directive pour définir des constantes.
 [CR1](#cr1)|Constante système qui retourne l'offset du registre CR1 d'un port GPIO
 [CR2](#cr2)|Constante système qui retourne l'offset du registre CR2 d'un port GPIO
@@ -301,6 +299,8 @@ nom|description
 [GOSUB](#gosub)|Appel d'une sous-routine
 [GOTO](#goto)|Branchement inconditionnel
 [HEX](#hex)|Définie la base hexadécimal comme fomrat pour l'impression des nombres.
+[HSE](#hse)|Constante système désignant un cristal ou un oscillateur externe.
+[HSI](#hsi)|Constante système désigant l'oscillateur interne de 16Mhz.
 [I2C.CLOSE](#i2c_close)| ferme le périphérique I2C. 
 [I2C.OPEN](#i2c_open)| ouvre le périphérique I2C.
 [I2C.READ](#i2c_read)| lecture de données d'un dispositif I2C.
@@ -564,8 +564,10 @@ Met le microcontrôleur en mode sommeil profond. Dans ce mode tous les oscilleur
 
 [index](#index)
 <a id="chain"></a>
-### CHAIN name,line# {P}
-Cette commande permet de lancer l'exécution d'un programme à partir d'un autre programme. Lorsque le programme ainsi lancer se termine l'exécution poursuit dans le programme qui à lancer ce dernier après la commande **CHAIN**. Un programme lancer par **CHAIN** peut à son tour lancer un autre programme de la même façon. Chaque appel par cette commande utilise 8 octets sur la pile de contrôle. Il faut donc faire attention de ne pas créer une chaîne trop longue. La pile de contrôle est de 140 octets et est utilisées pour les boucles et les GOSUB, les interruptions et les appels de sous-routines en code machine. Les programmes appellés par **CHAIN** doivent résidés en mémoire FLASH. 
+### CHAIN name {P}
+Cette commande permet de lancer l'exécution d'un programme à partir d'un autre programme. Lorsque le programme ainsi lancer se termine l'exécution poursuit dans le programme qui a lancé ce dernier après la commande **CHAIN**. Un programme lancé par **CHAIN** peut à son tour lancer un autre programme de la même façon. Chaque appel par cette commande utilise 8 octets sur la pile de contrôle. Il faut donc faire attention de ne pas créer une chaîne trop longue. La pile de contrôle est de 140 octets et est utilisées pour les boucles et les GOSUB, les interruptions et les appels de sous-routines en code machine. Les programmes appellés par **CHAIN** doivent résidés en mémoire FLASH. 
+
+Voir les 3 programmes exemples  chain_main.bas,chain_hello.bas et chain_world.bas pour un exemmple d'utilisation.
 
 [index](#index)
 <a id="char"></a>
@@ -578,18 +580,14 @@ La fonction *character* retourne le caractère ASCII correspondant aux 7 bits le
 ```
 [index](#index)
 <a id="clk_hse"></a>
-### CLK_HSE {C,P}
-Cette commande commute l'horloge principale du MCU sur le signal externe. Sur la carte **NUCLEO_8S208RB** un cristal de 8Mhz  est connété sur les broches **OSCIN** et **OSCOUT** du MCU. 
+### CLOCK HSI | CLOCK HSE,Fmhz {C,P}
+Cette commande sélectionne le signal pour l'horloge principale du MCU. 
+* **CLOCK HSI** doit-être utilisé pour sélectionné l'oscillateur interne de 16Mhz.
+* **CLOCK HSE,Fmhz**  doit-être utilisé pour utilisé un cristal ou un oscillateur externe. Dans ce cas il faut spécifié la fréquence en mégahertz du signal.
 
 Pour la carte **NUCLEO_8S207K8** cette commande n'est disponible seulement si **SB5** sur la carte est court-circuité et que la variable **SB5_SHORT** est mise à  **1** dans le fichier **config.inc**.
 
-[index](#index)
-<a id="clk_hsi"></a>
-### CLK_HSI {C,P}
-Cette commande commute l'horloge principale du MCU sur l'oscillateur interne de 16Mhz. 
-
-Pour la carte **NUCLEO_8S207K8** cette commande n'est disponible seulement si **SB5** sur la carte est court-circuité et que la variable **SB5_SHORT** est mise à  **1** dans le fichier **config.inc**.
-
+Voir [HSE](#hse), [HSI](#hsi)
 
 [index](#index)
 <a id="const"></a>
@@ -717,7 +715,7 @@ Cette commande sert à afficher la liste des programmes sauvegardés en mémoire
 
 1. Ça libère la RAM pour les données de l'applciation. 
 1. L'interpréteur BASIC ne peut exécuter du code en mémoire étendue. Il serait cependant possible de le modifier pour qu'il exécute des programmes en mémoire FLASH étendue mais avec une pénalité de performance. 
-voir les commandes [SAVE](#save),[ERASE](#erase) et [AUTORUN](#autorun).
+voir les commandes [SAVE](#save),[ERASE](#erase).
 ```
 >dir
 $B984   97 bytes,BLINK
@@ -812,7 +810,7 @@ program address: $91, program size: 84 bytes in RAM memory
 ### EEFREE {C,P}
 Cette fonction retourne l'adresse EEPROM libre. L'EEPROM est vérifié à partir du début jusqu'à ce que 8 valeurs à **0** consécutives soient trouvées. L'EEPROM est considérée libre à partir de ce point.
 
-voir aussi [AUTORUN](#autorun),[EEPROM](#eeprom). 
+voir aussi [EEPROM](#eeprom). 
 
 ```
 >hex ? eeprom
@@ -852,7 +850,7 @@ $4003
 ### EEPROM {C,P}
 Retourne l'adresse du début de la mémoire EEPROM.
 
-Voir aussi [AUTORUN](#autorun),[EEFREE](#eefree).
+Voir aussi [EEFREE](#eefree).
 
 ```
 >hex:? eeprom,peek(eeprom)
@@ -1033,6 +1031,24 @@ Voir aussi [DEC](#dec).
 $FFFFF6
   -10
 ```
+[index](#index)
+
+<a id="hse"></a>
+## HSE {C,P}
+Cette constante système est utilisée comme paramètre pour la commande [CLOCK](#clock) et sert à spécifier un oscillateur externe ou un cristal installé sur les broches OSCIN et OSCOUT  comme source d'horlogue principale. Lorsque cette option est sélectionnée un second paramètre indiquant la fréquence du signal en Mhz doit-être fourni.
+```
+CLOKC HSE,8 ' sélectionne un signal externe comme horloge principal et ce signal est de 8Mhz.
+```
+Voir [CLOCK](#clock), [HSI](#hsi)
+[index](#index)
+
+<a id="hsi">
+## HSI {C,P}
+Cette constante système est utilisée comme paramètre pur la commande [CLOCK](#clock) et sert à spécifier l'oscillateur interne de 16Mhz comme source pour l'horloge principale du MCU. Inutile de donner un paramètre de fréquence car il sera ignoré de toute façon.
+```
+CLOCK HSI ' l'oscillateur interne de 16Mhz devient la source d'horloge principale.
+```
+Voir [CLOCK](#clock), [HSE](#hse)
 [index](#index)
 
 <a id="i2c_close"></a>
@@ -1823,7 +1839,18 @@ $BA04  138 bytes,FIBONACCI
 [index](#index)
 <a id="save"></a>
 ### SAVE {C}
-Cette commande copie le programme qui est en mémoire RAM dans la mémoire FLASH le rendant ainsi persistant. Plusieurs programmes peuvent-être sauvegardés. Voir la commande [DIR](#dir). 
+Cette commande copie le programme qui est en mémoire RAM dans la mémoire FLASH le rendant ainsi persistant. Plusieurs programmes peuvent-être sauvegardés. Voir la commande [DIR](#dir). Le nom du fichier est spécifié par une étiquette sur la première ligne du programme lui-même. Par exemple le programme suivant sera sauvegardé sous le nom **BLINK**. 
+
+```
+1  BLINK
+5 ' Blink LED2 on card 
+10 DO BTOGL PORTC,5 PAUSE 500 UNTIL KEY? 
+20 LET K=KEY 
+30 BRES PORTC,5
+40 END 
+```
+
+Pour exécuter un programme automatiquement au démarrage il faut le sauvegardé sous le nom **MAIN**. 
 
 [index](#index)
 <a id="servo-ch-en"></a>
@@ -2314,7 +2341,6 @@ La commande [SAVE](#save) permet de sauvegarder des programmes en mémoire FLASH
 * [SAVE](#save) Sauvegarde le programme en RAM dans la mémoire FLASH.
 * [DIR](#dir) Affiche la liste des programmes sauvegardés. 
 * [ERASE](#erase) Supprime un fichier. 
-* [AUTORUN](#autorun) Sélectionne un fichier pour démarrage automatique lors de l'initialisation du système. 
 
 [index principal](#index-princ)
 

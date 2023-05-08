@@ -1,6 +1,6 @@
 [français](tbi_reference_fr.md)
 
-# STM8 Tiny BASIC version 2.5 language refenrece
+# STM8 Tiny BASIC version 5.0R1 language refenrece
 
 <a id="main-index"></a>
 ## main index 
@@ -162,9 +162,10 @@ Integers are printable only in decimal or hexadecimal.
 At startup a beep is sounded and system information is displayed on terminal. followed by
 **&gt;** which is the prompt.
 ```
-Tiny BASIC for STM8
-Copyright, Jacques Deschenes 2019,2022
-version 2.5R1
+TTiny BASIC for STM8
+Copyright, Jacques Deschenes 2019,2022,2023
+version 5.0R1
+NUCLEO-8S207K8
 
 >
 ```
@@ -221,7 +222,6 @@ name|description
 [ADCREAD](#adcread)|Read analog input pin.
 [AND](#and)| Boolean operator.
 [ASC](#asc)|Return ASCII value of a character.
-[AUTORUN](#autorun)|Enable or disable program auto run.
 [AWU](#awu)| Put board in sleep mode for some msec.
 [BRES](#bres)|Reset a bit in a peripheral register.
 [BSET](#bset)|Set a bit in a peripheral register.
@@ -231,8 +231,7 @@ name|description
 [BYE](#bye)|But board in sleep mode.
 [CHAIN](#chain)|Chain program execution. 
 [CHAR](#char)|Return the character corresponding to ASCII code.
-[CLK_HSE](#clk_hse)| Switch master clock to external clock
-[CLK_HSI](#clk_hsi)| Switch master clock to internal oscillator 
+[CLOCK](#clock)| Switch master clock to external clock
 [CONST](#const)|Keyword to define symboli constants.
 [CR1](#cr1)|Return offset of GPIO CR1 register.
 [CR2](#cr2)|Return offset of GPIO CR2 register.
@@ -256,6 +255,8 @@ name|description
 [GOSUB](#gosub)|Subroutine call.
 [GOTO](#goto)|Unconditional jump.
 [HEX](#hex)|Set hexadecimal base for [PRINT](#print) command.
+[HSE](#hse)|High speed external clock identifier.
+[HSI](#hsi)|High speed internal clock identifier.
 [I2C.CLOSE](#i2c_close)| Close I2C peripheral. 
 [I2C.OPEN](#i2c_open)| Open I2C peripheral.
 [I2C.READ](#i2c_read)| read data from I2C peripheral.
@@ -430,17 +431,7 @@ See also [CHAR](#char) function which is the opposite of this one.
     >
 ```
 [index](#index)
-<a id="autorun"></a>
-### AUTORUN \C|name {C}
-This command enable or disable program auto execution at board power up or rinitialisation.
 
-* AUTORUN name  search for a file with that name and if found set it as autorun program.
-
-* AUTORUN \C   cancel any autorun. 
-
-* CTRL-Z  can also be used to cancel an autorun program if stuck in an infinite loop.
-
-[index](#index)
 <a id="awu"></a>
 ### AWU *expr*  {C,P}
 This command put MCU in low power mode __(HALT)__ for some amount of milliseconds defined by *expr*.
@@ -533,12 +524,10 @@ This command place the MCU in HALT mode from which only a reset can reset it.
 
 [index](#index)
 <a id="chain"></a>
-### CHAIN name[,line#] {P}
+### CHAIN name {P}
 This command is used to run a progrm stored in file system from the actual running program.
 
 * *name* is the program file name.
-
-* *line#' is optional and indicate at which line the execution should start. 
 
 When the chained program leave execution continue at the calling program after the **CHAIN** command. 
 
@@ -554,18 +543,13 @@ This function return the ASCII character corresponding code *expr* which must be
 >
 ```
 [index](#index)
-<a id="clk_hse"></a>
-### CLK_HSE {C,P}
-This command switch MCU master clock to external clock. On the **NUCLEO_8S208RB** there a 8Mhz crystal connected between **OSCIN** and **OSCOUT** pins of MCU. 
+<a id="clock"></a>
+### CLOCK HSE,Fmhz | CLOCK HSI  {C,P}
+This command select master clock source. 
+* **CLOCK HSE,Fmhz** To select external clock signal **Fmhz** is the frequence in Megahertz and must be an integer.
+* **CLOCK HSI** To select internal high speed oscillator. No frequency is given because it is fixed to 16Mhz.
 
-On **NUCLEO_8S207K8** board this command is only available if **SB5** on the board is shorted and the variable **SB5_SHORT** is set to **1** in **config.inc** file.
-
-[index](#index)
-<a id="clk_hsi"></a>
-### CLK_HSI {C,P}
-This commande switch MCU master clock to internal 16Mhz oscillator. 
-
-On **NUCLEO_8S207K8** board this command is only available if **SB5** on the board is shorted and the variable **SB5_SHORT** is set to **1** in **config.inc** file.
+See [HSE](#hse), [HSI](#hsi)
 
 [index](#index)
 <a id="const"></a>
@@ -704,7 +688,7 @@ See also [UNTIL](#until).
 ## DIR {C}
 This command display the list of program saved in file system. Program saved with command [SAVE](#save) are run in place. 
 
-See also [SAVE](#save),[ERASE](#erase) and [AUTORUN](#autorun).
+See also [SAVE](#save),[ERASE](#erase).
 ```
 >>DIR
 $BB04 84 bytes,BLINK
@@ -805,7 +789,7 @@ program address: $91, program size: 84 bytes in RAM memory
 ### EEFREE {C,P}
 This function return first free EEPROM address. The EEPROM is scanned from start address until 8 consecutives **0** values are found. The EEPROM is consedered free from that first zero to end.
 
-See also [AUTORUN](#autorun),[EEPROM](#eeprom).
+See also [EEPROM](#eeprom).
 
 ```
 >hex ? eeprom
@@ -845,7 +829,7 @@ $4003
 ### EEPROM {C,P}
 Return the base address of EEPROM. 
 
-See also [AUTORUN](#autorun),[EEFREE](#eefree).
+See also [EEFREE](#eefree).
 ```
 >hex:? eeprom,peek(eeprom)
 $4000 	$41 
@@ -1036,6 +1020,26 @@ See also [DEC](#dec).
 >HEX ?-10 DEC:?-10
 $FFFFF6
   -10
+```
+[index](#index)
+
+<a id="hse"></a>
+## HSE {C,P}
+This system constant is used as parameter for [CLOCK](#clock) command. It idenfy the High Speed External clock signal as master clock.
+When this parameter is used Frequency in Mhz of the signal must be given as secon parameter.
+```
+CLOCK HSE,8  ' use external clock at 8Mhz
+```
+
+See [CLOCK](#clock), [HSI](#hsi) 
+[index](#index)
+
+<a id="#hsi"></a>
+## HSI {C,P}
+This system constant is used as parameter for [CLOCK](#clock) command. It identify the High Speed Internal oscillator as master clock.
+This oscillator is 16Mhz. Frequency parameter is ignored if given.
+```
+CLOCK HSI ' switch to Internal 16Mhz oscillator for master clock
 ```
 [index](#index)
 
@@ -1909,6 +1913,8 @@ This command is used to save the program in RAM to the file system in FLASH memo
 To be saved the first line of the program must be labeled. A program saved can be run from 
 giving its name to the command [RUN](#run). The command [DIR](#dir) list on the terminal the files saved.
 
+A program saved with **MAIN** name is automatically executed at startup or at reboot command.
+
 [index](#index)
 <a id="servo-ch-en"></a>
 ### SERVO.CH.EN *ch#*,*0|1* {C,P}
@@ -2413,8 +2419,9 @@ See [arithmetic expressions](#expressions) for operators priorities.
 The are edited in RAM to minimize wear out of FLASH. Once a program is debugged it should be saved in FLASH memory.  The file system is a very simple one. As the MCU block erase is organized in block 128 bytes the file system is orgnaize around this size. So a program file always take a multiple of 128 bytes in FLASH memory. The memory used for this file system is the one left after Tiny BASIC. When no files are saved the size can be known by the following command:
 ```
 Tiny BASIC for STM8
-Copyright, Jacques Deschenes 2019,2022
-version 2.5R1
+Copyright, Jacques Deschenes 2019,2022,2023
+version 5.0R1
+NUCLEO-8S207K8
 
 >? $1000-uflash
 -44032 

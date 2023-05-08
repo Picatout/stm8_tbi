@@ -2,6 +2,19 @@
 
 # STM8 Tiny BASIC release notes
 
+## 2023-05-08 
+
+### version V5.0R1 
+
+* Again changes in BASIC commands set. 
+
+    * **AUTORUN** command have been removed. Now for a program to be executed at bootup it must be saved as **MAIN** file name.
+    * Commands **CLK_HSE** and **CLK_HSI** have been replaced by **CLOCK** command and 2 system constants, **HSI** and **HSE**. These 2 constants 
+    are to be used as parameter for **CLOCK** command.
+    * **CHAIN** command don't support line number as second parameter. The chained program execute from first line.
+
+* Other modificatgion to code are optimisation and bugs correction. 
+
 ## 2023-04-27
 
 ### version V4.0R0 

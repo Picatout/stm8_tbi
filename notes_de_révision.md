@@ -1,5 +1,18 @@
 # Notes de révision
 
+## 2023-05-08 
+
+### version V5.0R1 
+
+* Il y a encore des changements dans le jeu de commandes BASIC. 
+
+    * La commande **AUTORUN** a disparue. Maintenant pour exécuter automatiquement un programme au démarrage il faut le sauvegarder sous le nom **MAIN**.
+    * Les commandes **CLK_HSE** et **CLK_HSI** ont étées remplacé par la commande **CLOCK** et les 2 constantes système **HSI** et **HSE**. Ces 2 constantes 
+    servent de paramètre pour lac commande **CLOCK**.
+    * La commande **CHAIN** ne supporte plus de numéro de ligne comme 2ième paramètre. Maintenant le programme chaîné s'exécute depuis la première ligne.
+
+* Les autres modifications concerne de l'optimisation de code et des corrections de bogues. 
+
 ## 2023-04-27 
 
 ### version V4.0R0 
