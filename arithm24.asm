@@ -206,6 +206,7 @@ mulu24_8:
 mul24:
     _vars VSIZE
 ; clear local vars 
+    clr (PROD_SIGN,sp)
     clr a 
     clrw x 
     _i24_store PROD 

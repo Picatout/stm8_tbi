@@ -1,3 +1,38 @@
+### 2023-05-08
+
+* Testé tous les programmes dans BASIC et ils fonctionnent tous.
+
+* Dernier résultats programme [speed-test.bas](BASIC/speed-test.bas)
+```
+>run
+FOR...NEXT test
+56  msec
+DO...UNTIL test
+101  msec
+GOSUB test
+63  msec
+```
+
+* tests
+   * Corrigé bogue dans **TONE**. 
+
+
+### 2023-05-07 
+
+* Corrigé bogue dans *mul24*   **PROD_SIGN** n'était pas initialisé.
+
+* Modification  **CLK_HSI** et **CLK_HSE**
+   * Remplacé par une seule commande et 2 constantes.
+   * **CLOCK**  **HSE**,fMhz | **HSI** 
+   * Ajout de la variable système *fmstr* pour spécifier la fréquence en Mhz de l'oscillateur maître. toujours 16 Mhz pour HSI.
+   * Modifié *uart_init*
+   * Modifié *timer4_init*
+   * Modifié *timer2_init*
+   * Modifié *clock_init*
+   * Supprimé *cmd_clock_hse* et *cmd_clock_hsi*
+   * Ajouté *cmd_clock*.
+   * Modifié **TONE**.
+
 ### 2023-05-06
 
 * Modifié *cmd_alloc_buffer* pour tenir compte de la modification du format des *label*.

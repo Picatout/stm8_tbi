@@ -20,9 +20,13 @@ NEW
 170 ADCON 1 
 180 ' read analog input channel and set TIM1.CCR1 register with value.
 190 DO 
-200 ? "\b\b\b\b\b";:LET N=ADCREAD(0): ? n;
+200 GOSUB CLR.LN:LET N=ADCREAD(0): ? n;
 210 POKE TIM1.CCR1H,N/256:POKE TIM1.CCR1L,N
-220 UNTIL KEY? ' quit when a key is pressed 
+220 GET K UNTIL K ' quit when a key is pressed 
 230 BRES TIM1.CCER1,0:BRES TIM1.CR1,0:BRES CLK.PCKENR1,7
 240 END 
+300 ' clear line, move cursor left 
+310 CLR.LN 
+320 ? char(27)"[G";char(27);"[K";
+330 RETURN  
 

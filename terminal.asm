@@ -97,27 +97,51 @@ UartRxHandler: ; console receive char
 ; output:
 ;   none
 ;---------------------------------------------
+BAUD_RATE=115200 
+	N1=1
+	N2=N1+INT_SIZE 
+	VSIZE=N2+2
 uart_init:
+	_vars VSIZE 
 	bset UART_PORT_DDR,#UART_TX_PIN 
     bset UART_PORT_CR1,#UART_TX_PIN 
     bset UART_PORT_CR2,#UART_TX_PIN 
 ; enable UART clock
 	bset CLK_PCKENR1,#UART_PCKEN 	
-uart_set_baud:: 
-	push a 
 	bres UART,#UART_CR1_PIEN
-; baud rate 115200 Fmaster=8Mhz  8000000/115200=69=0x45
-; 1) check clock source, HSI at 16Mhz or HSE at 8Mhz  
-	ld a,#CLK_SWR_HSI
-	cp a,CLK_CMSR 
-	jreq 2$ 
-1$: ; 8 Mhz 	
-	mov UART_BRR2,#0x05 ; must be loaded first
-	mov UART_BRR1,#0x4
-	jra 3$
-2$: ; 16 Mhz 	
-	mov UART_BRR2,#0x0b ; must be loaded first
-	mov UART_BRR1,#0x08
+; baud rate 115200
+; BRR value = Fmaster/115200 
+	clrw x 
+	_ldaz fmstr 
+	rlwa x 
+	_i24_store N1 
+	ldw x,#10000
+	_i24_store N2 
+	call mul24
+	_i24_store N1   
+	clr a 
+	ldw x,#BAUD_RATE/100
+	_i24_store N2
+	call div24 ; A:X quotient, N2: remainder 
+	_i24_store N1 
+	_i24_fetch N2 
+	cpw x,#BAUD_RATE/200
+	jrmi 1$ 
+	inc (N1+2,sp)
+	jrne 1$ 
+	inc (N1+1,sp) 
+1$:  _i24_fetch N1 
+; // brr value in X
+	ld a,#16 
+	div x,a 
+	push a  ; least nibble of BRR1 
+	rlwa x 
+	swap a  ; high nibble of BRR1 
+	or a,(1,sp)
+	_drop 1 
+	ld UART_BRR2,a 
+	ld a,xh 
+	ld UART_BRR1,a 
 3$:
     clr UART_DR
 	mov UART_CR2,#((1<<UART_CR2_TEN)|(1<<UART_CR2_REN)|(1<<UART_CR2_RIEN));
@@ -126,7 +150,7 @@ uart_set_baud::
     clr rx1_head 
 	clr rx1_tail
 	bset UART,#UART_CR1_PIEN
-	pop a  
+	_drop VSIZE 
 	ret
 
 

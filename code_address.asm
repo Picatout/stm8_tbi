@@ -118,6 +118,8 @@ code_addr:
     _code_entry const_portf, PORTF_IDX   ; $3D 
     _code_entry const_portg, PORTG_IDX   ; $3E
     _code_entry const_porti, PORTI_IDX   ; $3F
+    _code_entry const_hse, HSE_IDX ; 
+    _code_entry const_hsi, HSI_IDX ;
     FUNC_CONST_LAST=TOK_IDX-1 
 ; functions 
 	_code_entry func_back_slash, BSLASH_IDX ; $40 caractère oblique gauche 
@@ -205,8 +207,5 @@ code_addr:
     _code_entry cmd_wait, WAIT_IDX          ; $84
     _code_entry cmd_words, WORDS_IDX        ; $85
     _code_entry cmd_write, WRITE_IDX        ; $86
-.if NUCLEO_8S208RB+SB5_SHORT  
-    _code_entry cmd_clock_hsi, CLK_HSI_IDX 
-    _code_entry cmd_clock_hse, CLK_HSE_IDX 
-.endif 
+    _code_entry cmd_clock, CLOCK_IDX 
     CMD_LAST=TOK_IDX-1

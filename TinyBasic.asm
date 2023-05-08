@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=5
 	MINOR=0
-	REV=0
+	REV=1
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -2750,10 +2750,9 @@ cmd_get:
 ;-----------------
 beep_1khz::
 	pushw y 
-	clr a 
 	ldw x,#100
 	ldw y,#1000
-	call beep
+	call tone
 	popw y
 	ret 
 
@@ -2768,21 +2767,21 @@ beep_1khz::
 	DURATION=1 
 	FREQ=DURATION+INT_SIZE
 	YSAVE=FREQ+INT_SIZE 
-;	VSIZE=2*INT_SIZE+2   
+	VSIZE=2*INT_SIZE+2    
 cmd_tone:
-	pushw y 
+	pushw y
 	call arg_list 
 	cp a,#2 
 	jreq 0$ 
 	jp syntax_error
 0$:  
 	ldw (YSAVE,sp),y 
-	_i24_pop  ; DURATION 
+	_i24_fetch  FREQ 
 	ldw y,x 
-	_i24_pop  ; FREQ 
-	exgw x,y 
-	call beep 
-	popw y 
+	_i24_fetch  DURATION 
+	call tone  
+	ldw y,(YSAVE,sp)
+	_drop VSIZE 
 	_next 
 
 ;---------------------
@@ -2790,35 +2789,44 @@ cmd_tone:
 ;   Y   frequency 
 ;   x   duration 
 ;---------------------
-beep: 
-	pushw x 
-	ldw x,#TIM2_CLK_FREQ
-	divw x,y ; cntr=Fclk/freq 
-; round to nearest integer 
-	cpw y,#TIM2_CLK_FREQ/2
-	jrmi 2$
-	incw x 
-2$:	ld a,xh 
+	N1=1
+	N2=N1+INT_SIZE 
+	VSIZE=2*INT_SIZE  
+tone: 
+	_vars VSIZE 
+	_strxz timer
+	bres flags,#FTIMER   
+	clrw x 
+	ld a,fmstr 
+	rlwa x 
+	_i24_store N1 
+	clr a 
+	ldw x,#15625 ; ftimer=fmstr*1e6/64
+	_i24_store N2 
+	call mul24
+	_i24_store N1 
+	clr a 
+	ldw x,y 
+	_i24_store N2 
+	call div24 
+	ld a,xh 
 	ld TIM2_ARRH,a 
 	ld a,xl 
 	ld TIM2_ARRL,a 
 ; 50% duty cycle 
-	ccf 
-	rrcw x 
+	srlw x  
 	ld a,xh 
 	ld TIM2_CCR1H,a 
 	ld a,xl
 	ld TIM2_CCR1L,a
 	bset TIM2_CCER1,#TIM2_CCER1_CC1E
 	bset TIM2_CR1,#TIM2_CR1_CEN
-	bset TIM2_EGR,#TIM2_EGR_UG
-	popw x ; DURATION  
-	ldw timer,x 
+	bset TIM2_EGR,#TIM2_EGR_UG 	
 1$: wfi 
-	ldw x,timer 
-	jrne 1$ 
+	btjf flags,#FTIMER,1$
 	bres TIM2_CCER1,#TIM2_CCER1_CC1E
 	bres TIM2_CR1,#TIM2_CR1_CEN 
+	_drop VSIZE 
 	ret 
 
 
@@ -4002,32 +4010,42 @@ cmd_fcpu:
 	ld CLK_CKDIVR,a 
 	_next  
 
-.if NUCLEO_8S208RB + SB5_SHORT
 ;-------------------------
-; BASIC: CLK_HSE 
-; switch clock to external 
-; 8Mhz clock signal 
-; from ST-LINK 
+; BASIC: CLOCK HSE|HSI [,Fmhz]
+; Switch master clock to 
+; internal or external oscillator 
+; and specify frequency
+; for HSI default to 16Mhz 
+; for HSE frequency must be 
+; specified in Mhz 
 ;--------------------------
-cmd_clock_hse:
-	ld a ,#CLK_SWR_HSE
-	jra clock_switch 
-
-;---------------------------
-; BASIC: CLK_HSI 
-; switch to internal 
-; oscillator 16 Mhz 
-;----------------------------
-cmd_clock_hsi: 
-	ld a ,#CLK_SWR_HSI
-clock_switch:	
-	clrw x 
+	FMHZ=1
+	CLK_SRC=FMHZ+INT_SIZE
+cmd_clock: 
+	call arg_list 
+	tnz a 
+	jrne 1$ 
+	jp syntax_error 
+1$: cp a,#2  
+	jrmi 3$ 
+	jreq 2$ 
+	jp syntax_error 
+2$: 
+; frequency specified
+	_i24_pop
+	ld a,xl 
+	ld (1,sp),a 
+	_i24_pop
+	cpw x,#CLK_SWR_HSE
+	jreq 4$ 
+3$:
+	ld a,#16 ;always 16 for HSI 
+4$: 
+	swapw x ; A=fmstr, XH=HSI|HSE, XL=0  
 	call clock_init 
-	call uart_set_baud
+	call uart_init
 	call timer4_init
-    call timer2_init 	
 	_next 
-.endif 
 
 ;------------------------------
 ; BASIC: PMODE pin#, mode 
@@ -4551,6 +4569,15 @@ const_porti:
 	ldw x,#PI_BASE 
 	clr a 
 	ret 
+const_hse:
+	ldw x,#CLK_SWR_HSE
+	clr a 
+	ret 
+const_hsi:
+	ldw x,#CLK_SWR_HSI
+	clr a 
+	ret 
+
 
 ;-------------------------------
 ; following return constant 
@@ -5132,6 +5159,8 @@ dict_end:
 	_dict_entry,8,"I2C.READ",I2C_READ_IDX
 	_dict_entry,8,"I2C.OPEN",I2C_OPEN_IDX
 	_dict_entry,9,"I2C.CLOSE",I2C_CLOSE_IDX 
+	_dict_entry,3,"HSI",HSI_IDX 
+	_dict_entry,3,"HSE",HSE_IDX
 	_dict_entry,3,"HEX",HEX_IDX 
 	_dict_entry,4,"GOTO",GOTO_IDX  
 	_dict_entry,5,"GOSUB",GOSUB_IDX 
@@ -5156,8 +5185,7 @@ dict_end:
 	_dict_entry,3,"CR1",CR1_IDX  
 	_dict_entry,5,"CONST",CONST_IDX
 .if NUCLEO_8S208RB+SB5_SHORT 
-	_dict_entry,7,"CLK_HSI",CLK_HSI_IDX 
-	_dict_entry,7,"CLK_HSE",CLK_HSE_IDX 
+	_dict_entry,5,"CLOCK",CLOCK_IDX 
 .endif 	
 	_dict_entry,4,"CHAR",CHAR_IDX
 	_dict_entry,5,"CHAIN",CHAIN_IDX 

@@ -1,7 +1,7 @@
 NEW 
     5 ' Test symbolic constant speed in comparison to literal constant.
    10 CONST TEST =1024
-   20 PRINT "assign a varaible."
+   20 PRINT "assign a variabble."
    24 PRINT "literal constant: ";
    30 LET T=TICKS :FOR I=1 TO 10000:LET A=20490: NEXT I
    32 PRINT TICKS-T; "MSEC."

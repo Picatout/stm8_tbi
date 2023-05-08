@@ -114,6 +114,7 @@ acc32:: .blkb 1 ; 32 bit accumalator upper-byte
 acc24:: .blkb 1 ; 24 bits accumulator upper-byte 
 acc16:: .blkb 1 ; 16 bits accumulator, acc24 high-byte
 acc8::  .blkb 1 ;  8 bits accumulator, acc24 low-byte  
+fmstr:: .blkb 1 ; frequency in Mhz of Fmaster
 ticks: .blkb 3 ; milliseconds ticks counter (see Timer4UpdateHandler)
 timer:: .blkw 1 ;  milliseconds count down timer 
 seedx: .blkw 1  ; xorshift 16 seed x  used by RND() function 
@@ -355,12 +356,15 @@ UBTN_Handler_exit:
 ;----------------------------------------
 ; inialize MCU clock 
 ; input:
-;   A 		source  HSI | 1 HSE 
-;   XL      CLK_CKDIVR , clock divisor 
+;   A       fmstr Mhz 
+;   XL      CLK_CKDIVR , clock divisor
+;   XH     HSI|HSE   
 ; output:
 ;   none 
 ;----------------------------------------
 clock_init:	
+	_straz fmstr
+	ld a,xh ; clock source HSI|HSE 
 	bres CLK_SWCR,#CLK_SWCR_SWIF 
 	cp a,CLK_CMSR 
 	jreq 2$ ; no switching required 
@@ -369,7 +373,7 @@ clock_init:
 	btjf CLK_SWCR,#CLK_SWCR_SWIF,. 
 	bset CLK_SWCR,#CLK_SWCR_SWEN
 2$: 	
-; HSI and cpu clock divisor 
+; cpu clock divisor 
 	ld a,xl 
 	ld CLK_CKDIVR,a  
 	ret
@@ -383,12 +387,8 @@ clock_init:
 timer2_init:
 	bset CLK_PCKENR1,#CLK_PCKENR1_TIM2 ; enable TIMER2 clock 
  	mov TIM2_CCMR1,#(6<<TIM2_CCMR_OCM) ; PWM mode 1 
-	mov TIM2_PSCR,#8 ; 16Mhz/256=62500
-	ld a,CLK_CMSR
-	cp a,#CLK_SWR_HSI 
-	jreq 9$  
-	mov TIM2_PSCR,#7 ; 8Mhz/128=62500 
-9$:	ret 
+	mov TIM2_PSCR,#6 ; fmstr/64
+	ret 
 
 ;---------------------------------
 ; TIM4 is configured to generate an 
@@ -397,19 +397,34 @@ timer2_init:
 timer4_init:
 	bset CLK_PCKENR1,#CLK_PCKENR1_TIM4
 	bres TIM4_CR1,#TIM4_CR1_CEN 
-	mov TIM4_PSCR,#7 ; prescale 128  
-	mov TIM4_ARR,#124 ; set for 1msec.
-	ld a,CLK_CMSR
-	cp a,#CLK_SWR_HSI 
-	jreq 1$ 
-	mov TIM4_ARR,#62 
-1$:	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
+	ld a,fmstr 
+	ldw x,#0xe8 
+	mul x,a
+	pushw x 
+	ldw x,#3 
+	mul x,a 
+	swapw x 
+	addw x,(1,sp) 
+	_drop 2  
+	clr a 
+0$:	 
+	cpw x,#256 
+	jrmi 1$ 
+	inc a 
+	srlw x 
+	jra 0$ 
+1$:
+	ld TIM4_PSCR,a 
+	ld a,xl 
+	ld TIM4_ARR,a
+	mov TIM4_CR1,#((1<<TIM4_CR1_CEN)|(1<<TIM4_CR1_URS))
 	bset TIM4_IER,#TIM4_IER_UIE
 ; set int level to 1 
 	ld a,#ITC_SPR_LEVEL1 
 	ldw x,#INT_TIM4_OVF 
 	call set_int_priority
 	ret
+
 
 ;--------------------------
 ; set software interrupt 
@@ -487,29 +502,26 @@ cold_start:
     bset LED_PORT+GPIO_CR2,#LED_BIT
     bset LED_PORT+ GPIO_DDR,#LED_BIT
 	bres LED_PORT+GPIO_ODR,#LED_BIT ; turn on user LED  
-
 ; disable schmitt triggers on Arduino CN4 analog inputs
 	mov ADC_TDRL,0x3f
 ; initialize auto wakeup with LSI clock
 	clr AWU_TBR 
 	bset CLK_PCKENR2,#CLK_PCKENR2_AWU ; enable LSI for AWU 
 ; select internal clock no divisor: 16 Mhz 	
-	ld a,#CLK_SWR_HSI 
-	clrw x  
+	ld a,#16 ; Mhz 
+	ldw x,#CLK_SWR_HSI<<8   ; high speed internal oscillator 
     call clock_init 
-	call timer2_init	
 ; UART at 115200 BAUD
 ; used for user interface 
-; via USB emulation through STLINK programmer.
 	ldw x,#uart_putc 
 	ldw out,x 
 	call uart_init
+	call timer4_init ; msec ticks timer 
+	call timer2_init ; tone generator 	
 .if NUCLEO_8S208RB	
 ; activate PE_4 (user button interrupt)
     bset PE_CR2,#USR_BTN_BIT 
 .endif 
-; initialize TICKS timer 
-	call timer4_init
 	rim ; enable interrupts 
 ; RND function seed 
 ; must be initialized 
