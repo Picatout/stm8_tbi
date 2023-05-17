@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=5
 	MINOR=0
-	REV=1
+	REV=2
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -2305,15 +2305,6 @@ kword_step: ; {var limit -- var limit step}
 2$:	
 	ld (FSTEP,sp),a 
 	ldw (FSTEP+1,sp),x ; step
-; if step < 0 decrement LIMIT 
-	tnz a 
-	jrpl store_loop_addr 
-	ld a,(LIMIT,sp)
-	ldw x,(LIMIT+1,sp)
-	subw x,#1 
-	sbc a,#0 
-	ld (LIMIT,sp),a 
-	ldw (LIMIT+1,sp),x 
 ; leave loop back entry point on stack 
 store_loop_addr:
 	ldw (BPTR,sp),y 
@@ -2331,6 +2322,7 @@ store_loop_addr:
 ; else stack. 
 ; and decrement 'loop_depth' 
 ;--------------------------------
+	OFS=2 ; offset added by pushw y 
 kword_next: ; {var limit step retl1 -- [var limit step ] }
 	tnz loop_depth 
 	jrne 1$ 
@@ -2345,43 +2337,33 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 	ldw x,(CVAR,sp)
 	jp syntax_error ; not the good one 
 2$:  
-	ldw ptr16,x 
+	pushw y
+	ldw y,x 
 	; increment variable 
 	ld a,(x)
 	ldw x,(1,x)  ; get var value 
-	addw x,(FSTEP+1,sp) ; var+step 
-	adc a,(FSTEP,sp)
-	ld [ptr16],a
+	addw x,(OFS+FSTEP+1,sp) ; var+step 
+	adc a,(OFS+FSTEP,sp)
+	ld (y),a
  ; because all variables are in page 0
  ; inc ptr8 never overflow   	
-	_incz ptr8
-	ldw [ptr16],x 
+	incw y 
+	ldw (y),x
+	popw y 
+	subw x,(LIMIT+1,sp) 
+	_strxz acc16 
+	sbc a,(LIMIT,sp) 
 	_straz acc24 
-	ldw acc16,x 
-	ld a,(LIMIT,sp)
-	ldw x,(LIMIT+1,sp)
-	subw x,acc16 
-	sbc a,acc24
+	or a,acc16 
+	or a,acc8 
+	jreq loop_back
+	_ldaz acc16 
 	xor a,(FSTEP,sp)
-	xor a,#0x80
-	jrmi loop_back  
-	jra loop_done   
-; check sign of STEP  
-	ld a,(FSTEP,sp)
-	jrpl 4$
-;negative step
-    _ldaz acc8 
-	jrslt loop_back   
-	jra loop_done  
-4$: ; positive step
-	btjt acc8,#7,loop_done 
+	jrpl loop_done 
 loop_back:
 	ldw y,(BPTR,sp)
-;	ldw basicptr,y 
 	ldw x,(LN_ADDR,sp)
 	ldw line.addr,x 
-;	ld a,(2,x)
-;	_straz count
 1$:	_next 
 loop_done:
 	; remove loop data from stack  

@@ -1,3 +1,28 @@
+### 2023-05-17
+
+* Modification à *kword_step* et *kword_next*
+```
+>list
+    1 ' FOR...NEXT loop test 
+   10 ? "FOR..NEXT loop test" 
+   20 ? "positive step test " ; 
+   30 FOR I = - 10 TO 10 : ? I ; : NEXT I 
+   40 ? "\nnegative step test " ; 
+   50 FOR I = 10 TO - 10 STEP - 1 : ? I ; : NEXT I 
+   60 ? "\noverhead test 10000 loops" 
+   70 LET T = TICKS : FOR I = 1 TO 10000 : NEXT I : ? TICKS - T ; " msec" 
+   80 END 
+program address: $92, program size: 251 bytes in RAM memory
+
+>run
+FOR..NEXT loop test
+positive step test -10 -9 -8 -7 -6 -5 -4 -3 -2 -1 0 1 2 3 4 5 6 7 8 9 10 
+negative step test 10 9 8 7 6 5 4 3 2 1 0 -1 -2 -3 -4 -5 -6 -7 -8 -9 -10 
+overhead test 10000 loops
+61  msec
+
+```
+
 ### 2023-05-08
 
 * Complété version **V5.0R1**
