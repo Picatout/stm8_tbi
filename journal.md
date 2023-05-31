@@ -1,3 +1,18 @@
+### 2023-05-31
+
+* Modifié routine *kword_next* dans [TinyBasic.asm](TinyBasic.asm) pour amélioré la performance. 
+Avant modification:
+```
+>let t=ticks:for i=1 to 10000:next i:? ticks-t;" msec"
+61  msec 
+```
+Après modification:
+```
+>let t=ticks:for i=1 to 10000:next i:? ticks-t;" msec"
+48  msec
+```
+Gain de 27% sur boulde FOR...NEXT vide.
+
 ### 2023-05-17
 
 * Modification à *kword_step* et *kword_next*
