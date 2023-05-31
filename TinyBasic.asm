@@ -2324,23 +2324,9 @@ store_loop_addr:
 ;--------------------------------
 	OFS=2 ; offset added by pushw y 
 kword_next: ; {var limit step retl1 -- [var limit step ] }
+; skip over variable address 
 	addw y,#3 
-;	tnz loop_depth 
-;	jrne 1$ 
-;	jp syntax_error 
-1$:
-;	ld a,#VAR_IDX 
-;	call expect
-;	_get_addr 
-; check for good variable after NEXT 	  
-;	cpw x,(CVAR,sp)
-;	jreq 2$  
-;	ldw x,(CVAR,sp)
-;	jp syntax_error ; not the good one 
-2$:  
 	ldw x,(CVAR,sp)
-;	pushw y
-;	ldw y,x 
 	; increment variable 
 	ld a,(x)
 	ldw x,(1,x)  ; get var value 
@@ -2349,8 +2335,6 @@ kword_next: ; {var limit step retl1 -- [var limit step ] }
 	pushw y
 	ldw y,(OFS+CVAR,sp)
 	ld (y),a
- ; because all variables are in page 0
- ; inc ptr8 never overflow   	
 	incw y 
 	ldw (y),x
 	popw y 
