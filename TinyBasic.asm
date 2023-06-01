@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=5
 	MINOR=0
-	REV=3
+	REV=4
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -222,12 +222,8 @@ warm_init:
 	ldw x,#uart_putc 
 	ldw out,x ; standard output   
 	_clrz flags 
-	_clrz loop_depth 
 	mov base,#10 
 	ldw x,#free_ram  
-;	ldw basicptr,x 
-;	ldw line.addr,x 
-;	_clrz count
 	ldw x,#tib 
 	ldw end_free_ram,x
 	subw x,dvar_end 
@@ -813,18 +809,6 @@ cmd_line_only:
 	ld a,#ERR_CMD_ONLY
 	jp tb_error 
 0$: ret 
-
-;--------------------------------
-; called by command/function that 
-; should be invoked only at run time
-; Display an error if invoked from 
-; command line. 
-;---------------------------------
-runtime_only:
-	btjt flags,#FRUN,0$ 
-	ld a,#ERR_RUN_ONLY
-	jp tb_error 
-0$:	ret 
 
 ;---------------------
 ; check if next token
@@ -1612,7 +1596,6 @@ search_name:
 	YTEMP=VALUE+INT_SIZE 
 	VSIZE=YTEMP+1 
 kword_const:
-	call runtime_only
 	_vars VSIZE 
 	ld a,#128 
 	ld (RONLY,sp),a 
@@ -1629,7 +1612,6 @@ kword_const:
 ; but r/w because stored in RAM 
 ;---------------------------------
 kword_dim:
-	call runtime_only
 kword_dim1:	
 	_vars VSIZE
 	clr (LBL_LEN,sp )
@@ -2310,7 +2292,6 @@ store_loop_addr:
 	ldw (BPTR,sp),y 
 	_ldxz line.addr 
 	ldw (LN_ADDR,sp),x   
-	_incz loop_depth   
 	_next 
 
 ;--------------------------------
@@ -2320,7 +2301,6 @@ store_loop_addr:
 ; and compare with limit 
 ; loop if threshold not crossed.
 ; else stack. 
-; and decrement 'loop_depth' 
 ;--------------------------------
 	OFS=2 ; offset added by pushw y 
 kword_next: ; {var limit step retl1 -- [var limit step ] }
@@ -2356,7 +2336,6 @@ loop_back:
 loop_done:
 	; remove loop data from stack  
 	_drop VSIZE 
-	dec loop_depth 
 	_next 
 
 ;----------------------------
@@ -2466,7 +2445,6 @@ search_target_symbol:
 ; selective goto or gosub 
 ;--------------------------------
 kword_on:
-;	call runtime_only
 	call expression 
 ;_tp '9 	
 ; the selector is the element indice 
@@ -4043,7 +4021,7 @@ cmd_pin_mode:
 	jrule 1$
 	ld a,#ERR_BAD_VALUE
 	jp tb_error 
-1$:	call select_pin ; x=PORT base address, A=pin_mask 
+1$:	call select_pin ; x=PORT base address, A=pin_mask speed
 4$:	ld (PINNO,sp),a ; bit mask 
 	or a,(GPIO_CR1,x) ;if input->pull-up else push-pull 
 	ld (GPIO_CR1,x),a 
@@ -4471,7 +4449,6 @@ kword_do:
 	ldw (DOLP_ADR,sp),y
 	_ldxz line.addr  
 	ldw (DOLP_LN_ADDR,sp),x
-	_incz loop_depth 
 	_next 
 
 ;--------------------------------
@@ -4480,10 +4457,6 @@ kword_do:
 ; else terminate loop
 ;--------------------------------
 kword_until: 
-	tnz loop_depth 
-	jrne 1$ 
-	jp syntax_error 
-1$: 
 	call condition  
 	tnz a 
 	jrne 9$ 
@@ -4499,7 +4472,6 @@ kword_until:
 8$:	_next 
 9$:	; remove loop data from stack  
 	_drop VSIZE
-	dec loop_depth 
 	_next 
 
 ;--------------------------
@@ -4654,7 +4626,6 @@ is_data_line:
 ; the program is interrupted. 
 ;---------------------------------
 cmd_restore:
-	call runtime_only
 	clrw x 
 	ldw data_line,x 
 	ldw data_ptr,x 
@@ -4697,7 +4668,6 @@ data_error:
 ;    A:X int24  
 ;---------------------------------
 func_read_data:
-	call runtime_only
 read01:	
 	ldw x,data_ptr
 	ld a,(x)
@@ -4933,7 +4903,6 @@ cmd_chain:
 ; disable|enable line# trace 
 ;-----------------------------
 cmd_trace:
-	call runtime_only
 	_next_token
 	cp a,#LITW_IDX
 	jreq 1$ 
@@ -4968,7 +4937,6 @@ cmd_reboot:
 	YSAVE=BSIZE+2
 	VSIZE=YSAVE+1
 cmd_alloc_buffer:
-	call runtime_only
 	_vars VSIZE
 	clr (NLEN,sp)
 	ld a,#LABEL_IDX 

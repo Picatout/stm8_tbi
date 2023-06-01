@@ -124,7 +124,6 @@ ptr16::  .blkb 1 ; 16 bits pointer , farptr high-byte
 ptr8:   .blkb 1 ; 8 bits pointer, farptr low-byte  
 txtbgn:: .blkw 1 ; tokenized BASIC text beginning address 
 txtend:: .blkw 1 ; tokenized BASIC text end address 
-loop_depth: .blkb 1 ; level of nested loop. Conformity check   
 array_size: .blkw 1 ; array size, free RAM left after BASIC code.  
 flags:: .blkb 1 ; various boolean flags
 free_eeprom: .blkw 1 ; start address of free eeprom 
@@ -158,8 +157,6 @@ pwm_ch4_count: .blkb 1
 
 ; 24 bits integer variables 
 vars:: .blkb 3*26 ; BASIC variables A-Z,
-;	.area BTXT (ABS)
-;	.org 0x8C  
 ; keep 'free_ram' as last variable 
 ; basic code compiled here. 
 rsign: .blkw 1 ; "TB" 

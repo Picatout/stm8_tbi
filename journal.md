@@ -1,4 +1,10 @@
+### 2023-06-01
+
+* Supprimer la routine *runtime_only*  ainsi que les appels à cette routine.
+
 ### 2023-05-31
+
+* Élimination de la variable système *loop_depth* et des test associés.
 
 * Modifié routine *kword_next* dans [TinyBasic.asm](TinyBasic.asm) pour amélioré la performance. 
 Avant modification:

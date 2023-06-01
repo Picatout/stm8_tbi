@@ -17,7 +17,7 @@ FMSTR=16 ; master clock frequency in Mhz
 
 ; boards list
 ; set selected board to 1  
-NUCLEO_8S208RB=1
+NUCLEO_8S208RB=0
 ; use this to ensure 
 ; only one is selected 
 .if NUCLEO_8S208RB 
