@@ -1,5 +1,7 @@
 ### 2023-06-14 
 
+* Modifié révision vers V5.0R5 et ajouter tag.
+
 * Ajout des commande SPI à la carte NUCLEO-8S207K8.
 
 * Déplacer les commandes SPI dans le fichier [spi.asm](spi.asm).

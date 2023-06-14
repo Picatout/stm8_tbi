@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=5
 	MINOR=0
-	REV=4
+	REV=5
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
