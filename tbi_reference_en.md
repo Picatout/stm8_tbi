@@ -1971,19 +1971,27 @@ If the **SLEEP** command is called inside a program and the MCU is woke up by an
 
 [index](#index)
 <a id="spien"></a>
-### SPI.EN *0|1* [,*div*]  (NUCLEO-8S208RB only)
+### SPI.EN *0|1* [,*div*]
 This command enable or disable the SPI peripheral.
 
 * **0|1**  **0** disable, **1** enable.
 * **div**  clock frequency divisor {0..7}, Fspi=Fmstr/(2^(div+1)) {2..256}. This parameter is optionnal and default to **0** for maximum clock frequency. **WARNING:** when first parameter is **0** this must be omitted.
 
 ### NUCLEO-8S208RB pinout 
-SPI<BR>SIGNAL|CONN.|PIN<BR>NAME 
--|-|-
-~CS|CN8:3|D10
-SCLK|CN8:6|D13
-MISO|CN8:5|D12
-MOSI|CN8:4|D11
+SPI<BR>SIGNAL|CONN.|PIN<BR>NAME|MCU pin 
+-|-|-|-
+NSS|CN8:3|D10|PE5
+SCLK|CN8:6|D13|PC5
+MOSI|CN8:4|D11|PC6 
+MISO|CN8:5|D12|PC7
+
+### NUCLEO-8S207K8 pinout 
+SPI<BR>SIGNAL|CONN.|PIN<BR>NAME|MCU pin  
+-|-|-|-
+NSS|CN3:13|D10|PE5
+SCLK|CN4:15|D13|PC5
+MOSI|CN3:14|D11|PC6
+MISO|CN3:15|D12|PC7
 
 
 [index](#index)

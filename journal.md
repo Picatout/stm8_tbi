@@ -1,3 +1,9 @@
+### 2023-06-14 
+
+* Ajout des commande SPI à la carte NUCLEO-8S207K8.
+
+* Déplacer les commandes SPI dans le fichier [spi.asm](spi.asm).
+
 ### 2023-06-01
 
 * Supprimer la routine *runtime_only*  ainsi que les appels à cette routine.

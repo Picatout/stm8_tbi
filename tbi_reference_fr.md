@@ -1929,8 +1929,6 @@ Si le bouton **RESET** avait été utilisé le MCU aurait été réinitialisé.
 <a id="spien"></a>
 ### SPI.EN *0|1* [,*div*]  {C,P}    
 
-Non disponible sur NUCLEO-S207K8
-
 Cette commande sert à activer le périphérique SPI. 
 
 * *0|1*   *0* désactive le périphérique,  *1* l'active 
@@ -1939,12 +1937,20 @@ Cette commande sert à activer le périphérique SPI.
 <br>Fspi=Fmstr/(2^(div+1)). Ce paramètre est optionnel et la valeur par défaut est **0** pour la fréquence maximale de Fmstr/2.  **ATTENTION** ce paramètre ne doit pas être fourni lorsque le premier paramètre est **0**. 
 
 ### brochage carte NUCLEO-8S208RB 
-signal<br>SPI|CONN.|nom<BR>broche 
--|-|-
-~CS|CN8:3|D10
-SCLK|CN8:6|D13
-MISO|CN8:5|D12
-MOSI|CN8:4|D11
+signal<br>SPI|CONN.|nom<BR>broche|MCU port  
+-|-|-|-
+NSS|CN8:3|D10|PE5
+SCLK|CN8:6|D13|PC5
+MOSI|CN8:4|D11|PC6
+MISO|CN8:5|D12|PC7
+
+### brochage carte NUCLEO-8S207K8 
+signal<br>SPI|CONN.|nom<BR>broche|MCU port  
+-|-|-|-
+NSS|CN3:13|D10|PE5
+SCLK|CN4:15|D13|PC5
+MOSI|CN3:14|D11|PC6
+MISO|CN3:15|D12|PC7
 
 [index](#index)
 <a id="spisel"></a>

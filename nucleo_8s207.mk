@@ -1,5 +1,5 @@
 #############################
-# Make file for NUCLEO board
+# Make file for NUCLEO-8S207K8 board
 #############################
 BOARD=stm8s207k8
 PROGRAMMER=stlinkv21

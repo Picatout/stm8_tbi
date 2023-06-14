@@ -21,13 +21,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-.if SEPARATE 
-    .module COMPILER  
-    .include "config.inc"
-
-    .area CODE 
-.endif 
-
 ;-------------------------------------
 ; search text area for a line#
 ; input:

@@ -4716,121 +4716,6 @@ read01:
 	jra data_error 
 
 
-.if NUCLEO_8S208RB
-;---------------------------------
-; BASIC: SPI.EN 0|1 [,clkdiv]  
-; clkdiv -> {0..7} Fspi=Fclk/2^(n+1)
-; if clkdiv==-1 disable SPI
-; 0|1 -> disable|enable  
-;--------------------------------- 
-SPI_CS_BIT=5
-cmd_spi_enable:
-	call expect_integer
-	tnzw x 
-	jreq spi_disable 
-	_next_token
-	cp a,#COMMA_IDX 
-	jreq 1$ 
-	_unget_token
-	clrw x 
-	jra 2$  
-1$: 
-	call expect_integer 
-2$:
-	bset CLK_PCKENR1,#CLK_PCKENR1_SPI ; enable clock signal 
-	ld a,#(1<<SPI_CR1_BR)
-	mul x,a 
-	ld a,xl 
-	and a,#7 
-	ld SPI_CR1,a 
-; configure ~CS on PE5 (D10 on CN8) as output. 
-	bset PE_ODR,#SPI_CS_BIT	; set ~CS high  
-	bset PE_DDR,#SPI_CS_BIT  ; pin as output 
-; configure SPI as master mode 0.	
-	bset SPI_CR1,#SPI_CR1_MSTR
-; ~CS line controlled by sofware 	
-	bset SPI_CR2,#SPI_CR2_SSM 
-    bset SPI_CR2,#SPI_CR2_SSI 
-; enable SPI
-	bset SPI_CR1,#SPI_CR1_SPE 	
-	_next 
-
-spi_disable:
-; wait spi idle 
-	btjt SPI_SR,#SPI_SR_BSY,.
-	bres SPI_CR1,#SPI_CR1_SPE
-	bres CLK_PCKENR1,#CLK_PCKENR1_SPI 
-	bres PE_DDR,#SPI_CS_BIT 
-	_next 
-
-spi_clear_error:
-	ld a,#0x78 
-	bcp a,SPI_SR 
-	jreq 1$
-	clr SPI_SR 
-1$: ret 
-
-spi_send_byte:
-	push a 
-	call spi_clear_error
-	pop a 
-	btjf SPI_SR,#SPI_SR_TXE,.
-	ld SPI_DR,a
-	btjf SPI_SR,#SPI_SR_RXNE,.  
-	ld a,SPI_DR 
-	ret 
-
-spi_rcv_byte:
-	ld a,#255
-	btjf SPI_SR,#SPI_SR_RXNE,spi_send_byte 
-	ld a,SPI_DR 
-	ret
-
-;------------------------------
-; BASIC: SPI.WR byte [,byte]
-; write 1 or more byte
-;------------------------------
-cmd_spi_write:
-	call condition
-1$:	
-	ld a,xl 
-	call spi_send_byte 
-	_next_token 
-	cp a,#COMMA_IDX 
-	jrne 2$ 
-	jra cmd_spi_write 
-2$:	_unget_token  
-	_next 
-
-
-;-------------------------------
-; BASIC: SPI.RD 	
-; read one byte from SPI 
-;-------------------------------
-func_spi_read:
-	call spi_rcv_byte 
-	clrw x 
-	ld xl,a 
-	clr a
-	ret  
-
-;------------------------------
-; BASIC: SPI.SEL 0|1 
-; set state of ~CS line
-; 0|1 deselect|select  
-;------------------------------
-cmd_spi_select:
-	call expect_integer 
-	tnzw x  
-	jreq cs_high 
-; select 	
-	bres PE_ODR,#SPI_CS_BIT
-	_next  
-cs_high: ; deselect 
-	bset PE_ODR,#SPI_CS_BIT
-	_next 
-.endif 
-
 ;-------------------------------
 ; BASIC: PAD 
 ; Return pad buffer address.
@@ -5033,12 +4918,10 @@ dict_end:
 	_dict_entry,5,"TICKS",TICKS_IDX
 	_dict_entry,4,"STOP",STOP_IDX
 	_dict_entry,4,"STEP",STEP_IDX
-.if NUCLEO_8S208RB	
 	_dict_entry,6,"SPI.WR",SPIWR_IDX
 	_dict_entry,7,"SPI.SEL",SPISEL_IDX
 	_dict_entry,6,"SPI.RD",SPIRD_IDX 
 	_dict_entry,6,"SPI.EN",SPIEN_IDX
-.endif 	
 	_dict_entry,5,"SLEEP",SLEEP_IDX
     _dict_entry,4,"SIZE",SIZE_IDX
 	_dict_entry,9,"SERVO.POS",SERVO_POS_IDX

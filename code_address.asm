@@ -141,9 +141,7 @@ code_addr:
     _code_entry func_read_data, READ_IDX    ; $4F
     _code_entry func_random, RND_IDX        ; $50 
     _code_entry func_rshift, RSHIFT_IDX     ; $51 
-.if NUCLEO_8S208RB
     _code_entry func_spi_read, SPIRD_IDX    ; $52 
-.endif 
     _code_entry func_ticks, TICKS_IDX       ; $53 
     _code_entry func_timeout, TIMEOUT_IDX   ; $54 
     _code_entry func_ubound, UBOUND_IDX     ; $55 
@@ -196,11 +194,9 @@ code_addr:
     _code_entry cmd_servo_position, SERVO_POS_IDX 
     _code_entry cmd_size, SIZE_IDX          ; $7C
     _code_entry cmd_sleep, SLEEP_IDX        ; $7D
-.if NUCLEO_8S208RB
     _code_entry cmd_spi_enable, SPIEN_IDX   ; $7E
     _code_entry cmd_spi_select, SPISEL_IDX  ; $7F
 	_code_entry cmd_spi_write, SPIWR_IDX    ; $80
-.endif 
     _code_entry cmd_set_timer, TIMER_IDX    ; $81
     _code_entry cmd_tone, TONE_IDX          ; $82
 	_code_entry cmd_trace, TRACE_IDX        ; $83

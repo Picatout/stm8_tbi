@@ -10,9 +10,8 @@ CFLAGS=-mstm8 -lstm8 -L$(LIB_PATH) -I../inc
 INC=../inc/
 INCLUDES=$(BOARD_INC) $(INC)ascii.inc $(INC)gen_macros.inc cmd_idx.inc tbi_macros.inc dbg_macros.inc 
 BUILD=build/
-I2C=i2c.asm
 SRC=hardware_init.asm  debug_support.asm arithm24.asm flash_prog.asm files.asm\
-    terminal.asm code_address.asm compiler.asm $(I2C) decompiler.asm $(NAME).asm app.asm
+    terminal.asm code_address.asm compiler.asm i2c.asm spi.asm decompiler.asm $(NAME).asm app.asm
 OBJECT=$(BUILD)$(BOARD)/$(NAME).rel
 OBJECTS=$(BUILD)$(BOARD)/$(SRC:.asm=.rel)
 LIST=$(BUILD)$(BOARD)/$(NAME).lst
