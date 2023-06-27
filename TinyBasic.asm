@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=5
 	MINOR=0
-	REV=5
+	REV=6
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -1176,7 +1176,7 @@ relation:
 	ret 
 
 ;-------------------------------------------
-;  AND factor:  [NOT] relation | (condition)
+;  AND factor:  [NOT] relation
 ;  output:
 ;     A:X      boolean 
 ;-------------------------------------------
@@ -1191,15 +1191,8 @@ and_factor:
 	jrne 2$ 
 	cpl (NOT_OP,sp)
 	_next_token
-2$:	cp a,#LPAREN_IDX 
-	jrne 3$
-	call condition 
-	push a 
-	ld a,#RPAREN_IDX
-	call expect 
-	pop a
-	jra 5$
-3$:
+	jra 4$ 
+2$:	
 	_unget_token 
 4$:
 	call relation 	

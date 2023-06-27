@@ -1,3 +1,8 @@
+### 2023-06-27
+
+* V5.0R6 Correction d'un bogue dans l'évaluation des conditions. La syntaxe des condition a du être modifiée pour abandonnée les 
+conditions entre parenthèses. Les termes des conditions et des relations ne peuvent-être mis entre parenthèses seul les expressions arithmétique peuvent utiliser les parenthèses.  
+
 ### 2023-06-14 
 
 * Modifié révision vers V5.0R5 et ajouter tag.
