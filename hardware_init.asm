@@ -67,7 +67,7 @@ stack_unf: ; stack underflow ; control_stack bottom
 .if 0
 	int Timer1CCHandler ;int12 TIM1 capture/compare
 .else 
-	int NonHandledInterrupt ;int11 TIM1 ; int12 TIM1 capture/compare
+	int NonHandledInterrupt ; int12 TIM1 capture/compare
 .endif 
 	int NonHandledInterrupt ;int13 TIM2 update /overflow
 	int NonHandledInterrupt ;int14 TIM2 capture/compare

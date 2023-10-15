@@ -1,3 +1,9 @@
+### 2023-10-14
+
+* Bogue effacement d'une ligne produit une erreur.
+
+* Travail sur démo [BASIC/i2c_oled.bas](BASIC/i2c_oled.bas)
+
 ### 2023-06-27
 
 * V5.0R6 Correction d'un bogue dans l'évaluation des conditions. La syntaxe des condition a du être modifiée pour abandonnée les 
