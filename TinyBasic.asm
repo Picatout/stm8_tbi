@@ -172,7 +172,7 @@ move_exit:
 ;-----------------------
 	MAJOR=5
 	MINOR=0
-	REV=6
+	REV=7 
 		
 software: .asciz "\n\nTiny BASIC for STM8\nCopyright, Jacques Deschenes 2019,2022,2023\nversion "
 board:
@@ -521,7 +521,14 @@ skip_label:
 ; of _call_code 
 ;--------------------
 jump_label:
+	ldw x,y 
 	call skip_label 
+	ld a,(y)
+	cp a,#REL_EQU_IDX
+	jrne 9$
+	ldw y,x
+	jp do_dvar 
+9$:
 	_next 
 
 ;--------------------
@@ -4673,12 +4680,28 @@ read01:
 	jrne 1$ 
 	ld a,(x)
 	incw x 
-1$:
+1$: decw x 
+	pushw y 
+	ldw y,x
+	call expression 
+	_stryz data_ptr 
+	popw y 
+	ret 
 	cp a,#LIT_IDX 
 	jreq 2$
 	cp a,#LITW_IDX 
 	jreq 14$
+	cp a,#LABEL_IDX
+	jreq 12$
 	jra data_error 
+12$: ; LABEL should be symbolic constant  
+	pushw y 
+	decw x 
+	ldw y,x 
+	call factor
+	_stryz data_ptr
+	popw y 
+	ret  
 14$: ; word 
 	clr a 
 	_strxz data_ptr 	

@@ -1,3 +1,9 @@
+### 2023-10-15
+
+* Modifié interpréteur BASIC pour rendre le mot réservé **LET** optionnel.
+* Modifié **READ** pour accepter les expressions dans les lignes DATA.
+* Travail sur démo [BASIC/i2c_oled.bas](BASIC/i2c_oled.bas)
+
 ### 2023-10-14
 
 * Bogue effacement d'une ligne produit une erreur.

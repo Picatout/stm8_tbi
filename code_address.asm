@@ -55,9 +55,9 @@ code_addr:
     _code_entry syntax_error,LNADR_IDX ; $9 line address literal 
     LIT_LAST=TOK_IDX-1 
 ; variable identifiers  
-	_code_entry syntax_error,VAR_IDX    ; $B 
-	_code_entry syntax_error,ARRAY_IDX  ; $C
-	_code_entry jump_label,LABEL_IDX  ; $D  
+	_code_entry let_var,VAR_IDX    ; $A 
+	_code_entry syntax_error,ARRAY_IDX  ; $B
+	_code_entry jump_label,LABEL_IDX  ; $C  
     SYMB_LAST=TOK_IDX-1 
 ; arithmetic operators      
 	_code_entry syntax_error, ADD_IDX   ; $E 
