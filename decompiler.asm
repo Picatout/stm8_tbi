@@ -193,6 +193,15 @@ decomp_loop:
 	jrne 9$
 	jp decomp_exit
 9$:	call puts
+	ld a,(LAST_BC,sp)
+	cp a,#GOSUB_IDX 
+	jreq 10$
+    cp a,#GOTO_IDX 
+	jrne prt_space 
+10$:
+	call space 
+	call decomp_go 
+	jra decomp_loop 
 prt_space:
 	call space 
 	jra decomp_loop
@@ -217,23 +226,8 @@ literal: ; LIT_IDX
 ; print int16 	
 lit_word: ; LITW_IDX 
 	_get_word
-	tnzw x 
-	jrpl 1$
-	ld a,(LAST_BC,sp)
-	cp a,#GOSUB_IDX 
-	jrmi 1$ 
-	cp a,#GOTO_IDX 
-	jrugt 1$ 
-	subw x,#0x8000
-	addw x,txtbgn
-	pushw y 
-	ldw x,(x)
-	ldw y,x ; line #
-	ldw x,(1,sp) ; basicptr
-	subw x,#2 ; 
-	ldw (x),y
-	ldw x,y   
-	popw y 
+	dec count 
+	dec count 
 1$:	 
 	call prt_i16 
 	jra prt_space 	
@@ -246,11 +240,8 @@ comment: ; REM_IDX
 	jp decomp_exit 
 ; print label   	
 label: ; LABEL_IDX 
-	ldw x,y 
-	call skip_label 
-	incw x 
-	call puts
-	jp prt_space  
+	call print_label 
+	jp decomp_loop  
 ; print quoted string 	
 quoted_string:	
 	call prt_quote  
@@ -267,6 +258,54 @@ decomp_exit:
 	_drop VSIZE 
 	pop base 
 	ret 
+
+print_label:
+	ldw x,y 
+	call skip_label 
+	incw x 
+	call puts 
+	call space 
+	ret 
+
+;---------------------------
+; decompile GOSUB and GOTO 
+; arguments list 
+;---------------------------
+decomp_go:
+	_next_token 
+	dec count 
+	cp a,#LABEL_IDX
+	jrne 2$ 
+	call print_label 
+	jra 4$ 
+2$:	; must be LITW_IDX
+	_get_word 
+	dec count 
+	dec count 
+	tnzw x 
+	jrpl 3$ ; line number 
+	subw x,#0x8000 ; optimized offset 
+	addw x,txtbgn
+	pushw y 
+	ldw x,(x)
+	ldw y,x ; line #
+	ldw x,(1,sp) ; basicptr
+	subw x,#2 ; 
+	ldw (x),y
+	ldw x,y   
+	popw y
+3$:	call prt_i16 
+4$:	_next_token 
+	cp a,#COMMA_IDX 
+	jrne 9$
+	dec count
+	ld a,#',
+	call putc 
+	call space 
+	jra decomp_go  
+9$:	_unget_token
+	ret 
+
 
 ;----------------------------------
 ; search name in dictionary

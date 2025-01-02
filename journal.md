@@ -1,3 +1,8 @@
+#### 2025-01-01
+
+* Corrigé bogue dans le décompilateur qui de décompilait pas correctement la liste de cibles pour les ON exp GOTO|GOSUB.
+* tag V5.0R8
+
 ### 2023-10-15
 
 * Modifié interpréteur BASIC pour rendre le mot réservé **LET** optionnel.
